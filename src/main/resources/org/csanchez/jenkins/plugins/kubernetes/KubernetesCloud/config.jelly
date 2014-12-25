@@ -1,0 +1,40 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:entry title="${%Name}" field="name">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Kubernetes URL}" field="serverUrl">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Username}" field="username">
+      <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Password}" field="password">
+      <f:password />
+    </f:entry>
+
+    <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
+        <f:textbox default="5"/>
+    </f:entry>
+
+    <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
+        <f:textbox default="15"/>
+    </f:entry>
+
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,username,password" />
+
+    <f:entry title="${%Container Cap}" field="containerCapStr">
+        <f:textbox />
+    </f:entry>
+
+
+  <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
+   <f:repeatable field="templates">
+      <st:include page="config.jelly" class="${descriptor.clazz}" />
+    </f:repeatable>
+  </f:entry>
+
+</j:jelly>
