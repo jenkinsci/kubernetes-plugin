@@ -5,11 +5,12 @@ import hudson.model.TaskListener;
 import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.slaves.AbstractCloudSlave;
+import hudson.slaves.NodeProperty;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.JNLPLauncher;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,14 +28,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
+    private static final long serialVersionUID = -8642936855413034232L;
+
     public final Pod pod;
 
     @DataBoundConstructor
     public KubernetesSlave(Pod pod, DockerTemplate template, String nodeDescription) throws Descriptor.FormException,
             IOException {
-        super(pod.getId(), nodeDescription, template.getRemoteFsMapping(), template.getNumExecutors(),
-                Node.Mode.NORMAL, pod.getLabels().getName(), getLauncher(pod), new OnceRetentionStrategy(0),
-                new ArrayList());
+        super(pod.getId(), nodeDescription, "/", template.getNumExecutors(), Node.Mode.NORMAL, pod.getLabels()
+                .getName(), getLauncher(pod), new OnceRetentionStrategy(0), Collections
+                .<NodeProperty<Node>> emptyList());
 
         this.pod = pod;
     }
