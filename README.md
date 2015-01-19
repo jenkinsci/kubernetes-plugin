@@ -35,6 +35,13 @@ Example for a Kubernetes Vagrant setup, import certificate into `$JAVA_HOME/jre/
 
 [More resources on Certificates](http://erikzaadi.com/2011/09/09/connecting-jenkins-to-self-signed-certificated-servers/).
 
+# Debugging
+
+To inspect the json messages sent back and forth to the Kubernetes API server you can configure
+a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for `org.apache.http`
+at `DEBUG` level.
+
+
 # Building
 
 You need to build first the [Kubernetes Java API](https://github.com/carlossg/KubernetesAPIJavaClient) dependency with `mvn install`
