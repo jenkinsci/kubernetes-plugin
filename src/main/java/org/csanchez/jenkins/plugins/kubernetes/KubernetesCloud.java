@@ -14,11 +14,12 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.ext.RuntimeDelegate;
 
@@ -51,6 +52,7 @@ import com.nirima.jenkins.plugins.docker.DockerTemplate;
 public class KubernetesCloud extends Cloud {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
+    private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     public static final String CLOUD_ID_PREFIX = "kubernetes-";
 
@@ -112,8 +114,7 @@ public class KubernetesCloud extends Cloud {
                 // we need the RestEasy implementation, not the Jersey one
                 // loaded by default from the thread classloader
                 RuntimeDelegate.setInstance(new ResteasyProviderFactory());
-                connection = new KubernetesApiClient(serverUrl.toString() + "/api/v1beta1/", username, password,
-                        factory);
+                connection = new KubernetesApiClient(serverUrl.toString(), username, password, factory);
             }
         }
         return connection;
@@ -128,6 +129,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private ReplicationController getOrCreateReplicationController(Label label) throws KubernetesClientException {
+        DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         ReplicationController replicationController = null;
         try {
@@ -153,8 +155,8 @@ public class KubernetesCloud extends Cloud {
             podTemplate.setLabels(labels);
             Container container = new Container();
             container.setName(id);
-            container.setImage("csanchez/jenkins-swarm-slave:1.21");
-            container.setCommand("sh", "-c", "/usr/local/bin/jenkins-slave.sh -master http://$JENKINS_SERVICE_HOST:$JENKINS_SERVICE_PORT -tunnel $JENKINS_SLAVE_SERVICE_HOST:$JENKINS_SLAVE_SERVICE_PORT -username jenkins -password jenkins -executors 1");
+            container.setImage(template.image);
+            container.setCommand(parseDockerCommand(template.dockerCommand));
             Manifest manifest = new Manifest(Collections.singletonList(container), null);
             podTemplate.setDesiredState(new State(manifest));
             state.setPodTemplate(podTemplate);
@@ -162,8 +164,23 @@ public class KubernetesCloud extends Cloud {
             replicationController.setDesiredState(state);
             connect().createReplicationController(replicationController);
             LOGGER.log(Level.INFO, "Created Replication Controller: {0}", id);
+        } else {
+            // TODO update replication controller if there were changes in Jenkins
         }
         return replicationController;
+    }
+
+    List<String> parseDockerCommand(String dockerCommand) {
+        if (dockerCommand == null || dockerCommand.isEmpty()) {
+            return null;
+        }
+        // handle quoted arguments
+        Matcher m = SPLIT_IN_SPACES.matcher(dockerCommand);
+        List<String> commands = new ArrayList<String>();
+        while (m.find()) {
+            commands.add(m.group(1).replace("\"", ""));
+        }
+        return commands;
     }
 
     @Override
@@ -223,18 +240,20 @@ public class KubernetesCloud extends Cloud {
                                     // deferring the completion of provisioning
                                     // until the launch
                                     // goes successful prevents this problem.
-                                    slave.toComputer().connect(false).get();
+                                    //slave.toComputer().connect(false).get();
                                     return slave;
                                 } catch (Exception ex) {
-                                    if ((current == 1) && (replicationController != null) && (previousReplicas >= 0)) {
-                                        // undo the resizing of the controller
-                                        connect().updateReplicationController(replicationController.getId(),
-                                                previousReplicas);
-                                    }
                                     LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}",
                                             new Object[] { slave, t });
 
                                     ex.printStackTrace();
+                                    if ((current == 1) && (replicationController != null) && (previousReplicas >= 0)) {
+                                        // undo the resizing of the controller
+                                        LOGGER.log(Level.SEVERE, "Resizing replicationController {0} back to {1}",
+                                                new Object[] { replicationController.getId(), previousReplicas });
+                                        connect().updateReplicationController(replicationController.getId(),
+                                                previousReplicas);
+                                    }
                                     throw Throwables.propagate(ex);
                                 }
                             }
