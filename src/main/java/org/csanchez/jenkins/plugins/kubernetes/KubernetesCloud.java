@@ -209,8 +209,15 @@ public class KubernetesCloud extends Cloud {
                                         replicationController = getOrCreateReplicationController(label);
 
                                         State state = replicationController.getDesiredState();
-                                        connect().updateReplicationController(replicationController.getId(),
-                                                state.getReplicas() + (excessWorkload / t.getNumExecutors()));
+                                        int i = state.getReplicas() + (excessWorkload / t.getNumExecutors());
+                                        if (i > containerCap) {
+                                            LOGGER.log(Level.INFO, "Hit container cap ({1}) for template {0}",
+                                                    new Object[] { containerCap, t });
+                                            i = containerCap;
+                                        }
+                                        if (i != state.getReplicas()) {
+                                            connect().updateReplicationController(replicationController.getId(), i);
+                                        }
                                         previousReplicas = state.getReplicas();
                                     }
 
