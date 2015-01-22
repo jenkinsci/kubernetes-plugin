@@ -32,6 +32,7 @@ Example for a Kubernetes Vagrant setup, import certificate into `$JAVA_HOME/jre/
       -keystore $JAVA_HOME/jre/lib/security/jssecacerts -keypass changeit \
       -storepass changeit
 
+In Google Container Engine the certificate is in the master node under `/srv/kubernetes/server.cert`
 
 [More resources on Certificates](http://erikzaadi.com/2011/09/09/connecting-jenkins-to-self-signed-certificated-servers/).
 
