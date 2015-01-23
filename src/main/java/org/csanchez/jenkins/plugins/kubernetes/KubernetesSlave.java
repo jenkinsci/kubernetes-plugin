@@ -11,12 +11,14 @@ import hudson.slaves.JNLPLauncher;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import com.github.kubernetes.java.client.exceptions.Status;
 import com.github.kubernetes.java.client.model.Pod;
 import com.google.common.base.MoreObjects;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
@@ -30,16 +32,25 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final long serialVersionUID = -8642936855413034232L;
 
-    public final Pod pod;
+    private final Pod pod;
+
+    private final KubernetesCloud cloud;
 
     @DataBoundConstructor
-    public KubernetesSlave(Pod pod, DockerTemplate template, String nodeDescription) throws Descriptor.FormException,
-            IOException {
-        super(pod.getId(), nodeDescription, "/", template.getNumExecutors(), Node.Mode.NORMAL, pod.getLabels()
-                .getName(), getLauncher(pod), new OnceRetentionStrategy(0), Collections
-                .<NodeProperty<Node>> emptyList());
+    public KubernetesSlave(Pod pod, DockerTemplate template, String nodeDescription, KubernetesCloud cloud)
+            throws Descriptor.FormException, IOException {
+        super(pod.getId(), //
+                nodeDescription, //
+                "/", //
+                template.getNumExecutors(), //
+                Node.Mode.NORMAL, //
+                pod.getLabels().getName(), //
+                getLauncher(pod), //
+                new OnceRetentionStrategy(0), //
+                Collections.<NodeProperty<Node>> emptyList());
 
         this.pod = pod;
+        this.cloud = cloud;
     }
 
     private static ComputerLauncher getLauncher(Pod pod) {
@@ -53,12 +64,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
-        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave " + name);
+        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
         try {
+            cloud.connect().deletePod(this.pod.getId());
+            LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             toComputer().disconnect(null);
-            // TODO
-
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failure to terminate instance for slave " + name, e);
         }
