@@ -59,8 +59,21 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.7</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <configuration>
+          <pluginFirstClassLoader>true</pluginFirstClassLoader>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
