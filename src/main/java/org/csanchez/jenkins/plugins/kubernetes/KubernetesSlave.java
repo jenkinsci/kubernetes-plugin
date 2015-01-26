@@ -6,19 +6,15 @@ import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.NodeProperty;
-import hudson.slaves.ComputerLauncher;
-import hudson.slaves.JNLPLauncher;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.github.kubernetes.java.client.exceptions.Status;
 import com.github.kubernetes.java.client.model.Pod;
 import com.google.common.base.MoreObjects;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
@@ -45,16 +41,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getNumExecutors(), //
                 Node.Mode.NORMAL, //
                 pod.getLabels().getName(), //
-                getLauncher(pod), //
+                new KubernetesComputerLauncher(pod, template), //
                 new OnceRetentionStrategy(0), //
                 Collections.<NodeProperty<Node>> emptyList());
 
         this.pod = pod;
         this.cloud = cloud;
-    }
-
-    private static ComputerLauncher getLauncher(Pod pod) {
-        return new JNLPLauncher();
     }
 
     @Override

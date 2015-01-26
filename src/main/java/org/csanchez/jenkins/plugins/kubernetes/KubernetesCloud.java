@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +35,7 @@ import com.github.kubernetes.java.client.interfaces.KubernetesAPIClientInterface
 import com.github.kubernetes.java.client.model.Container;
 import com.github.kubernetes.java.client.model.Manifest;
 import com.github.kubernetes.java.client.model.Pod;
-import com.github.kubernetes.java.client.model.PodList;
+import com.github.kubernetes.java.client.model.Port;
 import com.github.kubernetes.java.client.model.ReplicationController;
 import com.github.kubernetes.java.client.model.Selector;
 import com.github.kubernetes.java.client.model.State;
@@ -43,10 +44,14 @@ import com.github.kubernetes.java.client.v2.RestFactory;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
 /**
+ * Kubernetes cloud provider.
+ * 
+ * Starts slaves in a Kubernetes cluster using defined Docker templates for each
+ * label.
+ * 
  * @author Carlos Sanchez <carlos@apache.org>
  */
 public class KubernetesCloud extends Cloud {
@@ -56,7 +61,7 @@ public class KubernetesCloud extends Cloud {
 
     public static final String CLOUD_ID_PREFIX = "kubernetes-";
 
-    protected static final String DEFAULT_LABEL = "jenkins-slave";
+    private static final Random RAND = new Random();
 
     public final List<DockerTemplate> templates;
     public final String serverUrl;
@@ -128,6 +133,10 @@ public class KubernetesCloud extends Cloud {
         return "jenkins-" + label.getName();
     }
 
+    @Deprecated
+    /**
+     * Not using replication controllers for now
+     */
     private ReplicationController getOrCreateReplicationController(Label label) throws KubernetesClientException {
         ReplicationController replicationController = null;
         String id = getIdForLabel(label);
@@ -156,7 +165,8 @@ public class KubernetesCloud extends Cloud {
             connect().createReplicationController(replicationController);
             LOGGER.log(Level.INFO, "Created Replication Controller: {0}", id);
         } else {
-            // TODO update replication controller if there were changes in Jenkins
+            // TODO update replication controller if there were changes in
+            // Jenkins
         }
         return replicationController;
     }
@@ -169,12 +179,21 @@ public class KubernetesCloud extends Cloud {
         Container container = new Container();
         container.setName(id);
         container.setImage(template.image);
+        // open ssh in a dynamic port, hopefully not yet used host port
+        // 49152-65535
+        container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) + 49152));
         container.setCommand(parseDockerCommand(template.dockerCommand));
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
         podTemplate.setDesiredState(new State(manifest));
         return podTemplate;
     }
 
+    /**
+     * Split a command in the parts that Docker need
+     * 
+     * @param dockerCommand
+     * @return
+     */
     List<String> parseDockerCommand(String dockerCommand) {
         if (dockerCommand == null || dockerCommand.isEmpty()) {
             return null;
@@ -200,50 +219,17 @@ public class KubernetesCloud extends Cloud {
             final KubernetesCloud cloud = this;
 
             for (int i = 1; i <= excessWorkload; i++) {
-                final int current = i;
                 r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
                         .submit(new Callable<Node>() {
                             public Node call() throws Exception {
 
                                 KubernetesSlave slave = null;
-                                ReplicationController replicationController = null;
-                                int previousReplicas = -1;
                                 try {
 
-                                    // Implementation using a replicationController
-                                    // Only call API once
-//                                    if (current == 1) {
-//                                        replicationController = getOrCreateReplicationController(label);
-
-//                                        State state = replicationController.getDesiredState();
-//                                        int i = state.getReplicas() + (excessWorkload / t.getNumExecutors());
-//                                        if (i > containerCap) {
-//                                            LOGGER.log(Level.INFO, "Hit container cap ({0}) for template {1}",
-//                                                    new Object[] { containerCap, t });
-//                                            i = containerCap;
-//                                        }
-//                                        if (i != state.getReplicas()) {
-//                                            connect().updateReplicationController(replicationController.getId(), i);
-//                                        }
-//                                        previousReplicas = state.getReplicas();
-//                                    }
-
-                                    LOGGER.log(Level.INFO, "Creating Pod: {0}", "");
                                     Pod pod = connect().createPod(getPodTemplate(label));
                                     LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
-
-                                    String labelName = label == null ? DEFAULT_LABEL : label.getName();
-//                                    Thread.sleep(5000); // TODO
-//                                    PodList pods = connect().getSelectedPods(
-//                                            ImmutableList.of(new com.github.kubernetes.java.client.model.Label(
-//                                                    labelName)));
-//                                    for (Pod pod : pods.getItems()) {
-//                                        if (Jenkins.getInstance().getNode(pod.getId()) == null) {
-                                            slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
-                                            Jenkins.getInstance().addNode(slave);
-//                                            break;
-//                                        }
-//                                    }
+                                    slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
+                                    Jenkins.getInstance().addNode(slave);
                                     // Docker instances may have a long init
                                     // script. If we declare
                                     // the provisioning complete by returning
@@ -259,20 +245,13 @@ public class KubernetesCloud extends Cloud {
                                     // deferring the completion of provisioning
                                     // until the launch
                                     // goes successful prevents this problem.
-                                    //slave.toComputer().connect(false).get();
+                                    slave.toComputer().connect(false).get();
                                     return slave;
                                 } catch (Exception ex) {
                                     LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}",
                                             new Object[] { slave, t });
 
                                     ex.printStackTrace();
-//                                    if ((current == 1) && (replicationController != null) && (previousReplicas >= 0)) {
-//                                        // undo the resizing of the controller
-//                                        LOGGER.log(Level.SEVERE, "Resizing replicationController {0} back to {1}",
-//                                                new Object[] { replicationController.getId(), previousReplicas });
-//                                        connect().updateReplicationController(replicationController.getId(),
-//                                                previousReplicas);
-//                                    }
                                     throw Throwables.propagate(ex);
                                 }
                             }
