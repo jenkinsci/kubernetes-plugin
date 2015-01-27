@@ -254,9 +254,15 @@ public class KubernetesCloud extends Cloud {
                                         Thread.sleep(1000);
                                         pod = connect().getPod(pod.getId());
                                         StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
-                                        if ((info != null) && (info.getState("waiting") != null)) {
-                                            throw new IllegalStateException("Pod is waiting due to "
-                                                    + info.getState("waiting"));
+                                        if (info != null) {
+                                            if (info.getState("waiting") != null) {
+                                                throw new IllegalStateException("Pod is waiting due to "
+                                                        + info.getState("waiting"));
+                                            }
+                                            if (info.getState("termination") != null) {
+                                                throw new IllegalStateException("Pod is terminated. Exit code: "
+                                                        + info.getState("termination").get("exitCode"));
+                                            }
                                         }
                                         if ("Running".equals(pod.getCurrentState().getStatus())) {
                                             break;
