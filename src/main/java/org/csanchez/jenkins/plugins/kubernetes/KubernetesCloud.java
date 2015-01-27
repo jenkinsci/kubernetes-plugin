@@ -308,7 +308,7 @@ public class KubernetesCloud extends Cloud {
                                     // deferring the completion of provisioning
                                     // until the launch
                                     // goes successful prevents this problem.
-                                    slave.toComputer().connect(false).get();
+                                    // slave.toComputer().connect(false).get();
                                     return slave;
                                 } catch (Exception ex) {
                                     LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}",
