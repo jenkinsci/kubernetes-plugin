@@ -49,7 +49,7 @@ public class KubernetesComputerLauncher extends DelegatingComputerLauncher {
         StandardUsernameCredentials credentials = SSHLauncher.lookupSystemCredentials(template.credentialsId);
 
         return new SSHLauncher( //
-                host.toString(), //
+                host, //
                 port, //
                 credentials, //
                 template.jvmOptions, //

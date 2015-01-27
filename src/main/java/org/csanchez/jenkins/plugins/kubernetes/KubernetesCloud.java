@@ -39,6 +39,7 @@ import com.github.kubernetes.java.client.model.Port;
 import com.github.kubernetes.java.client.model.ReplicationController;
 import com.github.kubernetes.java.client.model.Selector;
 import com.github.kubernetes.java.client.model.State;
+import com.github.kubernetes.java.client.model.StateInfo;
 import com.github.kubernetes.java.client.v2.KubernetesApiClient;
 import com.github.kubernetes.java.client.v2.RestFactory;
 import com.google.common.base.MoreObjects;
@@ -62,6 +63,9 @@ public class KubernetesCloud extends Cloud {
     public static final String CLOUD_ID_PREFIX = "kubernetes-";
 
     private static final Random RAND = new Random();
+
+    private static final String DEFAULT_ID = "jenkins-slave";
+    private static final String CONTAINER_NAME = "slave";
 
     public final List<DockerTemplate> templates;
     public final String serverUrl;
@@ -128,7 +132,7 @@ public class KubernetesCloud extends Cloud {
 
     private String getIdForLabel(Label label) {
         if (label == null) {
-            return "jenkins-slave";
+            return DEFAULT_ID;
         }
         return "jenkins-" + label.getName();
     }
@@ -177,7 +181,7 @@ public class KubernetesCloud extends Cloud {
         Pod podTemplate = new Pod();
         podTemplate.setLabels(new com.github.kubernetes.java.client.model.Label(id));
         Container container = new Container();
-        container.setName(id);
+        container.setName(CONTAINER_NAME);
         container.setImage(template.image);
         // open ssh in a dynamic port, hopefully not yet used host port
         // 49152-65535
@@ -228,6 +232,26 @@ public class KubernetesCloud extends Cloud {
 
                                     Pod pod = connect().createPod(getPodTemplate(label));
                                     LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
+                                    int j = 600;
+                                    for (int i = 0; i < j; i++) {
+                                        LOGGER.log(Level.INFO, "Waiting for Pod to be ready ({1}/{2}): {0}",
+                                                new Object[] { pod.getId(), i, j });
+                                        Thread.sleep(1000);
+                                        pod = connect().getPod(pod.getId());
+                                        StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
+                                        if ((info != null) && (info.getState("waiting") != null)) {
+                                            throw new IllegalStateException("Pod is waiting due to "
+                                                    + info.getState("waiting"));
+                                        }
+                                        if ("Running".equals(pod.getCurrentState().getStatus())) {
+                                            break;
+                                        }
+                                    }
+                                    if (!"Running".equals(pod.getCurrentState().getStatus())) {
+                                        throw new IllegalStateException("Container is not running after " + j
+                                                + " attempts.");
+                                    }
+
                                     slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
                                     Jenkins.getInstance().addNode(slave);
                                     // Docker instances may have a long init
