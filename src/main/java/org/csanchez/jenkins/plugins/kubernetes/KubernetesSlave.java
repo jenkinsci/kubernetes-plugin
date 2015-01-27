@@ -43,7 +43,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 "/", //
                 template.getNumExecutors(), //
                 Node.Mode.NORMAL, //
-                pod.getLabels().getName(), //
+                pod.getLabels().get("name"), //
                 new KubernetesComputerLauncher(pod, template), //
                 getRetentionStrategy(template), //
                 Collections.<NodeProperty<Node>> emptyList());

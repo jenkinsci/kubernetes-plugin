@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -47,6 +48,7 @@ import com.github.kubernetes.java.client.v2.RestFactory;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
 /**
@@ -69,8 +71,7 @@ public class KubernetesCloud extends Cloud {
     private static final String DEFAULT_ID = "jenkins-slave-default";
 
     /** label for all pods started by the plugin */
-    private static final com.github.kubernetes.java.client.model.Label POD_LABEL = new com.github.kubernetes.java.client.model.Label(
-            "jenkins-slave");
+    private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
 
     private static final String CONTAINER_NAME = "slave";
 
@@ -159,10 +160,11 @@ public class KubernetesCloud extends Cloud {
         if (replicationController == null) {
             LOGGER.log(Level.INFO, "Creating Replication Controller: {0}", id);
 
-            com.github.kubernetes.java.client.model.Label labels = new com.github.kubernetes.java.client.model.Label(id);
+            // com.github.kubernetes.java.client.model.Label labels = new
+            // com.github.kubernetes.java.client.model.Label(id);
             replicationController = new ReplicationController();
             replicationController.setId(id);
-            replicationController.setLabels(labels);
+            // replicationController.setLabels(labels);
 
             // Desired State
             State state = new State();
@@ -186,8 +188,10 @@ public class KubernetesCloud extends Cloud {
         DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod podTemplate = new Pod();
-        // TODO add POD_LABEL
-        podTemplate.setLabels(new com.github.kubernetes.java.client.model.Label(id));
+
+        // labels
+        podTemplate.setLabels(getLabelsFor(id));
+
         Container container = new Container();
         container.setName(CONTAINER_NAME);
         container.setImage(template.image);
@@ -212,6 +216,10 @@ public class KubernetesCloud extends Cloud {
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
         podTemplate.setDesiredState(new State(manifest));
         return podTemplate;
+    }
+
+    private Map<String, String> getLabelsFor(String id) {
+        return ImmutableMap.<String, String> builder().putAll(POD_LABEL).putAll(ImmutableMap.of("name", id)).build();
     }
 
     /**
@@ -328,15 +336,14 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
-        PodList allPods = connect().getSelectedPods(Collections.singletonList(POD_LABEL));
+        PodList allPods = connect().getSelectedPods(POD_LABEL);
 
         if (allPods.size() >= containerCap) {
             LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
             return false; // maxed out
         }
 
-        PodList labelPods = connect().getSelectedPods(
-                Collections.singletonList(new com.github.kubernetes.java.client.model.Label(getIdForLabel(label))));
+        PodList labelPods = connect().getSelectedPods(ImmutableMap.of("name", getIdForLabel(label)));
 
         if (labelPods.size() >= template.instanceCap) {
             LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
