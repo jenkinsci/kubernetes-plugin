@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.plugins.sshslaves.SSHLauncher;
-import hudson.slaves.ComputerLauncher;
 import hudson.slaves.DelegatingComputerLauncher;
 
 import java.util.List;
@@ -14,7 +13,6 @@ import com.github.kubernetes.java.client.model.Pod;
 import com.github.kubernetes.java.client.model.Port;
 import com.google.common.base.Preconditions;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
-import com.nirima.jenkins.plugins.docker.utils.RetryingComputerLauncher;
 
 /**
  * {@link hudson.slaves.ComputerLauncher} for Docker that waits for the instance
@@ -26,12 +24,7 @@ public class KubernetesComputerLauncher extends DelegatingComputerLauncher {
     private static final Logger LOGGER = Logger.getLogger(KubernetesComputerLauncher.class.getName());
 
     public KubernetesComputerLauncher(Pod pod, DockerTemplate template) {
-        super(makeLauncher(pod, template));
-    }
-
-    private static ComputerLauncher makeLauncher(Pod pod, DockerTemplate template) {
-        SSHLauncher sshLauncher = getSSHLauncher(pod, template);
-        return new RetryingComputerLauncher(sshLauncher);
+        super(getSSHLauncher(pod, template));
     }
 
     private static SSHLauncher getSSHLauncher(Pod pod, DockerTemplate template) {
@@ -56,7 +49,9 @@ public class KubernetesComputerLauncher extends DelegatingComputerLauncher {
                 template.javaPath, //
                 template.prefixStartSlaveCmd, //
                 template.suffixStartSlaveCmd, //
-                60 // template.getSSHLaunchTimeoutMinutes() * 60
+                template.getSSHLaunchTimeoutMinutes() * 60, //
+                6, //
+                10 //
         );
 
     }
