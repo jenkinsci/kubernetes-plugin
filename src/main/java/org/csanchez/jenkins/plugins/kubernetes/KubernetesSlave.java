@@ -6,6 +6,7 @@ import hudson.model.Descriptor;
 import hudson.model.Node;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.NodeProperty;
+import hudson.slaves.RetentionStrategy;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -17,6 +18,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.github.kubernetes.java.client.model.Pod;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
+import com.google.common.primitives.Ints;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
 /**
@@ -42,11 +45,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 Node.Mode.NORMAL, //
                 pod.getLabels().getName(), //
                 new KubernetesComputerLauncher(pod, template), //
-                new OnceRetentionStrategy(0), //
+                getRetentionStrategy(template), //
                 Collections.<NodeProperty<Node>> emptyList());
 
         this.pod = pod;
         this.cloud = cloud;
+    }
+
+    private static RetentionStrategy getRetentionStrategy(DockerTemplate template) {
+        return new OnceRetentionStrategy(Optional.fromNullable(Ints.tryParse(template.idleTerminationMinutes)).or(0));
     }
 
     @Override
