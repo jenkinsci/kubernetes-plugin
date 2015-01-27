@@ -33,6 +33,7 @@ import org.kohsuke.stapler.QueryParameter;
 import com.github.kubernetes.java.client.exceptions.KubernetesClientException;
 import com.github.kubernetes.java.client.interfaces.KubernetesAPIClientInterface;
 import com.github.kubernetes.java.client.model.Container;
+import com.github.kubernetes.java.client.model.EnvironmentVariable;
 import com.github.kubernetes.java.client.model.Manifest;
 import com.github.kubernetes.java.client.model.Pod;
 import com.github.kubernetes.java.client.model.Port;
@@ -183,10 +184,24 @@ public class KubernetesCloud extends Cloud {
         Container container = new Container();
         container.setName(CONTAINER_NAME);
         container.setImage(template.image);
+
+        // environment
+        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(template.environment.length);
+        for (int i = 0; i < template.environment.length; i++) {
+            String[] split = template.environment[i].split("=");
+            env.add(new EnvironmentVariable(split[0], split[1]));
+        }
+        container.setEnv(env);
+
+        // ports
         // open ssh in a dynamic port, hopefully not yet used host port
         // 49152-65535
+        // TODO open ports defined in template
         container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) + 49152));
+
+        // command
         container.setCommand(parseDockerCommand(template.dockerCommand));
+
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
         podTemplate.setDesiredState(new State(manifest));
         return podTemplate;
