@@ -36,6 +36,7 @@ import com.github.kubernetes.java.client.model.Container;
 import com.github.kubernetes.java.client.model.EnvironmentVariable;
 import com.github.kubernetes.java.client.model.Manifest;
 import com.github.kubernetes.java.client.model.Pod;
+import com.github.kubernetes.java.client.model.PodList;
 import com.github.kubernetes.java.client.model.Port;
 import com.github.kubernetes.java.client.model.ReplicationController;
 import com.github.kubernetes.java.client.model.Selector;
@@ -65,7 +66,12 @@ public class KubernetesCloud extends Cloud {
 
     private static final Random RAND = new Random();
 
-    private static final String DEFAULT_ID = "jenkins-slave";
+    private static final String DEFAULT_ID = "jenkins-slave-default";
+
+    /** label for all pods started by the plugin */
+    private static final com.github.kubernetes.java.client.model.Label POD_LABEL = new com.github.kubernetes.java.client.model.Label(
+            "jenkins-slave");
+
     private static final String CONTAINER_NAME = "slave";
 
     public final List<DockerTemplate> templates;
@@ -180,6 +186,7 @@ public class KubernetesCloud extends Cloud {
         DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod podTemplate = new Pod();
+        // TODO add POD_LABEL
         podTemplate.setLabels(new com.github.kubernetes.java.client.model.Label(id));
         Container container = new Container();
         container.setName(CONTAINER_NAME);
@@ -238,13 +245,16 @@ public class KubernetesCloud extends Cloud {
             final KubernetesCloud cloud = this;
 
             for (int i = 1; i <= excessWorkload; i++) {
+                if (!addProvisionedSlave(t, label)) {
+                    break;
+                }
+
                 r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
                         .submit(new Callable<Node>() {
                             public Node call() throws Exception {
 
                                 KubernetesSlave slave = null;
                                 try {
-
                                     Pod pod = connect().createPod(getPodTemplate(label));
                                     LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
                                     int j = 600;
@@ -307,6 +317,34 @@ public class KubernetesCloud extends Cloud {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * Check not too many already running.
+     *
+     */
+    private boolean addProvisionedSlave(DockerTemplate template, Label label) throws Exception {
+        if (containerCap == 0) {
+            return true;
+        }
+
+        PodList allPods = connect().getSelectedPods(Collections.singletonList(POD_LABEL));
+
+        if (allPods.size() >= containerCap) {
+            LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
+            return false; // maxed out
+        }
+
+        PodList labelPods = connect().getSelectedPods(
+                Collections.singletonList(new com.github.kubernetes.java.client.model.Label(getIdForLabel(label))));
+
+        if (labelPods.size() >= template.instanceCap) {
+            LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
+                    + template.image + ", not provisioning.");
+            return false; // maxed out
+        }
+
+        return true;
     }
 
     @Override
