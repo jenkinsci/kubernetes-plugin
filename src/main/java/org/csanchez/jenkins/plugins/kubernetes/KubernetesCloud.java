@@ -120,7 +120,7 @@ public class KubernetesCloud extends Cloud {
                 if (connection != null)
                     return connection;
 
-                RestFactory factory = new RestFactory(getClass().getClassLoader());
+                RestFactory factory = new RestFactory().classLoader(getClass().getClassLoader()).connectionPoolSize(2);
                 // we need the RestEasy implementation, not the Jersey one
                 // loaded by default from the thread classloader
                 RuntimeDelegate.setInstance(new ResteasyProviderFactory());
