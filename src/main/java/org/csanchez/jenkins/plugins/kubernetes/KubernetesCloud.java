@@ -250,7 +250,6 @@ public class KubernetesCloud extends Cloud {
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             final DockerTemplate t = getTemplate(label);
-            final KubernetesCloud cloud = this;
 
             for (int i = 1; i <= excessWorkload; i++) {
                 if (!addProvisionedSlave(t, label)) {
@@ -258,72 +257,72 @@ public class KubernetesCloud extends Cloud {
                 }
 
                 r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                        .submit(new Callable<Node>() {
-                            public Node call() throws Exception {
-
-                                KubernetesSlave slave = null;
-                                try {
-                                    Pod pod = connect().createPod(getPodTemplate(label));
-                                    LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
-                                    int j = 600;
-                                    for (int i = 0; i < j; i++) {
-                                        LOGGER.log(Level.INFO, "Waiting for Pod to be ready ({1}/{2}): {0}",
-                                                new Object[] { pod.getId(), i, j });
-                                        Thread.sleep(1000);
-                                        pod = connect().getPod(pod.getId());
-                                        StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
-                                        if (info != null) {
-                                            if (info.getState("waiting") != null) {
-                                                throw new IllegalStateException("Pod is waiting due to "
-                                                        + info.getState("waiting"));
-                                            }
-                                            if (info.getState("termination") != null) {
-                                                throw new IllegalStateException("Pod is terminated. Exit code: "
-                                                        + info.getState("termination").get("exitCode"));
-                                            }
-                                        }
-                                        if ("Running".equals(pod.getCurrentState().getStatus())) {
-                                            break;
-                                        }
-                                    }
-                                    if (!"Running".equals(pod.getCurrentState().getStatus())) {
-                                        throw new IllegalStateException("Container is not running after " + j
-                                                + " attempts.");
-                                    }
-
-                                    slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
-                                    Jenkins.getInstance().addNode(slave);
-                                    // Docker instances may have a long init
-                                    // script. If we declare
-                                    // the provisioning complete by returning
-                                    // without the connect
-                                    // operation, NodeProvisioner may decide
-                                    // that it still wants
-                                    // one more instance, because it sees that
-                                    // (1) all the slaves
-                                    // are offline (because it's still being
-                                    // launched) and
-                                    // (2) there's no capacity provisioned yet.
-                                    //
-                                    // deferring the completion of provisioning
-                                    // until the launch
-                                    // goes successful prevents this problem.
-                                    // slave.toComputer().connect(false).get();
-                                    return slave;
-                                } catch (Exception ex) {
-                                    LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}",
-                                            new Object[] { slave, t });
-
-                                    ex.printStackTrace();
-                                    throw Throwables.propagate(ex);
-                                }
-                            }
-                        }), t.getNumExecutors()));
+                        .submit(new ProvisioningCallback(this, t, label)), t.getNumExecutors()));
             }
             return r;
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
             return Collections.emptyList();
+        }
+    }
+
+    private class ProvisioningCallback implements Callable<Node> {
+        private final KubernetesCloud cloud;
+        private final DockerTemplate t;
+        private final Label label;
+
+        public ProvisioningCallback(KubernetesCloud cloud, DockerTemplate t, Label label) {
+            this.cloud = cloud;
+            this.t = t;
+            this.label = label;
+        }
+
+        public Node call() throws Exception {
+            KubernetesSlave slave = null;
+            try {
+                Pod pod = connect().createPod(getPodTemplate(label));
+                LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
+                int j = 600;
+                for (int i = 0; i < j; i++) {
+                    LOGGER.log(Level.INFO, "Waiting for Pod to be ready ({1}/{2}): {0}", new Object[] { pod.getId(), i,
+                            j });
+                    Thread.sleep(1000);
+                    pod = connect().getPod(pod.getId());
+                    StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
+                    if (info != null) {
+                        if (info.getState("waiting") != null) {
+                            throw new IllegalStateException("Pod is waiting due to " + info.getState("waiting"));
+                        }
+                        if (info.getState("termination") != null) {
+                            throw new IllegalStateException("Pod is terminated. Exit code: "
+                                    + info.getState("termination").get("exitCode"));
+                        }
+                    }
+                    if ("Running".equals(pod.getCurrentState().getStatus())) {
+                        break;
+                    }
+                }
+                if (!"Running".equals(pod.getCurrentState().getStatus())) {
+                    throw new IllegalStateException("Container is not running after " + j + " attempts.");
+                }
+
+                slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
+                Jenkins.getInstance().addNode(slave);
+                // Docker instances may have a long init script. If we declare
+                // the provisioning complete by returning without the connect
+                // operation, NodeProvisioner may decide
+                // that it still wants one more instance, because it sees that
+                // (1) all the slaves are offline (because it's still being
+                // launched) and (2) there's no capacity provisioned yet.
+                // deferring the completion of provisioning until the launch
+                // goes successful prevents this problem.
+                // slave.toComputer().connect(false).get();
+                return slave;
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
+                ex.printStackTrace();
+                throw Throwables.propagate(ex);
+            }
         }
     }
 
