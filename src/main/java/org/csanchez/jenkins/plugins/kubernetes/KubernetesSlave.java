@@ -19,6 +19,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import com.github.kubernetes.java.client.model.Pod;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
@@ -40,7 +41,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             throws Descriptor.FormException, IOException {
         super(pod.getId(), //
                 nodeDescription, //
-                "/", //
+                Strings.isNullOrEmpty(template.remoteFs) ? "/home/jenkins" : template.remoteFs, //
                 template.getNumExecutors(), //
                 Node.Mode.NORMAL, //
                 pod.getLabels().get("name"), //
