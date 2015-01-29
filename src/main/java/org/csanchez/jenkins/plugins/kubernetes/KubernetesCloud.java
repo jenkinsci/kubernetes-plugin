@@ -281,17 +281,20 @@ public class KubernetesCloud extends Cloud {
             KubernetesSlave slave = null;
             try {
                 Pod pod = connect().createPod(getPodTemplate(label));
-                LOGGER.log(Level.INFO, "Created Pod: {0}", pod);
+                LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
                 int j = 600;
                 for (int i = 0; i < j; i++) {
-                    LOGGER.log(Level.INFO, "Waiting for Pod to be ready ({1}/{2}): {0}", new Object[] { pod.getId(), i,
-                            j });
+                    LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {
+                            pod.getId(), i, j });
                     Thread.sleep(1000);
                     pod = connect().getPod(pod.getId());
                     StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
                     if (info != null) {
                         if (info.getState("waiting") != null) {
-                            throw new IllegalStateException("Pod is waiting due to " + info.getState("waiting"));
+                            // Pod is waiting, but we can continue
+                            LOGGER.log(Level.INFO, "Pod is waiting {0}: {1}",
+                                    new Object[] { pod.getId(), info.getState("waiting") });
+                            break;
                         }
                         if (info.getState("termination") != null) {
                             throw new IllegalStateException("Pod is terminated. Exit code: "
@@ -302,8 +305,9 @@ public class KubernetesCloud extends Cloud {
                         break;
                     }
                 }
-                if (!"Running".equals(pod.getCurrentState().getStatus())) {
-                    throw new IllegalStateException("Container is not running after " + j + " attempts.");
+                String status = pod.getCurrentState().getStatus();
+                if (!"Running".equals(status) && !"Waiting".equals(status)) {
+                    throw new IllegalStateException("Container is not running after " + j + " attempts: " + status);
                 }
 
                 slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
