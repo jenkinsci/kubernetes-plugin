@@ -3,20 +3,16 @@ jenkins-kubernetes-plugin
 
 Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment.
 
-**Work in progress!!!**
-
 Based on the [Scaling Docker with Kubernetes](http://www.infoq.com/articles/scaling-docker-with-kubernetes) article,
 automates the scaling of Jenkins slaves running in Kubernetes.
 
-The plugin creates a replication controller for each type of slave,
-defined by the Docker image to run, and then scale the controller
-up and down before and after each build as needed.
+The plugin creates a Kubernetes Pod for each slave started,
+defined by the Docker image to run, and stops it after each build.
 
-The images to run are expected to use [Jenkins Swarm](https://wiki.jenkins-ci.org/display/JENKINS/Swarm+Plugin), as in
-[csanchez/jenkins-swarm-slave](https://registry.hub.docker.com/u/csanchez/jenkins-swarm-slave/).
-Swarm slaves self register when started,
-SSH agents don't make a lot of sense in a Kubernetes environment and complicate
-the networking setup.
+Slaves are launched using SSH, so it is expected that the image runs the SSH daemon.
+Tested with [`csanchez/jenkins-slave`](https://registry.hub.docker.com/u/csanchez/jenkins-slave/).
+In a Kubernetes environment it would make more sense to use the Swarm plugin to avoid opening ports,
+something to work on in the future.
 
 
 # Configuration
@@ -36,6 +32,8 @@ In Google Container Engine the certificate is in the master node under `/srv/kub
 or already copied in your local system under `~/.config/gcloud/kubernetes` if you used `gcloud`
 
 [More resources on Certificates](http://erikzaadi.com/2011/09/09/connecting-jenkins-to-self-signed-certificated-servers/).
+
+The Jenkins server needs network access to the minions in order to connect to the containers via SSH.
 
 # Debugging
 
