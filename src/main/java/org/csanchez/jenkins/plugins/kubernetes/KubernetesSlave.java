@@ -3,13 +3,16 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.TaskListener;
 import hudson.model.Descriptor;
+import hudson.model.Label;
 import hudson.model.Node;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.NodeProperty;
+import hudson.slaves.JNLPLauncher;
 import hudson.slaves.RetentionStrategy;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,24 +35,24 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final long serialVersionUID = -8642936855413034232L;
 
-    private final Pod pod;
+    // private final Pod pod;
 
     private final KubernetesCloud cloud;
 
     @DataBoundConstructor
-    public KubernetesSlave(Pod pod, DockerTemplate template, String nodeDescription, KubernetesCloud cloud)
+    public KubernetesSlave(DockerTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
-        super(pod.getId(), //
+        super(UUID.randomUUID().toString(), //
                 nodeDescription, //
                 Strings.isNullOrEmpty(template.remoteFs) ? "/home/jenkins" : template.remoteFs, //
                 template.getNumExecutors(), //
                 Node.Mode.NORMAL, //
-                pod.getLabels().get("name"), //
-                new KubernetesComputerLauncher(pod, template), //
+                label == null ? null : label.toString(), //
+                new JNLPLauncher(), //
                 getRetentionStrategy(template), //
                 Collections.<NodeProperty<Node>> emptyList());
 
-        this.pod = pod;
+        // this.pod = pod;
         this.cloud = cloud;
     }
 
@@ -67,7 +70,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
         try {
-            cloud.connect().deletePod(this.pod.getId());
+            cloud.connect().deletePod(name);
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             toComputer().disconnect(null);
         } catch (Exception e) {

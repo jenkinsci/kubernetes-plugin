@@ -15,16 +15,23 @@ In a Kubernetes environment it would make more sense to use the Swarm plugin to 
 something to work on in the future.
 
 
-# Configuration
+# Configuration on Google Container Engine
+
+Create a cluster 
+
+    gcloud preview container clusters create jenkins --num-nodes 1 --machine-type g1-small
+
+and note the admin password.
+
 
 When using Kubernetes with self-signed certificates you need to add them to the java runtime.
 
-Example for a Kubernetes Vagrant setup, import certificate into `$JAVA_HOME/jre/lib/security/jssecacerts`
+Import certificate into `$JAVA_HOME/jre/lib/security/jssecacerts`
 (you may need to use `sudo`):
 
     sudo cp -n $JAVA_HOME/jre/lib/security/cacerts $JAVA_HOME/jre/lib/security/jssecacerts
     sudo keytool -import -v -trustcacerts \
-      -alias kubernetes-gce -file gce.crt \
+      -alias kubernetes -file ~/.config/gcloud/kubernetes/*/ca.crt \
       -keystore $JAVA_HOME/jre/lib/security/jssecacerts -keypass changeit \
       -storepass changeit
 
@@ -32,8 +39,6 @@ In Google Container Engine the certificate is in the master node under `/srv/kub
 or already copied in your local system under `~/.config/gcloud/kubernetes` if you used `gcloud`
 
 [More resources on Certificates](http://erikzaadi.com/2011/09/09/connecting-jenkins-to-self-signed-certificated-servers/).
-
-The Jenkins server needs network access to the minions in order to connect to the containers via SSH.
 
 # Debugging
 

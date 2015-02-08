@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import javax.ws.rs.ext.RuntimeDelegate;
 
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -38,9 +39,6 @@ import com.github.kubernetes.java.client.model.EnvironmentVariable;
 import com.github.kubernetes.java.client.model.Manifest;
 import com.github.kubernetes.java.client.model.Pod;
 import com.github.kubernetes.java.client.model.PodList;
-import com.github.kubernetes.java.client.model.Port;
-import com.github.kubernetes.java.client.model.ReplicationController;
-import com.github.kubernetes.java.client.model.Selector;
 import com.github.kubernetes.java.client.model.State;
 import com.github.kubernetes.java.client.model.StateInfo;
 import com.github.kubernetes.java.client.v2.KubernetesApiClient;
@@ -145,49 +143,11 @@ public class KubernetesCloud extends Cloud {
         return "jenkins-" + label.getName();
     }
 
-    @Deprecated
-    /**
-     * Not using replication controllers for now
-     */
-    private ReplicationController getOrCreateReplicationController(Label label) throws KubernetesClientException {
-        ReplicationController replicationController = null;
-        String id = getIdForLabel(label);
-        try {
-            replicationController = connect().getReplicationController(id);
-        } catch (KubernetesClientException e) {
-            // probably not found
-        }
-        if (replicationController == null) {
-            LOGGER.log(Level.INFO, "Creating Replication Controller: {0}", id);
-
-            // com.github.kubernetes.java.client.model.Label labels = new
-            // com.github.kubernetes.java.client.model.Label(id);
-            replicationController = new ReplicationController();
-            replicationController.setId(id);
-            // replicationController.setLabels(labels);
-
-            // Desired State
-            State state = new State();
-            state.setReplicas(0);
-            state.setReplicaSelector(new Selector(id));
-
-            // Pod
-            state.setPodTemplate(getPodTemplate(label));
-
-            replicationController.setDesiredState(state);
-            connect().createReplicationController(replicationController);
-            LOGGER.log(Level.INFO, "Created Replication Controller: {0}", id);
-        } else {
-            // TODO update replication controller if there were changes in
-            // Jenkins
-        }
-        return replicationController;
-    }
-
-    private Pod getPodTemplate(Label label) {
+    private Pod getPodTemplate(KubernetesSlave slave, Label label) {
         DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod podTemplate = new Pod();
+        podTemplate.setId(slave.getNodeName());
 
         // labels
         podTemplate.setLabels(getLabelsFor(id));
@@ -197,7 +157,12 @@ public class KubernetesCloud extends Cloud {
         container.setImage(template.image);
 
         // environment
-        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(template.environment.length);
+        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(template.environment.length + 3);
+        // always add some env vars
+        env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
+        env.add(new EnvironmentVariable("JENKINS_URL", JenkinsLocationConfiguration.get().getUrl()));
+        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", JenkinsLocationConfiguration.get().getUrl()
+                + slave.getComputer().getUrl() + "slave-agent.jnlp"));
         for (int i = 0; i < template.environment.length; i++) {
             String[] split = template.environment[i].split("=");
             env.add(new EnvironmentVariable(split[0], split[1]));
@@ -205,10 +170,9 @@ public class KubernetesCloud extends Cloud {
         container.setEnv(env);
 
         // ports
-        // open ssh in a dynamic port, hopefully not yet used host port
-        // 49152-65535
         // TODO open ports defined in template
-        container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) + 49152));
+        // container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) +
+        // 49152));
 
         // command
         container.setCommand(parseDockerCommand(template.dockerCommand));
@@ -280,8 +244,13 @@ public class KubernetesCloud extends Cloud {
         public Node call() throws Exception {
             KubernetesSlave slave = null;
             try {
-                Pod pod = connect().createPod(getPodTemplate(label));
+
+                slave = new KubernetesSlave(t, getIdForLabel(label), cloud, label);
+                Jenkins.getInstance().addNode(slave);
+
+                Pod pod = connect().createPod(getPodTemplate(slave, label));
                 LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
+
                 int j = 600;
                 for (int i = 0; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {
@@ -310,8 +279,6 @@ public class KubernetesCloud extends Cloud {
                     throw new IllegalStateException("Container is not running after " + j + " attempts: " + status);
                 }
 
-                slave = new KubernetesSlave(pod, t, getIdForLabel(label), cloud);
-                Jenkins.getInstance().addNode(slave);
                 // Docker instances may have a long init script. If we declare
                 // the provisioning complete by returning without the connect
                 // operation, NodeProvisioner may decide
