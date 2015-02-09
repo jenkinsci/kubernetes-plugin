@@ -9,10 +9,15 @@ automates the scaling of Jenkins slaves running in Kubernetes.
 The plugin creates a Kubernetes Pod for each slave started,
 defined by the Docker image to run, and stops it after each build.
 
-Slaves are launched using SSH, so it is expected that the image runs the SSH daemon.
-Tested with [`csanchez/jenkins-slave`](https://registry.hub.docker.com/u/csanchez/jenkins-slave/).
-In a Kubernetes environment it would make more sense to use the Swarm plugin to avoid opening ports,
-something to work on in the future.
+Slaves are launched using JNLP, so it is expected that the image connects automatically to the Jenkins master.
+For that some environment variables are automatically injected:
+
+* `JENKINS_URL`: Jenkins web interface url
+* `JENKINS_JNLP_URL`: url for the jnlp definition of the specific slave
+* `JENKINS_SECRET`: the secret key for authentication
+
+Tested with [`csanchez/jenkins-slave`](https://registry.hub.docker.com/u/csanchez/jenkins-slave/),
+see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
 
 # Configuration on Google Container Engine
