@@ -28,6 +28,7 @@ import javax.ws.rs.ext.RuntimeDelegate;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -75,6 +76,7 @@ public class KubernetesCloud extends Cloud {
 
     public final List<DockerTemplate> templates;
     public final String serverUrl;
+    public final String jenkinsUrl;
     public final String username;
     public final String password;
     public final int containerCap;
@@ -82,13 +84,14 @@ public class KubernetesCloud extends Cloud {
     private transient KubernetesAPIClientInterface connection;
 
     @DataBoundConstructor
-    public KubernetesCloud(String name, List<? extends DockerTemplate> templates, String serverUrl, String username,
-            String password, String containerCapStr, int connectTimeout, int readTimeout) {
+    public KubernetesCloud(String name, List<? extends DockerTemplate> templates, String serverUrl, String jenkinsUrl,
+            String username, String password, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
 
         Preconditions.checkNotNull(serverUrl);
 
         this.serverUrl = serverUrl;
+        this.jenkinsUrl = jenkinsUrl;
         this.username = username;
         this.password = password;
         if (templates != null)
@@ -163,8 +166,9 @@ public class KubernetesCloud extends Cloud {
         // always add some env vars
         env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
         env.add(new EnvironmentVariable("JENKINS_URL", JenkinsLocationConfiguration.get().getUrl()));
-        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", JenkinsLocationConfiguration.get().getUrl()
-                + slave.getComputer().getUrl() + "slave-agent.jnlp"));
+        String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
+        url = url.endsWith("/") ? url : url + "/";
+        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
         // for (int i = 0; i < template.environment.length; i++) {
         // String[] split = template.environment[i].split("=");
         // env.add(new EnvironmentVariable(split[0], split[1]));

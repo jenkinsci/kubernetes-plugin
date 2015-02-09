@@ -9,8 +9,8 @@ import com.google.common.collect.ImmutableList;
 
 public class KubernetesCloudTest {
 
-    private KubernetesCloud cloud = new KubernetesCloud("test", null, "http://localhost:8080", "vagrant", "vagrant",
-            "", 0, 0);
+    private KubernetesCloud cloud = new KubernetesCloud("test", null, "http://localhost:8080", null, "vagrant",
+            "vagrant", "", 0, 0);
 
     @Test
     public void testParseDockerCommand() {
