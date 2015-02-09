@@ -157,16 +157,18 @@ public class KubernetesCloud extends Cloud {
         container.setImage(template.image);
 
         // environment
-        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(template.environment.length + 3);
+        // List<EnvironmentVariable> env = new
+        // ArrayList<EnvironmentVariable>(template.environment.length + 3);
+        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(3);
         // always add some env vars
         env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
         env.add(new EnvironmentVariable("JENKINS_URL", JenkinsLocationConfiguration.get().getUrl()));
         env.add(new EnvironmentVariable("JENKINS_JNLP_URL", JenkinsLocationConfiguration.get().getUrl()
                 + slave.getComputer().getUrl() + "slave-agent.jnlp"));
-        for (int i = 0; i < template.environment.length; i++) {
-            String[] split = template.environment[i].split("=");
-            env.add(new EnvironmentVariable(split[0], split[1]));
-        }
+        // for (int i = 0; i < template.environment.length; i++) {
+        // String[] split = template.environment[i].split("=");
+        // env.add(new EnvironmentVariable(split[0], split[1]));
+        // }
         container.setEnv(env);
 
         // ports
