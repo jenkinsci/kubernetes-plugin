@@ -39,8 +39,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.github.kubernetes</groupId>
-      <artifactId>com.github.kubernetes.java.client</artifactId>
+      <groupId>org.csanchez.kubernetes</groupId>
+      <artifactId>kubernetes-java</artifactId>
       <version>0.0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
