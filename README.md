@@ -54,6 +54,17 @@ at `DEBUG` level.
 
 # Building
 
-You need to build first the [Kubernetes Java API](https://github.com/carlossg/KubernetesAPIJavaClient) dependency with `mvn install`
+Run `mvn clean package` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
-Then just run `mvn clean package` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
+# Docker image
+
+Docker image for Jenkins, with plugin installed.
+Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
+
+## Running
+
+    docker run --rm --name jenkins -p 8080:8080 -p 50000:50000 -v /var/jenkins_home csanchez/jenkins-kubernetes
+
+## Building
+
+    docker build -t csanchez/jenkins-kubernetes .
