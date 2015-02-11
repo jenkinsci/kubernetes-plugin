@@ -21,6 +21,13 @@
     <tag>HEAD</tag>
   </scm>
 
+  <developers>
+    <developer>
+      <id>carlos</id>
+      <name>Carlos Sanchez</name>
+      <email>carlos@apache.org</email>
+    </developer>
+  </developers>
 
   <dependencies>
     <dependency>
