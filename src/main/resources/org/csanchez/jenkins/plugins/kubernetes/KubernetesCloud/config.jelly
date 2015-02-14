@@ -12,6 +12,10 @@
       <f:textbox />
     </f:entry>
 
+    <f:entry title="${%Jenkins tunnel}" field="jenkinsTunnel">
+      <f:textbox />
+    </f:entry>
+
     <f:entry title="${%Username}" field="username">
       <f:textbox />
     </f:entry>

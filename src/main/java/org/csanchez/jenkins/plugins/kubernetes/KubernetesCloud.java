@@ -47,6 +47,7 @@ import com.github.kubernetes.java.client.v2.RestFactory;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
@@ -77,6 +78,7 @@ public class KubernetesCloud extends Cloud {
     public final List<DockerTemplate> templates;
     public final String serverUrl;
     public final String jenkinsUrl;
+    public final String jenkinsTunnel;
     public final String username;
     public final String password;
     public final int containerCap;
@@ -85,13 +87,15 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundConstructor
     public KubernetesCloud(String name, List<? extends DockerTemplate> templates, String serverUrl, String jenkinsUrl,
-            String username, String password, String containerCapStr, int connectTimeout, int readTimeout) {
+            String jenkinsTunnel, String username, String password, String containerCapStr, int connectTimeout,
+            int readTimeout) {
         super(name);
 
         Preconditions.checkNotNull(serverUrl);
 
         this.serverUrl = serverUrl;
         this.jenkinsUrl = jenkinsUrl;
+        this.jenkinsTunnel = jenkinsTunnel;
         this.username = username;
         this.password = password;
         if (templates != null)
@@ -169,6 +173,9 @@ public class KubernetesCloud extends Cloud {
         String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
+        if (!StringUtils.isBlank(jenkinsTunnel)) {
+            env.add(new EnvironmentVariable("JENKINS_TUNNEL", jenkinsTunnel));
+        }
         // for (int i = 0; i < template.environment.length; i++) {
         // String[] split = template.environment[i].split("=");
         // env.add(new EnvironmentVariable(split[0], split[1]));
@@ -180,8 +187,10 @@ public class KubernetesCloud extends Cloud {
         // container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) +
         // 49152));
 
-        // command
-        container.setCommand(parseDockerCommand(template.dockerCommand));
+        // command: SECRET SLAVE_NAME
+        List<String> cmd = parseDockerCommand(template.dockerCommand);
+        cmd.addAll(ImmutableList.of(slave.getComputer().getJnlpMac(), slave.getComputer().getName()));
+        container.setCommand(cmd);
 
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
         podTemplate.setDesiredState(new State(manifest));
