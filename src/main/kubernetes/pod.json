@@ -9,7 +9,7 @@
       "containers": [
         {
           "name": "jenkins",
-          "image": "jenkins:1.580.2",
+          "image": "csanchez/jenkins-kubernetes",
           "ports": [
             {
               "containerPort": 8080,
