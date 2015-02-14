@@ -48,7 +48,7 @@
     <dependency>
       <groupId>org.csanchez.kubernetes</groupId>
       <artifactId>kubernetes-java</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -86,6 +86,7 @@
       <id>repo.jenkins-ci.org</id>
       <url>http://repo.jenkins-ci.org/public/</url>
     </repository>
+    <!-- kubernetes-java API -->
     <repository>
       <id>sonatype</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
