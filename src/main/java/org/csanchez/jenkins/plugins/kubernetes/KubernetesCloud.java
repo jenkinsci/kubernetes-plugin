@@ -169,8 +169,8 @@ public class KubernetesCloud extends Cloud {
         List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(3);
         // always add some env vars
         env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
-        env.add(new EnvironmentVariable("JENKINS_URL", JenkinsLocationConfiguration.get().getUrl()));
         String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
+        env.add(new EnvironmentVariable("JENKINS_URL", url));
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
         if (!StringUtils.isBlank(jenkinsTunnel)) {
