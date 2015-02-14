@@ -169,13 +169,16 @@ public class KubernetesCloud extends Cloud {
         List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(3);
         // always add some env vars
         env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
-        String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
-        env.add(new EnvironmentVariable("JENKINS_URL", url));
-        url = url.endsWith("/") ? url : url + "/";
-        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
+        env.add(new EnvironmentVariable("JENKINS_LOCATION_URL", JenkinsLocationConfiguration.get().getUrl()));
+        if (!StringUtils.isBlank(jenkinsUrl)) {
+            env.add(new EnvironmentVariable("JENKINS_URL", jenkinsUrl));
+        }
         if (!StringUtils.isBlank(jenkinsTunnel)) {
             env.add(new EnvironmentVariable("JENKINS_TUNNEL", jenkinsTunnel));
         }
+        String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
+        url = url.endsWith("/") ? url : url + "/";
+        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
         // for (int i = 0; i < template.environment.length; i++) {
         // String[] split = template.environment[i].split("=");
         // env.add(new EnvironmentVariable(split[0], split[1]));
