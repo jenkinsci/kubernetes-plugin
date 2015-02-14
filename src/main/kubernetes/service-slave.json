@@ -1,0 +1,10 @@
+{
+  "id": "jenkins-slave",
+  "kind": "Service",
+  "apiVersion": "v1beta1",
+  "port": 50000,
+  "containerPort": 50000,
+  "selector": {
+    "name": "jenkins"
+  }
+}

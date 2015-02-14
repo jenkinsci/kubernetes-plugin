@@ -65,6 +65,34 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
     docker run --rm --name jenkins -p 8080:8080 -p 50000:50000 -v /var/jenkins_home csanchez/jenkins-kubernetes
 
+## Running in Kubernetes (Google Container Engine)
+
+Assuming you created a kubernetes cluster named `jenkins`.
+
+Create a GCE disk named `kubernetes-jenkins` to store the data, and format it as ext4.
+Formatting is not needed in new versions of Kubernetes.
+
+Creating the pods and services
+
+    gcloud preview container pods create --config-file ./src/main/kubernetes/pod.json
+    gcloud preview container services create --config-file ./src/main/kubernetes/service-http.json
+    gcloud preview container services create --config-file ./src/main/kubernetes/service-slave.json
+
+Open the firewall to the Jenkins master running in a pod
+
+    gcloud compute firewall-rules create jenkins-node-master --allow=tcp:8888 --target-tags k8s-jenkins-node
+
+Connect to the Kubernetes node ip, port 8888
+
+
+Tearing it down
+
+    gcloud preview container pods delete jenkins
+    gcloud preview container services delete jenkins
+    gcloud preview container services delete jenkins-slave
+
+
+
 ## Building
 
     docker build -t csanchez/jenkins-kubernetes .
