@@ -189,7 +189,9 @@ public class KubernetesCloud extends Cloud {
 
         // command: SECRET SLAVE_NAME
         List<String> cmd = parseDockerCommand(template.dockerCommand);
-        cmd.addAll(ImmutableList.of(slave.getComputer().getJnlpMac(), slave.getComputer().getName()));
+        cmd = cmd == null ? new ArrayList<String>(2) : cmd;
+        cmd.add(slave.getComputer().getJnlpMac()); // secret
+        cmd.add(slave.getComputer().getName()); // name
         container.setCommand(cmd);
 
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
