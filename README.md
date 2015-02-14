@@ -67,7 +67,7 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
 ## Running in Kubernetes (Google Container Engine)
 
-Assuming you created a kubernetes cluster named `jenkins`.
+Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and slaves there.
 
 Create a GCE disk named `kubernetes-jenkins` to store the data, and format it as ext4.
 Formatting is not needed in new versions of Kubernetes.
@@ -82,10 +82,23 @@ Open the firewall to the Jenkins master running in a pod
 
     gcloud compute firewall-rules create jenkins-node-master --allow=tcp:8888 --target-tags k8s-jenkins-node
 
-Connect to the ip of the network load balancer created by Kubernetes, port 8888
+Connect to the ip of the network load balancer created by Kubernetes, port 8888. Get the ip with
 
     gcloud compute forwarding-rules describe jenkins
 
+Configure Jenkins, adding the `Kubernetes` cloud under configuration, setting
+Kubernetes URL to the container engine cluster endpoint, and the correct username and password.
+Set Container Cap to a reasonable number for tests, i.e. 3.
+
+Add an image with
+
+* ID: `csanchez/jenkins-slave`
+* Remote filesystem root: `/home/jenkins`
+* Remote FS Root Mapping: `/home/jenkins`
+
+![image](configuration.png)
+
+Now it is ready to be used.
 
 Tearing it down
 
