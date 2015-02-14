@@ -82,7 +82,9 @@ Open the firewall to the Jenkins master running in a pod
 
     gcloud compute firewall-rules create jenkins-node-master --allow=tcp:8888 --target-tags k8s-jenkins-node
 
-Connect to the Kubernetes node ip, port 8888
+Connect to the ip of the network load balancer created by Kubernetes, port 8888
+
+    gcloud compute forwarding-rules describe jenkins
 
 
 Tearing it down
