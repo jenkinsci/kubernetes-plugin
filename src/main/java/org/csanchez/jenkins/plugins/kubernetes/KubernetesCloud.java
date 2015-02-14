@@ -255,6 +255,7 @@ public class KubernetesCloud extends Cloud {
                 Jenkins.getInstance().addNode(slave);
 
                 Pod pod = connect().createPod(getPodTemplate(slave, label));
+                String podId = pod.getId();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
 
                 int j = 600;
@@ -262,7 +263,10 @@ public class KubernetesCloud extends Cloud {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {
                             pod.getId(), i, j });
                     Thread.sleep(1000);
-                    pod = connect().getPod(pod.getId());
+                    pod = connect().getPod(podId);
+                    if (pod == null) {
+                        throw new IllegalStateException("Pod no longer exists: " + podId);
+                    }
                     StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
                     if (info != null) {
                         if (info.getState("waiting") != null) {
