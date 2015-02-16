@@ -54,8 +54,7 @@ import com.nirima.jenkins.plugins.docker.DockerTemplate;
 /**
  * Kubernetes cloud provider.
  * 
- * Starts slaves in a Kubernetes cluster using defined Docker templates for each
- * label.
+ * Starts slaves in a Kubernetes cluster using defined Docker templates for each label.
  * 
  * @author Carlos Sanchez <carlos@apache.org>
  */
@@ -65,8 +64,6 @@ public class KubernetesCloud extends Cloud {
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     public static final String CLOUD_ID_PREFIX = "kubernetes-";
-
-    private static final Random RAND = new Random();
 
     private static final String DEFAULT_ID = "jenkins-slave-default";
 
@@ -272,8 +269,15 @@ public class KubernetesCloud extends Cloud {
                 String podId = pod.getId();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
 
-                int j = 600;
-                for (int i = 0; i < j; i++) {
+                // We need the pod to be running and connected before returning
+                // otherwise this method keeps being called multiple times
+                ImmutableList<String> validStates = ImmutableList.of("Running");
+
+                int i = 0;
+                int j = 600; // wait 600 seconds
+
+                // wait for Pod to be running
+                for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {
                             pod.getId(), i, j });
                     Thread.sleep(1000);
@@ -284,34 +288,38 @@ public class KubernetesCloud extends Cloud {
                     StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
                     if (info != null) {
                         if (info.getState("waiting") != null) {
-                            // Pod is waiting, but we can continue
+                            // Pod is waiting for some reason
                             LOGGER.log(Level.INFO, "Pod is waiting {0}: {1}",
                                     new Object[] { pod.getId(), info.getState("waiting") });
-                            break;
+                            // break;
                         }
                         if (info.getState("termination") != null) {
                             throw new IllegalStateException("Pod is terminated. Exit code: "
                                     + info.getState("termination").get("exitCode"));
                         }
                     }
-                    if ("Running".equals(pod.getCurrentState().getStatus())) {
+                    if (validStates.contains(pod.getCurrentState().getStatus())) {
                         break;
                     }
                 }
                 String status = pod.getCurrentState().getStatus();
-                if (!"Running".equals(status) && !"Waiting".equals(status)) {
+                if (!validStates.contains(status)) {
                     throw new IllegalStateException("Container is not running after " + j + " attempts: " + status);
                 }
 
-                // Docker instances may have a long init script. If we declare
-                // the provisioning complete by returning without the connect
-                // operation, NodeProvisioner may decide
-                // that it still wants one more instance, because it sees that
-                // (1) all the slaves are offline (because it's still being
-                // launched) and (2) there's no capacity provisioned yet.
-                // deferring the completion of provisioning until the launch
-                // goes successful prevents this problem.
-                // slave.toComputer().connect(false).get();
+                // now wait for slave to be online
+                for (; i < j; i++) {
+                    if (slave.getComputer().isOnline()) {
+                        break;
+                    }
+                    LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[] { pod.getId(),
+                            i, j });
+                    Thread.sleep(1000);
+                }
+                if (!slave.getComputer().isOnline()) {
+                    throw new IllegalStateException("Slave is not connected after " + j + " attempts: " + status);
+                }
+
                 return slave;
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
