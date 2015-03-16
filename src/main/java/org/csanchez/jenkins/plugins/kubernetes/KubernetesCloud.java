@@ -1,38 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.Extension;
-import hudson.model.Computer;
-import hudson.model.Descriptor;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.slaves.Cloud;
-import hudson.slaves.NodeProvisioner;
-import hudson.util.FormValidation;
-
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.ws.rs.ext.RuntimeDelegate;
-
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
 import com.github.kubernetes.java.client.exceptions.KubernetesClientException;
 import com.github.kubernetes.java.client.interfaces.KubernetesAPIClientInterface;
 import com.github.kubernetes.java.client.model.Container;
@@ -50,6 +17,34 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
+import hudson.Extension;
+import hudson.model.Computer;
+import hudson.model.Descriptor;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.slaves.Cloud;
+import hudson.slaves.NodeProvisioner;
+import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
+import org.apache.commons.lang3.StringUtils;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+
+import javax.ws.rs.ext.RuntimeDelegate;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Kubernetes cloud provider.
@@ -410,7 +405,7 @@ public class KubernetesCloud extends Cloud {
                 @QueryParameter String password) throws KubernetesClientException, URISyntaxException {
 
             RestFactory factory = new RestFactory(KubernetesCloud.class.getClassLoader());
-            KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString() + "/api/v1beta1/",
+            KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString(),
                     username, password, factory);
             client.getAllPods();
 
