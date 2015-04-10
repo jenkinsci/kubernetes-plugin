@@ -15,9 +15,9 @@
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Kubernetes+Plugin</url>
 
   <scm>
-    <connection>scm:git:ssh://github.com/carlossg/jenkins-kubernetes-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/carlossg/jenkins-kubernetes-plugin.git</developerConnection>
-    <url>https://github.com/carlossg/jenkins-kubernetes-plugin</url>
+    <connection>scm:git:ssh://github.com/jenkinsci/kubernetes-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/kubernetes-plugin</url>
     <tag>HEAD</tag>
   </scm>
 
