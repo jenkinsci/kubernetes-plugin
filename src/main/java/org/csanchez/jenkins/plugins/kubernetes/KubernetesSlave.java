@@ -27,7 +27,7 @@ import com.google.common.primitives.Ints;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
 /**
- * @author Carlos Sanchez <carlos@apache.org>
+ * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesSlave extends AbstractCloudSlave {
 

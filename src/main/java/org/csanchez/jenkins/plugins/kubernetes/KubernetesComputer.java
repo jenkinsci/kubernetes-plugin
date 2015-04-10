@@ -10,7 +10,7 @@ import java.util.logging.Logger;
 import com.google.common.base.MoreObjects;
 
 /**
- * @author Carlos Sanchez <carlos@apache.org>
+ * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());

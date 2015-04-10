@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +55,7 @@ import com.nirima.jenkins.plugins.docker.DockerTemplate;
  * 
  * Starts slaves in a Kubernetes cluster using defined Docker templates for each label.
  * 
- * @author Carlos Sanchez <carlos@apache.org>
+ * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesCloud extends Cloud {
 
@@ -372,6 +371,8 @@ public class KubernetesCloud extends Cloud {
 
     /**
      * Gets {@link DockerTemplate} that has the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return the template
      */
     public DockerTemplate getTemplate(Label label) {
         for (DockerTemplate t : templates) {
@@ -384,6 +385,7 @@ public class KubernetesCloud extends Cloud {
 
     /**
      * Add a new template to the cloud
+     * @param t docker template
      */
     public void addTemplate(DockerTemplate t) {
         this.templates.add(t);
@@ -393,7 +395,7 @@ public class KubernetesCloud extends Cloud {
     /**
      * Remove a
      * 
-     * @param t
+     * @param t docker template
      */
     public void removeTemplate(DockerTemplate t) {
         this.templates.remove(t);
