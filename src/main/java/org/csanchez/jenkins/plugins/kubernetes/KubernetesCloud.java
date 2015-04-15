@@ -412,7 +412,7 @@ public class KubernetesCloud extends Cloud {
                 @QueryParameter String password) throws KubernetesClientException, URISyntaxException {
 
             RestFactory factory = new RestFactory(KubernetesCloud.class.getClassLoader());
-            KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString() + "/api/v1beta1/",
+            KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString(),
                     username, password, factory);
             client.getAllPods();
 
