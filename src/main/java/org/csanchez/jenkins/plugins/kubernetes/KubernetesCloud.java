@@ -73,6 +73,7 @@ public class KubernetesCloud extends Cloud {
 
     public final List<DockerTemplate> templates;
     public final String serverUrl;
+    public final String serverCertificate;
     public final String jenkinsUrl;
     public final String jenkinsTunnel;
     public final String username;
@@ -82,14 +83,16 @@ public class KubernetesCloud extends Cloud {
     private transient KubernetesAPIClientInterface connection;
 
     @DataBoundConstructor
-    public KubernetesCloud(String name, List<? extends DockerTemplate> templates, String serverUrl, String jenkinsUrl,
-            String jenkinsTunnel, String username, String password, String containerCapStr, int connectTimeout,
-            int readTimeout) {
+    public KubernetesCloud(String name, List<? extends DockerTemplate> templates,
+                           String serverUrl, String serverCertificate,
+                           String jenkinsUrl,String jenkinsTunnel,
+                           String username, String password, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
 
         Preconditions.checkNotNull(serverUrl);
 
         this.serverUrl = serverUrl;
+        this.serverCertificate = serverCertificate;
         this.jenkinsUrl = jenkinsUrl;
         this.jenkinsTunnel = jenkinsTunnel;
         this.username = username;
@@ -132,7 +135,7 @@ public class KubernetesCloud extends Cloud {
                 // we need the RestEasy implementation, not the Jersey one
                 // loaded by default from the thread classloader
                 RuntimeDelegate.setInstance(new ResteasyProviderFactory());
-                connection = new KubernetesApiClient(serverUrl.toString(), username, password, factory);
+                connection = new KubernetesApiClient(serverUrl.toString(), username, password, serverCertificate, factory);
             }
         }
         return connection;
@@ -409,11 +412,11 @@ public class KubernetesCloud extends Cloud {
         }
 
         public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String username,
-                @QueryParameter String password) throws KubernetesClientException, URISyntaxException {
+                @QueryParameter String password, @QueryParameter String serverCertificate) throws KubernetesClientException, URISyntaxException {
 
             RestFactory factory = new RestFactory(KubernetesCloud.class.getClassLoader());
             KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString(),
-                    username, password, factory);
+                    username, password, serverCertificate, factory);
             client.getAllPods();
 
             return FormValidation.ok("Connection successful");

@@ -8,6 +8,10 @@
       <f:textbox />
     </f:entry>
 
+    <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
+      <f:textarea/>
+    </f:entry>
+
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
       <f:textbox />
     </f:entry>
@@ -32,7 +36,7 @@
         <f:textbox default="15"/>
     </f:entry>
 
-    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,username,password" />
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,username,password,serverCertificate" />
 
     <f:entry title="${%Container Cap}" field="containerCapStr">
         <f:textbox default="10"/>
