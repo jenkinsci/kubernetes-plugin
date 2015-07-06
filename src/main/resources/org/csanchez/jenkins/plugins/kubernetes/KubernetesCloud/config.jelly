@@ -1,3 +1,4 @@
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
     <f:entry title="${%Name}" field="name">
@@ -42,11 +43,9 @@
         <f:textbox default="10"/>
     </f:entry>
 
-
-  <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
-   <f:repeatable field="templates">
-      <st:include page="config.jelly" class="${descriptor.clazz}" />
-    </f:repeatable>
-  </f:entry>
+    <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
+      <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="Add Docker Template"
+                                  deleteCaption="Delete Docker Template" />
+    </f:entry>
 
 </j:jelly>
