@@ -160,7 +160,7 @@ public class KubernetesCloud extends Cloud {
 
         Container container = new Container();
         container.setName(CONTAINER_NAME);
-        container.setImage(template.image);
+        container.setImage(template.getImage());
 
         // environment
         // List<EnvironmentVariable> env = new
@@ -351,7 +351,7 @@ public class KubernetesCloud extends Cloud {
 
         if (labelPods.size() >= template.instanceCap) {
             LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
-                    + template.image + ", not provisioning.");
+                    + template.getImage() + ", not provisioning.");
             return false; // maxed out
         }
 
@@ -365,7 +365,7 @@ public class KubernetesCloud extends Cloud {
 
     public DockerTemplate getTemplate(String template) {
         for (DockerTemplate t : templates) {
-            if (t.image.equals(template)) {
+            if (t.getImage().equals(template)) {
                 return t;
             }
         }

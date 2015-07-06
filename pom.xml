@@ -33,7 +33,7 @@
     <dependency>
       <groupId>com.nirima</groupId>
       <artifactId>docker-plugin</artifactId>
-      <version>0.7</version>
+      <version>0.9.4</version>
       <exclusions>
         <exclusion>
           <groupId>com.nirima.jdocker</groupId>
