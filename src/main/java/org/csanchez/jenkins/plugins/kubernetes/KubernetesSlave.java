@@ -19,8 +19,6 @@ import java.util.logging.Logger;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.github.kubernetes.java.client.model.Pod;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
@@ -70,7 +68,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
         try {
-            cloud.connect().deletePod(name);
+            // cloud.connect().deletePod(name);
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             toComputer().disconnect(null);
         } catch (Exception e) {
@@ -80,7 +78,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("name", name).toString();
+        return "KubernetesSlave " + name;
     }
 
     @Extension

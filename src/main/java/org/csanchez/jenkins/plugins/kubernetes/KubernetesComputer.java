@@ -7,8 +7,6 @@ import hudson.slaves.AbstractCloudComputer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.google.common.base.MoreObjects;
-
 /**
  * @author Carlos Sanchez carlos@apache.org
  */
@@ -44,6 +42,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("name", super.getName()).add("slave", getNode()).toString();
+        return "KubernetesComputer "+ super.getName() +" slave: "+ getNode();
     }
 }

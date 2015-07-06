@@ -22,28 +22,15 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.ws.rs.ext.RuntimeDelegate;
 
+import io.fabric8.kubernetes.api.Kubernetes;
+import io.fabric8.kubernetes.api.model.Pod;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 
-import org.apache.commons.lang3.StringUtils;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import com.github.kubernetes.java.client.exceptions.KubernetesClientException;
-import com.github.kubernetes.java.client.interfaces.KubernetesAPIClientInterface;
-import com.github.kubernetes.java.client.model.Container;
-import com.github.kubernetes.java.client.model.EnvironmentVariable;
-import com.github.kubernetes.java.client.model.Manifest;
-import com.github.kubernetes.java.client.model.Pod;
-import com.github.kubernetes.java.client.model.PodList;
-import com.github.kubernetes.java.client.model.State;
-import com.github.kubernetes.java.client.model.StateInfo;
-import com.github.kubernetes.java.client.v2.KubernetesApiClient;
-import com.github.kubernetes.java.client.v2.RestFactory;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -80,7 +67,7 @@ public class KubernetesCloud extends Cloud {
     public final String password;
     public final int containerCap;
 
-    private transient KubernetesAPIClientInterface connection;
+    private transient Kubernetes connection;
 
     @DataBoundConstructor
     public KubernetesCloud(String name, List<? extends DockerTemplate> templates,
@@ -122,7 +109,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @return Docker client.
      */
-    public KubernetesAPIClientInterface connect() {
+    public Kubernetes connect() {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + name + " URL " + serverUrl);
 
@@ -131,11 +118,8 @@ public class KubernetesCloud extends Cloud {
                 if (connection != null)
                     return connection;
 
-                RestFactory factory = new RestFactory().classLoader(getClass().getClassLoader()).connectionPoolSize(10);
-                // we need the RestEasy implementation, not the Jersey one
-                // loaded by default from the thread classloader
-                RuntimeDelegate.setInstance(new ResteasyProviderFactory());
-                connection = new KubernetesApiClient(serverUrl.toString(), username, password, serverCertificate, factory);
+                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, username, password)
+                        .createKubernetes();
             }
         }
         return connection;
@@ -153,6 +137,8 @@ public class KubernetesCloud extends Cloud {
         DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod podTemplate = new Pod();
+
+        /*
         podTemplate.setId(slave.getNodeName());
 
         // labels
@@ -198,6 +184,7 @@ public class KubernetesCloud extends Cloud {
 
         Manifest manifest = new Manifest(Collections.singletonList(container), null);
         podTemplate.setDesiredState(new State(manifest));
+        */
         return podTemplate;
     }
 
@@ -267,6 +254,7 @@ public class KubernetesCloud extends Cloud {
                 slave = new KubernetesSlave(t, getIdForLabel(label), cloud, label);
                 Jenkins.getInstance().addNode(slave);
 
+                /*
                 Pod pod = connect().createPod(getPodTemplate(slave, label));
                 String podId = pod.getId();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
@@ -321,7 +309,7 @@ public class KubernetesCloud extends Cloud {
                 if (!slave.getComputer().isOnline()) {
                     throw new IllegalStateException("Slave is not connected after " + j + " attempts: " + status);
                 }
-
+                                                       */
                 return slave;
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
@@ -340,6 +328,7 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
+        /*
         PodList allPods = connect().getSelectedPods(POD_LABEL);
 
         if (allPods.size() >= containerCap) {
@@ -354,7 +343,7 @@ public class KubernetesCloud extends Cloud {
                     + template.getImage() + ", not provisioning.");
             return false; // maxed out
         }
-
+                                                         */
         return true;
     }
 
@@ -412,12 +401,11 @@ public class KubernetesCloud extends Cloud {
         }
 
         public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String username,
-                @QueryParameter String password, @QueryParameter String serverCertificate) throws KubernetesClientException, URISyntaxException {
+                @QueryParameter String password, @QueryParameter String serverCertificate) throws URISyntaxException {
 
-            RestFactory factory = new RestFactory(KubernetesCloud.class.getClassLoader());
-            KubernetesAPIClientInterface client = new KubernetesApiClient(serverUrl.toString(),
-                    username, password, serverCertificate, factory);
-            client.getAllPods();
+            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), serverCertificate, username, password)
+                    .createKubernetes();
+            kube.getNodes();
 
             return FormValidation.ok("Connection successful");
         }
@@ -425,6 +413,6 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("name", name).add("serverUrl", serverUrl).toString();
+        return "KubernetesCloud '" + name + "' serverUrl :" + serverUrl;
     }
 }
