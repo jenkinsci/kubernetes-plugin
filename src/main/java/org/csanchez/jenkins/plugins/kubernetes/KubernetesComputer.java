@@ -3,11 +3,10 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.model.Executor;
 import hudson.model.Queue;
 import hudson.slaves.AbstractCloudComputer;
+import shaded.com.google.common.base.MoreObjects;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.google.common.base.MoreObjects;
 
 /**
  * @author Carlos Sanchez carlos@apache.org

@@ -19,12 +19,11 @@ import java.util.logging.Logger;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.github.kubernetes.java.client.model.Pod;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
+import shaded.com.google.common.base.MoreObjects;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -42,14 +41,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @DataBoundConstructor
     public KubernetesSlave(DockerTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
-        super(UUID.randomUUID().toString(), //
-                nodeDescription, //
-                Strings.isNullOrEmpty(template.remoteFs) ? "/home/jenkins" : template.remoteFs, //
-                template.getNumExecutors(), //
-                Node.Mode.NORMAL, //
-                label == null ? null : label.toString(), //
-                new JNLPLauncher(), //
-                getRetentionStrategy(template), //
+        super(UUID.randomUUID().toString(),
+                nodeDescription,
+                Strings.isNullOrEmpty(template.remoteFs) ? "/home/jenkins" : template.remoteFs,
+                template.getNumExecutors(),
+                Node.Mode.NORMAL,
+                label == null ? null : label.toString(),
+                new JNLPLauncher(),
+                getRetentionStrategy(template),
                 Collections.<NodeProperty<Node>> emptyList());
 
         // this.pod = pod;
@@ -70,7 +69,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
         try {
-            cloud.connect().deletePod(name);
+            cloud.connect().deletePod(name, "jenkins-slave");
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             toComputer().disconnect(null);
         } catch (Exception e) {
