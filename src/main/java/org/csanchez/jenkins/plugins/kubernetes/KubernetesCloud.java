@@ -1,5 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.nirima.jenkins.plugins.docker.DockerTemplate;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -8,6 +12,17 @@ import hudson.model.Node;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
+import io.fabric8.kubernetes.api.Kubernetes;
+import io.fabric8.kubernetes.api.KubernetesHelper;
+import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodSpec;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -21,21 +36,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-
-import io.fabric8.kubernetes.api.Kubernetes;
-import io.fabric8.kubernetes.api.model.Pod;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
-import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.nirima.jenkins.plugins.docker.DockerTemplate;
 
 /**
  * Kubernetes cloud provider.
@@ -136,39 +136,38 @@ public class KubernetesCloud extends Cloud {
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
         DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
-        Pod podTemplate = new Pod();
+        Pod pod = new Pod();
 
-        /*
-        podTemplate.setId(slave.getNodeName());
+        KubernetesHelper.setName(pod, slave.getNodeName());
 
         // labels
-        podTemplate.setLabels(getLabelsFor(id));
+        pod.getMetadata().setLabels(getLabelsFor(id));
 
-        Container container = new Container();
-        container.setName(CONTAINER_NAME);
-        container.setImage(template.getImage());
+        Container manifestContainer = new Container();
+        manifestContainer.setName(CONTAINER_NAME);
+        manifestContainer.setImage(template.getImage());
 
         // environment
-        // List<EnvironmentVariable> env = new
-        // ArrayList<EnvironmentVariable>(template.environment.length + 3);
-        List<EnvironmentVariable> env = new ArrayList<EnvironmentVariable>(3);
+        // List<EnvVar> env = new
+        // ArrayList<EnvVar>(template.environment.length + 3);
+        List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
-        env.add(new EnvironmentVariable("JENKINS_SECRET", slave.getComputer().getJnlpMac()));
-        env.add(new EnvironmentVariable("JENKINS_LOCATION_URL", JenkinsLocationConfiguration.get().getUrl()));
+        env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
+        env.add(new EnvVar("JENKINS_LOCATION_URL", JenkinsLocationConfiguration.get().getUrl(), null));
         if (!StringUtils.isBlank(jenkinsUrl)) {
-            env.add(new EnvironmentVariable("JENKINS_URL", jenkinsUrl));
+            env.add(new EnvVar("JENKINS_URL", jenkinsUrl, null));
         }
         if (!StringUtils.isBlank(jenkinsTunnel)) {
-            env.add(new EnvironmentVariable("JENKINS_TUNNEL", jenkinsTunnel));
+            env.add(new EnvVar("JENKINS_TUNNEL", jenkinsTunnel, null));
         }
         String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
         url = url.endsWith("/") ? url : url + "/";
-        env.add(new EnvironmentVariable("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp"));
+        env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
         // for (int i = 0; i < template.environment.length; i++) {
         // String[] split = template.environment[i].split("=");
-        // env.add(new EnvironmentVariable(split[0], split[1]));
+        // env.add(new EnvVar(split[0], split[1]));
         // }
-        container.setEnv(env);
+        manifestContainer.setEnv(env);
 
         // ports
         // TODO open ports defined in template
@@ -180,12 +179,16 @@ public class KubernetesCloud extends Cloud {
         cmd = cmd == null ? new ArrayList<String>(2) : cmd;
         cmd.add(slave.getComputer().getJnlpMac()); // secret
         cmd.add(slave.getComputer().getName()); // name
-        container.setCommand(cmd);
+        manifestContainer.setCommand(cmd);
 
-        Manifest manifest = new Manifest(Collections.singletonList(container), null);
-        podTemplate.setDesiredState(new State(manifest));
-        */
-        return podTemplate;
+        List<Container> containers = new ArrayList<Container>();
+        containers.add(manifestContainer);
+
+        PodSpec podSpec = new PodSpec();
+        pod.setSpec(podSpec);
+        podSpec.setContainers(containers);
+
+        return pod;
     }
 
     private Map<String, String> getLabelsFor(String id) {
