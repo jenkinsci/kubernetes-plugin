@@ -144,7 +144,6 @@ public class KubernetesCloud extends Cloud {
 
         KubernetesHelper.setName(pod, slave.getNodeName());
 
-        // labels
         pod.getMetadata().setLabels(getLabelsFor(id));
 
         Container manifestContainer = new Container();
@@ -158,13 +157,11 @@ public class KubernetesCloud extends Cloud {
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
         env.add(new EnvVar("JENKINS_LOCATION_URL", JenkinsLocationConfiguration.get().getUrl(), null));
-        if (!StringUtils.isBlank(jenkinsUrl)) {
-            env.add(new EnvVar("JENKINS_URL", jenkinsUrl, null));
-        }
+        String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
+        env.add(new EnvVar("JENKINS_URL", url, null));
         if (!StringUtils.isBlank(jenkinsTunnel)) {
             env.add(new EnvVar("JENKINS_TUNNEL", jenkinsTunnel, null));
         }
-        String url = StringUtils.isBlank(jenkinsUrl) ? JenkinsLocationConfiguration.get().getUrl() : jenkinsUrl;
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
         // for (int i = 0; i < template.environment.length; i++) {
@@ -191,6 +188,7 @@ public class KubernetesCloud extends Cloud {
         PodSpec podSpec = new PodSpec();
         pod.setSpec(podSpec);
         podSpec.setContainers(containers);
+        podSpec.setRestartPolicy("Never");
 
         return pod;
     }
@@ -273,12 +271,12 @@ public class KubernetesCloud extends Cloud {
                 ImmutableList<String> validStates = ImmutableList.of("Running");
 
                 int i = 0;
-                int j = 600; // wait 600 seconds
+                int j = 100; // wait 600 seconds
 
                 // wait for Pod to be running
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
-                    Thread.sleep(1000);
+                    Thread.sleep(6000);
                     pod = connect().getPod(podId, "jenkins-slave");
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
