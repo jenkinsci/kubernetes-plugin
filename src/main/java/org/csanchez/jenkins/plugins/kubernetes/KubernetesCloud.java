@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.nirima.jenkins.plugins.docker.DockerTemplate;
 import hudson.Extension;
@@ -15,8 +16,10 @@ import hudson.util.FormValidation;
 import io.fabric8.kubernetes.api.Kubernetes;
 import io.fabric8.kubernetes.api.KubernetesHelper;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -257,10 +260,12 @@ public class KubernetesCloud extends Cloud {
                 slave = new KubernetesSlave(t, getIdForLabel(label), cloud, label);
                 Jenkins.getInstance().addNode(slave);
 
-                /*
-                Pod pod = connect().createPod(getPodTemplate(slave, label));
-                String podId = pod.getId();
-                LOGGER.log(Level.INFO, "Created Pod: {0}", pod.getId());
+                Pod pod = getPodTemplate(slave, label);
+                // Why the hell doesn't createPod return a Pod object ?
+                String podJson = connect().createPod(pod, "jenkins-slave");
+
+                String podId = pod.getMetadata().getName();
+                LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
 
                 // We need the pod to be running and connected before returning
                 // otherwise this method keeps being called multiple times
@@ -271,31 +276,30 @@ public class KubernetesCloud extends Cloud {
 
                 // wait for Pod to be running
                 for (; i < j; i++) {
-                    LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {
-                            pod.getId(), i, j });
+                    LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(1000);
-                    pod = connect().getPod(podId);
+                    pod = connect().getPod(podId, "jenkins-slave");
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
-                    StateInfo info = pod.getCurrentState().getInfo(CONTAINER_NAME);
+                    ContainerStatus info = getContainerStatus(pod, CONTAINER_NAME);
                     if (info != null) {
-                        if (info.getState("waiting") != null) {
+                        if (info.getState().getWaiting() != null) {
                             // Pod is waiting for some reason
                             LOGGER.log(Level.INFO, "Pod is waiting {0}: {1}",
-                                    new Object[] { pod.getId(), info.getState("waiting") });
+                                    new Object[] { podId, info.getState().getWaiting() });
                             // break;
                         }
-                        if (info.getState("termination") != null) {
+                        if (info.getState().getTermination() != null) {
                             throw new IllegalStateException("Pod is terminated. Exit code: "
-                                    + info.getState("termination").get("exitCode"));
+                                    + info.getState().getTermination().getExitCode());
                         }
                     }
-                    if (validStates.contains(pod.getCurrentState().getStatus())) {
+                    if (validStates.contains(pod.getStatus().getPhase())) {
                         break;
                     }
                 }
-                String status = pod.getCurrentState().getStatus();
+                String status = pod.getStatus().getPhase();
                 if (!validStates.contains(status)) {
                     throw new IllegalStateException("Container is not running after " + j + " attempts: " + status);
                 }
@@ -305,21 +309,29 @@ public class KubernetesCloud extends Cloud {
                     if (slave.getComputer().isOnline()) {
                         break;
                     }
-                    LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[] { pod.getId(),
+                    LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[] { podId,
                             i, j });
                     Thread.sleep(1000);
                 }
                 if (!slave.getComputer().isOnline()) {
                     throw new IllegalStateException("Slave is not connected after " + j + " attempts: " + status);
                 }
-                                                       */
+
                 return slave;
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
                 ex.printStackTrace();
                 throw Throwables.propagate(ex);
             }
         }
+    }
+
+    private ContainerStatus getContainerStatus(Pod pod, String containerName) {
+
+        for (ContainerStatus status : pod.getStatus().getContainerStatuses()) {
+            if (status.getName().equals(containerName)) return status;
+        }
+        return null;
     }
 
     /**
@@ -331,22 +343,23 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
-        /*
-        PodList allPods = connect().getSelectedPods(POD_LABEL);
+        PodList allPods = connect().getPods("jenkins-slave");
 
-        if (allPods.size() >= containerCap) {
+        if (allPods.getItems().size() >= containerCap) {
             LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
             return false; // maxed out
         }
 
+        /*
         PodList labelPods = connect().getSelectedPods(ImmutableMap.of("name", getIdForLabel(label)));
 
-        if (labelPods.size() >= template.instanceCap) {
+        if (labelPods.getItems().size() >= template.instanceCap) {
             LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
                     + template.getImage() + ", not provisioning.");
             return false; // maxed out
         }
-                                                         */
+        */
+
         return true;
     }
 

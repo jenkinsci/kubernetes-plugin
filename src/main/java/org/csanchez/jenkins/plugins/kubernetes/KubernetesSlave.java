@@ -68,7 +68,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
         try {
-            // cloud.connect().deletePod(name);
+            cloud.connect().deletePod(name, "jenkins-slave");
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             toComputer().disconnect(null);
         } catch (Exception e) {
