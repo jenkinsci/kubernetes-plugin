@@ -26,6 +26,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import shaded.com.google.common.base.MoreObjects;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -429,6 +430,6 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return "KubernetesCloud '" + name + "' serverUrl :" + serverUrl;
+        return MoreObjects.toStringHelper(this).add("name", name).add("serverUrl", serverUrl).toString();
     }
 }

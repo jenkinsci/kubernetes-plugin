@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.model.Executor;
 import hudson.model.Queue;
 import hudson.slaves.AbstractCloudComputer;
+import shaded.com.google.common.base.MoreObjects;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,6 +43,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public String toString() {
-        return "KubernetesComputer "+ super.getName() +" slave: "+ getNode();
+        return MoreObjects.toStringHelper(this).add("name", super.getName()).add("slave", getNode()).toString();
     }
 }
