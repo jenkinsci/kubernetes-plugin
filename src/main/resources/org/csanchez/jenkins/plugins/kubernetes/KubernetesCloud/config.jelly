@@ -13,6 +13,11 @@
       <f:textarea/>
     </f:entry>
 
+    <f:entry title="${%Kubernetes Namespace}" field="namespace">
+      <f:textbox default="default" />
+    </f:entry>
+
+
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
       <f:textbox />
     </f:entry>

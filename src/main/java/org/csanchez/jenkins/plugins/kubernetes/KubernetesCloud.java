@@ -60,20 +60,21 @@ public class KubernetesCloud extends Cloud {
 
     private static final String CONTAINER_NAME = "slave";
 
-    public final List<DockerTemplate> templates;
-    public final String serverUrl;
-    public final String serverCertificate;
-    public final String jenkinsUrl;
-    public final String jenkinsTunnel;
-    public final String username;
-    public final String password;
-    public final int containerCap;
+    private final List<DockerTemplate> templates;
+    private final String serverUrl;
+    private final String serverCertificate;
+    private String namespace;
+    private final String jenkinsUrl;
+    private final String jenkinsTunnel;
+    private final String username;
+    private final String password;
+    private final int containerCap;
 
     private transient Kubernetes connection;
 
     @DataBoundConstructor
     public KubernetesCloud(String name, List<? extends DockerTemplate> templates,
-                           String serverUrl, String serverCertificate,
+                           String serverUrl, String serverCertificate, String namespace,
                            String jenkinsUrl,String jenkinsTunnel,
                            String username, String password, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
@@ -82,6 +83,7 @@ public class KubernetesCloud extends Cloud {
 
         this.serverUrl = serverUrl;
         this.serverCertificate = serverCertificate;
+        this.namespace = namespace;
         this.jenkinsUrl = jenkinsUrl;
         this.jenkinsTunnel = jenkinsTunnel;
         this.username = username;
@@ -96,6 +98,39 @@ public class KubernetesCloud extends Cloud {
         } else {
             this.containerCap = Integer.parseInt(containerCapStr);
         }
+    }
+
+
+    public List<DockerTemplate> getTemplates() {
+        return templates;
+    }
+
+    public String getServerUrl() {
+        return serverUrl;
+    }
+
+    public String getServerCertificate() {
+        return serverCertificate;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public String getJenkinsUrl() {
+        return jenkinsUrl;
+    }
+
+    public String getJenkinsTunnel() {
+        return jenkinsTunnel;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public String getContainerCapStr() {
@@ -259,7 +294,7 @@ public class KubernetesCloud extends Cloud {
 
                 Pod pod = getPodTemplate(slave, label);
                 // Why the hell doesn't createPod return a Pod object ?
-                String podJson = connect().createPod(pod, "jenkins-slave");
+                String podJson = connect().createPod(pod, namespace);
 
                 String podId = pod.getMetadata().getName();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
@@ -275,7 +310,7 @@ public class KubernetesCloud extends Cloud {
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(6000);
-                    pod = connect().getPod(podId, "jenkins-slave");
+                    pod = connect().getPod(podId, namespace);
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
@@ -340,7 +375,7 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
-        PodList allPods = connect().getPods("jenkins-slave");
+        PodList allPods = connect().getPods(namespace);
 
         if (allPods.getItems().size() >= containerCap) {
             LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
@@ -428,4 +463,10 @@ public class KubernetesCloud extends Cloud {
     public String toString() {
         return MoreObjects.toStringHelper(this).add("name", name).add("serverUrl", serverUrl).toString();
     }
+
+    private Object readResolve() {
+        if (namespace == null) namespace = "jenkins-slave";
+        return this;
+    }
+
 }
