@@ -53,8 +53,6 @@ public class KubernetesCloud extends Cloud {
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
-    public static final String CLOUD_ID_PREFIX = "kubernetes-";
-
     private static final String DEFAULT_ID = "jenkins-slave-default";
 
     /** label for all pods started by the plugin */

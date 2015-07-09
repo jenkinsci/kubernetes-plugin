@@ -48,7 +48,6 @@ public class KubernetesFactoryAdapter  {
 
         WebClient webClient = WebClient.create(serviceAddress, providers);
         WebClients.configureUserAndPassword(webClient, username, password);
-        boolean registeredCert = false;
         if (caCertData != null) {
             WebClients.configureCaCert(webClient, caCertData, null);
         }
