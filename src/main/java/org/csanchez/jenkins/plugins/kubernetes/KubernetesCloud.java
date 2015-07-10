@@ -21,6 +21,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.utils.Filter;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
@@ -375,22 +376,28 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
+        final Filter<Pod> slaveFilter = KubernetesHelper.createPodFilter(POD_LABEL);
+        final Filter<Pod> nameFilter = KubernetesHelper.createPodFilter(ImmutableMap.of("name", getIdForLabel(label)));
+
+        // fabric8 does not support labelSelector query parameter
         PodList allPods = connect().getPods(namespace);
-
-        if (allPods.getItems().size() >= containerCap) {
-            LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
-            return false; // maxed out
+        int c = 0;
+        int t = 0;
+        for (Pod pod : allPods.getItems()) {
+            if (slaveFilter.matches(pod)) {
+                if (++c > containerCap) {
+                    LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
+                    return false; // maxed out
+                }
+            }
+            if (nameFilter.matches(pod)) {
+                if (++t > template.instanceCap) {
+                    LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
+                            + template.getImage() + ", not provisioning.");
+                    return false; // maxed out
+                }
+            }
         }
-
-        /*
-        PodList labelPods = connect().getSelectedPods(ImmutableMap.of("name", getIdForLabel(label)));
-
-        if (labelPods.getItems().size() >= template.instanceCap) {
-            LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
-                    + template.getImage() + ", not provisioning.");
-            return false; // maxed out
-        }
-        */
 
         return true;
     }
