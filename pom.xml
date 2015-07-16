@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.580.3</version>
+    <version>1.609.1</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -55,6 +55,13 @@
       <artifactId>credentials</artifactId>
       <version>1.22</version>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-step-api</artifactId>
+      <version>1.8</version>
+      <optional>true</optional>
+    </dependency>
+
     
     <dependency>
       <groupId>io.fabric8</groupId>
