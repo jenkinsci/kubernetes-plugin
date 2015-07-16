@@ -1,17 +1,26 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.cfg.Annotations;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+import hudson.security.ACL;
+import hudson.util.Secret;
 import io.fabric8.kubernetes.api.ExceptionResponseMapper;
 import io.fabric8.kubernetes.api.Kubernetes;
 import io.fabric8.kubernetes.api.KubernetesFactory;
 import io.fabric8.utils.cxf.AuthorizationHeaderFilter;
 import io.fabric8.utils.cxf.WebClients;
+import jenkins.model.Jenkins;
 import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
 import org.apache.cxf.jaxrs.client.WebClient;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,14 +30,20 @@ public class KubernetesFactoryAdapter  {
 
     private final String serviceAddress;
     private final String caCertData;
-    private final String username;
-    private final String password;
+    private final UsernamePasswordCredentials credentials;
 
-    public KubernetesFactoryAdapter(String serviceAddress, String caCertData, String username, String password) {
+    public KubernetesFactoryAdapter(String serviceAddress, String caCertData, String credentials) {
         this.serviceAddress = serviceAddress;
         this.caCertData = caCertData;
-        this.username = username;
-        this.password = password;
+        this.credentials = getCredentials(credentials);
+    }
+
+    private UsernamePasswordCredentials getCredentials(String credentials) {
+        return CredentialsMatchers.firstOrNull(
+                CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                        Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
+                CredentialsMatchers.withId(credentials)
+        );
     }
 
     public Kubernetes createKubernetes() {
@@ -47,7 +62,7 @@ public class KubernetesFactoryAdapter  {
         providers.add(authorizationHeaderFilter);
 
         WebClient webClient = WebClient.create(serviceAddress, providers);
-        WebClients.configureUserAndPassword(webClient, username, password);
+        WebClients.configureUserAndPassword(webClient, credentials.getUsername(), Secret.toString(credentials.getPassword()));
         if (caCertData != null) {
             WebClients.configureCaCert(webClient, caCertData, null);
         }

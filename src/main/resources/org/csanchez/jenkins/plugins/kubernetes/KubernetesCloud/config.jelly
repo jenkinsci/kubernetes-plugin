@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
 
     <f:entry title="${%Name}" field="name">
       <f:textbox />
@@ -13,10 +13,16 @@
       <f:textarea/>
     </f:entry>
 
+    <f:entry title="${%Credentials}" field="credentialsId">
+      <c:select/>
+    </f:entry>
+
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,credentialsId,serverCertificate" />
+
+
     <f:entry title="${%Kubernetes Namespace}" field="namespace">
       <f:textbox default="default" />
     </f:entry>
-
 
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
       <f:textbox />
@@ -26,14 +32,6 @@
       <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Username}" field="username">
-      <f:textbox />
-    </f:entry>
-
-    <f:entry title="${%Password}" field="password">
-      <f:password />
-    </f:entry>
-
     <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
         <f:textbox default="5"/>
     </f:entry>
@@ -41,8 +39,6 @@
     <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
         <f:textbox default="15"/>
     </f:entry>
-
-    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,username,password,serverCertificate" />
 
     <f:entry title="${%Container Cap}" field="containerCapStr">
         <f:textbox default="10"/>

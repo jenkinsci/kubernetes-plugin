@@ -1,5 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -10,9 +15,11 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
+import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.Kubernetes;
 import io.fabric8.kubernetes.api.KubernetesHelper;
 import io.fabric8.kubernetes.api.model.Container;
@@ -21,6 +28,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.SecurityContext;
 import io.fabric8.utils.Filter;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -67,8 +75,7 @@ public class KubernetesCloud extends Cloud {
     private String namespace;
     private final String jenkinsUrl;
     private final String jenkinsTunnel;
-    private final String username;
-    private final String password;
+    private final String credentialsId;
     private final int containerCap;
 
     private transient Kubernetes connection;
@@ -77,7 +84,7 @@ public class KubernetesCloud extends Cloud {
     public KubernetesCloud(String name, List<? extends DockerTemplate> templates,
                            String serverUrl, String serverCertificate, String namespace,
                            String jenkinsUrl,String jenkinsTunnel,
-                           String username, String password, String containerCapStr, int connectTimeout, int readTimeout) {
+                           String credentialsId, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
 
         Preconditions.checkNotNull(serverUrl);
@@ -87,8 +94,7 @@ public class KubernetesCloud extends Cloud {
         this.namespace = namespace;
         this.jenkinsUrl = jenkinsUrl;
         this.jenkinsTunnel = jenkinsTunnel;
-        this.username = username;
-        this.password = password;
+        this.credentialsId = credentialsId;
         if (templates != null)
             this.templates = new ArrayList<DockerTemplate>(templates);
         else
@@ -126,12 +132,8 @@ public class KubernetesCloud extends Cloud {
         return jenkinsTunnel;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
+    public String getCredentialsId() {
+        return credentialsId;
     }
 
     public String getContainerCapStr() {
@@ -156,7 +158,7 @@ public class KubernetesCloud extends Cloud {
                 if (connection != null)
                     return connection;
 
-                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, username, password)
+                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId)
                         .createKubernetes();
             }
         }
@@ -172,7 +174,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        DockerTemplate template = getTemplate(label);
+        final DockerTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod pod = new Pod();
 
@@ -181,8 +183,11 @@ public class KubernetesCloud extends Cloud {
         pod.getMetadata().setLabels(getLabelsFor(id));
 
         Container manifestContainer = new Container();
+
         manifestContainer.setName(CONTAINER_NAME);
         manifestContainer.setImage(template.getImage());
+        if (template.privileged)
+            manifestContainer.setSecurityContext(new SecurityContext(null, true, null, null));
 
         // environment
         // List<EnvVar> env = new
@@ -455,15 +460,28 @@ public class KubernetesCloud extends Cloud {
             return "Kubernetes";
         }
 
-        public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String username,
-                @QueryParameter String password, @QueryParameter String serverCertificate) throws URISyntaxException {
+        public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String credentialsId,
+                                               @QueryParameter String serverCertificate) throws URISyntaxException {
 
-            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), serverCertificate, username, password)
+            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), serverCertificate, credentialsId)
                     .createKubernetes();
             kube.getNodes();
 
             return FormValidation.ok("Connection successful");
         }
+
+        public ListBoxModel doFillCredentialsIdItems(@QueryParameter URL serverUrl) {
+            return new StandardListBoxModel()
+                    .withEmptySelection()
+                    .withMatching(
+                            CredentialsMatchers.always(),
+                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                                    Jenkins.getInstance(),
+                                    ACL.SYSTEM,
+                                    URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()));
+
+        }
+
     }
 
     @Override
