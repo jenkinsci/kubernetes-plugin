@@ -23,27 +23,17 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 # Configuration on Google Container Engine
 
 Create a cluster 
+```
+    gcloud beta container clusters create jenkins --num-nodes 1 --machine-type g1-small
+```
+and note the admin password and server certitifate.
 
-    gcloud preview container clusters create jenkins --num-nodes 1 --machine-type g1-small
-
-and note the admin password.
-
-
-When using Kubernetes with self-signed certificates you need to add them to the java runtime.
-
-Import certificate into `$JAVA_HOME/jre/lib/security/jssecacerts`
-(you may need to use `sudo`):
-
-    sudo cp -n $JAVA_HOME/jre/lib/security/cacerts $JAVA_HOME/jre/lib/security/jssecacerts
-    sudo keytool -import -v -trustcacerts \
-      -alias kubernetes -file ~/.config/gcloud/kubernetes/*/ca.crt \
-      -keystore $JAVA_HOME/jre/lib/security/jssecacerts -keypass changeit \
-      -storepass changeit
-
-In Google Container Engine the certificate is in the master node under `/srv/kubernetes/server.cert`
-or already copied in your local system under `~/.config/gcloud/kubernetes` if you used `gcloud`
-
-[More resources on Certificates](http://erikzaadi.com/2011/09/09/connecting-jenkins-to-self-signed-certificated-servers/).
+Or use Google Developer Console to create a Container Engine cluster, then run 
+```
+    gcloud beta container get-credentials
+    kubectl config view --raw
+```
+the last command will output kubernetes cluster configuration including API server URL, admin password and root certificate
 
 # Debugging
 
