@@ -9,7 +9,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.nirima.jenkins.plugins.docker.DockerTemplate;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -35,7 +34,6 @@ import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import shaded.com.google.common.base.MoreObjects;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -69,7 +67,7 @@ public class KubernetesCloud extends Cloud {
 
     private static final String CONTAINER_NAME = "slave";
 
-    private final List<DockerTemplate> templates;
+    private final List<PodTemplate> templates;
     private final String serverUrl;
     private final String serverCertificate;
     private String namespace;
@@ -81,7 +79,7 @@ public class KubernetesCloud extends Cloud {
     private transient Kubernetes connection;
 
     @DataBoundConstructor
-    public KubernetesCloud(String name, List<? extends DockerTemplate> templates,
+    public KubernetesCloud(String name, List<? extends PodTemplate> templates,
                            String serverUrl, String serverCertificate, String namespace,
                            String jenkinsUrl,String jenkinsTunnel,
                            String credentialsId, String containerCapStr, int connectTimeout, int readTimeout) {
@@ -96,9 +94,9 @@ public class KubernetesCloud extends Cloud {
         this.jenkinsTunnel = jenkinsTunnel;
         this.credentialsId = credentialsId;
         if (templates != null)
-            this.templates = new ArrayList<DockerTemplate>(templates);
+            this.templates = new ArrayList<PodTemplate>(templates);
         else
-            this.templates = new ArrayList<DockerTemplate>();
+            this.templates = new ArrayList<PodTemplate>();
 
         if (containerCapStr.equals("")) {
             this.containerCap = Integer.MAX_VALUE;
@@ -108,7 +106,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    public List<DockerTemplate> getTemplates() {
+    public List<PodTemplate> getTemplates() {
         return templates;
     }
 
@@ -174,7 +172,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        final DockerTemplate template = getTemplate(label);
+        final PodTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
         Pod pod = new Pod();
 
@@ -186,12 +184,9 @@ public class KubernetesCloud extends Cloud {
 
         manifestContainer.setName(CONTAINER_NAME);
         manifestContainer.setImage(template.getImage());
-        if (template.privileged)
+        if (template.isPrivileged())
             manifestContainer.setSecurityContext(new SecurityContext(null, true, null, null));
 
-        // environment
-        // List<EnvVar> env = new
-        // ArrayList<EnvVar>(template.environment.length + 3);
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -203,19 +198,10 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
-        // for (int i = 0; i < template.environment.length; i++) {
-        // String[] split = template.environment[i].split("=");
-        // env.add(new EnvVar(split[0], split[1]));
-        // }
         manifestContainer.setEnv(env);
 
-        // ports
-        // TODO open ports defined in template
-        // container.setPorts(new Port(22, RAND.nextInt((65535 - 49152) + 1) +
-        // 49152));
-
         // command: SECRET SLAVE_NAME
-        List<String> cmd = parseDockerCommand(template.dockerCommand);
+        List<String> cmd = parseDockerCommand(template.getCommand());
         cmd = cmd == null ? new ArrayList<String>(2) : cmd;
         cmd.add(slave.getComputer().getJnlpMac()); // secret
         cmd.add(slave.getComputer().getName()); // name
@@ -263,7 +249,7 @@ public class KubernetesCloud extends Cloud {
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            final DockerTemplate t = getTemplate(label);
+            final PodTemplate t = getTemplate(label);
 
             for (int i = 1; i <= excessWorkload; i++) {
                 if (!addProvisionedSlave(t, label)) {
@@ -271,7 +257,7 @@ public class KubernetesCloud extends Cloud {
                 }
 
                 r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                        .submit(new ProvisioningCallback(this, t, label)), t.getNumExecutors()));
+                        .submit(new ProvisioningCallback(this, t, label)), 1));
             }
             return r;
         } catch (Exception e) {
@@ -282,10 +268,10 @@ public class KubernetesCloud extends Cloud {
 
     private class ProvisioningCallback implements Callable<Node> {
         private final KubernetesCloud cloud;
-        private final DockerTemplate t;
+        private final PodTemplate t;
         private final Label label;
 
-        public ProvisioningCallback(KubernetesCloud cloud, DockerTemplate t, Label label) {
+        public ProvisioningCallback(KubernetesCloud cloud, PodTemplate t, Label label) {
             this.cloud = cloud;
             this.t = t;
             this.label = label;
@@ -376,7 +362,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(DockerTemplate template, Label label) throws Exception {
+    private boolean addProvisionedSlave(PodTemplate template, Label label) throws Exception {
         if (containerCap == 0) {
             return true;
         }
@@ -396,8 +382,8 @@ public class KubernetesCloud extends Cloud {
                 }
             }
             if (nameFilter.matches(pod)) {
-                if (++t > template.instanceCap) {
-                    LOGGER.log(Level.INFO, "Template instance cap of " + template.instanceCap + " reached for template "
+                if (++t > template.getInstanceCap()) {
+                    LOGGER.log(Level.INFO, "Template instance cap of " + template.getInstanceCap() + " reached for template "
                             + template.getImage() + ", not provisioning.");
                     return false; // maxed out
                 }
@@ -412,8 +398,8 @@ public class KubernetesCloud extends Cloud {
         return getTemplate(label) != null;
     }
 
-    public DockerTemplate getTemplate(String template) {
-        for (DockerTemplate t : templates) {
+    public PodTemplate getTemplate(String template) {
+        for (PodTemplate t : templates) {
             if (t.getImage().equals(template)) {
                 return t;
             }
@@ -422,12 +408,12 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
-     * Gets {@link DockerTemplate} that has the matching {@link Label}.
+     * Gets {@link PodTemplate} that has the matching {@link Label}.
      * @param label label to look for in templates
      * @return the template
      */
-    public DockerTemplate getTemplate(Label label) {
-        for (DockerTemplate t : templates) {
+    public PodTemplate getTemplate(Label label) {
+        for (PodTemplate t : templates) {
             if (label == null || label.matches(t.getLabelSet())) {
                 return t;
             }
@@ -439,7 +425,7 @@ public class KubernetesCloud extends Cloud {
      * Add a new template to the cloud
      * @param t docker template
      */
-    public void addTemplate(DockerTemplate t) {
+    public void addTemplate(PodTemplate t) {
         this.templates.add(t);
         // t.parent = this;
     }
@@ -449,7 +435,7 @@ public class KubernetesCloud extends Cloud {
      * 
      * @param t docker template
      */
-    public void removeTemplate(DockerTemplate t) {
+    public void removeTemplate(PodTemplate t) {
         this.templates.remove(t);
     }
 
@@ -486,7 +472,7 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("name", name).add("serverUrl", serverUrl).toString();
+        return String.format("KubernetesCloud name: %n serverUrl: %n", name, serverUrl);
     }
 
     private Object readResolve() {

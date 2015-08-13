@@ -1,29 +1,22 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Extension;
-import hudson.model.TaskListener;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.JNLPLauncher;
+import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.common.primitives.Ints;
-import com.nirima.jenkins.plugins.docker.DockerTemplate;
-import shaded.com.google.common.base.MoreObjects;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -39,25 +32,23 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private final KubernetesCloud cloud;
 
     @DataBoundConstructor
-    public KubernetesSlave(DockerTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
         super(UUID.randomUUID().toString(),
                 nodeDescription,
-                Strings.isNullOrEmpty(template.remoteFs) ? "/home/jenkins" : template.remoteFs,
-                template.getNumExecutors(),
+                template.getRemoteFs(),
+                1,
                 Node.Mode.NORMAL,
                 label == null ? null : label.toString(),
                 new JNLPLauncher(),
-                getRetentionStrategy(template),
+                ONCE,
                 Collections.<NodeProperty<Node>> emptyList());
 
         // this.pod = pod;
         this.cloud = cloud;
     }
 
-    private static RetentionStrategy getRetentionStrategy(DockerTemplate template) {
-        return new OnceRetentionStrategy(Optional.fromNullable(Ints.tryParse(template.idleTerminationMinutes)).or(0));
-    }
+    private final static RetentionStrategy ONCE = new OnceRetentionStrategy(0);
 
     @Override
     public KubernetesComputer createComputer() {
@@ -79,7 +70,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("name", name).toString();
+        return String.format("KubernetesSlave name: %n", name);
     }
 
     @Extension
