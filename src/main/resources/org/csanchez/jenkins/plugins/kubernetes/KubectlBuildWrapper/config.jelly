@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+
+  <f:entry field="serverUrl" title="${%Kubernetes server endpoint}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="credentialsId" title="${%Credentials}">
+    <c:select/>
+  </f:entry>
+
+</j:jelly>
