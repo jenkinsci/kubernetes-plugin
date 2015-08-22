@@ -1,2 +1,1 @@
-docker-plugin:0.8
 durable-task:1.3

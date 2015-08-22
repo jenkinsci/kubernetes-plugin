@@ -1,1 +1,4 @@
 work
+target/jenkins-for-test
+target/kubernetes
+target/work

@@ -1,13 +1,14 @@
-FROM jenkins:1.580.2
+FROM jenkins:1.609.2
 
 COPY src/main/docker/plugins.txt /usr/share/jenkins/plugins.txt
 RUN /usr/local/bin/plugins.sh /usr/share/jenkins/plugins.txt
 
-ENV VERSION 0.1-20150214.103149-1
-RUN curl -o /usr/share/jenkins/ref/plugins/kubernetes.hpi \
-  https://oss.sonatype.org/content/repositories/snapshots/org/csanchez/jenkins/plugins/kubernetes/0.1-SNAPSHOT/kubernetes-$VERSION.hpi
+ENV VERSION 0.3-20150821.203456-1
+COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi
+#RUN curl -o /usr/share/jenkins/ref/plugins/kubernetes.hpi \
+#  http://repo.jenkins-ci.org/snapshots/org/csanchez/jenkins/plugins/kubernetes/0.3-SNAPSHOT/kubernetes-$VERSION.hpi
 
 # remove executors in master
 COPY src/main/docker/master-executors.groovy /usr/share/jenkins/ref/init.groovy.d/
 
-USER root
+ENV JAVA_OPTS="-Djava.util.logging.config.file=/var/jenkins_home/log.properties"
