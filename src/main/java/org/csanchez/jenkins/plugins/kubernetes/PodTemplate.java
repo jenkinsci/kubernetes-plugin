@@ -5,6 +5,7 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -31,13 +32,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
 
     @DataBoundConstructor
-    public PodTemplate(String name, String image, String command, String remoteFs, int instanceCap, String label) {
+    public PodTemplate(String name, String image, String command, String remoteFs, String instanceCapStr, String label) {
         this.name = name;
         this.image = image;
         this.command = command;
         this.remoteFs = remoteFs;
-        this.instanceCap = instanceCap;
         this.label = label;
+
+        if ("".equals(instanceCapStr)) {
+            this.instanceCap = Integer.MAX_VALUE;
+        } else {
+            this.instanceCap = Integer.parseInt(instanceCapStr);
+        }
     }
 
     @DataBoundSetter
@@ -71,6 +77,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public int getInstanceCap() {
         return instanceCap;
+    }
+
+    public String getInstanceCapStr() {
+        if (instanceCap == Integer.MAX_VALUE) {
+            return "";
+        } else {
+            return String.valueOf(instanceCap);
+        }
     }
 
     public Set<LabelAtom> getLabelSet() {

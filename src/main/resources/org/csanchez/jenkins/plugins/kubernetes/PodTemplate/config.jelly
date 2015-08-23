@@ -49,7 +49,7 @@ THE SOFTWARE.
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="instanceCap" title="${%Max number of instances}">
+  <f:entry field="instanceCapStr" title="${%Max number of instances}">
     <f:textbox/>
   </f:entry>
 
