@@ -221,10 +221,12 @@ public class KubernetesCloud extends Cloud {
 
         // command: SECRET SLAVE_NAME
         List<String> cmd = parseDockerCommand(template.getCommand());
-        cmd = cmd == null ? new ArrayList<String>(2) : cmd;
-        cmd.add(slave.getComputer().getJnlpMac()); // secret
-        cmd.add(slave.getComputer().getName()); // name
+        List<String> args = parseDockerCommand(template.getArgs());
+        args = args == null ? new ArrayList<String>(2) : args;
+        args.add(slave.getComputer().getJnlpMac()); // secret
+        args.add(slave.getComputer().getName()); // name
         manifestContainer.setCommand(cmd);
+        manifestContainer.setArgs(args);
 
         List<Container> containers = new ArrayList<Container>();
         containers.add(manifestContainer);
