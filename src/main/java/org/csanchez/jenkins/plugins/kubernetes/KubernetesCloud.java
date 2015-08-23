@@ -85,7 +85,7 @@ public class KubernetesCloud extends Cloud {
                            String credentialsId, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
 
-        Preconditions.checkNotNull(serverUrl);
+        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
 
         this.serverUrl = serverUrl;
         this.serverCertificate = serverCertificate;
