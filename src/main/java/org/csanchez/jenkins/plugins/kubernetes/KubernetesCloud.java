@@ -351,6 +351,9 @@ public class KubernetesCloud extends Cloud {
 
                 // now wait for slave to be online
                 for (; i < j; i++) {
+                    if (slave.getComputer() == null) {
+                        throw new IllegalStateException("Node was deleted, computer is null");
+                    }
                     if (slave.getComputer().isOnline()) {
                         break;
                     }
