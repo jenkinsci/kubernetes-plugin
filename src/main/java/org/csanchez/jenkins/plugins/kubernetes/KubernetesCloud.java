@@ -335,9 +335,9 @@ public class KubernetesCloud extends Cloud {
                                     new Object[] { podId, info.getState().getWaiting() });
                             // break;
                         }
-                        if (info.getState().getTermination() != null) {
+                        if (info.getState().getTerminated() != null) {
                             throw new IllegalStateException("Pod is terminated. Exit code: "
-                                    + info.getState().getTermination().getExitCode());
+                                    + info.getState().getTerminated().getExitCode());
                         }
                     }
                     if (validStates.contains(pod.getStatus().getPhase())) {
