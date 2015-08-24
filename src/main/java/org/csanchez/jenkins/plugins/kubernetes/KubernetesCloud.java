@@ -9,7 +9,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -31,8 +33,10 @@ import io.fabric8.kubernetes.api.model.SecurityContext;
 import io.fabric8.utils.Filter;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import java.net.URISyntaxException;
@@ -47,6 +51,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.CheckForNull;
 
 /**
  * Kubernetes cloud provider.
@@ -69,30 +75,28 @@ public class KubernetesCloud extends Cloud {
 
     private final List<PodTemplate> templates;
     private final String serverUrl;
-    private final String serverCertificate;
+    @CheckForNull
+    private String serverCertificate;
     private String namespace;
     private final String jenkinsUrl;
-    private final String jenkinsTunnel;
-    private final String credentialsId;
+    @CheckForNull
+    private String jenkinsTunnel;
+    @CheckForNull
+    private String credentialsId;
     private final int containerCap;
 
     private transient Kubernetes connection;
 
     @DataBoundConstructor
-    public KubernetesCloud(String name, List<? extends PodTemplate> templates,
-                           String serverUrl, String serverCertificate, String namespace,
-                           String jenkinsUrl,String jenkinsTunnel,
-                           String credentialsId, String containerCapStr, int connectTimeout, int readTimeout) {
+    public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
+            String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout) {
         super(name);
 
         Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
 
         this.serverUrl = serverUrl;
-        this.serverCertificate = serverCertificate;
         this.namespace = namespace;
         this.jenkinsUrl = jenkinsUrl;
-        this.jenkinsTunnel = jenkinsTunnel;
-        this.credentialsId = credentialsId;
         if (templates != null)
             this.templates = new ArrayList<PodTemplate>(templates);
         else
@@ -118,6 +122,11 @@ public class KubernetesCloud extends Cloud {
         return serverCertificate;
     }
 
+    @DataBoundSetter
+    public void setServerCertificate(String serverCertificate) {
+        this.serverCertificate = Util.fixEmpty(serverCertificate);
+    }
+
     public String getNamespace() {
         return namespace;
     }
@@ -130,8 +139,18 @@ public class KubernetesCloud extends Cloud {
         return jenkinsTunnel;
     }
 
+    @DataBoundSetter
+    public void setJenkinsTunnel(String jenkinsTunnel) {
+        this.jenkinsTunnel = Util.fixEmpty(jenkinsTunnel);
+    }
+
     public String getCredentialsId() {
         return credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = Util.fixEmpty(credentialsId);
     }
 
     public String getContainerCapStr() {
@@ -449,8 +468,8 @@ public class KubernetesCloud extends Cloud {
         public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate) throws URISyntaxException {
 
-            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), serverCertificate, credentialsId)
-                    .createKubernetes();
+            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
+                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId)).createKubernetes();
             kube.getNodes();
 
             return FormValidation.ok("Connection successful");
