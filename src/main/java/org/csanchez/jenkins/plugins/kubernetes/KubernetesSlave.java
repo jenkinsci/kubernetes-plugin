@@ -1,5 +1,16 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.jvnet.localizer.Localizable;
+import org.jvnet.localizer.ResourceBundleHolder;
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -8,15 +19,8 @@ import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
+import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -26,6 +30,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
     private static final long serialVersionUID = -8642936855413034232L;
+
+    /**
+     * The resource bundle reference
+     */
+    private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
     // private final Pod pod;
 
@@ -59,10 +68,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
+        if (toComputer() == null) {
+            LOGGER.log(Level.SEVERE, "Computer for slave is null: {0}", name);
+            return;
+        }
+
         try {
             cloud.connect().deletePod(name, cloud.getNamespace());
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
-            toComputer().disconnect(null);
+            toComputer().disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+            LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failure to terminate instance for slave " + name, e);
         }
