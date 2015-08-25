@@ -50,14 +50,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 Node.Mode.NORMAL,
                 label == null ? null : label.toString(),
                 new JNLPLauncher(),
-                ONCE,
+                new OnceRetentionStrategy(0),
                 Collections.<NodeProperty<Node>> emptyList());
 
         // this.pod = pod;
         this.cloud = cloud;
     }
-
-    private final static RetentionStrategy ONCE = new OnceRetentionStrategy(0);
 
     @Override
     public KubernetesComputer createComputer() {
