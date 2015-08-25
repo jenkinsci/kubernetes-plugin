@@ -49,6 +49,10 @@ THE SOFTWARE.
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="args" title="${%Arguments to pass to the command}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="instanceCapStr" title="${%Max number of instances}">
     <f:textbox/>
   </f:entry>

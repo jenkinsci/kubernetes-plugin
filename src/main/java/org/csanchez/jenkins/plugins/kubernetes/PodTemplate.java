@@ -6,8 +6,11 @@ import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
 
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+
+import com.google.common.base.Preconditions;
 
 import java.util.Set;
 
@@ -16,39 +19,31 @@ import java.util.Set;
  */
 public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
-    private final String name;
+    private String name;
 
     private final String image;
 
     private boolean privileged;
 
-    private final String command;
+    private String command;
 
-    private final String remoteFs;
+    private String args;
 
-    private final int instanceCap;
+    private String remoteFs;
 
-    private final String label;
+    private int instanceCap;
 
+    private String label;
 
     @DataBoundConstructor
-    public PodTemplate(String name, String image, String command, String remoteFs, String instanceCapStr, String label) {
-        this.name = name;
+    public PodTemplate(String image) {
+        Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.image = image;
-        this.command = command;
-        this.remoteFs = remoteFs;
-        this.label = label;
-
-        if ("".equals(instanceCapStr)) {
-            this.instanceCap = Integer.MAX_VALUE;
-        } else {
-            this.instanceCap = Integer.parseInt(instanceCapStr);
-        }
     }
 
     @DataBoundSetter
-    public void setPrivileged(boolean privileged) {
-        this.privileged = privileged;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getName() {
@@ -59,28 +54,56 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return image;
     }
 
-    public boolean isPrivileged() {
-        return privileged;
+    @DataBoundSetter
+    public void setCommand(String command) {
+        this.command = command;
     }
 
     public String getCommand() {
         return command;
     }
 
+    @DataBoundSetter
+    public void setArgs(String args) {
+        this.args = args;
+    }
+
+    public String getArgs() {
+        return args;
+    }
+
     public String getDisplayName() {
         return "Kubernetes Pod Template";
+    }
+
+    @DataBoundSetter
+    public void setRemoteFs(String remoteFs) {
+        this.remoteFs = StringUtils.isBlank(remoteFs) ? "/home/jenkins" : remoteFs;
     }
 
     public String getRemoteFs() {
         return remoteFs;
     }
 
+    public void setInstanceCap(int instanceCap) {
+        this.instanceCap = instanceCap;
+    }
+
     public int getInstanceCap() {
         return instanceCap;
     }
 
+    @DataBoundSetter
+    public void setInstanceCapStr(String instanceCapStr) {
+        if ("".equals(instanceCapStr)) {
+            setInstanceCap(Integer.MAX_VALUE);
+        } else {
+            setInstanceCap(Integer.parseInt(instanceCapStr));
+        }
+    }
+
     public String getInstanceCapStr() {
-        if (instanceCap == Integer.MAX_VALUE) {
+        if (getInstanceCap() == Integer.MAX_VALUE) {
             return "";
         } else {
             return String.valueOf(instanceCap);
@@ -91,8 +114,22 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return Label.parse(label);
     }
 
+    @DataBoundSetter
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
     public String getLabel() {
         return label;
+    }
+
+    @DataBoundSetter
+    public void setPrivileged(boolean privileged) {
+        this.privileged = privileged;
+    }
+
+    public boolean isPrivileged() {
+        return privileged;
     }
 
     @Extension
