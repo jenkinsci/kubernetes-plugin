@@ -46,6 +46,14 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         this.credentialsId = credentialsId;
     }
 
+    public String getServerUrl() {
+        return serverUrl;
+    }
+
+    public String getCredentialsId() {
+        return credentialsId;
+    }
+
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
 
