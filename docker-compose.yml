@@ -1,0 +1,18 @@
+# Docker Compose definition for a one node Kubernetes cluster
+# Based on Docker Cookbook example
+# https://github.com/how2dock/docbook/ch05/docker
+etcd:
+  image: kubernetes/etcd:2.0.5.1
+  net: "host"
+  command: /usr/local/bin/etcd --addr=127.0.0.1:4001 --bind-addr=0.0.0.0:4001 --data-dir=/var/etcd/data
+master:
+  image: gcr.io/google_containers/hyperkube:v1.0.1
+  net: "host"
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  command: /hyperkube kubelet --api_servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=127.0.0.1 --config=/etc/kubernetes/manifests
+proxy:
+  image: gcr.io/google_containers/hyperkube:v1.0.1
+  net: "host"
+  privileged: true
+  command: /hyperkube proxy --master=http://127.0.0.1:8080 --v=2

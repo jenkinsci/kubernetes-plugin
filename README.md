@@ -55,6 +55,20 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
     docker run --rm --name jenkins -p 8080:8080 -p 50000:50000 -v /var/jenkins_home csanchez/jenkins-kubernetes
 
+## Testing locally
+
+A local testing cluster with one node can be created with Docker Compose
+
+    docker-compose up
+
+When using boot2docker or Docker Engine with a remote host, the remote Kubernetes API can be exposed
+with `docker-machine ssh MACHINE_NAME -- -L 0.0.0.0:8080:localhost:8080` or `boot2docker ssh -L 0.0.0.0:8080:localhost:8080`
+
+More info
+
+* [Docker CookBook examples](https://github.com/how2dock/docbook/tree/master/ch05/docker)
+* [Kubernetes Getting started with Docker](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/getting-started-guides/docker.md)
+
 ## Running in Kubernetes (Google Container Engine)
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and slaves there.
@@ -64,9 +78,9 @@ Formatting is not needed in new versions of Kubernetes.
 
 Creating the pods and services
 
-    gcloud preview container pods create --config-file ./src/main/kubernetes/pod.json
-    gcloud preview container services create --config-file ./src/main/kubernetes/service-http.json
-    gcloud preview container services create --config-file ./src/main/kubernetes/service-slave.json
+    gcloud preview container pods create --config-file ./src/main/kubernetes/pod.yml
+    gcloud preview container services create --config-file ./src/main/kubernetes/service-http.yml
+    gcloud preview container services create --config-file ./src/main/kubernetes/service-slave.yml
 
 Open the firewall to the Jenkins master running in a pod
 

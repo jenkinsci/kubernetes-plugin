@@ -1,0 +1,15 @@
+---
+  apiVersion: "v1"
+  kind: "Service"
+  metadata: 
+    name: "jenkins"
+  spec: 
+    type: "NodePort"
+    selector: 
+      name: "jenkins"
+    ports: 
+      - 
+        name: "http"
+        port: 8080
+        nodePort: 8888
+        protocol: "TCP"
