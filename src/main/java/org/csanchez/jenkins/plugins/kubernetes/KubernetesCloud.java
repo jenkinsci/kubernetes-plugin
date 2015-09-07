@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -39,8 +40,10 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,6 +80,9 @@ public class KubernetesCloud extends Cloud {
     private final String serverUrl;
     @CheckForNull
     private String serverCertificate;
+
+    private boolean skipTlsVerify;
+
     private String namespace;
     private final String jenkinsUrl;
     @CheckForNull
@@ -127,6 +133,15 @@ public class KubernetesCloud extends Cloud {
         this.serverCertificate = Util.fixEmpty(serverCertificate);
     }
 
+    public boolean isSkipTlsVerify() {
+        return skipTlsVerify;
+    }
+
+    @DataBoundSetter
+    public void setSkipTlsVerify(boolean skipTlsVerify) {
+        this.skipTlsVerify = skipTlsVerify;
+    }
+
     public String getNamespace() {
         return namespace;
     }
@@ -166,7 +181,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @return Docker client.
      */
-    public Kubernetes connect() {
+    public Kubernetes connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + name + " URL " + serverUrl);
 
@@ -175,7 +190,7 @@ public class KubernetesCloud extends Cloud {
                 if (connection != null)
                     return connection;
 
-                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId)
+                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId, skipTlsVerify)
                         .createKubernetes();
             }
         }
@@ -471,11 +486,13 @@ public class KubernetesCloud extends Cloud {
         }
 
         public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String credentialsId,
-                                               @QueryParameter String serverCertificate) throws URISyntaxException {
+                                               @QueryParameter String serverCertificate,
+                                               @QueryParameter boolean skipTlsVerify,
+                                               @QueryParameter String namespace) throws Exception {
 
             Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
-                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId)).createKubernetes();
-            kube.getNodes();
+                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify).createKubernetes();
+            kube.getPods(namespace);
 
             return FormValidation.ok("Connection successful");
         }
@@ -484,8 +501,11 @@ public class KubernetesCloud extends Cloud {
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
-                            CredentialsMatchers.always(),
-                            CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                            CredentialsMatchers.anyOf(
+                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(BearerTokenCredential.class)
+                            ),
+                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                     Jenkins.getInstance(),
                                     ACL.SYSTEM,
                                     URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()));
