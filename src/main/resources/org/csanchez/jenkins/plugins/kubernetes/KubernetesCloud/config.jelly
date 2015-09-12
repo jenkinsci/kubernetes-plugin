@@ -13,16 +13,19 @@
       <f:textarea/>
     </f:entry>
 
-    <f:entry title="${%Credentials}" field="credentialsId">
-      <c:select/>
+    <f:entry title="${%Disable https certificate check}" field="skipTlsVerify">
+      <f:checkbox />
     </f:entry>
-
-    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,credentialsId,serverCertificate" />
-
 
     <f:entry title="${%Kubernetes Namespace}" field="namespace">
       <f:textbox default="default" />
     </f:entry>
+
+    <f:entry title="${%Credentials}" field="credentialsId">
+      <c:select/>
+    </f:entry>
+
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
 
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
       <f:textbox />
