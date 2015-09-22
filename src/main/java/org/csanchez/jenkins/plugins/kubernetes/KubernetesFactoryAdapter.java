@@ -20,6 +20,7 @@ import io.fabric8.utils.cxf.AuthorizationHeaderFilter;
 import io.fabric8.utils.cxf.WebClients;
 import jenkins.model.Jenkins;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.cxf.configuration.jsse.TLSClientParameters;
 import org.apache.cxf.configuration.security.AuthorizationPolicy;
 import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
@@ -29,6 +30,9 @@ import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transport.http.auth.HttpAuthSupplier;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URI;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +41,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.net.ssl.KeyManager;
@@ -52,6 +58,12 @@ public class KubernetesFactoryAdapter  {
     private final String caCertData;
     @CheckForNull
     private final StandardCredentials credentials;
+    
+    private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
+    
+    @CheckForNull
+    private static final String serviceAccountTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token";
+
 
     private final boolean skipTlsVerify;
 
@@ -107,6 +119,29 @@ public class KubernetesFactoryAdapter  {
                     }
                 });
             }
+        } else {
+          final File token = new File(serviceAccountTokenPath);
+          final String tokenContent;
+          try {
+            tokenContent = IOUtils.toString(new FileInputStream(token), "UTF-8");
+            final HTTPConduit conduit = WebClient.getConfig(webClient).getHttpConduit();
+            conduit.setAuthSupplier(new HttpAuthSupplier() {
+              @Override
+              public boolean requiresRequestCaching() {
+                return false;
+              }
+
+              @Override
+              public String getAuthorization(AuthorizationPolicy authorizationPolicy, URI uri, Message message,
+                  String s) {
+                return "Bearer " + tokenContent;
+              }
+            });
+          } catch (FileNotFoundException e) {
+            LOGGER.log(Level.WARNING, "The service account token file does not exists: #", e);
+          } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Unable to read service account token file: #", e);
+          }
         }
 
         if (skipTlsVerify) {
