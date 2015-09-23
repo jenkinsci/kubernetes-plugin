@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import hudson.Extension;
 import org.apache.commons.io.FileUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -15,11 +16,11 @@ import java.io.IOException;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class ServiceAccountCredential extends BearerTokenCredential {
+public class ServiceAccountCredential extends BaseStandardCredentials implements BearerTokenCredential {
 
     @DataBoundConstructor
     public ServiceAccountCredential(CredentialsScope scope, String id, String description) {
-        super(scope, id, description, null);
+        super(scope, id, description);
     }
 
     @Override
