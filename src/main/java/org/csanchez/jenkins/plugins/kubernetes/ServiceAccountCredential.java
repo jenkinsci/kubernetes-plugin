@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import hudson.Extension;
 import org.apache.commons.io.FileUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +17,8 @@ import java.io.IOException;
  */
 public class ServiceAccountCredential extends BearerTokenCredential {
 
-    public ServiceAccountCredential(CredentialsScope scope, String id, String description, String token) {
+    @DataBoundConstructor
+    public ServiceAccountCredential(CredentialsScope scope, String id, String description) {
         super(scope, id, description, null);
     }
 
