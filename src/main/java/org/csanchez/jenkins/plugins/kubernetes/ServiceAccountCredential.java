@@ -29,8 +29,14 @@ public class ServiceAccountCredential extends BearerTokenCredential {
         }
     }
 
-    @Extension
+    @Extension(optional = true)
     public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
+
+        public DescriptorImpl() {
+            if (!new File("/run/secrets/kubernetes.io/serviceaccount/token").exists()) {
+                throw new RuntimeException("Jenkins isn't running inside Kubernetes with Admission Controller.");
+            }
+        }
 
         @Override
         public String getDisplayName() {
