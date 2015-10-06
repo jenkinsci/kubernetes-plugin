@@ -2,50 +2,26 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.CertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.jaxrs.cfg.Annotations;
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
-
 import hudson.security.ACL;
 import hudson.util.Secret;
-import io.fabric8.kubernetes.api.ExceptionResponseMapper;
-import io.fabric8.kubernetes.api.Kubernetes;
-import io.fabric8.kubernetes.api.KubernetesFactory;
-import io.fabric8.utils.cxf.AuthorizationHeaderFilter;
-import io.fabric8.utils.cxf.WebClients;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 
-import org.apache.cxf.configuration.jsse.TLSClientParameters;
-import org.apache.cxf.configuration.security.AuthorizationPolicy;
-import org.apache.cxf.jaxrs.client.JAXRSClientFactory;
-import org.apache.cxf.jaxrs.client.WebClient;
-import org.apache.cxf.message.Message;
-import org.apache.cxf.transport.http.HTTPConduit;
-import org.apache.cxf.transport.http.auth.HttpAuthSupplier;
-
-import java.io.File;
-import java.net.URI;
+import javax.annotation.CheckForNull;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.CheckForNull;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class KubernetesFactoryAdapter  {
+public class KubernetesFactoryAdapter {
 
     private final String serviceAddress;
     @CheckForNull
@@ -71,62 +47,24 @@ public class KubernetesFactoryAdapter  {
         );
     }
 
-    public Kubernetes createKubernetes() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
-        WebClient webClient = createWebClient();
-        return JAXRSClientFactory.fromClient(webClient, Kubernetes.class);
-    }
-
-    /**
-     * adapted from {@link KubernetesFactory#createWebClient(java.lang.String)} to offer programmatic configuration
-     * @return
-     */
-    private WebClient createWebClient() throws NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException {
-        List<Object> providers = createProviders();
-
-        AuthorizationHeaderFilter authorizationHeaderFilter = new AuthorizationHeaderFilter();
-        providers.add(authorizationHeaderFilter);
-
-        WebClient webClient = WebClient.create(serviceAddress, providers);
+    public KubernetesClient createClient()  {
+        ConfigBuilder builder = new ConfigBuilder().withMasterUrl(serviceAddress);
         if (credentials != null) {
             if (credentials instanceof UsernamePasswordCredentials) {
                 UsernamePasswordCredentials usernamePassword = (UsernamePasswordCredentials) credentials;
-                WebClients.configureUserAndPassword(webClient, usernamePassword.getUsername(),
-                        Secret.toString(usernamePassword.getPassword()));
+                builder.withUsername(usernamePassword.getUsername()).withPassword(Secret.toString(usernamePassword.getPassword()));
             } else if (credentials instanceof BearerTokenCredential) {
-
-                final HTTPConduit conduit = WebClient.getConfig(webClient).getHttpConduit();
-                conduit.setAuthSupplier(new HttpAuthSupplier() {
-                    @Override
-                    public boolean requiresRequestCaching() {
-                        return false;
-                    }
-
-                    @Override
-                    public String getAuthorization(AuthorizationPolicy authorizationPolicy, URI uri, Message message, String s) {
-                        return "Bearer " + ((BearerTokenCredential) credentials).getToken();
-                    }
-                });
+                builder.withOauthToken(((BearerTokenCredential) credentials).getToken());
             }
         }
 
         if (skipTlsVerify) {
-            WebClients.disableSslChecks(webClient);
+            builder.withTrustCerts(true);
         }
 
         if (caCertData != null) {
-            WebClients.configureCaCert(webClient, caCertData, null);
+            builder.withCaCertData(caCertData);
         }
-        return webClient;
-    }
-
-    private List<Object> createProviders() {
-        List<Object> providers = new ArrayList<Object>();
-        Annotations[] annotationsToUse = JacksonJaxbJsonProvider.DEFAULT_ANNOTATIONS;
-        ObjectMapper objectMapper = KubernetesFactory.createObjectMapper();
-        providers.add(new JacksonJaxbJsonProvider(objectMapper, annotationsToUse));
-        providers.add(new KubernetesFactory.PlainTextJacksonProvider(objectMapper, annotationsToUse));
-        providers.add(new ExceptionResponseMapper());
-        //providers.add(new JacksonIntOrStringConfig(objectMapper));
-        return providers;
+        return new DefaultKubernetesClient(builder.build());
     }
 }

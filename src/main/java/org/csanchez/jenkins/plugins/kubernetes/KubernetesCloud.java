@@ -10,7 +10,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Computer;
@@ -22,24 +21,20 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.Kubernetes;
-import io.fabric8.kubernetes.api.KubernetesHelper;
-import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.SecurityContext;
-import io.fabric8.utils.Filter;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.CheckForNull;
 import java.net.URL;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -54,8 +49,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.annotation.CheckForNull;
 
 /**
  * Kubernetes cloud provider.
@@ -91,7 +84,7 @@ public class KubernetesCloud extends Cloud {
     private String credentialsId;
     private final int containerCap;
 
-    private transient Kubernetes connection;
+    private transient KubernetesClient client;
 
     @DataBoundConstructor
     public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
@@ -181,20 +174,20 @@ public class KubernetesCloud extends Cloud {
      *
      * @return Docker client.
      */
-    public Kubernetes connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+    public KubernetesClient connect()  {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + name + " URL " + serverUrl);
 
-        if (connection == null) {
+        if (client == null) {
             synchronized (this) {
-                if (connection != null)
-                    return connection;
+                if (client != null)
+                    return client;
 
-                connection = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId, skipTlsVerify)
-                        .createKubernetes();
+                client = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId, skipTlsVerify)
+                        .createClient();
             }
         }
-        return connection;
+        return client;
 
     }
 
@@ -208,19 +201,6 @@ public class KubernetesCloud extends Cloud {
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
         final PodTemplate template = getTemplate(label);
         String id = getIdForLabel(label);
-        Pod pod = new Pod();
-
-        KubernetesHelper.setName(pod, slave.getNodeName());
-
-        pod.getMetadata().setLabels(getLabelsFor(id));
-
-        Container manifestContainer = new Container();
-
-        manifestContainer.setName(CONTAINER_NAME);
-        manifestContainer.setImage(template.getImage());
-        if (template.isPrivileged())
-            manifestContainer.setSecurityContext(new SecurityContext(null, true, null, null));
-
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -232,26 +212,27 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
-        manifestContainer.setEnv(env);
 
-        // command: SECRET SLAVE_NAME
-        List<String> cmd = parseDockerCommand(template.getCommand());
-        List<String> args = parseDockerCommand(template.getArgs());
-        args = args == null ? new ArrayList<String>(2) : args;
-        args.add(slave.getComputer().getJnlpMac()); // secret
-        args.add(slave.getComputer().getName()); // name
-        manifestContainer.setCommand(cmd);
-        manifestContainer.setArgs(args);
-
-        List<Container> containers = new ArrayList<Container>();
-        containers.add(manifestContainer);
-
-        PodSpec podSpec = new PodSpec();
-        pod.setSpec(podSpec);
-        podSpec.setContainers(containers);
-        podSpec.setRestartPolicy("Never");
-
-        return pod;
+        return new PodBuilder()
+                .withNewMetadata()
+                    .withName(slave.getNodeName())
+                    .withLabels(getLabelsFor(id))
+                .endMetadata()
+                .withNewSpec()
+                    .addNewContainer()
+                        .withName(CONTAINER_NAME)
+                        .withImage(template.getImage())
+                        .withNewSecurityContext()
+                            .withPrivileged(template.isPrivileged())
+                        .endSecurityContext()
+                        .withEnv(env)
+                        .withCommand(parseDockerCommand(template.getCommand()))
+                        .addToArgs(slave.getComputer().getJnlpMac())
+                        .addToArgs(slave.getComputer().getName())
+                .endContainer()
+                .withRestartPolicy("Never")
+                .endSpec()
+                .build();
     }
 
     private Map<String, String> getLabelsFor(String id) {
@@ -322,7 +303,7 @@ public class KubernetesCloud extends Cloud {
 
                 Pod pod = getPodTemplate(slave, label);
                 // Why the hell doesn't createPod return a Pod object ?
-                String podJson = connect().createPod(pod, namespace);
+                pod = connect().pods().inNamespace(namespace).create(pod);
 
                 String podId = pod.getMetadata().getName();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
@@ -338,7 +319,7 @@ public class KubernetesCloud extends Cloud {
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(6000);
-                    pod = connect().getPod(podId, namespace);
+                    pod = connect().pods().inNamespace(namespace).withName(podId).get();
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
@@ -406,29 +387,21 @@ public class KubernetesCloud extends Cloud {
             return true;
         }
 
-        final Filter<Pod> slaveFilter = KubernetesHelper.createPodFilter(POD_LABEL);
-        final Filter<Pod> nameFilter = KubernetesHelper.createPodFilter(ImmutableMap.of("name", getIdForLabel(label)));
+        KubernetesClient client = connect();
+        PodList slaveList = client.pods().inNamespace(namespace).withLabels(POD_LABEL).list();
+        PodList namedList = client.pods().inNamespace(namespace).withLabel("name", getIdForLabel(label)).list();
 
-        // fabric8 does not support labelSelector query parameter
-        PodList allPods = connect().getPods(namespace);
-        int c = 0;
-        int t = 0;
-        for (Pod pod : allPods.getItems()) {
-            if (slaveFilter.matches(pod)) {
-                if (++c > containerCap) {
-                    LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
-                    return false; // maxed out
-                }
-            }
-            if (nameFilter.matches(pod)) {
-                if (++t > template.getInstanceCap()) {
-                    LOGGER.log(Level.INFO, "Template instance cap of " + template.getInstanceCap() + " reached for template "
-                            + template.getImage() + ", not provisioning.");
-                    return false; // maxed out
-                }
-            }
+
+        if (containerCap < slaveList.getItems().size()) {
+            LOGGER.log(Level.INFO, "Total container cap of " + containerCap + " reached, not provisioning.");
+            return false;
         }
 
+        if (template.getInstanceCap() < namedList.getItems().size()) {
+            LOGGER.log(Level.INFO, "Template instance cap of " + template.getInstanceCap() + " reached for template "
+                    + template.getImage() + ", not provisioning.");
+            return false; // maxed out
+        }
         return true;
     }
 
@@ -490,10 +463,11 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace) throws Exception {
 
-            Kubernetes kube = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
-                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify).createKubernetes();
-            kube.getPods(namespace);
+            KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
+                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify)
+                    .createClient();
 
+            client.pods().inNamespace(namespace).list();
             return FormValidation.ok("Connection successful");
         }
 
