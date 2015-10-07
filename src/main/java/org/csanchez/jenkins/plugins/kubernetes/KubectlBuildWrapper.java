@@ -64,10 +64,20 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        final UsernamePasswordCredentials c = getCredentials();
+        final StandardCredentials c = getCredentials();
+
+        String login;
+        if (c instanceof UsernamePasswordCredentials) {
+            UsernamePasswordCredentials upc = (UsernamePasswordCredentials) c;
+            login = "--username=" + upc.getUsername() + " --password=" + Secret.toString(upc.getPassword());
+        } else if (c instanceof BearerTokenCredential) {
+            login = "--token=" + ((BearerTokenCredential) c).getToken();
+        } else {
+            throw new IllegalStateException("Unsupported Credentials type "+c.getClass().getName());
+        }
 
         status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote() + " set-credentials cluster-admin --username=" + c.getUsername() + " --password=" + Secret.toString(c.getPassword()))
+                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote() + " set-credentials cluster-admin " + login)
                 .masks(false, false, false, false, false, false, true)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
@@ -87,9 +97,9 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.env("KUBECONFIG", configFile.getRemote());
     }
 
-    private UsernamePasswordCredentials getCredentials() {
+    private StandardCredentials getCredentials() {
         return CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class,
+                CredentialsProvider.lookupCredentials(StandardCredentials.class,
                         Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
                 CredentialsMatchers.withId(credentialsId)
         );
@@ -113,7 +123,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
-                            CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                            CredentialsMatchers.anyOf(
+                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(BearerTokenCredential.class)
+                            ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,
                                     item,
