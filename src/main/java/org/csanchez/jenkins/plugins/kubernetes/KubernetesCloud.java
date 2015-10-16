@@ -17,6 +17,7 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
+import hudson.model.ItemGroup;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
@@ -39,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.AncestorInPath;
 
 import java.net.URL;
 import java.security.KeyStoreException;
@@ -497,7 +499,9 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok("Connection successful");
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter URL serverUrl) {
+        @SuppressWarnings("unused") 
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context,
+            @QueryParameter("target") final String target){
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
@@ -508,7 +512,7 @@ public class KubernetesCloud extends Cloud {
                             CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                     Jenkins.getInstance(),
                                     ACL.SYSTEM,
-                                    URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()));
+                                    URIRequirementBuilder.fromUri(target).build()));
 
         }
 
