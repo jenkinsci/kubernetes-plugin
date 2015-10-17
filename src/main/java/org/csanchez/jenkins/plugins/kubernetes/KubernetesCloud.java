@@ -218,6 +218,8 @@ public class KubernetesCloud extends Cloud {
 
         manifestContainer.setName(CONTAINER_NAME);
         manifestContainer.setImage(template.getImage());
+        manifestContainer.setImagePullPolicy("Always");
+
         if (template.isPrivileged())
             manifestContainer.setSecurityContext(new SecurityContext(null, true, null, null));
 
