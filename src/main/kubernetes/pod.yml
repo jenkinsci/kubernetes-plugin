@@ -9,14 +9,12 @@
     containers: 
       - 
         name: "jenkins"
-        image: "csanchez/jenkins-kubernetes"
+        image: "csanchez/jenkins-kubernetes:latest"
         ports: 
           - 
             containerPort: 8080
-            hostPort: 8080
           - 
             containerPort: 50000
-            hostPort: 50000
         volumeMounts: 
           - 
             name: "jenkins-data"
@@ -24,11 +22,6 @@
     volumes: 
       - 
         name: "jenkins-data"
-        # hostPath: 
-        #   path: "/home/docker/jenkins"
         gcePersistentDisk:
           pdName: kubernetes-jenkins
           fsType: ext4
-        # awsElasticBlockStore:
-        #   volumeID: aws://<availability-zone>/<volume-id>
-        #   fsType: ext4

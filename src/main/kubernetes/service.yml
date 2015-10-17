@@ -4,12 +4,16 @@
   metadata: 
     name: "jenkins"
   spec: 
-    type: "NodePort"
+    type: "LoadBalancer"
     selector: 
       name: "jenkins"
     ports: 
       - 
         name: "http"
-        port: 8080
-        nodePort: 8888
+        port: 80
+        targetPort: 8080
+        protocol: "TCP"
+      - 
+        name: "slave"
+        port: 50000
         protocol: "TCP"

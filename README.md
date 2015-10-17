@@ -24,13 +24,13 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 
 Create a cluster 
 ```
-    gcloud beta container clusters create jenkins --num-nodes 1 --machine-type g1-small
+    gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
 ```
 and note the admin password and server certitifate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run 
 ```
-    gcloud beta container get-credentials
+    gcloud container clusters get-credentials
     kubectl config view --raw
 ```
 the last command will output kubernetes cluster configuration including API server URL, admin password and root certificate
@@ -73,32 +73,52 @@ More info
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and slaves there.
 
-Create a GCE disk named `kubernetes-jenkins` to store the data, and format it as ext4.
-Formatting is not needed in new versions of Kubernetes.
+Create a GCE disk named `kubernetes-jenkins` to store the data.
+
+    gcloud compute disks create --size 20GB kubernetes-jenkins
 
 Creating the pods and services
 
-    gcloud preview container pods create --config-file ./src/main/kubernetes/pod.yml
-    gcloud preview container services create --config-file ./src/main/kubernetes/service-http.yml
-    gcloud preview container services create --config-file ./src/main/kubernetes/service-slave.yml
+    kubectl create -f ./src/main/kubernetes/pod.yml
+    kubectl create -f ./src/main/kubernetes/service.yml
 
-Open the firewall to the Jenkins master running in a pod
+Connect to the ip of the network load balancer created by Kubernetes, port 80.
+Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenkins`
+(it may take a bit to populate)
 
-    gcloud compute firewall-rules create jenkins-node-master --allow=tcp:8888 --target-tags k8s-jenkins-node
-
-Connect to the ip of the network load balancer created by Kubernetes, port 8888. Get the ip with
-
-    gcloud compute forwarding-rules describe jenkins
+    $ kubectl describe services/jenkins
+    Name:           jenkins
+    Namespace:      default
+    Labels:         <none>
+    Selector:       name=jenkins
+    Type:           LoadBalancer
+    IP:         10.175.244.232
+    LoadBalancer Ingress:   104.197.19.100
+    Port:           http    80/TCP
+    NodePort:       http    30080/TCP
+    Endpoints:      10.172.1.5:8080
+    Port:           slave   50000/TCP
+    NodePort:       slave   32081/TCP
+    Endpoints:      10.172.1.5:50000
+    Session Affinity:   None
+    No events.
 
 Configure Jenkins, adding the `Kubernetes` cloud under configuration, setting
-Kubernetes URL to the container engine cluster endpoint, and the correct username and password.
-Set Container Cap to a reasonable number for tests, i.e. 3.
+Kubernetes URL to the container engine cluster endpoint or simply `https://kubernetes.default.svc.cluster.local`.
+Under credentials, click `Add` and select `Kubernetes Service Account`,
+or alternatively use the Kubernetes API username and password.
+
+![image](credentials.png)
+
+You may want to set `Jenkins URL` to the internal service IP, `http://10.175.244.232` in this case,
+to connect through the internal network.
+
+Set `Container Cap` to a reasonable number for tests, i.e. 3.
 
 Add an image with
 
-* ID: `csanchez/jenkins-slave`
-* Remote filesystem root: `/home/jenkins`
-* Remote FS Root Mapping: `/home/jenkins`
+* Docker image: `jenkinsci/jnlp-slave`
+* Jenkins slave root directory: `/home/jenkins`
 
 ![image](configuration.png)
 
@@ -106,9 +126,8 @@ Now it is ready to be used.
 
 Tearing it down
 
-    gcloud preview container pods delete jenkins
-    gcloud preview container services delete jenkins
-    gcloud preview container services delete jenkins-slave
+    kubectl delete pods/jenkins
+    kubectl delete services/jenkins
 
 
 
