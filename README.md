@@ -79,7 +79,7 @@ Create a GCE disk named `kubernetes-jenkins` to store the data.
 
 Creating the pods and services
 
-    kubectl create -f ./src/main/kubernetes/pod.yml
+    kubectl create -f ./src/main/kubernetes/jenkins.yml
     kubectl create -f ./src/main/kubernetes/service.yml
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
@@ -126,7 +126,7 @@ Now it is ready to be used.
 
 Tearing it down
 
-    kubectl delete pods/jenkins
+    kubectl stop rc/jenkins
     kubectl delete services/jenkins
 
 
