@@ -50,7 +50,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 Node.Mode.NORMAL,
                 label == null ? null : label.toString(),
                 new JNLPLauncher(),
-                new OnceRetentionStrategy(0),
+                new OnceRetentionStrategy(/*minutes idle*/ 1),
                 Collections.<NodeProperty<Node>> emptyList());
 
         // this.pod = pod;
