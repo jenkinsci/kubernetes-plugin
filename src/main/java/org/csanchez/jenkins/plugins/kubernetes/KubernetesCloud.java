@@ -40,6 +40,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -181,7 +182,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @return Docker client.
      */
-    public Kubernetes connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+    public Kubernetes connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + name + " URL " + serverUrl);
 
@@ -503,7 +504,7 @@ public class KubernetesCloud extends Cloud {
                     .withMatching(
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(BearerTokenCredential.class)
+                                    CredentialsMatchers.instanceOf(TokenProducer.class)
                             ),
                             CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                     Jenkins.getInstance(),

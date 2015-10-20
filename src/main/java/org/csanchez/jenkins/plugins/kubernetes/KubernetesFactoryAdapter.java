@@ -29,7 +29,9 @@ import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transport.http.auth.HttpAuthSupplier;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -71,7 +73,7 @@ public class KubernetesFactoryAdapter  {
         );
     }
 
-    public Kubernetes createKubernetes() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+    public Kubernetes createKubernetes() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException {
         WebClient webClient = createWebClient();
         return JAXRSClientFactory.fromClient(webClient, Kubernetes.class);
     }
@@ -80,7 +82,7 @@ public class KubernetesFactoryAdapter  {
      * adapted from {@link KubernetesFactory#createWebClient(java.lang.String)} to offer programmatic configuration
      * @return
      */
-    private WebClient createWebClient() throws NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException {
+    private WebClient createWebClient() throws NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, IOException {
         List<Object> providers = createProviders();
 
         AuthorizationHeaderFilter authorizationHeaderFilter = new AuthorizationHeaderFilter();
@@ -88,12 +90,8 @@ public class KubernetesFactoryAdapter  {
 
         WebClient webClient = WebClient.create(serviceAddress, providers);
         if (credentials != null) {
-            if (credentials instanceof UsernamePasswordCredentials) {
-                UsernamePasswordCredentials usernamePassword = (UsernamePasswordCredentials) credentials;
-                WebClients.configureUserAndPassword(webClient, usernamePassword.getUsername(),
-                        Secret.toString(usernamePassword.getPassword()));
-            } else if (credentials instanceof BearerTokenCredential) {
-
+            if (credentials instanceof TokenProducer) {
+                final String token = ((TokenProducer)credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
                 final HTTPConduit conduit = WebClient.getConfig(webClient).getHttpConduit();
                 conduit.setAuthSupplier(new HttpAuthSupplier() {
                     @Override
@@ -103,9 +101,14 @@ public class KubernetesFactoryAdapter  {
 
                     @Override
                     public String getAuthorization(AuthorizationPolicy authorizationPolicy, URI uri, Message message, String s) {
-                        return "Bearer " + ((BearerTokenCredential) credentials).getToken();
+                        return "Bearer " + token;
                     }
                 });
+            }
+            else if (credentials instanceof UsernamePasswordCredentials) {
+                UsernamePasswordCredentials usernamePassword = (UsernamePasswordCredentials) credentials;
+                WebClients.configureUserAndPassword(webClient, usernamePassword.getUsername(),
+                        Secret.toString(usernamePassword.getPassword()));
             }
         }
 

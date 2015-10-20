@@ -24,11 +24,9 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 
@@ -67,11 +65,11 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         final StandardCredentials c = getCredentials();
 
         String login;
-        if (c instanceof UsernamePasswordCredentials) {
+        if (c instanceof TokenProducer) {
+            login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
+        } else if (c instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) c;
             login = "--username=" + upc.getUsername() + " --password=" + Secret.toString(upc.getPassword());
-        } else if (c instanceof BearerTokenCredential) {
-            login = "--token=" + ((BearerTokenCredential) c).getToken();
         } else {
             throw new IllegalStateException("Unsupported Credentials type "+c.getClass().getName());
         }
@@ -125,7 +123,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                     .withMatching(
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(BearerTokenCredential.class)
+                                    CredentialsMatchers.instanceOf(TokenProducer.class)
                             ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,

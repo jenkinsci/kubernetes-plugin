@@ -16,7 +16,7 @@ import java.io.IOException;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class ServiceAccountCredential extends BaseStandardCredentials implements BearerTokenCredential {
+public class ServiceAccountCredential extends BaseStandardCredentials implements TokenProducer {
 
     @DataBoundConstructor
     public ServiceAccountCredential(CredentialsScope scope, String id, String description) {
@@ -24,7 +24,7 @@ public class ServiceAccountCredential extends BaseStandardCredentials implements
     }
 
     @Override
-    public String getToken() {
+    public String getToken(String serviceAddress, String caCertData, boolean skipTlsVerify) {
         try {
             return FileUtils.readFileToString(new File("/run/secrets/kubernetes.io/serviceaccount/token"));
         } catch (IOException e) {
