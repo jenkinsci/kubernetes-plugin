@@ -509,7 +509,9 @@ public class KubernetesCloud extends Cloud {
                             CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                     Jenkins.getInstance(),
                                     ACL.SYSTEM,
-                                    URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()));
+                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()
+                                                      : Collections.EMPTY_LIST
+                            ));
 
         }
 
