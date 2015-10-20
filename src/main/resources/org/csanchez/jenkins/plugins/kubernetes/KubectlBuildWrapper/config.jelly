@@ -5,6 +5,10 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry title="${%Certificate of certificate authority (CA)}" field="caCertificate">
+    <f:textarea/>
+  </f:entry>
+
   <f:entry field="credentialsId" title="${%Credentials}">
     <c:select/>
   </f:entry>
