@@ -8,6 +8,8 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -22,6 +24,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -65,13 +68,15 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         final StandardCredentials c = getCredentials();
 
         String login;
-        if (c instanceof TokenProducer) {
+        if (c == null) {
+            throw new AbortException("No credentials defined to setup Kubernetes CLI");
+        } else if (c instanceof TokenProducer) {
             login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
         } else if (c instanceof UsernamePasswordCredentials) {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) c;
             login = "--username=" + upc.getUsername() + " --password=" + Secret.toString(upc.getPassword());
         } else {
-            throw new IllegalStateException("Unsupported Credentials type "+c.getClass().getName());
+            throw new AbortException("Unsupported Credentials type " + c.getClass().getName());
         }
 
         status = launcher.launch()
@@ -95,13 +100,26 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.env("KUBECONFIG", configFile.getRemote());
     }
 
-    private StandardCredentials getCredentials() {
-        return CredentialsMatchers.firstOrNull(
+    /**
+     * Get the {@link StandardCredentials}.
+     *
+     * @return the credentials matching the {@link #credentialsId} or {@code null} is {@code #credentialsId} is blank
+     * @throws AbortException if no {@link StandardCredentials} matching {@link #credentialsId} is found
+     */
+    @CheckForNull
+    private StandardCredentials getCredentials() throws AbortException {
+        if (StringUtils.isBlank(credentialsId)) {
+            return null;
+        }
+        StandardCredentials result = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentials(StandardCredentials.class,
                         Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
                 CredentialsMatchers.withId(credentialsId)
         );
-
+        if (result == null) {
+            throw new AbortException("No credentials found for id \"" + credentialsId + "\"");
+        }
+        return result;
     }
 
     @Extension
