@@ -23,49 +23,19 @@ THE SOFTWARE.
 -->
 
 <!--
-  Config page
+  Host Volume Path
 -->
+
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-  <f:entry field="name" title="${%Name}">
-    <f:textbox/>
+  <f:entry title="${%Host path}" field="hostPath">
+    <f:textbox />
   </f:entry>
 
-  <f:entry field="label" title="${%Labels}">
-    <f:textbox/>
+  <f:entry title="${%Mount path}" field="mountPath">
+    <f:textbox />
   </f:entry>
-
-  <f:entry field="image" title="${%Docker image}">
-    <f:textbox/>
-  </f:entry>
-
-  <f:entry field="remoteFs" title="${%Jenkins slave root directory}">
-    <f:textbox default="/home/jenkins"/>
-  </f:entry>
-
-  <f:entry field="command" title="${%Command to run slave agent}">
-    <f:textbox/>
-  </f:entry>
-
-  <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox/>
-  </f:entry>
-
-  <f:entry field="instanceCapStr" title="${%Max number of instances}">
-    <f:textbox/>
-  </f:entry>
-
-  <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
-    <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
-                                deleteCaption="Delete Volume" />
-  </f:entry>
-
-  <f:advanced>
-    <f:entry field="privileged" title="${%Run in privileged mode}">
-      <f:checkbox/>
-    </f:entry>
-  </f:advanced>
 
 </j:jelly>

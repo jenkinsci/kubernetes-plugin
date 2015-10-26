@@ -21,11 +21,7 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -214,18 +210,33 @@ public class KubernetesCloud extends Cloud {
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
+        // Build volumes and volume mounts.
+        List<Volume> volumes = new ArrayList<Volume>();
+        List<VolumeMount> volumeMounts = new ArrayList<VolumeMount>();
+        {
+            int i = 0;
+            for (final PodVolumes.PodVolume volume : template.getVolumes()) {
+                final String volumeName = "volume-" + i;
+                volumes.add(volume.buildVolume(volumeName));
+                volumeMounts.add(new VolumeMount(volume.getMountPath(), volumeName, false));
+                i++;
+            }
+        }
+
         return new PodBuilder()
                 .withNewMetadata()
                     .withName(slave.getNodeName())
                     .withLabels(getLabelsFor(id))
                 .endMetadata()
                 .withNewSpec()
+                    .withVolumes(volumes)
                     .addNewContainer()
                         .withName(CONTAINER_NAME)
                         .withImage(template.getImage())
                         .withNewSecurityContext()
                             .withPrivileged(template.isPrivileged())
                         .endSecurityContext()
+                        .withVolumeMounts(volumeMounts)
                         .withEnv(env)
                         .withCommand(parseDockerCommand(template.getCommand()))
                         .addToArgs(slave.getComputer().getJnlpMac())
