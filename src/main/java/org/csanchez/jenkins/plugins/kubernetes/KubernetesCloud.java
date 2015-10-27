@@ -70,6 +70,9 @@ public class KubernetesCloud extends Cloud {
 
     private static final String CONTAINER_NAME = "slave";
 
+    /** Default timeout for idle workers that don't correctly indicate exit. */
+    private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
+
     private final List<PodTemplate> templates;
     private final String serverUrl;
     @CheckForNull
@@ -84,12 +87,13 @@ public class KubernetesCloud extends Cloud {
     @CheckForNull
     private String credentialsId;
     private final int containerCap;
+    private final int retentionTimeout;
 
     private transient KubernetesClient client;
 
     @DataBoundConstructor
     public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
-            String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout) {
+            String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         super(name);
 
         Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
@@ -107,8 +111,17 @@ public class KubernetesCloud extends Cloud {
         } else {
             this.containerCap = Integer.parseInt(containerCapStr);
         }
+
+        if (retentionTimeout > 0) {
+            this.retentionTimeout = retentionTimeout;
+        } else {
+            this.retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
+        }
     }
 
+    public int getRetentionTimeout() {
+        return retentionTimeout;
+    }
 
     public List<PodTemplate> getTemplates() {
         return templates;

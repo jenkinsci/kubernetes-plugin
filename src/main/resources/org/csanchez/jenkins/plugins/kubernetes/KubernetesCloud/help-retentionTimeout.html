@@ -1,0 +1,7 @@
+Time in minutes after which the Kubernetes cloud plugin will clean up an idle
+worker that has not already terminated. This cleanup is only necessary in
+exceptional conditions; typically workers will terminate upon completion of the
+invoking task.
+
+<p>For tasks that use very large images, this timeout can be increased to avoid
+early termination of the task while the Kubernetes pod is still deploying.</p>
