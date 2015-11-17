@@ -61,6 +61,10 @@ THE SOFTWARE.
     <f:entry field="privileged" title="${%Run in privileged mode}">
       <f:checkbox/>
     </f:entry>
+
+    <f:entry field="nodeSelector" title="${%Node Selector}">
+      <f:textbox/>
+    </f:entry>
   </f:advanced>
 
 </j:jelly>

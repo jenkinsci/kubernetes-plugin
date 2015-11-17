@@ -35,6 +35,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String label;
 
+    private String nodeSelector;
+
     @DataBoundConstructor
     public PodTemplate(String image) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
@@ -121,6 +123,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public String getLabel() {
         return label;
+    }
+
+    public Set<LabelAtom> getNodeSelectorSet() {
+        return Label.parse(nodeSelector);
+    }
+
+    @DataBoundSetter
+    public void setNodeSelector(String nodeSelector) {
+        this.nodeSelector = nodeSelector;
+    }
+
+    public String getNodeSelector() {
+        return nodeSelector;
     }
 
     @DataBoundSetter
