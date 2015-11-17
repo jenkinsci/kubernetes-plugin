@@ -125,10 +125,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return label;
     }
 
-    public Set<LabelAtom> getNodeSelectorSet() {
-        return Label.parse(nodeSelector);
-    }
-
     @DataBoundSetter
     public void setNodeSelector(String nodeSelector) {
         this.nodeSelector = nodeSelector;
