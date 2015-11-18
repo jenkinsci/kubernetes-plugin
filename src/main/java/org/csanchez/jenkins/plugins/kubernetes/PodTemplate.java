@@ -11,7 +11,10 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.google.common.base.Preconditions;
+import org.csanchez.jenkins.plugins.kubernetes.PodVolumes.PodVolume;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -35,10 +38,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String label;
 
+    private final List<PodVolume> volumes;
+
     @DataBoundConstructor
-    public PodTemplate(String image) {
+    public PodTemplate(String image, List<? extends PodVolume> volumes) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.image = image;
+        this.volumes = (volumes == null) ? new ArrayList<PodVolume>() :
+                new ArrayList<PodVolume>(volumes);
     }
 
     @DataBoundSetter
@@ -139,5 +146,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         public String getDisplayName() {
             return "Kubernetes Pod Template";
         }
+    }
+
+    public List<PodVolume> getVolumes() {
+        return volumes;
     }
 }
