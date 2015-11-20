@@ -10,7 +10,7 @@ import com.google.common.collect.ImmutableList;
 public class KubernetesCloudTest {
 
     private KubernetesCloud cloud = new KubernetesCloud("test", null, "http://localhost:8080", "default", null, "", 0,
-            0);
+            0, /*retentionTimeoutMinutes=*/ 5);
 
     @Test
     public void testParseDockerCommand() {

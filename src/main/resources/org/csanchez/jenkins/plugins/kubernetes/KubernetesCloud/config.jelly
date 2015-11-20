@@ -47,6 +47,12 @@
         <f:textbox default="10"/>
     </f:entry>
 
+    <f:advanced>
+      <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
+        <f:textbox default="5"/>
+      </f:entry>
+    </f:advanced>
+
     <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
       <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="Add Pod Template"
                                   deleteCaption="Delete Template" />
