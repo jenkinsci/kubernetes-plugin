@@ -228,6 +228,9 @@ public class KubernetesCloud extends Cloud {
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
+        for (PodEnvVar podEnvVar :template.getEnvVars()) {
+            env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+        }
         // Build volumes and volume mounts.
         List<Volume> volumes = new ArrayList<Volume>();
         List<VolumeMount> volumeMounts = new ArrayList<VolumeMount>();
