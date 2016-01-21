@@ -62,7 +62,10 @@ A local testing cluster with one node can be created with Docker Compose
     docker-compose up
 
 When using boot2docker or Docker Engine with a remote host, the remote Kubernetes API can be exposed
-with `docker-machine ssh MACHINE_NAME -- -L 0.0.0.0:8080:localhost:8080` or `boot2docker ssh -L 0.0.0.0:8080:localhost:8080`
+with `docker-machine ssh MACHINE_NAME -L 0.0.0.0:8080:localhost:8080` or `boot2docker ssh -L 0.0.0.0:8080:localhost:8080`
+
+    kubectl create -f ./src/main/kubernetes/jenkins-local.yml
+    kubectl create -f ./src/main/kubernetes/service.yml
 
 More info
 
@@ -79,8 +82,8 @@ Create a GCE disk named `kubernetes-jenkins` to store the data.
 
 Creating the pods and services
 
-    kubectl create -f ./src/main/kubernetes/jenkins.yml
-    kubectl create -f ./src/main/kubernetes/service.yml
+    kubectl create -f ./src/main/kubernetes/jenkins-gke.yml
+    kubectl create -f ./src/main/kubernetes/service-gke.yml
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
 Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenkins`
