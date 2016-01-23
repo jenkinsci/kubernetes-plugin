@@ -26,7 +26,7 @@ public class ServiceAccountCredential extends BaseStandardCredentials implements
     @Override
     public String getToken(String serviceAddress, String caCertData, boolean skipTlsVerify) {
         try {
-            return FileUtils.readFileToString(new File("/run/secrets/kubernetes.io/serviceaccount/token"));
+            return FileUtils.readFileToString(new File("/var/run/secrets/kubernetes.io/serviceaccount/token"));
         } catch (IOException e) {
             return null;
         }
@@ -36,7 +36,7 @@ public class ServiceAccountCredential extends BaseStandardCredentials implements
     public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
 
         public DescriptorImpl() {
-            if (!new File("/run/secrets/kubernetes.io/serviceaccount/token").exists()) {
+            if (!new File("/var/run/secrets/kubernetes.io/serviceaccount/token").exists()) {
                 throw new RuntimeException("Jenkins isn't running inside Kubernetes with Admission Controller.");
             }
         }
