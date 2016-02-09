@@ -142,7 +142,7 @@ public class OpenShiftBearerTokenCredentialImpl extends UsernamePasswordCredenti
 
         @Override
         public String getDisplayName() {
-            return "OpenShift OAuth Access token";
+            return "OpenShift Username and Password";
         }
     }
 
