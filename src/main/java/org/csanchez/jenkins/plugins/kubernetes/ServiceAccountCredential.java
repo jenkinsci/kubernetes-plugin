@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Read the OAuth bearer token from service account file provisionned by kubernetes
+ * Read the OAuth bearer token from service account file provisioned by kubernetes
  * <a href="http://kubernetes.io/v1.0/docs/admin/service-accounts-admin.html">Service Account Admission Controller</a>
  * when Jenkins itself is deployed inside a Pod.
  *
