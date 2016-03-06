@@ -109,7 +109,8 @@ Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenki
 Configure Jenkins, adding the `Kubernetes` cloud under configuration, setting
 Kubernetes URL to the container engine cluster endpoint or simply `https://kubernetes.default.svc.cluster.local`.
 Under credentials, click `Add` and select `Kubernetes Service Account`,
-or alternatively use the Kubernetes API username and password.
+or alternatively use the Kubernetes API username and password. Select 'Certificate' as credentials type if the
+kubernetes cluster is configured to use client certificates for authentication.
 
 ![image](credentials.png)
 
