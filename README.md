@@ -29,10 +29,10 @@ Create a cluster
 and note the admin password and server certitifate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run 
-```
-    gcloud container clusters get-credentials
+
+    gcloud container clusters get-credentials jenkins
     kubectl config view --raw
-```
+
 the last command will output kubernetes cluster configuration including API server URL, admin password and root certificate
 
 # Debugging
