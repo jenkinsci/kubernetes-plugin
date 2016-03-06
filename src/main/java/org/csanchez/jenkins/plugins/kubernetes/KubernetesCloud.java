@@ -260,6 +260,7 @@ public class KubernetesCloud extends Cloud {
                         .addToArgs(slave.getComputer().getJnlpMac())
                         .addToArgs(slave.getComputer().getName())
                 .endContainer()
+                .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                 .withRestartPolicy("Never")
                 .endSpec()
                 .build();
@@ -267,6 +268,20 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getLabelsFor(String id) {
         return ImmutableMap.<String, String> builder().putAll(POD_LABEL).putAll(ImmutableMap.of("name", id)).build();
+    }
+
+    private Map<String, String> getNodeSelectorMap(String selectors)
+    {
+        ImmutableMap.Builder builder = ImmutableMap.<String, String> builder();
+
+        for (String selector : selectors.split(","))
+        {
+            String[] parts = selector.split("=");
+
+            builder = builder.put(parts[0], parts[1]);
+        }
+
+        return builder.build();
     }
 
     /**
