@@ -272,7 +272,7 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getNodeSelectorMap(String selectors)
     {
-        ImmutableMap.Builder builder = ImmutableMap.<String, String> builder();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
 
         for (String selector : selectors.split(","))
         {
