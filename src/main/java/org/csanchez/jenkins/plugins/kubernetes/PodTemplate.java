@@ -38,6 +38,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String label;
 
+    private String nodeSelector;
+
     private final List<PodVolume> volumes;
 
     @DataBoundConstructor
@@ -128,6 +130,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public String getLabel() {
         return label;
+    }
+
+    @DataBoundSetter
+    public void setNodeSelector(String nodeSelector) {
+        this.nodeSelector = nodeSelector;
+    }
+
+    public String getNodeSelector() {
+        return nodeSelector;
     }
 
     @DataBoundSetter
