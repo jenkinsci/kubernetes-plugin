@@ -62,6 +62,11 @@ THE SOFTWARE.
                                 deleteCaption="Delete Volume" />
   </f:entry>
 
+    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in slave pod}">
+      <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="Add Environment Variable"
+                                  deleteCaption="Delete Environment Variable" />
+    </f:entry>
+
   <f:advanced>
     <f:entry field="privileged" title="${%Run in privileged mode}">
       <f:checkbox/>

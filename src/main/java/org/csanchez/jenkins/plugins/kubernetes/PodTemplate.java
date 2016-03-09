@@ -42,6 +42,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private final List<PodVolume> volumes;
 
+    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+
     @DataBoundConstructor
     public PodTemplate(String image, List<? extends PodVolume> volumes) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
@@ -148,6 +150,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public boolean isPrivileged() {
         return privileged;
+    }
+
+    public List<PodEnvVar> getEnvVars() {
+        return envVars;
+    }
+
+    @DataBoundSetter
+    public void setEnvVars(List<PodEnvVar> envVars) {
+        this.envVars.addAll(envVars);
     }
 
     @Extension
