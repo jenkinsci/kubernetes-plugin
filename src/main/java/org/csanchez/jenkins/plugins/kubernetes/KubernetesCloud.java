@@ -281,7 +281,11 @@ public class KubernetesCloud extends Cloud {
         {
             String[] parts = selector.split("=");
 
-            builder = builder.put(parts[0], parts[1]);
+            if (parts.length == 2) {
+                if (parts.length == 2) {
+                    builder = builder.put(parts[0], parts[1]);
+                }
+            }
         }
 
         return builder.build();
