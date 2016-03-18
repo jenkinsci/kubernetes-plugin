@@ -273,22 +273,23 @@ public class KubernetesCloud extends Cloud {
         return ImmutableMap.<String, String> builder().putAll(POD_LABEL).putAll(ImmutableMap.of("name", id)).build();
     }
 
-    private Map<String, String> getNodeSelectorMap(String selectors)
-    {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+    private Map<String, String> getNodeSelectorMap(String selectors) {
+        if (selectors.isEmpty()) {
+            return ImmutableMap.of();
+        } else {
+            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
 
-        for (String selector : selectors.split(","))
-        {
-            String[] parts = selector.split("=");
-
-            if (parts.length == 2) {
-                if (parts.length == 2) {
+            for (String selector : selectors.split(",")) {
+                String[] parts = selector.split("=");
+                if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
                     builder = builder.put(parts[0], parts[1]);
+                } else {
+                    LOGGER.log(Level.WARNING, "Ignoring selector '" + selector
+                            + "'. Selectors must be in the format 'label1=value1,label2=value2'.");
                 }
             }
+            return builder.build();
         }
-
-        return builder.build();
     }
 
     /**
