@@ -28,6 +28,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private boolean privileged;
 
+    private boolean alwaysPullImage;
+
     private String command;
 
     private String args;
@@ -150,6 +152,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public boolean isPrivileged() {
         return privileged;
+    }
+
+    @DataBoundSetter
+    public void setAlwaysPullImage(boolean alwaysPullImage) {
+        this.alwaysPullImage = alwaysPullImage;
+    }
+
+    public boolean isAlwaysPullImage() {
+        return alwaysPullImage;
     }
 
     public List<PodEnvVar> getEnvVars() {

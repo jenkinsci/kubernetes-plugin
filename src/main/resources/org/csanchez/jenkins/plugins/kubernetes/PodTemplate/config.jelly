@@ -41,6 +41,10 @@ THE SOFTWARE.
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="alwaysPullImage" title="${%Always pull image}">
+    <f:checkbox/>
+  </f:entry>
+    
   <f:entry field="remoteFs" title="${%Jenkins slave root directory}">
     <f:textbox default="/home/jenkins"/>
   </f:entry>
@@ -71,7 +75,7 @@ THE SOFTWARE.
     <f:entry field="privileged" title="${%Run in privileged mode}">
       <f:checkbox/>
     </f:entry>
-
+    
     <f:entry field="nodeSelector" title="${%Node Selector}">
       <f:textbox/>
     </f:entry>
