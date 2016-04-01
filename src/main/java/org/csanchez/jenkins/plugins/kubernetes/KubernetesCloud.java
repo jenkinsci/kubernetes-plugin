@@ -254,6 +254,7 @@ public class KubernetesCloud extends Cloud {
                     .addNewContainer()
                         .withName(CONTAINER_NAME)
                         .withImage(template.getImage())
+                        .withImagePullPolicy(template.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                         .withNewSecurityContext()
                             .withPrivileged(template.isPrivileged())
                         .endSecurityContext()
