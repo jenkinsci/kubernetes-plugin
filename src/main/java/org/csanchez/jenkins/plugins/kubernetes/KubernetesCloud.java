@@ -232,6 +232,9 @@ public class KubernetesCloud extends Cloud {
             env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
         }
 
+        // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
+        // As a result, container is running without a home set for user, resulting into using `/` for some tools,
+        // and `?` for java build tools. So we force HOME to a safe location.
         env.add(new EnvVar("HOME", template.getRemoteFs(), null));
 
 
