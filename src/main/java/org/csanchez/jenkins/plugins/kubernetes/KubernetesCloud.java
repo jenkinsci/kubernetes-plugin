@@ -231,6 +231,13 @@ public class KubernetesCloud extends Cloud {
         for (PodEnvVar podEnvVar :template.getEnvVars()) {
             env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
         }
+
+        // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
+        // As a result, container is running without a home set for user, resulting into using `/` for some tools,
+        // and `?` for java build tools. So we force HOME to a safe location.
+        env.add(new EnvVar("HOME", template.getRemoteFs(), null));
+
+
         // Build volumes and volume mounts.
         List<Volume> volumes = new ArrayList<Volume>();
         List<VolumeMount> volumeMounts = new ArrayList<VolumeMount>();
@@ -257,7 +264,8 @@ public class KubernetesCloud extends Cloud {
                         .withImagePullPolicy(template.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                         .withNewSecurityContext()
                             .withPrivileged(template.isPrivileged())
-                        .endSecurityContext()
+                            .endSecurityContext()
+                        .withWorkingDir(template.getRemoteFs())
                         .withVolumeMounts(volumeMounts)
                         .withEnv(env)
                         .withCommand(parseDockerCommand(template.getCommand()))
