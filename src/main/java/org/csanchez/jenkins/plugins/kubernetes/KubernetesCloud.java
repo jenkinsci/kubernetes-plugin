@@ -8,6 +8,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -283,7 +284,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Map<String, String> getNodeSelectorMap(String selectors) {
-        if (selectors.isEmpty()) {
+        if (Strings.isNullOrEmpty(selectors)) {
             return ImmutableMap.of();
         } else {
             ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
