@@ -79,6 +79,23 @@ THE SOFTWARE.
     <f:entry field="nodeSelector" title="${%Node Selector}">
       <f:textbox/>
     </f:entry>
+
+    <f:entry field="resourceRequestCpu" title="${%Request CPU}">
+      <f:textbox/>
+    </f:entry>
+
+    <f:entry field="resourceRequestMemory" title="${%Request Memory}">
+      <f:textbox/>
+    </f:entry>
+
+    <f:entry field="resourceLimitCpu" title="${%Limit CPU}">
+      <f:textbox/>
+    </f:entry>
+
+    <f:entry field="resourceLimitMemory" title="${%Limit Memory}">
+      <f:textbox/>
+    </f:entry>
+
   </f:advanced>
 
 </j:jelly>
