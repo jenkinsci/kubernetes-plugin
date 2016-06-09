@@ -42,6 +42,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String nodeSelector;
 
+    private String resourceRequestCpu;
+
+    private String resourceRequestMemory;
+
+    private String resourceLimitCpu;
+
+    private String resourceLimitMemory;
+
     private final List<PodVolume> volumes;
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
@@ -170,6 +178,42 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
         this.envVars.addAll(envVars);
+    }
+
+    public String getResourceRequestMemory() {
+        return resourceRequestMemory;
+    }
+
+    @DataBoundSetter
+    public void setResourceRequestMemory(String resourceRequestMemory) {
+        this.resourceRequestMemory = resourceRequestMemory;
+    }
+
+    public String getResourceLimitCpu() {
+        return resourceLimitCpu;
+    }
+
+    @DataBoundSetter
+    public void setResourceLimitCpu(String resourceLimitCpu) {
+        this.resourceLimitCpu = resourceLimitCpu;
+    }
+
+    public String getResourceLimitMemory() {
+        return resourceLimitMemory;
+    }
+
+    @DataBoundSetter
+    public void setResourceLimitMemory(String resourceLimitMemory) {
+        this.resourceLimitMemory = resourceLimitMemory;
+    }
+
+    public String getResourceRequestCpu() {
+        return resourceRequestCpu;
+    }
+
+    @DataBoundSetter
+    public void setResourceRequestCpu(String resourceRequestCpu) {
+        this.resourceRequestCpu = resourceRequestCpu;
     }
 
     @Extension

@@ -28,6 +28,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.groovy.transform.ImmutableASTTransformation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -270,6 +271,10 @@ public class KubernetesCloud extends Cloud {
                         .withVolumeMounts(volumeMounts)
                         .withEnv(env)
                         .withCommand(parseDockerCommand(template.getCommand()))
+                        .withNewResources()
+                            .withRequests(getResourcesMap(template.getResourceRequestMemory(), template.getResourceRequestCpu()))
+                            .withLimits(getResourcesMap(template.getResourceLimitMemory(), template.getResourceLimitCpu()))
+                            .endResources()
                         .addToArgs(slave.getComputer().getJnlpMac())
                         .addToArgs(slave.getComputer().getName())
                 .endContainer()
@@ -281,6 +286,19 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getLabelsFor(String id) {
         return ImmutableMap.<String, String> builder().putAll(POD_LABEL).putAll(ImmutableMap.of("name", id)).build();
+    }
+
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
+        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity> builder();
+        if (StringUtils.isNotBlank(memory)) {
+            Quantity memoryQuantity = new Quantity(memory);
+            builder.put("memory", memoryQuantity);
+        }
+        if (StringUtils.isNotBlank(cpu)) {
+            Quantity cpuQuantity = new Quantity(cpu);
+            builder.put("cpu", cpuQuantity);
+        }
+        return builder.build();
     }
 
     private Map<String, String> getNodeSelectorMap(String selectors) {
