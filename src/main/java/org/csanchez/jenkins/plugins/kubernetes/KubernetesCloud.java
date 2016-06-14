@@ -230,8 +230,10 @@ public class KubernetesCloud extends Cloud {
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
-        for (PodEnvVar podEnvVar :template.getEnvVars()) {
-            env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+        if(template.getEnvVars()!=null) {
+            for (PodEnvVar podEnvVar :template.getEnvVars()) {
+                env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+            }
         }
 
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
