@@ -42,9 +42,12 @@ public class KubernetesSlaveTest {
     @Test
     public void testGetSlaveName() {
         List<? extends PodVolume> volumes = Collections.emptyList();
+
         PodTemplate template = new PodTemplate("image", volumes);
-        assertNotNull(KubernetesSlave.getSlaveName(template));
-        assertTrue(KubernetesSlave.getSlaveName(template).matches("^[0-9a-f]{12}$"));
+        String name = KubernetesSlave.getSlaveName(template);
+        assertNotNull(name);
+        assertTrue(name.matches("^[0-9a-f]{12}$"));
+
         assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("", "image", volumes)).matches("^[0-9a-f]{12}$"));
         assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("a name", "image", volumes))
                 .matches("^a-name-[0-9a-f]{12}$"));
