@@ -25,7 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -42,7 +42,9 @@ public class KubernetesSlaveTest {
     @Test
     public void testGetSlaveName() {
         List<? extends PodVolume> volumes = Collections.emptyList();
-        assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)).matches("^[0-9a-f]{12}$"));
+        PodTemplate template = new PodTemplate("image", volumes);
+        assertNotNull(KubernetesSlave.getSlaveName(template));
+        assertTrue(KubernetesSlave.getSlaveName(template).matches("^[0-9a-f]{12}$"));
         assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("", "image", volumes)).matches("^[0-9a-f]{12}$"));
         assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("a name", "image", volumes))
                 .matches("^a-name-[0-9a-f]{12}$"));
