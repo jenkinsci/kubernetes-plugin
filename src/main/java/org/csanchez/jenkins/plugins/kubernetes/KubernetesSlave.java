@@ -43,7 +43,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @DataBoundConstructor
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
-        super(template.getName().replace(" ", "-").toLowerCase().substring(0, 238)+"-"+Long.toHexString(System.nanoTime()),
+        super(getSlaveName(template),
                 nodeDescription,
                 template.getRemoteFs(),
                 1,
@@ -55,6 +55,19 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         // this.pod = pod;
         this.cloud = cloud;
+    }
+
+    static String getSlaveName(PodTemplate template) {
+        String hex = Long.toHexString(System.nanoTime());
+        String name = template.getName();
+        if (name == null) {
+            return hex;
+        }
+        // no spaces
+        name = template.getName().replace(" ", "-").toLowerCase();
+        // keep it under 256 chars
+        name = name.substring(0, Math.min(name.length(), 256 - hex.length()));
+        return String.format("%s-%s", name, hex);
     }
 
     @Override

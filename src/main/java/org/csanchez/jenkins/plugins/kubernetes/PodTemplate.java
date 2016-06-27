@@ -56,10 +56,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundConstructor
     public PodTemplate(String image, List<? extends PodVolume> volumes) {
+        this(null, image, volumes);
+    }
+
+    @DataBoundConstructor
+    public PodTemplate(String name, String image, List<? extends PodVolume> volumes) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
+        this.name = name;
         this.image = image;
-        this.volumes = (volumes == null) ? new ArrayList<PodVolume>() :
-                new ArrayList<PodVolume>(volumes);
+        this.volumes = (volumes == null) ? new ArrayList<PodVolume>() : new ArrayList<PodVolume>(volumes);
     }
 
     @DataBoundSetter
