@@ -2,10 +2,10 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
@@ -20,7 +20,6 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.OfflineCause;
-import hudson.slaves.RetentionStrategy;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -60,7 +59,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     static String getSlaveName(PodTemplate template) {
         String hex = Long.toHexString(System.nanoTime());
         String name = template.getName();
-        if (name == null) {
+        if (StringUtils.isEmpty(name)) {
             return hex;
         }
         // no spaces
