@@ -259,6 +259,7 @@ public class KubernetesCloud extends Cloud {
                 .withNewMetadata()
                     .withName(slave.getNodeName())
                     .withLabels(getLabelsFor(id))
+                    .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
                 .withNewSpec()
                     .withVolumes(volumes)
@@ -299,6 +300,16 @@ public class KubernetesCloud extends Cloud {
         if (StringUtils.isNotBlank(cpu)) {
             Quantity cpuQuantity = new Quantity(cpu);
             builder.put("cpu", cpuQuantity);
+        }
+        return builder.build();
+    }
+
+    private Map<String, String> getAnnotationsMap(List<PodAnnotation> annotations) {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        if(annotations!=null) {
+            for (PodAnnotation podAnnotation :annotations) {
+                builder.put(podAnnotation.getKey(), podAnnotation.getValue());
+            }
         }
         return builder.build();
     }
