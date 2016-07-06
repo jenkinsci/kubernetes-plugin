@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -174,7 +175,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
-        this.serviceAccount = serviceAccount;
+        this.serviceAccount = Util.fixEmpty(serviceAccount);
     }
 
     @DataBoundSetter
