@@ -100,7 +100,7 @@ public class KubernetesCloud extends Cloud {
         Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
 
         this.serverUrl = serverUrl;
-        this.namespace = namespace;
+        this.namespace = Util.fixEmpty(namespace);
         this.jenkinsUrl = jenkinsUrl;
         if (templates != null)
             this.templates = new ArrayList<PodTemplate>(templates);
@@ -150,6 +150,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = skipTlsVerify;
     }
 
+    @CheckForNull
     public String getNamespace() {
         return namespace;
     }
@@ -581,7 +582,6 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Object readResolve() {
-        if (namespace == null) namespace = "jenkins-slave";
         return this;
     }
 
