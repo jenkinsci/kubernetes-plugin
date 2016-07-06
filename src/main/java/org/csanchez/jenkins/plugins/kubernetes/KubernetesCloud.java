@@ -1,38 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.Computer;
-import hudson.model.Descriptor;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.security.ACL;
-import hudson.slaves.Cloud;
-import hudson.slaves.NodeProvisioner;
-import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.*;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-import org.apache.commons.lang.StringUtils;
-import org.codehaus.groovy.transform.ImmutableASTTransformation;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyStoreException;
@@ -51,6 +18,47 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.Computer;
+import hudson.model.Descriptor;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.security.ACL;
+import hudson.slaves.Cloud;
+import hudson.slaves.NodeProvisioner;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Kubernetes cloud provider.
@@ -151,6 +159,9 @@ public class KubernetesCloud extends Cloud {
     }
 
     public String getNamespace() {
+        if(StringUtils.isEmpty(namespace)) {
+            namespace=ConfigUtils.getSystemNamespace();
+        }
         return namespace;
     }
 
@@ -387,7 +398,7 @@ public class KubernetesCloud extends Cloud {
 
                 Pod pod = getPodTemplate(slave, label);
                 // Why the hell doesn't createPod return a Pod object ?
-                pod = connect().pods().inNamespace(namespace).create(pod);
+                pod = connect().pods().inNamespace(getNamespace()).create(pod);
 
                 String podId = pod.getMetadata().getName();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
@@ -403,7 +414,7 @@ public class KubernetesCloud extends Cloud {
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(6000);
-                    pod = connect().pods().inNamespace(namespace).withName(podId).get();
+                    pod = connect().pods().inNamespace(getNamespace()).withName(podId).get();
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
@@ -472,8 +483,8 @@ public class KubernetesCloud extends Cloud {
         }
 
         KubernetesClient client = connect();
-        PodList slaveList = client.pods().inNamespace(namespace).withLabels(POD_LABEL).list();
-        PodList namedList = client.pods().inNamespace(namespace).withLabel("name", getIdForLabel(label)).list();
+        PodList slaveList = client.pods().inNamespace(getNamespace()).withLabels(POD_LABEL).list();
+        PodList namedList = client.pods().inNamespace(getNamespace()).withLabel("name", getIdForLabel(label)).list();
 
 
         if (containerCap < slaveList.getItems().size()) {
@@ -495,7 +506,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     public PodTemplate getTemplate(String template) {
-        for (PodTemplate t : templates) {
+	for (PodTemplate t : templates) {
             if (t.getImage().equals(template)) {
                 return t;
             }
@@ -509,7 +520,7 @@ public class KubernetesCloud extends Cloud {
      * @return the template
      */
     public PodTemplate getTemplate(Label label) {
-        for (PodTemplate t : templates) {
+    	for (PodTemplate t : templates) {
             if (label == null || label.matches(t.getLabelSet())) {
                 return t;
             }
@@ -581,6 +592,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Object readResolve() {
+        if (namespace == null) namespace = ConfigUtils.getSystemNamespace();
         if (namespace == null) namespace = "jenkins-slave";
         return this;
     }
