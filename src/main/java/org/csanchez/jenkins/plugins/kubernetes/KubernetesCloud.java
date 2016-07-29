@@ -49,6 +49,8 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
@@ -57,6 +59,7 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
@@ -75,6 +78,7 @@ public class KubernetesCloud extends Cloud {
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String DEFAULT_ID = "jenkins-slave-default";
+    private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
     /** label for all pods started by the plugin */
     private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
@@ -225,9 +229,7 @@ public class KubernetesCloud extends Cloud {
         return "jenkins-" + label.getName();
     }
 
-    private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        final PodTemplate template = getTemplate(label);
-        String id = getIdForLabel(label);
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, List<VolumeMount> volumeMounts) {
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -246,18 +248,41 @@ public class KubernetesCloud extends Cloud {
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
-        if(template.getEnvVars()!=null) {
-            for (PodEnvVar podEnvVar :template.getEnvVars()) {
-                env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+        if (containerTemplate.getEnvVars() != null) {
+            for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
+                env.add(new EnvVar(containerEnvVar.getKey(), containerEnvVar.getValue(), null));
             }
         }
-
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
         // As a result, container is running without a home set for user, resulting into using `/` for some tools,
         // and `?` for java build tools. So we force HOME to a safe location.
-        env.add(new EnvVar("HOME", template.getRemoteFs(), null));
+        env.add(new EnvVar("HOME", containerTemplate.getWorkingDir(), null));
 
+        return new ContainerBuilder()
+                .withName(containerTemplate.getName())
+                .withImage(containerTemplate.getImage())
+                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
+                .withNewSecurityContext()
+                    .withPrivileged(containerTemplate.isPrivileged())
+                .endSecurityContext()
+                .withWorkingDir(containerTemplate.getWorkingDir())
+                .withVolumeMounts(volumeMounts)
+                .withEnv(env)
+                .withCommand(parseDockerCommand(containerTemplate.getCommand()))
+                .withNewResources()
+                    .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
+                    .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .endResources()
+                .addToArgs(slave.getComputer().getJnlpMac())
+                .addToArgs(slave.getComputer().getName())
+                .build();
+    }
 
+    private Pod getPodTemplate(KubernetesSlave slave, Label label) {
+        final PodTemplate template = getTemplate(label);
+        String id = getIdForLabel(label);
+
+        List<Container> containers = new ArrayList<Container>();
         // Build volumes and volume mounts.
         List<Volume> volumes = new ArrayList<Volume>();
         List<VolumeMount> volumeMounts = new ArrayList<VolumeMount>();
@@ -279,6 +304,40 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+
+        //Create a fallback container if we need to.
+        if (template.getContainers() == null || template.getContainers().isEmpty()) {
+            ContainerTemplate fallback = new ContainerTemplate(template.getName(), template.getImage());
+            fallback.setAlwaysPullImage(template.isAlwaysPullImage());
+            fallback.setPrivileged(template.isPrivileged());
+            fallback.setResourceRequestMemory(template.getResourceRequestMemory());
+            fallback.setResourceRequestCpu(template.getResourceRequestCpu());
+            fallback.setResourceLimitMemory(template.getResourceLimitMemory());
+            fallback.setResourceLimitCpu(template.getResourceLimitCpu());
+            fallback.setWorkingDir(template.getRemoteFs());
+            fallback.setCommand(template.getCommand());
+            fallback.setArgs(template.getArgs());
+
+            for (PodEnvVar envVar : template.getEnvVars()) {
+                fallback.getEnvVars().add(new ContainerEnvVar(envVar.getKey(), envVar.getValue()));
+            }
+            List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
+            if (!mountPathExists(fallback.getWorkingDir(), volumeMounts)) {
+                containerMounts.add(new VolumeMount(fallback.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
+            }
+
+            containers.add(createContainer(slave, fallback, containerMounts));
+        } else {
+            for (ContainerTemplate containerTemplate : template.getContainers()) {
+                List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
+                if (!mountPathExists(containerTemplate.getWorkingDir(), volumeMounts)) {
+                    containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
+                }
+                containers.add(createContainer(slave, containerTemplate, containerMounts));
+            }
+        }
+
         return new PodBuilder()
                 .withNewMetadata()
                     .withName(slave.getNodeName())
@@ -289,26 +348,9 @@ public class KubernetesCloud extends Cloud {
                     .withVolumes(volumes)
                     .withServiceAccount(template.getServiceAccount())
                     .withImagePullSecrets(imagePullSecrets)
-                    .addNewContainer()
-                        .withName(CONTAINER_NAME)
-                        .withImage(template.getImage())
-                        .withImagePullPolicy(template.isAlwaysPullImage() ? "Always" : "IfNotPresent")
-                        .withNewSecurityContext()
-                            .withPrivileged(template.isPrivileged())
-                            .endSecurityContext()
-                        .withWorkingDir(template.getRemoteFs())
-                        .withVolumeMounts(volumeMounts)
-                        .withEnv(env)
-                        .withCommand(parseDockerCommand(template.getCommand()))
-                        .withNewResources()
-                            .withRequests(getResourcesMap(template.getResourceRequestMemory(), template.getResourceRequestCpu()))
-                            .withLimits(getResourcesMap(template.getResourceLimitMemory(), template.getResourceLimitCpu()))
-                            .endResources()
-                        .addToArgs(slave.getComputer().getJnlpMac())
-                        .addToArgs(slave.getComputer().getName())
-                .endContainer()
-                .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
-                .withRestartPolicy("Never")
+                    .withContainers(containers)
+                    .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
+                    .withRestartPolicy("Never")
                 .endSpec()
                 .build();
     }
@@ -376,6 +418,15 @@ public class KubernetesCloud extends Cloud {
             commands.add(m.group(1).replace("\"", ""));
         }
         return commands;
+    }
+
+    private boolean mountPathExists(String path, List<VolumeMount> existingMounts) {
+        for (VolumeMount mount : existingMounts) {
+            if (mount.getMountPath().equals(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -519,7 +570,7 @@ public class KubernetesCloud extends Cloud {
 
         if (template.getInstanceCap() < namedList.getItems().size()) {
             LOGGER.log(Level.INFO, "Template instance cap of " + template.getInstanceCap() + " reached for template "
-                    + template.getImage() + ", not provisioning.");
+                    + template.getName() + ", not provisioning.");
             return false; // maxed out
         }
         return true;
@@ -528,15 +579,6 @@ public class KubernetesCloud extends Cloud {
     @Override
     public boolean canProvision(Label label) {
         return getTemplate(label) != null;
-    }
-
-    public PodTemplate getTemplate(String template) {
-        for (PodTemplate t : templates) {
-            if (t.getImage().equals(template)) {
-                return t;
-            }
-        }
-        return null;
     }
 
     /**

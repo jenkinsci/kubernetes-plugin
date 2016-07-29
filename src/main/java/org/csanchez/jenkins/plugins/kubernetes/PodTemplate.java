@@ -10,6 +10,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 import hudson.Extension;
 import hudson.Util;
@@ -53,6 +54,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String resourceLimitMemory;
 
+    private final List<ContainerTemplate> containers;
+
     private final List<PodVolume> volumes;
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
@@ -62,15 +65,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
     @DataBoundConstructor
-    public PodTemplate(String image, List<? extends PodVolume> volumes) {
-        this(null, image, volumes);
+    public PodTemplate(String image, List<? extends PodVolume> volumes, List<ContainerTemplate> containers) {
+        this(null, image, volumes, containers);
     }
 
-    PodTemplate(String name, String image, List<? extends PodVolume> volumes) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
+    PodTemplate(String name, String image, List<? extends PodVolume> volumes, List<ContainerTemplate> containers) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(image)  || !(containers == null || containers.isEmpty()), "Need to specify either image or add at least one container");
         this.name = name;
         this.image = image;
         this.volumes = (volumes == null) ? new ArrayList<PodVolume>() : new ArrayList<PodVolume>(volumes);
+        this.containers = (containers == null) ? new ArrayList<ContainerTemplate>() : new ArrayList<ContainerTemplate>(containers);
     }
 
     @DataBoundSetter
@@ -254,6 +258,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
+    public List<PodVolume> getVolumes() {
+        return volumes;
+    }
+
+    public List<ContainerTemplate> getContainers() {
+        return containers;
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
@@ -261,9 +273,5 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         public String getDisplayName() {
             return "Kubernetes Pod Template";
         }
-    }
-
-    public List<PodVolume> getVolumes() {
-        return volumes;
     }
 }
