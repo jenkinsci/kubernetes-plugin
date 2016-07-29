@@ -47,10 +47,10 @@ public class KubernetesSlaveTest {
         PodTemplate template = new PodTemplate("image", volumes, containers);
         String name = KubernetesSlave.getSlaveName(template);
         assertNotNull(name);
-        assertTrue("Name does not match regex: '" + name + "'", name.matches("^[0-9a-f]{12,}$"));
-        assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("", "image", volumes, containers)).matches("^[0-9a-f]{12,}$"));
+        assertTrue("Name does not match regex: '" + name + "'", name.matches("^[0-9a-f]{10,}$"));
+        assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("", "image", volumes, containers)).matches("^[0-9a-f]{10,}$"));
         assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("a name", "image", volumes, containers))
-                .matches("^a-name-[0-9a-f]{12,}$"));
+                .matches("^a-name-[0-9a-f]{10,}$"));
     }
 
 }
