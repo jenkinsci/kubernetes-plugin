@@ -28,23 +28,13 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="${%Description}" help="/help/system-config/master-slave/description.html">
-    <f:textbox field="nodeDescription" />
+
+  <f:entry field="key" title="${%Key}">
+    <f:textbox/>
   </f:entry>
 
-  <f:entry title="${%# of executors}" field="numExecutors">
-    <f:textbox />
+  <f:entry field="value" title="${%Value}">
+    <f:textbox/>
   </f:entry>
 
-  <f:entry title="${%Remote FS root}" field="remoteFs">
-    <f:textbox />
-  </f:entry>
-
-  <f:entry title="${%Labels}" field="labelString">
-    <f:textbox />
-  </f:entry>
-
-  <f:slave-mode name="mode" node="${it}" />
-
-  <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 </j:jelly>

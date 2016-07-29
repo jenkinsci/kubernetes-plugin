@@ -5,15 +5,13 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-@Deprecated
-//Use ContainerEnv instead. This will be removed in future versions
-public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> {
+public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> {
 
     private String key;
     private String value;
 
     @DataBoundConstructor
-    public PodEnvVar(String key, String value) {
+    public ContainerEnvVar(String key, String value) {
         this.key = key;
         this.value = value;
     }
@@ -35,7 +33,7 @@ public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> {
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<PodEnvVar> {
+    public static class DescriptorImpl extends Descriptor<ContainerEnvVar> {
         @Override
         public String getDisplayName() {
             return "Container Environment Variable";
