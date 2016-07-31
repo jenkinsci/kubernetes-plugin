@@ -53,6 +53,10 @@ THE SOFTWARE.
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
+    <f:checkbox/>
+  </f:entry>
+
   <f:entry field="instanceCapStr" title="${%Max number of instances}">
     <f:textbox/>
   </f:entry>

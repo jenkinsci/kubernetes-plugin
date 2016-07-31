@@ -259,6 +259,7 @@ public class KubernetesCloud extends Cloud {
                 .withEnv(env)
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
                 .withArgs(arguments)
+                .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
                     .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
                     .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
