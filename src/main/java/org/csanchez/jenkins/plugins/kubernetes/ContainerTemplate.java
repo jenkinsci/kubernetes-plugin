@@ -27,6 +27,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String args;
 
+    private boolean ttyEnabled;
+
     private int instanceCap;
 
     private String resourceRequestCpu;
@@ -79,6 +81,15 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public String getArgs() {
         return args;
+    }
+
+    @DataBoundSetter
+    public void setTtyEnabled(boolean ttyEnabled) {
+        this.ttyEnabled = ttyEnabled;
+    }
+
+    public boolean isTtyEnabled() {
+        return ttyEnabled;
     }
 
     public String getDisplayName() {
