@@ -77,6 +77,8 @@ public class KubernetesCloud extends Cloud {
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
+    private static final String EMPTY = "";
+    private static final String ONE_OR_MORE_SPACES = "[ ]+";
     private static final String DEFAULT_ID = "jenkins-slave-default";
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
@@ -84,6 +86,10 @@ public class KubernetesCloud extends Cloud {
     private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
 
     private static final String CONTAINER_NAME = "slave";
+
+    private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
+    private static final String NAME_REF = "\\$\\{computer.name\\}";
+    private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -258,6 +264,11 @@ public class KubernetesCloud extends Cloud {
         // and `?` for java build tools. So we force HOME to a safe location.
         env.add(new EnvVar("HOME", containerTemplate.getWorkingDir(), null));
 
+        String[] arguments = (!Strings.isNullOrEmpty(containerTemplate.getArgs()) ? containerTemplate.getArgs() : EMPTY)
+                .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac())
+                .replaceAll(NAME_REF, slave.getComputer().getName()).split(ONE_OR_MORE_SPACES);
+
+
         return new ContainerBuilder()
                 .withName(containerTemplate.getName())
                 .withImage(containerTemplate.getImage())
@@ -269,12 +280,11 @@ public class KubernetesCloud extends Cloud {
                 .withVolumeMounts(volumeMounts)
                 .withEnv(env)
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
+                .withArgs(arguments)
                 .withNewResources()
                     .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
                     .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
                 .endResources()
-                .addToArgs(slave.getComputer().getJnlpMac())
-                .addToArgs(slave.getComputer().getName())
                 .build();
     }
 
@@ -317,7 +327,7 @@ public class KubernetesCloud extends Cloud {
             fallback.setResourceLimitCpu(template.getResourceLimitCpu());
             fallback.setWorkingDir(template.getRemoteFs());
             fallback.setCommand(template.getCommand());
-            fallback.setArgs(template.getArgs());
+            fallback.setArgs(!Strings.isNullOrEmpty(template.getArgs()) ? template.getArgs() : FALLBACK_ARGUMENTS);
 
             for (PodEnvVar envVar : template.getEnvVars()) {
                 fallback.getEnvVars().add(new ContainerEnvVar(envVar.getKey(), envVar.getValue()));
