@@ -76,13 +76,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
-                                launcher.getListener().getLogger().println("Execution channel is open.");
                                 alive.set(true);
                                 started.countDown();
                             }
                             @Override
                             public void onFailure(IOException e, Response response) {
-                                launcher.getListener().getLogger().println("Execution failure:" + response.message());
                                 alive.set(false);
                                 e.printStackTrace(launcher.getListener().getLogger());
                                 started.countDown();
@@ -91,7 +89,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                             @Override
                             public void onClose(int i, String s) {
-                                launcher.getListener().getLogger().println("Execution channel is closed.");
                                 alive.set(false);
                                 started.countDown();
                                 finished.countDown();

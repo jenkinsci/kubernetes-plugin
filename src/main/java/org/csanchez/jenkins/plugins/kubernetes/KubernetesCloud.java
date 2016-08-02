@@ -318,7 +318,7 @@ public class KubernetesCloud extends Cloud {
         for (ContainerTemplate containerTemplate : template.getContainers()) {
             List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
             if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
-                    && !mountPathExists(containerTemplate.getWorkingDir(), volumeMounts)) {
+                    && !PodVolumes.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
                 containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
             }
             containers.add(createContainer(slave, containerTemplate, containerMounts));
@@ -404,15 +404,6 @@ public class KubernetesCloud extends Cloud {
             commands.add(m.group(1).replace("\"", ""));
         }
         return commands;
-    }
-
-    private boolean mountPathExists(String path, List<VolumeMount> existingMounts) {
-        for (VolumeMount mount : existingMounts) {
-            if (mount.getMountPath().equals(path)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

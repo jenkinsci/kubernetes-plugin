@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry field="cloud" title="The cloud to use">
+      <f:textbox default="kubernetes"/>
+    </f:entry>
+    <f:entry field="inheritFrom" title="The name of the pod inheritFrom to use">
+      <f:textbox/>
+    </f:entry>
+	<f:entry field="name" title="The name of the template">
+	  <f:textbox/>
+	</f:entry>
+	<f:entry field="label" title="The label">
+      <f:textbox/>
+    </f:entry>
+
+  <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
+      <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
+                                    deleteCaption="Delete Container" />
+  </f:entry>
+
+  <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
+    <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
+                                deleteCaption="Delete Volume" />
+  </f:entry>
+
+	<f:advanced>
+		<f:entry field="serviceAccount" title="The service account">
+          <f:textbox/>
+        </f:entry>
+        <f:entry field="nodeSelector" title="The node selector">
+          <f:textbox/>
+        </f:entry>
+        <f:entry field="workingDir" title="${%Working directory}">
+          <f:textbox default="/home/jenkins"/>
+        </f:entry>
+	</f:advanced>
+</j:jelly>

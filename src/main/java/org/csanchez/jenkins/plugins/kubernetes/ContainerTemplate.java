@@ -8,10 +8,16 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> {
+public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
+
+    private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
+    private static final String DEFAULT_COMMAND = "/bin/sh -c";
+    private static final String DEFAULT_ARGS = "cat";
+    private static final Boolean DEFAULT_IS_TTY_ENABLED = true;
 
     private String name;
 
@@ -21,13 +27,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private boolean alwaysPullImage;
 
-    private String workingDir;
+    private String workingDir = DEFAULT_WORKING_DIR;
 
-    private String command;
+    private String command = DEFAULT_COMMAND;
 
-    private String args;
+    private String args = DEFAULT_ARGS;
 
-    private boolean ttyEnabled;
+    private boolean ttyEnabled = DEFAULT_IS_TTY_ENABLED;
 
     private int instanceCap;
 
@@ -85,7 +91,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public String getArgs() {
-        return args;
+        return StringUtils.isBlank(args) ? DEFAULT_ARGS : args;
     }
 
     @DataBoundSetter
