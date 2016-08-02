@@ -5,13 +5,17 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.io.Serializable;
+import java.util.List;
 
 public class PodVolumes {
     /**
      * Base class for all Kubernetes volume types
      */
-    public static abstract class PodVolume extends AbstractDescribableImpl<PodVolume> {
+    public static abstract class PodVolume extends AbstractDescribableImpl<PodVolume> implements Serializable {
         // Where to mount this volume in the pod.
         public abstract String getMountPath();
 
@@ -127,5 +131,23 @@ public class PodVolumes {
                 return "Host Path Volume";
             }
         }
+    }
+
+    public static boolean volumeMountExists(String path, List<VolumeMount> existingMounts) {
+        for (VolumeMount mount : existingMounts) {
+            if (mount.getMountPath().equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean podVolumeExists(String path, List<PodVolume> existingVolumes) {
+        for (PodVolume podVolume : existingVolumes) {
+            if (podVolume.getMountPath().equals(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

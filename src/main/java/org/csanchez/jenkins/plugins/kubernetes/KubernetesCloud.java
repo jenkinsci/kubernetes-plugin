@@ -304,7 +304,7 @@ public class KubernetesCloud extends Cloud {
                 fallback.getEnvVars().add(new ContainerEnvVar(envVar.getKey(), envVar.getValue()));
             }
             List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
-            if (!mountPathExists(fallback.getWorkingDir(), volumeMounts)) {
+            if (!PodVolumes.volumeMountExists(fallback.getWorkingDir(), volumeMounts)) {
                 containerMounts.add(new VolumeMount(fallback.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
             }
 
@@ -312,7 +312,7 @@ public class KubernetesCloud extends Cloud {
         } else {
             for (ContainerTemplate containerTemplate : template.getContainers()) {
                 List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
-                if (!mountPathExists(containerTemplate.getWorkingDir(), volumeMounts)) {
+                if (!PodVolumes.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
                     containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
                 }
                 containers.add(createContainer(slave, containerTemplate, containerMounts));
@@ -390,15 +390,6 @@ public class KubernetesCloud extends Cloud {
             commands.add(m.group(1).replace("\"", ""));
         }
         return commands;
-    }
-
-    private boolean mountPathExists(String path, List<VolumeMount> existingMounts) {
-        for (VolumeMount mount : existingMounts) {
-            if (mount.getMountPath().equals(path)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

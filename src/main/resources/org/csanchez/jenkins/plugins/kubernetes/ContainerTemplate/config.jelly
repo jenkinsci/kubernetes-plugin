@@ -46,15 +46,15 @@ THE SOFTWARE.
   </f:entry>
 
   <f:entry field="command" title="${%Command to run slave agent}">
-    <f:textbox/>
+    <f:textbox default="/bin/sh -c"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox/>
+    <f:textbox default="cat"/>
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
-    <f:checkbox/>
+    <f:checkbox default="true"/>
   </f:entry>
 
   <f:entry field="instanceCapStr" title="${%Max number of instances}">
