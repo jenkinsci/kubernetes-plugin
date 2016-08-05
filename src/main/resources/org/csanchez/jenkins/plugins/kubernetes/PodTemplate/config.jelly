@@ -76,6 +76,11 @@ THE SOFTWARE.
       <f:checkbox/>
     </f:entry>
 
+    <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}">
+      <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="Add Image Pull Secret"
+                                  deleteCaption="Delete Image Pull Secret" />
+    </f:entry>
+
     <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
      </f:entry>

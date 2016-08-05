@@ -256,6 +256,14 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        // Build image pull secrets.
+        List<LocalObjectReference> imagePullSecrets = new ArrayList<LocalObjectReference>();
+        if(template.getImagePullSecrets() != null) {
+            for (PodImagePullSecret podImagePullSecret : template.getImagePullSecrets()) {
+                imagePullSecrets.add(new LocalObjectReference(podImagePullSecret.getName()));
+            }
+        }
+
         return new PodBuilder()
                 .withNewMetadata()
                     .withName(slave.getNodeName())
@@ -264,6 +272,7 @@ public class KubernetesCloud extends Cloud {
                 .withNewSpec()
                     .withVolumes(volumes)
                     .withServiceAccount(template.getServiceAccount())
+                    .withImagePullSecrets(imagePullSecrets)
                     .addNewContainer()
                         .withName(CONTAINER_NAME)
                         .withImage(template.getImage())
