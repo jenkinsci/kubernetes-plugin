@@ -6,6 +6,7 @@ import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -16,6 +17,8 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.model.Job;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.security.ACL;
@@ -29,6 +32,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.groovy.transform.ImmutableASTTransformation;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -576,22 +580,17 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok("Connection successful");
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter URL serverUrl) {
-            return new StandardListBoxModel()
-                    .withEmptySelection()
-                    .withMatching(
-                            CredentialsMatchers.anyOf(
-                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
-                            ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                    Jenkins.getInstance(),
-                                    ACL.SYSTEM,
-                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()
-                                                      : Collections.EMPTY_LIST
-                            ));
-
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Job context, @QueryParameter String source,
+                @QueryParameter String value) {
+            if (context == null || !context.hasPermission(Item.CONFIGURE)) {
+                return new StandardListBoxModel().includeCurrentValue(value);
+            }
+            List<DomainRequirement> domainRequirements = URIRequirementBuilder.fromUri(source).build();
+            return new StandardListBoxModel().includeEmptyValue()
+                    .includeAs(ACL.SYSTEM, context, StandardUsernamePasswordCredentials.class, domainRequirements)
+                    .includeAs(ACL.SYSTEM, context, TokenProducer.class, domainRequirements)
+                    .includeAs(ACL.SYSTEM, context, StandardCertificateCredentials.class, domainRequirements)
+                    .includeCurrentValue(value);
         }
 
     }
