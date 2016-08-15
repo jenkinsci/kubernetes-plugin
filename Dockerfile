@@ -1,7 +1,6 @@
-FROM csanchez/jenkins-for-volumes:1.642.2
+FROM csanchez/jenkins-for-volumes
 
-COPY src/main/docker/plugins.txt /usr/share/jenkins/plugins.txt
-RUN /usr/local/bin/plugins.sh /usr/share/jenkins/plugins.txt
+RUN /usr/local/bin/install-plugins.sh durable-task:1.12 credentials:2.1.4 kubernetes:0.7
 
 # ENV VERSION 0.4-SNAPSHOT
 # COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi
