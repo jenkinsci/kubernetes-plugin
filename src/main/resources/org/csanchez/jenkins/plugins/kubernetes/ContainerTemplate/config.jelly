@@ -33,20 +33,6 @@ THE SOFTWARE.
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="label" title="${%Labels}">
-    <f:textbox/>
-  </f:entry>
-
-  <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
-      <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
-                                    deleteCaption="Delete Container" />
-  </f:entry>
-
-  <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
-    <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
-                                deleteCaption="Delete Volume" />
-  </f:entry>
-
   <f:entry field="image" title="${%Docker image}">
     <f:textbox/>
   </f:entry>
@@ -55,16 +41,20 @@ THE SOFTWARE.
     <f:checkbox/>
   </f:entry>
 
-  <f:entry field="remoteFs" title="${%Jenkins slave root directory}">
+  <f:entry field="workingDir" title="${%Working directory}">
     <f:textbox default="/home/jenkins"/>
   </f:entry>
 
   <f:entry field="command" title="${%Command to run slave agent}">
-    <f:textbox/>
+    <f:textbox default="/bin/sh -c"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox/>
+    <f:textbox default="cat"/>
+  </f:entry>
+
+  <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
+    <f:checkbox default="true"/>
   </f:entry>
 
   <f:entry field="instanceCapStr" title="${%Max number of instances}">
@@ -79,15 +69,6 @@ THE SOFTWARE.
   <f:advanced>
     <f:entry field="privileged" title="${%Run in privileged mode}">
       <f:checkbox/>
-    </f:entry>
-
-    <f:entry field="serviceAccount" title="${%Service Account}">
-          <f:textbox/>
-     </f:entry>
-
-
-    <f:entry field="nodeSelector" title="${%Node Selector}">
-      <f:textbox/>
     </f:entry>
 
     <f:entry field="resourceRequestCpu" title="${%Request CPU}">

@@ -1,28 +1,23 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Strings;
+import com.google.common.base.Preconditions;
 import hudson.Extension;
-import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
-
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import com.google.common.base.Preconditions;
-import org.csanchez.jenkins.plugins.kubernetes.PodVolumes.PodVolume;
-
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-/**
- * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
- */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
+public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
+
+    private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
+    private static final String DEFAULT_COMMAND = "/bin/sh -c";
+    private static final String DEFAULT_ARGS = "cat";
+    private static final Boolean DEFAULT_IS_TTY_ENABLED = true;
 
     private String name;
 
@@ -32,19 +27,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private boolean alwaysPullImage;
 
-    private String command;
+    private String workingDir = DEFAULT_WORKING_DIR;
 
-    private String args;
+    private String command = DEFAULT_COMMAND;
 
-    private String remoteFs;
+    private String args = DEFAULT_ARGS;
+
+    private boolean ttyEnabled = DEFAULT_IS_TTY_ENABLED;
 
     private int instanceCap;
-
-    private String label;
-
-    private String serviceAccount;
-
-    private String nodeSelector;
 
     private String resourceRequestCpu;
 
@@ -54,23 +45,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String resourceLimitMemory;
 
-    private final List<ContainerTemplate> containers;
-
-    private final List<PodVolume> volumes;
-
-    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
 
     @DataBoundConstructor
-    public PodTemplate(String image, List<? extends PodVolume> volumes, List<ContainerTemplate> containers) {
-        this(null, image, volumes, containers);
+    public ContainerTemplate(String image) {
+        this(null, image);
     }
 
-    PodTemplate(String name, String image, List<? extends PodVolume> volumes, List<ContainerTemplate> containers) {
-        Preconditions.checkState(!Strings.isNullOrEmpty(image)  || !(containers == null || containers.isEmpty()), "Need to specify either image or add at least one container");
+    ContainerTemplate(String name, String image) {
+        Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
-        this.volumes = (volumes == null) ? new ArrayList<PodVolume>() : new ArrayList<PodVolume>(volumes);
-        this.containers = (containers == null) ? new ArrayList<ContainerTemplate>() : new ArrayList<ContainerTemplate>(containers);
     }
 
     @DataBoundSetter
@@ -101,20 +86,29 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     }
 
     public String getArgs() {
-        return args;
-    }
-
-    public String getDisplayName() {
-        return "Kubernetes Pod Template";
+        return StringUtils.isBlank(args) ? DEFAULT_ARGS : args;
     }
 
     @DataBoundSetter
-    public void setRemoteFs(String remoteFs) {
-        this.remoteFs = StringUtils.isBlank(remoteFs) ? "/home/jenkins" : remoteFs;
+    public void setTtyEnabled(boolean ttyEnabled) {
+        this.ttyEnabled = ttyEnabled;
     }
 
-    public String getRemoteFs() {
-        return remoteFs;
+    public boolean isTtyEnabled() {
+        return ttyEnabled;
+    }
+
+    public String getDisplayName() {
+        return "Container Pod Template";
+    }
+
+    @DataBoundSetter
+    public void setWorkingDir(String workingDir) {
+        this.workingDir = workingDir;
+    }
+
+    public String getWorkingDir() {
+        return workingDir;
     }
 
     public void setInstanceCap(int instanceCap) {
@@ -142,28 +136,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         }
     }
 
-    public Set<LabelAtom> getLabelSet() {
-        return Label.parse(label);
-    }
-
-    @DataBoundSetter
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    @DataBoundSetter
-    public void setNodeSelector(String nodeSelector) {
-        this.nodeSelector = nodeSelector;
-    }
-
-    public String getNodeSelector() {
-        return nodeSelector;
-    }
-
     @DataBoundSetter
     public void setPrivileged(boolean privileged) {
         this.privileged = privileged;
@@ -171,15 +143,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     public boolean isPrivileged() {
         return privileged;
-    }
-
-    public String getServiceAccount() {
-        return serviceAccount;
-    }
-
-    @DataBoundSetter
-    public void setServiceAccount(String serviceAccount) {
-        this.serviceAccount = Util.fixEmpty(serviceAccount);
     }
 
     @DataBoundSetter
@@ -191,12 +154,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return alwaysPullImage;
     }
 
-    public List<PodEnvVar> getEnvVars() {
+    public List<ContainerEnvVar> getEnvVars() {
         return envVars;
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<PodEnvVar> envVars) {
+    public void setEnvVars(List<ContainerEnvVar> envVars) {
         this.envVars.addAll(envVars);
     }
 
@@ -236,20 +199,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
-    public List<PodVolume> getVolumes() {
-        return volumes;
-    }
-
-    public List<ContainerTemplate> getContainers() {
-        return containers;
-    }
-
     @Extension
-    public static class DescriptorImpl extends Descriptor<PodTemplate> {
+    public static class DescriptorImpl extends Descriptor<ContainerTemplate> {
 
         @Override
         public String getDisplayName() {
-            return "Kubernetes Pod Template";
+            return "Container Template";
         }
     }
 }
