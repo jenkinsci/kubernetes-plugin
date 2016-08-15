@@ -106,6 +106,10 @@ Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenki
     Session Affinity:   None
     No events.
 
+Until Kubernetes 1.4 removes the SNATing of source ips, seems that CSRF (enabled by default in Jenkins 2)
+needs to be configured to avoid `WARNING: No valid crumb was included in request` errors.
+This can be done checking _Enable proxy compatibility_ under Manage Jenkins -> Configure Global Security
+
 Configure Jenkins, adding the `Kubernetes` cloud under configuration, setting
 Kubernetes URL to the container engine cluster endpoint or simply `https://kubernetes.default.svc.cluster.local`.
 Under credentials, click `Add` and select `Kubernetes Service Account`,
