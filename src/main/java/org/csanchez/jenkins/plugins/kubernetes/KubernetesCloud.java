@@ -398,12 +398,11 @@ public class KubernetesCloud extends Cloud {
                 ImmutableList<String> validStates = ImmutableList.of("Running");
 
                 int i = 0;
-                int j = 100; // wait 600 seconds
+                int j = 600; // wait 600 seconds
 
                 // wait for Pod to be running
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
-                    Thread.sleep(6000);
                     pod = connect().pods().inNamespace(namespace).withName(podId).get();
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
@@ -424,6 +423,8 @@ public class KubernetesCloud extends Cloud {
                     if (validStates.contains(pod.getStatus().getPhase())) {
                         break;
                     }
+
+                    Thread.sleep(1000);
                 }
                 String status = pod.getStatus().getPhase();
                 if (!validStates.contains(status)) {
