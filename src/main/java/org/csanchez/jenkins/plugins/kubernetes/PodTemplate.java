@@ -57,6 +57,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
 
+    private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+
     @DataBoundConstructor
     public PodTemplate(String image, List<? extends PodVolume> volumes) {
         this(null, image, volumes);
@@ -194,6 +196,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
         this.envVars.addAll(envVars);
+    }
+
+    public List<PodImagePullSecret> getImagePullSecrets() {
+        return imagePullSecrets;
+    }
+
+    @DataBoundSetter
+    public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
+        this.imagePullSecrets.addAll(imagePullSecrets);
     }
 
     public String getResourceRequestMemory() {
