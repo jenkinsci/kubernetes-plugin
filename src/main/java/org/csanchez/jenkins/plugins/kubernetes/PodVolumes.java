@@ -128,4 +128,50 @@ public class PodVolumes {
             }
         }
     }
+
+    public static class NfsVolume extends PodVolume {
+        private String mountPath;
+        private String serverAddress;
+        private String serverPath;
+        private Boolean readOnly;
+
+        @DataBoundConstructor
+        public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
+            this.serverAddress = serverAddress;
+            this.serverPath = serverPath;
+            this.readOnly = readOnly;
+            this.mountPath = mountPath;
+        }
+
+        public Volume buildVolume(String volumeName) {
+            return new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewNfs(getServerPath(), getReadOnly(), getServerAddress())
+                    .build();
+        }
+
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public String getServerAddress() {
+            return serverAddress;
+        }
+
+        public String getServerPath() {
+            return serverPath;
+        }
+
+        public Boolean getReadOnly() {
+            return readOnly;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<PodVolume> {
+            @Override
+            public String getDisplayName() {
+                return "NFS Volume";
+            }
+        }
+    }
 }
