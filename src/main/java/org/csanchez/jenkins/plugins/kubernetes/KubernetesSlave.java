@@ -95,7 +95,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public String toString() {
-        return String.format("KubernetesSlave name: %n", name);
+        return String.format("KubernetesSlave name: %s", name);
     }
 
     @Extension
