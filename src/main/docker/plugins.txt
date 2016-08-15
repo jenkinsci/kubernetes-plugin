@@ -1,3 +1,0 @@
-durable-task:1.6
-credentials:1.22
-kubernetes:0.4.1
