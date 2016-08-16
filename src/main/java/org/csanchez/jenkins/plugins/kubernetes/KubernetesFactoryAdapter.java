@@ -15,6 +15,7 @@ import jenkins.model.Jenkins;
 import org.apache.commons.codec.binary.Base64;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -90,10 +91,10 @@ public class KubernetesFactoryAdapter {
     }
 
     private static String pemEncodeKey(Key key) {
-        return Base64.encodeBase64String(new StringBuilder()
-                .append("-----BEGIN PRIVATE KEY-----\n")
-                .append(Base64.encodeBase64String(key.getEncoded()))
-                .append("\n-----END PRIVATE KEY-----\n")
-                .toString().getBytes());
+        return Base64.encodeBase64String(new StringBuilder() //
+                .append("-----BEGIN PRIVATE KEY-----\n") //
+                .append(Base64.encodeBase64String(key.getEncoded())) //
+                .append("\n-----END PRIVATE KEY-----\n") //
+                .toString().getBytes(StandardCharsets.UTF_8));
     }
 }

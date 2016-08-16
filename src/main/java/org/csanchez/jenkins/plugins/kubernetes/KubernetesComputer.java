@@ -25,8 +25,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public void taskCompleted(Executor executor, Queue.Task task, long durationMS) {
-        Queue.Executable executable = executor.getCurrentExecutable();
-
         LOGGER.log(Level.FINE, " Computer " + this + " taskCompleted");
 
         // May take the slave offline and remove it, in which case getNode()

@@ -29,7 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -44,6 +44,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class OpenShiftBearerTokenCredentialImpl extends UsernamePasswordCredentialsImpl implements TokenProducer {
+
+    private static final long serialVersionUID = 6031616605797622926L;
 
     private transient AtomicReference<Token> token = new AtomicReference<Token>();
 
@@ -92,7 +94,8 @@ public class OpenShiftBearerTokenCredentialImpl extends UsernamePasswordCredenti
                     KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
                     ks.load(null);
                     CertificateFactory f = CertificateFactory.getInstance("X509");
-                    X509Certificate cert = (X509Certificate) f.generateCertificate(new Base64InputStream(new ByteArrayInputStream(caCertData.getBytes())));
+                    X509Certificate cert = (X509Certificate) f.generateCertificate(new Base64InputStream(
+                            new ByteArrayInputStream(caCertData.getBytes(StandardCharsets.UTF_8))));
                     ks.setCertificateEntry(uri.getHost(), cert);
                     sslBuilder.loadTrustMaterial(ks, null);
                 }
@@ -115,7 +118,7 @@ public class OpenShiftBearerTokenCredentialImpl extends UsernamePasswordCredenti
         HttpGet authorize = new HttpGet(serviceAddress + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token");
         authorize.setHeader("Authorization", "Basic "+ Base64.encodeBase64String(
                 (getUsername()+':'+Secret.toString(getPassword()))
-                .getBytes()));
+                .getBytes(StandardCharsets.UTF_8)));
         final CloseableHttpResponse response = builder.build().execute(authorize);
 
         if (response.getStatusLine().getStatusCode() != 302) {
@@ -124,7 +127,7 @@ public class OpenShiftBearerTokenCredentialImpl extends UsernamePasswordCredenti
 
         String location = response.getFirstHeader("Location").getValue();
         String parameters = location.substring(location.indexOf('#')+1);
-        List<NameValuePair> pairs = URLEncodedUtils.parse(parameters, Charset.forName("UTF-8"));
+        List<NameValuePair> pairs = URLEncodedUtils.parse(parameters, StandardCharsets.UTF_8);
         Token t = new Token();
         for (NameValuePair pair : pairs) {
             if (pair.getName().equals("access_token")) {

@@ -12,6 +12,7 @@ import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
@@ -37,7 +38,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     // private final Pod pod;
 
-    private final KubernetesCloud cloud;
+    private transient final KubernetesCloud cloud;
 
     @DataBoundConstructor
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
@@ -78,7 +79,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
 
-        if (toComputer() == null) {
+        Computer computer = toComputer();
+        if (computer == null) {
             LOGGER.log(Level.SEVERE, "Computer for slave is null: {0}", name);
             return;
         }
@@ -86,7 +88,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         try {
             cloud.connect().pods().inNamespace(cloud.getNamespace()).withName(name).delete();
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
-            toComputer().disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failure to terminate instance for slave " + name, e);
