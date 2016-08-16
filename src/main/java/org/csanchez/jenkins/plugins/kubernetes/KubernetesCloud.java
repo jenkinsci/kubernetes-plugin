@@ -598,7 +598,7 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return String.format("KubernetesCloud name: %n serverUrl: %n", name, serverUrl);
+        return String.format("KubernetesCloud name: %s serverUrl: %s", name, serverUrl);
     }
 
     private Object readResolve() {

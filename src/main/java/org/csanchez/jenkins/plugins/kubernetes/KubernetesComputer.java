@@ -42,6 +42,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public String toString() {
-        return String.format("KubernetesComputer name: %n slave: %n", getName(), getNode());
+        return String.format("KubernetesComputer name: %s slave: %s", getName(), getNode());
     }
 }
