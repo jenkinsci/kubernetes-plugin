@@ -17,9 +17,51 @@ For that some environment variables are automatically injected:
 * `JENKINS_SECRET`: the secret key for authentication
 * `JENKINS_NAME`: the name of the Jenkins agent
 
-Tested with [`csanchez/jenkins-slave`](https://registry.hub.docker.com/u/csanchez/jenkins-slave/),
+Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-slave),
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
+# Pipeline support
+
+Nodes can be defined in a pipeline and then used
+
+```
+podTemplate(label: 'mypod', containers: [
+        [name: 'jnlp', image: 'jenkinsci/jnlp-slave:alpine', args: '${computer.jnlpmac} ${computer.name}'],
+        [name: 'maven', image: 'maven:3-jdk-8', ttyEnabled: true, command: 'cat'],
+        [name: 'golang', image: 'golang:1.6', ttyEnabled: true, command: 'cat'],
+    ]) {
+
+    node ('mypod') {
+        stage 'Get a Maven project'
+        git 'https://github.com/jenkinsci/kubernetes-plugin.git'
+        container(name: 'maven') {
+            stage 'Build a Maven project'
+            sh 'mvn clean install'
+        }
+
+        stage 'Get a Golang project'
+        git url: 'https://github.com/hashicorp/terraform.git'
+        container(name: 'golang') {
+            stage 'Build a Go project'
+            sh """
+            mkdir -p /go/src/github.com/hashicorp
+            ln -s `pwd` /go/src/github.com/hashicorp/terraform
+            cd /go/src/github.com/hashicorp/terraform && make core-dev
+            """
+        }
+
+    }
+}
+```
+
+# Constraints
+
+Multiple containers can be defined in a pod.
+One of them must run the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
+as it will be the container acting as Jenkins agent.
+
+Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
+just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
 
 # Configuration on Google Container Engine
 
