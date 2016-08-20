@@ -30,6 +30,8 @@ import hudson.model.labels.LabelAtom;
  */
 public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
+    private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
+
     private String name;
 
     private transient String image;
@@ -337,7 +339,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
             containers = new ArrayList<ContainerTemplate>();
             ContainerTemplate containerTemplate = new ContainerTemplate(this.name, this.image);
             containerTemplate.setCommand(command);
-            containerTemplate.setArgs(args);
+            containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(PodEnvVar.asContainerEnvVar(envVars));

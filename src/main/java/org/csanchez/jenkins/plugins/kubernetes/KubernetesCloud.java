@@ -77,8 +77,6 @@ public class KubernetesCloud extends Cloud {
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
-    private static final String EMPTY = "";
-    private static final String ONE_OR_MORE_SPACES = "[ ]+";
     private static final String DEFAULT_ID = "jenkins-slave-default";
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
@@ -89,7 +87,6 @@ public class KubernetesCloud extends Cloud {
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
-    private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -264,10 +261,10 @@ public class KubernetesCloud extends Cloud {
         // and `?` for java build tools. So we force HOME to a safe location.
         env.add(new EnvVar("HOME", containerTemplate.getWorkingDir(), null));
 
-        String[] arguments = (!Strings.isNullOrEmpty(containerTemplate.getArgs()) ? containerTemplate.getArgs() : EMPTY)
-                .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac())
-                .replaceAll(NAME_REF, slave.getComputer().getName()).split(ONE_OR_MORE_SPACES);
-
+        List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
+                : parseDockerCommand(containerTemplate.getArgs() //
+                        .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
+                        .replaceAll(NAME_REF, slave.getComputer().getName()));
 
         return new ContainerBuilder()
                 .withName(containerTemplate.getName())
