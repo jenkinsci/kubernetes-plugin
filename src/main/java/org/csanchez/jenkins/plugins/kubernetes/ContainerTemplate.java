@@ -15,7 +15,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String name;
 
-    private final String image;
+    private String image;
 
     private boolean privileged;
 
@@ -59,6 +59,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public String getName() {
         return name;
+    }
+
+    @DataBoundSetter
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public String getImage() {

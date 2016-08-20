@@ -315,38 +315,16 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        // add an empty volume to share the workspace across the pod
         volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
 
-        //Create a fallback container if we need to.
-        if (template.getContainers() == null || template.getContainers().isEmpty()) {
-            ContainerTemplate fallback = new ContainerTemplate(template.getName(), template.getImage());
-            fallback.setAlwaysPullImage(template.isAlwaysPullImage());
-            fallback.setPrivileged(template.isPrivileged());
-            fallback.setResourceRequestMemory(template.getResourceRequestMemory());
-            fallback.setResourceRequestCpu(template.getResourceRequestCpu());
-            fallback.setResourceLimitMemory(template.getResourceLimitMemory());
-            fallback.setResourceLimitCpu(template.getResourceLimitCpu());
-            fallback.setWorkingDir(template.getRemoteFs());
-            fallback.setCommand(template.getCommand());
-            fallback.setArgs(!Strings.isNullOrEmpty(template.getArgs()) ? template.getArgs() : FALLBACK_ARGUMENTS);
-
-            for (PodEnvVar envVar : template.getEnvVars()) {
-                fallback.getEnvVars().add(new ContainerEnvVar(envVar.getKey(), envVar.getValue()));
-            }
+        for (ContainerTemplate containerTemplate : template.getContainers()) {
             List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
-            if (!mountPathExists(fallback.getWorkingDir(), volumeMounts)) {
-                containerMounts.add(new VolumeMount(fallback.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
+            if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
+                    && !mountPathExists(containerTemplate.getWorkingDir(), volumeMounts)) {
+                containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
             }
-
-            containers.add(createContainer(slave, fallback, containerMounts));
-        } else {
-            for (ContainerTemplate containerTemplate : template.getContainers()) {
-                List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
-                if (!mountPathExists(containerTemplate.getWorkingDir(), volumeMounts)) {
-                    containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
-                }
-                containers.add(createContainer(slave, containerTemplate, containerMounts));
-            }
+            containers.add(createContainer(slave, containerTemplate, containerMounts));
         }
 
         return new PodBuilder()
