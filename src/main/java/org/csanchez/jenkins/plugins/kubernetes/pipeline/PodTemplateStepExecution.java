@@ -36,11 +36,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                     : kubernetesCloud.getTemplate(Label.get(step.getInheritFrom()));
 
             if (podTemplate != null) {
-                newTemplate = new PodTemplate(podTemplate.getImage(), podTemplate.getVolumes(), podTemplate.getContainers());
-                newTemplate.setServiceAccount(podTemplate.getServiceAccount());
-                newTemplate.setNodeSelector(podTemplate.getNodeSelector());
-                newTemplate.setRemoteFs(podTemplate.getRemoteFs());
-
+                newTemplate = new PodTemplate(podTemplate);
                 newTemplate.getContainers().addAll(step.getContainers());
                 for (PodVolumes.PodVolume volume : step.getVolumes()) {
                     String mountPath = volume.getMountPath();
@@ -49,7 +45,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                     }
                 }
             } else {
-                newTemplate = new PodTemplate(null, step.getVolumes(), step.getContainers());
+                newTemplate = new PodTemplate();
+                newTemplate.setVolumes(step.getVolumes());
+                newTemplate.setContainers(step.getContainers());
             }
 
             newTemplate.setLabel(step.getLabel());

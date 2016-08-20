@@ -77,6 +77,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     public PodTemplate() {
     }
 
+    public PodTemplate(PodTemplate from) {
+        this.setAnnotations(from.getAnnotations());
+        this.setContainers(from.getContainers());
+        this.setImagePullSecrets(from.getImagePullSecrets());
+        this.setInstanceCap(from.getInstanceCap());
+        this.setLabel(from.getLabel());
+        this.setName(from.getName());
+        this.setNodeSelector(from.getNodeSelector());
+        this.setServiceAccount(from.getServiceAccount());
+        this.setVolumes(from.getVolumes());
+    }
+
     @Deprecated
     public PodTemplate(String image, List<? extends PodVolume> volumes) {
         this(null, image, volumes);
