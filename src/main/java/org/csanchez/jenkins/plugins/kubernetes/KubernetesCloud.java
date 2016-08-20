@@ -236,6 +236,7 @@ public class KubernetesCloud extends Cloud {
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
+        env.add(new EnvVar("JENKINS_NAME", slave.getComputer().getName(), null));
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
         String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
         env.add(new EnvVar("JENKINS_LOCATION_URL", locationConfigurationUrl, null));

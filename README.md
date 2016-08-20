@@ -15,6 +15,7 @@ For that some environment variables are automatically injected:
 * `JENKINS_URL`: Jenkins web interface url
 * `JENKINS_JNLP_URL`: url for the jnlp definition of the specific slave
 * `JENKINS_SECRET`: the secret key for authentication
+* `JENKINS_NAME`: the name of the Jenkins agent
 
 Tested with [`csanchez/jenkins-slave`](https://registry.hub.docker.com/u/csanchez/jenkins-slave/),
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
