@@ -3,9 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+
+import java.io.Serializable;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> {
+public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> implements Serializable {
 
     private String key;
     private String value;

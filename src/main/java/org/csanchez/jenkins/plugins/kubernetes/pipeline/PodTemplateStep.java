@@ -1,28 +1,24 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.Extension;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodVolumes;
-import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import hudson.Extension;
 
 public class PodTemplateStep extends AbstractStepImpl implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
     private static final String DEFAULT_CLOUD = "kubernetes";
-    private static final String DEFAULT_TEMPLATE = "kubernetes";
-    private static final String DEFAULT_COMMAND = "/bin/sh -c";
-    private static final String DEFAULT_ARGS = "cat";
-    private static final Boolean DEFAULT_TTY_ENABLED = true;
     private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String cloud = DEFAULT_CLOUD;

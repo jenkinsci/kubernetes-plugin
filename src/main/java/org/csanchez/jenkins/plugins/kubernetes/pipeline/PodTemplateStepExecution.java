@@ -24,7 +24,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public boolean start() throws Exception {
 
-        Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
+        Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
         if (cloud instanceof KubernetesCloud) {
             KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
 
@@ -78,7 +78,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         @Override
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
+            Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
             if (cloud instanceof KubernetesCloud) {
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeTemplate(podTemplate);
