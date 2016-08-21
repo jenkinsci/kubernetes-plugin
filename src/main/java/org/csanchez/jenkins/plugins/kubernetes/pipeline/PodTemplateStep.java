@@ -19,7 +19,6 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     private static final long serialVersionUID = 5588861066775717487L;
 
     private static final String DEFAULT_CLOUD = "kubernetes";
-    private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String cloud = DEFAULT_CLOUD;
     private String inheritFrom;
@@ -32,7 +31,7 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
 
     private String serviceAccount;
     private String nodeSelector;
-    private String workingDir = DEFAULT_WORKING_DIR;
+    private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {

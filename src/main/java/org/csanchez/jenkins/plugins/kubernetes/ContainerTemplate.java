@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
-    private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
+    public static final String DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String name;
 
