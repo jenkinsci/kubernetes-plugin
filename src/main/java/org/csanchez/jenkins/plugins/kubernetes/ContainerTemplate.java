@@ -15,9 +15,6 @@ import java.util.List;
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
     private static final String DEFAULT_WORKING_DIR = "/home/jenkins";
-    private static final String DEFAULT_COMMAND = "/bin/sh -c";
-    private static final String DEFAULT_ARGS = "cat";
-    private static final Boolean DEFAULT_IS_TTY_ENABLED = true;
 
     private String name;
 
@@ -29,11 +26,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String workingDir = DEFAULT_WORKING_DIR;
 
-    private String command = DEFAULT_COMMAND;
+    private String command;
 
-    private String args = DEFAULT_ARGS;
+    private String args;
 
-    private boolean ttyEnabled = DEFAULT_IS_TTY_ENABLED;
+    private boolean ttyEnabled;
 
     private int instanceCap;
 
@@ -91,7 +88,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public String getArgs() {
-        return StringUtils.isBlank(args) ? DEFAULT_ARGS : args;
+        return args;
     }
 
     @DataBoundSetter
