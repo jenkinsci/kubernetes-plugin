@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
@@ -82,8 +83,6 @@ public class KubernetesCloud extends Cloud {
 
     /** label for all pods started by the plugin */
     private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
-
-    private static final String CONTAINER_NAME = "slave";
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -481,19 +480,28 @@ public class KubernetesCloud extends Cloud {
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
-                    ContainerStatus info = getContainerStatus(pod, CONTAINER_NAME);
-                    if (info != null) {
-                        if (info.getState().getWaiting() != null) {
-                            // Pod is waiting for some reason
-                            LOGGER.log(Level.INFO, "Pod is waiting {0}: {1}",
-                                    new Object[] { podId, info.getState().getWaiting() });
-                            // break;
-                        }
-                        if (info.getState().getTerminated() != null) {
-                            throw new IllegalStateException("Pod is terminated. Exit code: "
-                                    + info.getState().getTerminated().getExitCode());
+
+                    List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+                    List<ContainerStatus> terminatedContainers = new ArrayList<>();
+                    for (ContainerStatus info : containerStatuses) {
+                        if (info != null) {
+                            if (info.getState().getWaiting() != null) {
+                                // Pod is waiting for some reason
+                                LOGGER.log(Level.INFO, "Container is waiting {0} [{2}]: {1}",
+                                        new Object[] { podId, info.getState().getWaiting(), info.getName() });
+                                // break;
+                            }
+                            if (info.getState().getTerminated() != null) {
+                                terminatedContainers.add(info);
+                            }
                         }
                     }
+                    if (!terminatedContainers.isEmpty()) {
+                        Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors.toMap(
+                                ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
+                        throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
+                    }
+
                     if (validStates.contains(pod.getStatus().getPhase())) {
                         break;
                     }
@@ -526,14 +534,6 @@ public class KubernetesCloud extends Cloud {
                 throw Throwables.propagate(ex);
             }
         }
-    }
-
-    private ContainerStatus getContainerStatus(Pod pod, String containerName) {
-
-        for (ContainerStatus status : pod.getStatus().getContainerStatuses()) {
-            if (status.getName().equals(containerName)) return status;
-        }
-        return null;
     }
 
     /**
