@@ -46,7 +46,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private transient String remoteFs;
 
-    private int instanceCap;
+    private int instanceCap = Integer.MAX_VALUE;
 
     private String label;
 
