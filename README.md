@@ -34,14 +34,14 @@ podTemplate(label: 'mypod', containers: [
     node ('mypod') {
         stage 'Get a Maven project'
         git 'https://github.com/jenkinsci/kubernetes-plugin.git'
-        container(name: 'maven') {
+        container('maven') {
             stage 'Build a Maven project'
             sh 'mvn clean install'
         }
 
         stage 'Get a Golang project'
         git url: 'https://github.com/hashicorp/terraform.git'
-        container(name: 'golang') {
+        container('golang') {
             stage 'Build a Go project'
             sh """
             mkdir -p /go/src/github.com/hashicorp

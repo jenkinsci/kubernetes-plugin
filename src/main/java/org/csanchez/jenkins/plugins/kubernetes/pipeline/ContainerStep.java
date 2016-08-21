@@ -12,17 +12,11 @@ public class ContainerStep extends AbstractStepImpl implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
-    private final String pod;
     private final String name;
 
     @DataBoundConstructor
-    public ContainerStep(String pod, String name) {
-        this.pod = pod;
+    public ContainerStep(String name) {
         this.name = name;
-    }
-
-    public String getPod() {
-        return pod;
     }
 
     public String getName() {
