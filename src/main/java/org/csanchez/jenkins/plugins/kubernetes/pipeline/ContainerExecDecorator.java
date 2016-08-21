@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +100,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 //We need to get into the project workspace.
                 //The workspace is not known in advance, so we have to execute a cd command.
-                watch.getInput().write(("cd " + path + NEWLINE).getBytes(UTF_8));
+                watch.getInput().write(("cd " + path + NEWLINE).getBytes(StandardCharsets.UTF_8));
                 doExec(watch, launcher.getListener().getLogger(), getCommands(starter));
                 proc = new ContainerExecProc(watch, alive, finished);
                 return proc;
@@ -134,14 +135,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             for (String stmt : statements) {
                 out.print(stmt);
                 out.print(SPACE);
-                watch.getInput().write((stmt).getBytes(UTF_8));
-                watch.getInput().write((SPACE).getBytes(UTF_8));
+                watch.getInput().write((stmt).getBytes(StandardCharsets.UTF_8));
+                watch.getInput().write((SPACE).getBytes(StandardCharsets.UTF_8));
             }
             out.println();
             //We need to exit so that we know when the command has finished.
-            watch.getInput().write(NEWLINE.getBytes(UTF_8));
-            watch.getInput().write(EXIT.getBytes(UTF_8));
-            watch.getInput().write(NEWLINE.getBytes(UTF_8));
+            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
             watch.getInput().flush();
         } catch (Exception e) {
             e.printStackTrace(out);

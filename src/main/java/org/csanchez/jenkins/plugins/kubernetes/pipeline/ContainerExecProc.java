@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,8 +31,8 @@ public class ContainerExecProc extends Proc {
     public void kill() throws IOException, InterruptedException {
         //What we actually do is send a ctrl-c to the current process and then exit the shell.
         watch.getInput().write(Constants.CTRL_C);
-        watch.getInput().write(Constants.EXIT.getBytes(Constants.UTF_8));
-        watch.getInput().write(Constants.NEWLINE.getBytes(Constants.UTF_8));
+        watch.getInput().write(Constants.EXIT.getBytes(StandardCharsets.UTF_8));
+        watch.getInput().write(Constants.NEWLINE.getBytes(StandardCharsets.UTF_8));
         watch.getInput().flush();
     }
 

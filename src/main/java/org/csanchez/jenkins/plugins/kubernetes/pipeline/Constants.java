@@ -7,7 +7,6 @@ public class Constants {
 
     public static final String EXIT = "exit";
     public static final String NEWLINE = "\n";
-    public static final String UTF_8 = "UTF-8";
     public static final char CTRL_C = '\u0003';
     public static final String SPACE = " ";
 }
