@@ -77,6 +77,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
 
         @Override
+        /**
+         * Remove the template after step is done
+         */
         protected void finished(StepContext context) throws Exception {
             Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
             if (cloud instanceof KubernetesCloud) {

@@ -36,10 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
+
+    private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
     private final transient String podName;
@@ -67,7 +71,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
-                launcher.getListener().getLogger().println("Executing shell script inside container: [" + containerName + "] of pod: [" + podName + "]");
+                launcher.getListener().getLogger().println("Executing shell script inside container [" + containerName + "] of pod [" + podName + "]");
                 watch = client.pods().withName(podName)
                         .inContainer(containerName)
                         .redirectingInput()
@@ -117,7 +121,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     @Override
     public void close() throws IOException {
         if (watch != null) {
-            watch.close();
+            try {
+                watch.close();
+            } catch (IllegalStateException e) {
+                LOGGER.log(Level.INFO, "Watch was already closed: {0}", e.getMessage());
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error closing watch", e);
+            } finally {
+                watch = null;
+            }
         }
 
         if (proc != null) {
@@ -131,18 +143,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
         try {
-            out.print("Executing command:");
+            out.print("Executing command: ");
             for (String stmt : statements) {
-                out.print(stmt);
-                out.print(SPACE);
-                watch.getInput().write((stmt).getBytes(StandardCharsets.UTF_8));
-                watch.getInput().write((SPACE).getBytes(StandardCharsets.UTF_8));
+                String s = String.format("%s ", stmt);
+                out.print(s);
+                watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             out.println();
             //We need to exit so that we know when the command has finished.
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write("\nexit\n".getBytes(StandardCharsets.UTF_8));
             watch.getInput().flush();
         } catch (Exception e) {
             e.printStackTrace(out);
