@@ -30,6 +30,7 @@
   </developers>
 
   <properties>
+    <java.level>8</java.level>
     <jackson.version>2.5.0</jackson.version>
     <spring.version>3.2.14.RELEASE</spring.version>
   </properties>

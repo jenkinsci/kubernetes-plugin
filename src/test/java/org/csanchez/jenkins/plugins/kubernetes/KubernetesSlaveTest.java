@@ -42,14 +42,16 @@ public class KubernetesSlaveTest {
     @Test
     public void testGetSlaveName() {
         List<? extends PodVolume> volumes = Collections.emptyList();
+        List<ContainerTemplate> containers = Collections.emptyList();
 
-        PodTemplate template = new PodTemplate("image", volumes);
-        String name = KubernetesSlave.getSlaveName(template);
-        assertNotNull(name);
-        assertTrue("Name does not match regex: '" + name + "'", name.matches("^[0-9a-f]{12,}$"));
-        assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("", "image", volumes)).matches("^[0-9a-f]{12,}$"));
-        assertTrue(KubernetesSlave.getSlaveName(new PodTemplate("a name", "image", volumes))
-                .matches("^a-name-[0-9a-f]{12,}$"));
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)), "^[0-9a-f]{10,}$");
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^[0-9a-f]{10,}$");
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("a name", volumes, containers)),
+                ("^a-name-[0-9a-f]{10,}$"));
     }
 
+    private void assertRegex(String name, String regex) {
+        assertNotNull(name);
+        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+    }
 }

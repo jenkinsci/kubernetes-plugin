@@ -36,7 +36,7 @@ THE SOFTWARE.
     <f:textbox />
   </f:entry>
 
-  <f:entry title="${%Remote FS root}" field="remoteFS">
+  <f:entry title="${%Remote FS root}" field="remoteFs">
     <f:textbox />
   </f:entry>
 
