@@ -479,7 +479,7 @@ public class KubernetesCloud extends Cloud {
             KubernetesSlave slave = null;
             try {
 
-                slave = new KubernetesSlave(t, getIdForLabel(label), cloud, label);
+                slave = new KubernetesSlave(t, t.getName(), cloud, t.getLabel());
                 Jenkins.getActiveInstance().addNode(slave);
 
                 Pod pod = getPodTemplate(slave, label);
