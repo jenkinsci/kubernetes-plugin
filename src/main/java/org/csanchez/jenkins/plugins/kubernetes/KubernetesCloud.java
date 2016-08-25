@@ -455,15 +455,21 @@ public class KubernetesCloud extends Cloud {
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            final PodTemplate t = getTemplate(label);
+            ArrayList<PodTemplate> templates = getMatchingTemplates(label);
 
-            for (int i = 1; i <= excessWorkload; i++) {
-                if (!addProvisionedSlave(t, label)) {
-                    break;
+            for (PodTemplate t: templates) {
+                for (int i = 1; i <= excessWorkload; i++) {
+                    if (!addProvisionedSlave(t, label)) {
+                        break;
+                    }
+
+                    r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
+                                .submit(new ProvisioningCallback(this, t, label)), 1));
                 }
-
-                r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                        .submit(new ProvisioningCallback(this, t, label)), 1));
+                if (r.size() > 0) {
+                    // Already found a matching template
+                    return r;
+                }
             }
             return r;
         } catch (Exception e) {
@@ -615,6 +621,21 @@ public class KubernetesCloud extends Cloud {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets all PodTemplates that have the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return list of matching templates
+     */
+    public ArrayList<PodTemplate> getMatchingTemplates(Label label) {
+        ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
+        for (PodTemplate t : templates) {
+            if (label == null || label.matches(t.getLabelSet())) {
+                podList.add(t);
+            }
+        }
+        return podList;
     }
 
     /**
