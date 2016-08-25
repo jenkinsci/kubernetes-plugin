@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -45,6 +46,7 @@ import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
+import hudson.model.labels.LabelAtom;
 import hudson.model.Node;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -79,7 +81,7 @@ public class KubernetesCloud extends Cloud {
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
-    private static final String DEFAULT_ID = "jenkins-slave-default";
+    private static final String DEFAULT_ID = "jenkins/slave-default";
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
     /** label for all pods started by the plugin */
@@ -261,7 +263,7 @@ public class KubernetesCloud extends Cloud {
         if (label == null) {
             return DEFAULT_ID;
         }
-        return "jenkins-" + label.getName();
+        return "jenkins/" + label.getName();
     }
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, List<VolumeMount> volumeMounts) {
@@ -321,7 +323,6 @@ public class KubernetesCloud extends Cloud {
 
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
         final PodTemplate template = getTemplate(label);
-        String id = getIdForLabel(label);
 
         List<Container> containers = new ArrayList<Container>();
         // Build volumes and volume mounts.
@@ -360,7 +361,7 @@ public class KubernetesCloud extends Cloud {
         return new PodBuilder()
                 .withNewMetadata()
                     .withName(slave.getNodeName())
-                    .withLabels(getLabelsFor(id))
+                    .withLabels(getLabelsMap(template.getLabelSet()))
                     .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
                 .withNewSpec()
@@ -374,8 +375,15 @@ public class KubernetesCloud extends Cloud {
                 .build();
     }
 
-    private Map<String, String> getLabelsFor(String id) {
-        return ImmutableMap.<String, String> builder().putAll(POD_LABEL).putAll(ImmutableMap.of("name", id)).build();
+    private Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        builder.putAll(POD_LABEL);
+        if (!labelSet.isEmpty()) {
+            for (LabelAtom label: labelSet) {
+                builder.put(getIdForLabel(label), "true");
+            }
+        }
+        return builder.build();
     }
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
@@ -571,8 +579,8 @@ public class KubernetesCloud extends Cloud {
 
         KubernetesClient client = connect();
         PodList slaveList = client.pods().withLabels(POD_LABEL).list();
-        String idForLabel = getIdForLabel(label);
-        PodList namedList = client.pods().withLabel("name", idForLabel).list();
+        Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
+        PodList namedList = client.pods().withLabels(labelsMap).list();
 
         if (containerCap < slaveList.getItems().size()) {
             LOGGER.log(Level.INFO, "Total container cap of {0} reached, not provisioning: {1} running in namespace {2}",
@@ -584,7 +592,7 @@ public class KubernetesCloud extends Cloud {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace {3} with label {4}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveList.getItems().size(),
-                            client.getNamespace(), idForLabel });
+                            client.getNamespace(), label.toString() });
             return false; // maxed out
         }
         return true;
