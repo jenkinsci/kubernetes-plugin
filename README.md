@@ -25,11 +25,10 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 Nodes can be defined in a pipeline and then used
 
 ```
-podTemplate(label: 'mypod', containers: [
-        [name: 'jnlp', image: 'jenkinsci/jnlp-slave:alpine', args: '${computer.jnlpmac} ${computer.name}'],
-        [name: 'maven', image: 'maven:3-jdk-8', ttyEnabled: true, command: 'cat'],
-        [name: 'golang', image: 'golang:1.6', ttyEnabled: true, command: 'cat'],
-    ]) {
+podTemplate(label: 'mypod', containers: {
+        'maven':  { image: 'maven:3-jdk-8', ttyEnabled: true, command: 'cat'},
+        'golang': { image: 'golang:1.6', ttyEnabled: true, command: 'cat'},
+    }) {
 
     node ('mypod') {
         stage 'Get a Maven project'
@@ -53,6 +52,11 @@ podTemplate(label: 'mypod', containers: [
     }
 }
 ```
+
+The jnlp agent image used can be customized by adding it to the template
+
+    'jnlp': { image: 'jenkinsci/jnlp-slave:alpine', args: '${computer.jnlpmac} ${computer.name}'},
+
 
 # Constraints
 

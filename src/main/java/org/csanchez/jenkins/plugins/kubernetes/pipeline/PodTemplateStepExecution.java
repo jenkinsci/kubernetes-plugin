@@ -1,9 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.model.Label;
-import hudson.slaves.Cloud;
-import jenkins.model.Jenkins;
+import java.util.Collection;
+import java.util.UUID;
+
+import javax.inject.Inject;
+
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodVolumes;
@@ -11,12 +14,16 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import javax.inject.Inject;
-import java.util.UUID;
+import hudson.model.Label;
+import hudson.slaves.Cloud;
+import jenkins.model.Jenkins;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "kubernetes-%s";
+
+    private static final String DEFAULT_JNLP_IMAGE = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkinsci/jnlp-slave:alpine");
 
     @Inject
     private PodTemplateStep step;
@@ -37,7 +44,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
             if (podTemplate != null) {
                 newTemplate = new PodTemplate(podTemplate);
-                newTemplate.getContainers().addAll(step.getContainers());
+                newTemplate.getContainers().addAll(getContainersWithDefaults(step));
                 for (PodVolumes.PodVolume volume : step.getVolumes()) {
                     String mountPath = volume.getMountPath();
                     if (!PodVolumes.podVolumeExists(mountPath, podTemplate.getVolumes())) {
@@ -62,6 +69,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             getContext().onFailure(new IllegalStateException("Could not find cloud with name:[" + step.getCloud() + "]."));
             return true;
         }
+    }
+
+    private Collection<? extends ContainerTemplate> getContainersWithDefaults(PodTemplateStep step) {
+        if (step.getContainers().stream().noneMatch(c -> "jnlp".equals(c.getName()))) {
+            ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
+            containerTemplate.setName("jnlp");
+            containerTemplate.setArgs("${computer.jnlpmac} ${computer.name}");
+            step.getContainers().add(containerTemplate);
+        }
+        return step.getContainers();
     }
 
     @Override
