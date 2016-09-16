@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -90,62 +91,71 @@ public class KubernetesCloud extends Cloud {
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
-    private final List<PodTemplate> templates;
-    private final String serverUrl;
+    private List<PodTemplate> templates = new ArrayList<PodTemplate>();
+    private String serverUrl;
     @CheckForNull
     private String serverCertificate;
 
     private boolean skipTlsVerify;
 
     private String namespace;
-    private final String jenkinsUrl;
+    private String jenkinsUrl;
     @CheckForNull
     private String jenkinsTunnel;
     @CheckForNull
     private String credentialsId;
-    private final int containerCap;
-    private final int retentionTimeout;
+    private int containerCap = Integer.MAX_VALUE;
+    private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
 
     private transient KubernetesClient client;
 
     @DataBoundConstructor
+    public KubernetesCloud(String name) {
+        super(name);
+    }
+
+    @Deprecated
     public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
             String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
-        super(name);
+        this(name);
 
         Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
 
-        this.serverUrl = serverUrl;
-        this.namespace = Util.fixEmpty(namespace);
-        this.jenkinsUrl = jenkinsUrl;
+        setServerUrl(serverUrl);
+        setNamespace(namespace);
+        setJenkinsUrl(jenkinsUrl);
         if (templates != null)
-            this.templates = new ArrayList<PodTemplate>(templates);
-        else
-            this.templates = new ArrayList<PodTemplate>();
-
-        if (containerCapStr.equals("")) {
-            this.containerCap = Integer.MAX_VALUE;
-        } else {
-            this.containerCap = Integer.parseInt(containerCapStr);
-        }
-
-        if (retentionTimeout > 0) {
-            this.retentionTimeout = retentionTimeout;
-        } else {
-            this.retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
-        }
+            this.templates.addAll(templates);
+        setContainerCapStr(containerCapStr);
+        setRetentionTimeout(retentionTimeout);
     }
 
     public int getRetentionTimeout() {
         return retentionTimeout;
     }
 
+    @DataBoundSetter
+    public void setRetentionTimeout(int retentionTimeout) {
+        this.retentionTimeout = retentionTimeout;
+    }
+
     public List<PodTemplate> getTemplates() {
         return templates;
     }
 
+    @DataBoundSetter
+    public void setTemplates(@Nonnull List<PodTemplate> templates) {
+        this.templates = templates;
+    }
+
     public String getServerUrl() {
         return serverUrl;
+    }
+
+    @DataBoundSetter
+    public void setServerUrl(@Nonnull String serverUrl) {
+        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
+        this.serverUrl = serverUrl;
     }
 
     public String getServerCertificate() {
@@ -171,8 +181,18 @@ public class KubernetesCloud extends Cloud {
         return namespace;
     }
 
+    @DataBoundSetter
+    public void setNamespace(String namespace) {
+        this.namespace = Util.fixEmpty(namespace);
+    }
+
     public String getJenkinsUrl() {
         return jenkinsUrl;
+    }
+
+    @DataBoundSetter
+    public void setJenkinsUrl(String jenkinsUrl) {
+        this.jenkinsUrl = jenkinsUrl;
     }
 
     public String getJenkinsTunnel() {
@@ -191,6 +211,19 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = Util.fixEmpty(credentialsId);
+    }
+
+    public int getContainerCap() {
+        return containerCap;
+    }
+
+    @DataBoundSetter
+    public void setContainerCapStr(String containerCapStr) {
+        if (containerCapStr.equals("")) {
+            this.containerCap = Integer.MAX_VALUE;
+        } else {
+            this.containerCap = Integer.parseInt(containerCapStr);
+        }
     }
 
     public String getContainerCapStr() {
@@ -306,7 +339,7 @@ public class KubernetesCloud extends Cloud {
 
         // Build image pull secrets.
         List<LocalObjectReference> imagePullSecrets = new ArrayList<LocalObjectReference>();
-        if(template.getImagePullSecrets() != null) {
+        if (template.getImagePullSecrets() != null) {
             for (PodImagePullSecret podImagePullSecret : template.getImagePullSecrets()) {
                 imagePullSecrets.add(new LocalObjectReference(podImagePullSecret.getName()));
             }
@@ -360,8 +393,8 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getAnnotationsMap(List<PodAnnotation> annotations) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        if(annotations!=null) {
-            for (PodAnnotation podAnnotation :annotations) {
+        if (annotations != null) {
+            for (PodAnnotation podAnnotation : annotations) {
                 builder.put(podAnnotation.getKey(), podAnnotation.getValue());
             }
         }
