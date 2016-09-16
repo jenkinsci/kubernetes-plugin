@@ -26,7 +26,7 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     private final String label;
     private final String name;
 
-    private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
+    private List<ContainerTemplate> containers = new ArrayList<>();
     private List<PodVolumes.PodVolume> volumes = new ArrayList<PodVolumes.PodVolume>();
 
     private String serviceAccount;
@@ -46,7 +46,6 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     public String getName() {
         return name;
     }
-
 
     public String getCloud() {
         return cloud;
@@ -114,7 +113,7 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {
 
-       public DescriptorImpl() {
+        public DescriptorImpl() {
             super(PodTemplateStepExecution.class);
         }
 
