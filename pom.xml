@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.13</version>
+    <version>2.14</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -33,7 +33,7 @@
     <java.level>8</java.level>
     <jackson.version>2.5.0</jackson.version>
     <spring.version>3.2.14.RELEASE</spring.version>
-    <workflow.version>2.1</workflow.version>
+    <jenkins.version>2.7.4</jenkins.version>
   </properties>
 
   <dependencies>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>1.6</version>
+      <version>1.12</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -66,46 +66,79 @@
       <version>1.7.7</version>
       <scope>provided</scope>
     </dependency>
-
+<!-- 
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>script-security</artifactId>
-      <version>1.14</version>
+      <version>1.22</version>
     </dependency>
+ -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${workflow.version}</version>
+      <version>2.3</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow.version}</version>
+      <version>2.17</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-aggregator</artifactId>
-      <version>${workflow.version}</version>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-job</artifactId>
+      <version>2.6</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-basic-steps</artifactId>
+      <version>2.1</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- StepConfigTester -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${workflow.version}</version>
+      <version>2.3</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>${workflow.version}</version>
+      <version>2.5</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>structs</artifactId>
+        <version>1.5</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
+            <!-- listen in all interfaces from connections from kubernetes pods -->
+            <connectorHost>0.0.0.0</connectorHost>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
