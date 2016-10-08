@@ -46,7 +46,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private transient String remoteFs;
 
-    private int instanceCap;
+    private int instanceCap = Integer.MAX_VALUE;
 
     private String label;
 
@@ -75,6 +75,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundConstructor
     public PodTemplate() {
+    }
+
+    public PodTemplate(PodTemplate from) {
+        this.setAnnotations(from.getAnnotations());
+        this.setContainers(from.getContainers());
+        this.setImagePullSecrets(from.getImagePullSecrets());
+        this.setInstanceCap(from.getInstanceCap());
+        this.setLabel(from.getLabel());
+        this.setName(from.getName());
+        this.setNodeSelector(from.getNodeSelector());
+        this.setServiceAccount(from.getServiceAccount());
+        this.setVolumes(from.getVolumes());
     }
 
     @Deprecated

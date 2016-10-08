@@ -5,13 +5,17 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> {
+public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
+
+    public static final String DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String name;
 
@@ -21,7 +25,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private boolean alwaysPullImage;
 
-    private String workingDir;
+    private String workingDir = DEFAULT_WORKING_DIR;
 
     private String command;
 
@@ -199,6 +203,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @Extension
+    @Symbol("containerTemplate")
     public static class DescriptorImpl extends Descriptor<ContainerTemplate> {
 
         @Override
