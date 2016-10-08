@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.slaves.*;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -17,10 +17,6 @@ import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.TaskListener;
-import hudson.slaves.AbstractCloudSlave;
-import hudson.slaves.JNLPLauncher;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.OfflineCause;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -50,7 +46,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 Node.Mode.NORMAL,
                 label == null ? null : label.toString(),
                 new JNLPLauncher(),
-                new OnceRetentionStrategy(cloud.getRetentionTimeout()),
+                new CloudRetentionStrategy(cloud.getRetentionTimeout()),
                 Collections.<NodeProperty<Node>> emptyList());
 
         // this.pod = pod;
