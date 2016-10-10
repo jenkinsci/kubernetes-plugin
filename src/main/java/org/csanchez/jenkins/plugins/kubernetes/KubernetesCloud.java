@@ -248,7 +248,7 @@ public class KubernetesCloud extends Cloud {
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new KubernetesFactoryAdapter(serverUrl, serverCertificate, credentialsId, skipTlsVerify)
+                    client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify)
                             .createClient();
                 }
             }
@@ -484,7 +484,7 @@ public class KubernetesCloud extends Cloud {
 
                 Pod pod = getPodTemplate(slave, label);
                 // Why the hell doesn't createPod return a Pod object ?
-                pod = connect().pods().inNamespace(namespace).create(pod);
+                pod = connect().pods().create(pod);
 
                 String podId = pod.getMetadata().getName();
                 LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
@@ -500,7 +500,7 @@ public class KubernetesCloud extends Cloud {
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(6000);
-                    pod = connect().pods().inNamespace(namespace).withName(podId).get();
+                    pod = connect().pods().withName(podId).get();
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
@@ -570,13 +570,13 @@ public class KubernetesCloud extends Cloud {
         }
 
         KubernetesClient client = connect();
-        PodList slaveList = client.pods().inNamespace(namespace).withLabels(POD_LABEL).list();
+        PodList slaveList = client.pods().withLabels(POD_LABEL).list();
         String idForLabel = getIdForLabel(label);
-        PodList namedList = client.pods().inNamespace(namespace).withLabel("name", idForLabel).list();
+        PodList namedList = client.pods().withLabel("name", idForLabel).list();
 
         if (containerCap < slaveList.getItems().size()) {
             LOGGER.log(Level.INFO, "Total container cap of {0} reached, not provisioning: {1} running in namespace {2}",
-                    new Object[] { containerCap, slaveList.getItems().size(), namespace });
+                    new Object[] { containerCap, slaveList.getItems().size(), client.getNamespace() });
             return false;
         }
 
@@ -584,7 +584,7 @@ public class KubernetesCloud extends Cloud {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace {3} with label {4}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveList.getItems().size(),
-                            namespace, idForLabel });
+                            client.getNamespace(), idForLabel });
             return false; // maxed out
         }
         return true;
@@ -640,10 +640,11 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter String namespace) throws Exception {
 
             KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
+                    namespace,
                     Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify)
                     .createClient();
 
-            client.pods().inNamespace(namespace).list();
+            client.pods().list();
             return FormValidation.ok("Connection successful");
         }
 

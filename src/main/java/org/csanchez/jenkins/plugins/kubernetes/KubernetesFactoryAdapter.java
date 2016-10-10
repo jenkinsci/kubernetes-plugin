@@ -33,6 +33,7 @@ import javax.annotation.CheckForNull;
 public class KubernetesFactoryAdapter {
 
     private final String serviceAddress;
+    private final String namespace;
     @CheckForNull
     private final String caCertData;
     @CheckForNull
@@ -42,7 +43,14 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
+        this(serviceAddress, null, caCertData, credentials, skipTlsVerify);
+    }
+
+
+    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+                                    @CheckForNull String credentials, boolean skipTlsVerify) {
         this.serviceAddress = serviceAddress;
+        this.namespace = namespace;
         this.caCertData = caCertData;
         this.credentials = credentials != null ? getCredentials(credentials) : null;
         this.skipTlsVerify = skipTlsVerify;
@@ -59,6 +67,9 @@ public class KubernetesFactoryAdapter {
     public KubernetesClient createClient() throws NoSuchAlgorithmException, UnrecoverableKeyException,
             KeyStoreException, IOException, CertificateEncodingException {
         ConfigBuilder builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+        if (namespace != null && !namespace.isEmpty()) {
+            builder.withNamespace(namespace);
+        }
         if (credentials != null) {
             if (credentials instanceof TokenProducer) {
                 final String token = ((TokenProducer)credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
