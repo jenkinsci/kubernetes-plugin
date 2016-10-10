@@ -179,6 +179,51 @@ public class PodVolumes {
         }
     }
 
+    public static class PvcVolume extends PodVolume {
+        private String mountPath;
+        private String claimName;
+        private Boolean readOnly;
+
+        @DataBoundConstructor
+        public PvcVolume(String mountPath, String claimName, Boolean readOnly) {
+            this.mountPath = mountPath;
+            this.claimName = claimName;
+            this.readOnly = readOnly;
+        }
+
+        @Override
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        public String getClaimName() {
+            return claimName;
+        }
+
+        public Boolean getReadOnly() {
+            return readOnly;
+        }
+
+        @Override
+        public Volume buildVolume(String volumeName) {
+            return new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewPersistentVolumeClaim()
+                        .withClaimName(claimName)
+                        .withReadOnly(readOnly)
+                    .and()
+                    .build();
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<PodVolume> {
+            @Override
+            public String getDisplayName() {
+                return "Persistent Volume Claim";
+            }
+        }
+    }
+
     public static boolean volumeMountExists(String path, List<VolumeMount> existingMounts) {
         for (VolumeMount mount : existingMounts) {
             if (mount.getMountPath().equals(path)) {
