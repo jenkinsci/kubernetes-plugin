@@ -20,6 +20,8 @@ import jenkins.model.Jenkins;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
+    private static final long serialVersionUID = -6139090518333729333L;
+
     private static final transient String NAME_FORMAT = "kubernetes-%s";
 
     private static final String DEFAULT_JNLP_IMAGE = System
@@ -86,6 +88,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     }
 
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {
+
+        private static final long serialVersionUID = 6043919968776851324L;
 
         private final transient PodTemplate podTemplate;
 

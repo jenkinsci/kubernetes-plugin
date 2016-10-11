@@ -21,6 +21,8 @@ import java.util.logging.Level;
 
 public class ContainerStepExecution extends AbstractStepExecutionImpl {
 
+    private static final long serialVersionUID = 7634132798345235774L;
+
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
     private static final transient String HOSTNAME_FILE = "/etc/hostname";
 
@@ -71,7 +73,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
-    private class ContainerExecCallback extends BodyExecutionCallback {
+    private static class ContainerExecCallback extends BodyExecutionCallback {
 
         @Override
         public void onSuccess(StepContext context, Object result) {

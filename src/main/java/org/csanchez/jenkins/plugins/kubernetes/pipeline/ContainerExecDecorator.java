@@ -43,6 +43,8 @@ import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
 
+    private static final long serialVersionUID = 4419929753433397655L;
+
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
