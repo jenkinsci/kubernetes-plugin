@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.jenkinsci.Symbol;
 
 import java.io.Serializable;
 
@@ -71,6 +72,7 @@ public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> im
     }
 
     @Extension
+    @Symbol("containerEnvVar")
     public static class DescriptorImpl extends Descriptor<ContainerEnvVar> {
         @Override
         public String getDisplayName() {
