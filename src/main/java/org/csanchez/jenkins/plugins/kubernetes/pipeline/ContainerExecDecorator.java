@@ -48,12 +48,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
-    private final transient String podName;
-    private final transient String containerName;
-    private final transient String path;
-    private final transient AtomicBoolean alive;
-    private final transient CountDownLatch started;
-    private final transient CountDownLatch finished;
+    private final String podName;
+    private final String containerName;
+    private final String path;
+    private final AtomicBoolean alive;
+
+    private transient CountDownLatch started;
+    private transient CountDownLatch finished;
 
     private transient ExecWatch watch;
     private transient ContainerExecProc proc;
