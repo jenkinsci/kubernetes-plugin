@@ -33,8 +33,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private boolean ttyEnabled;
 
-    private int instanceCap;
-
     private String resourceRequestCpu;
 
     private String resourceRequestMemory;
@@ -112,31 +110,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public String getWorkingDir() {
         return workingDir;
-    }
-
-    public void setInstanceCap(int instanceCap) {
-        this.instanceCap = instanceCap;
-    }
-
-    public int getInstanceCap() {
-        return instanceCap;
-    }
-
-    @DataBoundSetter
-    public void setInstanceCapStr(String instanceCapStr) {
-        if ("".equals(instanceCapStr)) {
-            setInstanceCap(Integer.MAX_VALUE);
-        } else {
-            setInstanceCap(Integer.parseInt(instanceCapStr));
-        }
-    }
-
-    public String getInstanceCapStr() {
-        if (getInstanceCap() == Integer.MAX_VALUE) {
-            return "";
-        } else {
-            return String.valueOf(instanceCap);
-        }
     }
 
     @DataBoundSetter
