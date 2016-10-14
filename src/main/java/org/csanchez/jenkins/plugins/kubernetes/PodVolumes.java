@@ -99,6 +99,45 @@ public class PodVolumes {
         }
     }
 
+    public static class ConfigMapVolume extends PodVolume {
+
+        private String mountPath;
+        private String configMapName;
+
+        @DataBoundConstructor
+        public ConfigMapVolume(String mountPath, String configMapName) {
+            this.mountPath = mountPath;
+            this.configMapName = configMapName;
+        }
+
+        @Override
+        public Volume buildVolume(String volumeName) {
+            return new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewConfigMap()
+                        .withName(volumeName)
+                    .and()
+                    .build();
+        }
+
+        public String getConfigMapName() {
+            return configMapName;
+        }
+
+        @Override
+        public String getMountPath() {
+            return mountPath;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<PodVolume> {
+            @Override
+            public String getDisplayName() {
+                return "Config Map Volume";
+            }
+        }
+    }
+
     public static class HostPathVolume extends PodVolume {
         private String mountPath;
         private String hostPath;
