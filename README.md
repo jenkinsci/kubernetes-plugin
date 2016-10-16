@@ -137,20 +137,15 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
 ## Testing locally
 
-A local testing cluster with one node can be created with Docker Compose
+A local testing cluster with one node can be created with [minukube](https://github.com/kubernetes/minikube)
 
-    docker-compose up
+    minikube start
 
-When using boot2docker or Docker Engine with a remote host, the remote Kubernetes API can be exposed
-with `docker-machine ssh MACHINE_NAME -L 0.0.0.0:8080:localhost:8080` or `boot2docker ssh -L 0.0.0.0:8080:localhost:8080`
+Then create the Jenkins ReplicationController and Service with
 
     kubectl create -f ./src/main/kubernetes/jenkins-local.yml
     kubectl create -f ./src/main/kubernetes/service.yml
 
-More info
-
-* [Docker CookBook examples](https://github.com/how2dock/docbook/tree/master/ch05/docker)
-* [Kubernetes Getting started with Docker](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/getting-started-guides/docker.md)
 
 ## Running in Kubernetes (Google Container Engine)
 
