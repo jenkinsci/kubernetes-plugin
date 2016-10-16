@@ -24,7 +24,7 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 
 Nodes can be defined in a pipeline and then used
 
-```
+```groovy
 podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: 'cat')
@@ -55,12 +55,14 @@ podTemplate(label: 'mypod', containers: [
 
 The jnlp agent image used can be customized by adding it to the template
 
-    containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+```groovy
+containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+```
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
-```
+```groovy
 podTemplate(label: 'mypod', containers: [
     containerTemplate(
         name: 'mariadb', 
