@@ -10,6 +10,7 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodVolumes;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -47,9 +48,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             if (podTemplate != null) {
                 newTemplate = new PodTemplate(podTemplate);
                 newTemplate.getContainers().addAll(getContainersWithDefaults(step));
-                for (PodVolumes.PodVolume volume : step.getVolumes()) {
+                for (PodVolume volume : step.getVolumes()) {
                     String mountPath = volume.getMountPath();
-                    if (!PodVolumes.podVolumeExists(mountPath, podTemplate.getVolumes())) {
+                    if (!PodVolume.podVolumeExists(mountPath, podTemplate.getVolumes())) {
                         newTemplate.getVolumes().add(volume);
                     }
                 }
