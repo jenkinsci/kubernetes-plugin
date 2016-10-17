@@ -115,7 +115,7 @@ public class KubernetesPipelineTest {
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("" //
-                + "podTemplate(label: 'mypod', containers: [\n" //
+                + "podTemplate(label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [\n" //
                 + "        containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),\n" //
                 + "        containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),\n" //
                 + "        containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: 'cat')\n" //
@@ -123,6 +123,7 @@ public class KubernetesPipelineTest {
                 + "\n" //
                 + "    node ('mypod') {\n" //
                 + "    sh \"echo My Kubernetes Pipeline\" \n" //
+                + "    sh \"ls /\" \n" //
                 // + " stage 'Get a Maven project'\n" //
                 // + " git 'https://github.com/jenkinsci/kubernetes-plugin.git'\n" //
                 // + " container('maven') {\n" //
@@ -148,6 +149,7 @@ public class KubernetesPipelineTest {
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("My Kubernetes Pipeline", b);
+        r.assertLogContains("my-mount", b);
     }
 
     // @Test

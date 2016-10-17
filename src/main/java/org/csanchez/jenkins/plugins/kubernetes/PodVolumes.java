@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.jenkinsci.Symbol;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -54,6 +55,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("emptyDirVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
@@ -91,6 +93,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("secretVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
@@ -130,6 +133,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("configMapVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
@@ -164,6 +168,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("hostPathVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
@@ -210,6 +215,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("nfsVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
@@ -255,6 +261,7 @@ public class PodVolumes {
         }
 
         @Extension
+        @Symbol("pvcVolume")
         public static class DescriptorImpl extends Descriptor<PodVolume> {
             @Override
             public String getDisplayName() {
