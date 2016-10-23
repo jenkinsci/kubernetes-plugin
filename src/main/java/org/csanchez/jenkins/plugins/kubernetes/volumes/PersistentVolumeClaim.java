@@ -32,13 +32,13 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
-public class PvcVolume extends PodVolume {
+public class PersistentVolumeClaim extends PodVolume {
     private String mountPath;
     private String claimName;
     private Boolean readOnly;
 
     @DataBoundConstructor
-    public PvcVolume(String mountPath, String claimName, Boolean readOnly) {
+    public PersistentVolumeClaim(String mountPath, String claimName, Boolean readOnly) {
         this.mountPath = mountPath;
         this.claimName = claimName;
         this.readOnly = readOnly;
@@ -69,7 +69,7 @@ public class PvcVolume extends PodVolume {
     }
 
     @Extension
-    @Symbol("pvcVolume")
+    @Symbol("persistentVolumeClaim")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {
