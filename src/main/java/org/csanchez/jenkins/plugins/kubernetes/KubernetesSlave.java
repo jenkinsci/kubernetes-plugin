@@ -41,6 +41,23 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private transient final KubernetesCloud cloud;
 
     @DataBoundConstructor
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
+            throws Descriptor.FormException, IOException {
+        super(getSlaveName(template),
+                nodeDescription,
+                template.getRemoteFs(),
+                1,
+                Node.Mode.NORMAL,
+                labelStr == null ? null : labelStr,
+                new JNLPLauncher(),
+                new OnceRetentionStrategy(cloud.getRetentionTimeout()),
+                Collections.<NodeProperty<Node>> emptyList());
+
+        // this.pod = pod;
+        this.cloud = cloud;
+    }
+
+    @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
         super(getSlaveName(template),
