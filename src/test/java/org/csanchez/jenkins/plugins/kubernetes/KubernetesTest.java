@@ -71,7 +71,7 @@ public class KubernetesTest {
         assertEquals(EmptyDirVolume.class.getName(), emptyVolume.getClass().getName());
 
         HostPathVolume hostPathVolume = (HostPathVolume) podTemplate.getVolumes().get(1);
-        assertEquals("/mnt", hostPathVolume.getMountPath());
+        assertEquals("/host", hostPathVolume.getMountPath());
         assertEquals("/mnt/host", hostPathVolume.getHostPath());
         assertEquals(HostPathVolume.class.getName(), hostPathVolume.getClass().getName());
     }
