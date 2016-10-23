@@ -152,8 +152,7 @@ A local testing cluster with one node can be created with [minukube](https://git
 
 Then create the Jenkins ReplicationController and Service with
 
-    kubectl create -f ./src/main/kubernetes/jenkins-local.yml
-    kubectl create -f ./src/main/kubernetes/service.yml
+    kubectl create -f ./src/main/kubernetes/minikube.yml
 
 
 ## Running in Kubernetes (Google Container Engine)

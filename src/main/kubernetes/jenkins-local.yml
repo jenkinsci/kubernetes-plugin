@@ -31,4 +31,4 @@
         volumes: 
           - name: "jenkins-data"
             hostPath:
-              path: "/var/jenkins"
+              path: "/data/jenkins"
