@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -62,6 +63,7 @@ public class ConfigMapVolume extends PodVolume {
     }
 
     @Extension
+    @Symbol("configMapVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {

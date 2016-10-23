@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -60,6 +61,7 @@ public class SecretVolume extends PodVolume {
     }
 
     @Extension
+    @Symbol("secretVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {

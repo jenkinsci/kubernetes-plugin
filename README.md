@@ -84,6 +84,13 @@ podTemplate(label: 'mypod', containers: [
         ]
     ),
     ...
+],
+volumes: [
+    emptyDirVolume(mountPath: '/etc/mount', memory: false),
+    secretVolume(mountPath: '/etc/mount', secretName: 'my-secret'),
+    configMapVolume(mountPath: '/etc/mount', configMapName: 'my-config'),
+    hostPathVolume(mountPath: '/etc/mount', hostPath: '/mnt/my-mount'),
+    nfsVolume(mountPath: '/etc/mount', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true)
 ]) {
    ...
 }

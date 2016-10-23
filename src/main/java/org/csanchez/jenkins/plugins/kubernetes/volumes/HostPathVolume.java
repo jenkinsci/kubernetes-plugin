@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
@@ -57,6 +58,7 @@ public class HostPathVolume extends PodVolume {
     }
 
     @Extension
+    @Symbol("hostPathVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {
