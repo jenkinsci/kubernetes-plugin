@@ -22,36 +22,48 @@
  * THE SOFTWARE.
  */
 
-package org.csanchez.jenkins.plugins.kubernetes;
+package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import static org.junit.Assert.*;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.util.Collections;
-import java.util.List;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.junit.Test;
+public class SecretVolume extends PodVolume {
 
-/**
- * @author Carlos Sanchez
- * @since
- *
- */
-public class KubernetesSlaveTest {
+    private String mountPath;
+    private String secretName;
 
-    @Test
-    public void testGetSlaveName() {
-        List<? extends PodVolume> volumes = Collections.emptyList();
-        List<ContainerTemplate> containers = Collections.emptyList();
-
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)), "^[0-9a-f]{10,}$");
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^[0-9a-f]{10,}$");
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("a name", volumes, containers)),
-                ("^a-name-[0-9a-f]{10,}$"));
+    @DataBoundConstructor
+    public SecretVolume(String mountPath, String secretName) {
+        this.mountPath = mountPath;
+        this.secretName = secretName;
     }
 
-    private void assertRegex(String name, String regex) {
-        assertNotNull(name);
-        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+    @Override
+    public Volume buildVolume(String volumeName) {
+        return new VolumeBuilder()
+                .withName(volumeName)
+                .withNewSecret(getSecretName())
+                .build();
+    }
+
+    public String getSecretName() {
+        return secretName;
+    }
+
+    @Override
+    public String getMountPath() {
+        return mountPath;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<PodVolume> {
+        @Override
+        public String getDisplayName() {
+            return "Secret Volume";
+        }
     }
 }

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.PodVolumes;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
@@ -27,7 +27,7 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     private final String name;
 
     private List<ContainerTemplate> containers = new ArrayList<>();
-    private List<PodVolumes.PodVolume> volumes = new ArrayList<PodVolumes.PodVolume>();
+    private List<PodVolume> volumes = new ArrayList<PodVolume>();
 
     private String serviceAccount;
     private String nodeSelector;
@@ -74,12 +74,12 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
         this.containers = containers;
     }
 
-    public List<PodVolumes.PodVolume> getVolumes() {
+    public List<PodVolume> getVolumes() {
         return volumes;
     }
 
     @DataBoundSetter
-    public void setVolumes(List<PodVolumes.PodVolume> volumes) {
+    public void setVolumes(List<PodVolume> volumes) {
         this.volumes = volumes;
     }
 

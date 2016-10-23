@@ -22,6 +22,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -329,7 +330,7 @@ public class KubernetesCloud extends Cloud {
         List<VolumeMount> volumeMounts = new ArrayList<VolumeMount>();
         {
             int i = 0;
-            for (final PodVolumes.PodVolume volume : template.getVolumes()) {
+            for (final PodVolume volume : template.getVolumes()) {
                 final String volumeName = "volume-" + i;
                 volumes.add(volume.buildVolume(volumeName));
                 volumeMounts.add(new VolumeMount(volume.getMountPath(), volumeName, false));
@@ -351,7 +352,7 @@ public class KubernetesCloud extends Cloud {
         for (ContainerTemplate containerTemplate : template.getContainers()) {
             List<VolumeMount> containerMounts = new ArrayList<VolumeMount>(volumeMounts);
             if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
-                    && !PodVolumes.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
+                    && !PodVolume.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
                 containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
             }
             containers.add(createContainer(slave, containerTemplate, containerMounts));
