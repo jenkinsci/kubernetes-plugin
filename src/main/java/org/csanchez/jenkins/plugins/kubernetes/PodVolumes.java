@@ -14,11 +14,13 @@ public class PodVolumes {
     @Deprecated
     public static class EmptyDirVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume {
 
-        private static final String DEFAULT_MEDIUM = "";
-        private static final String MEMORY_MEDIUM = "Memory";
-
         public EmptyDirVolume(String mountPath, Boolean memory) {
             super(mountPath, memory);
+        }
+
+        protected Object readResolve() {
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume(this.getMountPath(),
+                    this.getMemory());
         }
     }
 
@@ -28,13 +30,10 @@ public class PodVolumes {
         public SecretVolume(String mountPath, String secretName) {
             super(mountPath, secretName);
         }
-    }
 
-    @Deprecated
-    public static class ConfigMapVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume {
-
-        public ConfigMapVolume(String mountPath, String configMapName) {
-            super(mountPath, configMapName);
+        protected Object readResolve() {
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume(this.getMountPath(),
+                    this.getSecretName());
         }
     }
 
@@ -44,6 +43,11 @@ public class PodVolumes {
         public HostPathVolume(String hostPath, String mountPath) {
             super(hostPath, mountPath);
         }
+
+        protected Object readResolve() {
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume(this.getHostPath(),
+                    this.getMountPath());
+        }
     }
 
     @Deprecated
@@ -52,13 +56,10 @@ public class PodVolumes {
         public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
             super(serverAddress, serverPath, readOnly, mountPath);
         }
-    }
 
-    @Deprecated
-    public static class PvcVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.PvcVolume {
-
-        public PvcVolume(String mountPath, String claimName, Boolean readOnly) {
-            super(mountPath, claimName, readOnly);
+        protected Object readResolve() {
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume(this.getServerAddress(),
+                    this.getServerPath(), this.getReadOnly(), this.getMountPath());
         }
     }
 

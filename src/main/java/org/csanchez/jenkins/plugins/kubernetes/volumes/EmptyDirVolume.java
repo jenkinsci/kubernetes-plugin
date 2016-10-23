@@ -54,6 +54,10 @@ public class EmptyDirVolume extends PodVolume {
        return memory ? MEMORY_MEDIUM : DEFAULT_MEDIUM;
     }
 
+    public Boolean getMemory() {
+        return memory;
+    }
+
     @Override
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder().withName(volumeName)
