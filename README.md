@@ -28,7 +28,8 @@ Nodes can be defined in a pipeline and then used
 podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: 'cat')
-]) {
+  ],
+  volumes: [secretVolume(secretName: 'shared-secrets', mountPath: '/etc/shared-secrets')]) {
 
     node ('mypod') {
         stage 'Get a Maven project'
@@ -86,11 +87,12 @@ podTemplate(label: 'mypod', containers: [
     ...
 ],
 volumes: [
-    emptyDirVolume(mountPath: '/etc/mount', memory: false),
-    secretVolume(mountPath: '/etc/mount', secretName: 'my-secret'),
-    configMapVolume(mountPath: '/etc/mount', configMapName: 'my-config'),
-    hostPathVolume(mountPath: '/etc/mount', hostPath: '/mnt/my-mount'),
-    nfsVolume(mountPath: '/etc/mount', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true)
+    emptyDirVolume(mountPath: '/etc/mount1', memory: false),
+    secretVolume(mountPath: '/etc/mount2', secretName: 'my-secret'),
+    configMapVolume(mountPath: '/etc/mount3', configMapName: 'my-config'),
+    hostPathVolume(mountPath: '/etc/mount4', hostPath: '/mnt/my-mount'),
+    nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
+    persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
 ]) {
    ...
 }
