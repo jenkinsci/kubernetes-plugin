@@ -164,7 +164,7 @@ Create a GCE disk named `kubernetes-jenkins` to store the data.
 
     gcloud compute disks create --size 20GB kubernetes-jenkins
 
-Creating the pods and services
+Creating the pods and services (Optionally with K8 Compute Resources limits; See below)
 
     kubectl create -f ./src/main/kubernetes/jenkins-gke.yml
     kubectl create -f ./src/main/kubernetes/service-gke.yml
@@ -221,7 +221,25 @@ Tearing it down
     kubectl stop rc/jenkins
     kubectl delete services/jenkins
 
+## Running in Kubernetes with Resource API
 
+Modify file `./src/main/kubernetes/jenkins-gke-with-limits.yml` with desired limits
+~~~
+resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 0.5
+        memory: 500Mi
+~~~
+
+Then run same steps, replacing:
+    `kubectl create -f ./src/main/kubernetes/jenkins-gke.yml`
+For
+    `kubectl create -f ./src/main/kubernetes/jenkins-gke-with-limits.yml`
+
+Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 
 ## Building
 
