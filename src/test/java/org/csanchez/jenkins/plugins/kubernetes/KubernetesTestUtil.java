@@ -43,7 +43,16 @@ public class KubernetesTestUtil {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
                 localLauncher.launch().cmds("minikube", "ip").stdout(baos).join();
-                ip = baos.toString().trim();
+                String stdout = baos.toString().trim();
+
+                // leave last line only, ie. when a new version is available it will print some info message
+                int i = stdout.lastIndexOf("\n");
+                if (i > 0) {
+                    ip = stdout.substring(i);
+                } else {
+                    ip = stdout;
+                }
+
             } catch (InterruptedException | IOException x) {
                 ip = "";
             }
