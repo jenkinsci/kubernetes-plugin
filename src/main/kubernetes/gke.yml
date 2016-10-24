@@ -21,8 +21,9 @@ items:
         - ReadWriteOnce
       capacity:
         storage: 100Mi
-      hostPath:
-        path: "/data/kubernetes-plugin-jenkins"
+      gcePersistentDisk:
+        pdName: jenkins
+        fsType: ext4
 
   - apiVersion: "v1"
     kind: "PersistentVolumeClaim"
@@ -79,7 +80,7 @@ items:
       name: "jenkins"
       namespace: "kubernetes-plugin"
     spec: 
-      type: "NodePort"
+      type: "LoadBalancer"
       selector: 
         name: "jenkins"
       ports: 
