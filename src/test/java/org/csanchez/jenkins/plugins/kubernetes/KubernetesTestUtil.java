@@ -25,6 +25,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.Matchers.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.junit.Assume;
@@ -34,19 +35,24 @@ import hudson.util.StreamTaskListener;
 
 public class KubernetesTestUtil {
 
-    // TODO
+    private static String ip = null;
+
     public static String miniKubeIp() {
-        return "192.168.99.100";
+        if (ip == null) {
+            Launcher.LocalLauncher localLauncher = new Launcher.LocalLauncher(StreamTaskListener.NULL);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                localLauncher.launch().cmds("minikube", "ip").stdout(baos).join();
+                ip = baos.toString().trim();
+            } catch (InterruptedException | IOException x) {
+                ip = "";
+            }
+        }
+        return ip;
     }
 
     public static void assumeMiniKube() throws Exception {
-        Launcher.LocalLauncher localLauncher = new Launcher.LocalLauncher(StreamTaskListener.NULL);
-        try {
-            Assume.assumeThat("MiniKube working", localLauncher.launch().readStdout().cmds("minikube", "ip").join(),
-                    is(0));
-        } catch (IOException x) {
-            Assume.assumeNoException("have MiniKube installed", x);
-        }
+        Assume.assumeThat("MiniKube working", ip, not(isEmptyOrNullString()));
     }
 
 }
