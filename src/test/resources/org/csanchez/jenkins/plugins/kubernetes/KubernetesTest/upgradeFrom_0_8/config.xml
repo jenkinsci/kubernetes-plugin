@@ -39,7 +39,6 @@
           <volumes>
             <org.csanchez.jenkins.plugins.kubernetes.PodVolumes_-EmptyDirVolume>
               <mountPath>/mnt</mountPath>
-              <memory>false</memory>
             </org.csanchez.jenkins.plugins.kubernetes.PodVolumes_-EmptyDirVolume>
             <org.csanchez.jenkins.plugins.kubernetes.PodVolumes_-HostPathVolume>
               <mountPath>/host</mountPath>

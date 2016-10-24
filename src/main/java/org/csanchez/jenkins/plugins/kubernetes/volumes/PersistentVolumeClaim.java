@@ -24,6 +24,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -35,6 +38,7 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 public class PersistentVolumeClaim extends PodVolume {
     private String mountPath;
     private String claimName;
+    @CheckForNull
     private Boolean readOnly;
 
     @DataBoundConstructor
@@ -53,8 +57,9 @@ public class PersistentVolumeClaim extends PodVolume {
         return claimName;
     }
 
+    @Nonnull
     public Boolean getReadOnly() {
-        return readOnly;
+        return readOnly != null && readOnly;
     }
 
     @Override
@@ -62,8 +67,8 @@ public class PersistentVolumeClaim extends PodVolume {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewPersistentVolumeClaim()
-                    .withClaimName(claimName)
-                    .withReadOnly(readOnly)
+                    .withClaimName(getClaimName())
+                    .withReadOnly(getReadOnly())
                 .and()
                 .build();
     }
