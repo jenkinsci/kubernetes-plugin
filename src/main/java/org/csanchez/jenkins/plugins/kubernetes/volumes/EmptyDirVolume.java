@@ -24,6 +24,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -38,6 +41,7 @@ public class EmptyDirVolume extends PodVolume {
     private static final String MEMORY_MEDIUM = "Memory";
 
     private String mountPath;
+    @CheckForNull
     private Boolean memory;
 
     @DataBoundConstructor
@@ -52,18 +56,17 @@ public class EmptyDirVolume extends PodVolume {
     }
 
     public String getMedium() {
-       return memory ? MEMORY_MEDIUM : DEFAULT_MEDIUM;
+        return getMemory() ? MEMORY_MEDIUM : DEFAULT_MEDIUM;
     }
 
+    @Nonnull
     public Boolean getMemory() {
-        return memory;
+        return memory != null && memory;
     }
 
     @Override
     public Volume buildVolume(String volumeName) {
-        return new VolumeBuilder().withName(volumeName)
-                .withNewEmptyDir(getMedium())
-                .build();
+        return new VolumeBuilder().withName(volumeName).withNewEmptyDir(getMedium()).build();
     }
 
     @Extension

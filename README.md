@@ -152,8 +152,8 @@ A local testing cluster with one node can be created with [minukube](https://git
 
 Then create the Jenkins ReplicationController and Service with
 
-    kubectl create -f ./src/main/kubernetes/jenkins-local.yml
-    kubectl create -f ./src/main/kubernetes/service.yml
+    kubectl create -f ./src/main/kubernetes/minikube.yml
+    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 
 ## Running in Kubernetes (Google Container Engine)
@@ -164,10 +164,10 @@ Create a GCE disk named `kubernetes-jenkins` to store the data.
 
     gcloud compute disks create --size 20GB kubernetes-jenkins
 
-Creating the pods and services
+Creating all the elements and setting the default namespace
 
-    kubectl create -f ./src/main/kubernetes/jenkins-gke.yml
-    kubectl create -f ./src/main/kubernetes/service-gke.yml
+    kubectl create -f ./src/main/kubernetes/gke.yml
+    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
 Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenkins`
@@ -218,8 +218,7 @@ Now it is ready to be used.
 
 Tearing it down
 
-    kubectl stop rc/jenkins
-    kubectl delete services/jenkins
+    kubectl delete namespace/kubernetes-plugin
 
 
 

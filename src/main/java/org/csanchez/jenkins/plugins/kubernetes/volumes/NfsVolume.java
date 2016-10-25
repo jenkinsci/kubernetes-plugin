@@ -24,6 +24,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -36,6 +39,7 @@ public class NfsVolume extends PodVolume {
     private String mountPath;
     private String serverAddress;
     private String serverPath;
+    @CheckForNull
     private Boolean readOnly;
 
     @DataBoundConstructor
@@ -65,8 +69,9 @@ public class NfsVolume extends PodVolume {
         return serverPath;
     }
 
+    @Nonnull
     public Boolean getReadOnly() {
-        return readOnly;
+        return readOnly != null && readOnly;
     }
 
     @Extension
