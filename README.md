@@ -164,7 +164,7 @@ Create a GCE disk named `kubernetes-jenkins` to store the data.
 
     gcloud compute disks create --size 20GB kubernetes-jenkins
 
-Creating the pods and services (Optionally modify default K8 Compute Resources limits [5ooMi RAM]; See below)
+Creating all the elements and setting the default namespace (Optionally modify default K8 Compute Resources limits [5ooMi RAM]; See below)
 
     kubectl create -f ./src/main/kubernetes/gke.yml
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
@@ -220,7 +220,7 @@ Tearing it down
 
     kubectl delete namespace/kubernetes-plugin
 
-## Modify Kubernetes default Resource API
+## Modify default request/limits (Kubernetes Resource API)
 
 Modify file `./src/main/kubernetes/gke.yml` with desired limits
 ~~~
