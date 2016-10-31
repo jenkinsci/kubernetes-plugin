@@ -51,7 +51,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 labelStr == null ? null : labelStr,
                 new JNLPLauncher(),
                 new OnceRetentionStrategy(cloud.getRetentionTimeout()),
-                Collections.<NodeProperty<Node>> emptyList());
+                template.getNodeProperties());
 
         // this.pod = pod;
         this.cloud = cloud;
@@ -68,7 +68,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 label == null ? null : label.toString(),
                 new JNLPLauncher(),
                 new OnceRetentionStrategy(cloud.getRetentionTimeout()),
-                Collections.<NodeProperty<Node>> emptyList());
+                template.getNodeProperties());
 
         // this.pod = pod;
         this.cloud = cloud;

@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.tools.ToolLocationNodeProperty;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -72,6 +73,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     private final List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
     private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+
+    private List<ToolLocationNodeProperty> nodeProperties;
 
     @DataBoundConstructor
     public PodTemplate() {
@@ -272,6 +275,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     @DataBoundSetter
     public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
         this.imagePullSecrets.addAll(imagePullSecrets);
+    }
+
+    @DataBoundSetter
+    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
+        this.nodeProperties = nodeProperties;
+    }
+
+    public List<ToolLocationNodeProperty> getNodeProperties(){
+        return nodeProperties;
     }
 
     @Deprecated
