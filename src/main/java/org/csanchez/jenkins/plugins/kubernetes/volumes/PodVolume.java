@@ -53,7 +53,7 @@ public abstract class PodVolume extends AbstractDescribableImpl<PodVolume> imple
         return false;
     }
 
-    public static boolean volumeMountExists(String path, List<VolumeMount> existingMounts) {
+    public static boolean volumeMountExists(String path, Iterable<VolumeMount> existingMounts) {
         for (VolumeMount mount : existingMounts) {
             if (mount.getMountPath().equals(path)) {
                 return true;

@@ -13,6 +13,10 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="inheritFrom" title="The name of the pod template to inherit from">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
       <f:repeatableProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />

@@ -33,6 +33,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
+    private String inheritFrom;
+
     private String name;
 
     private transient String image;
@@ -87,6 +89,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.setInstanceCap(from.getInstanceCap());
         this.setLabel(from.getLabel());
         this.setName(from.getName());
+        this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
         this.setServiceAccount(from.getServiceAccount());
         this.setVolumes(from.getVolumes());
@@ -114,6 +117,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private Optional<ContainerTemplate> getFirstContainer() {
         return Optional.ofNullable(getContainers().isEmpty() ? null : getContainers().get(0));
+    }
+
+    public String getInheritFrom() {
+        return inheritFrom;
+    }
+
+    @DataBoundSetter
+    public void setInheritFrom(String inheritFrom) {
+        this.inheritFrom = inheritFrom;
     }
 
     @DataBoundSetter

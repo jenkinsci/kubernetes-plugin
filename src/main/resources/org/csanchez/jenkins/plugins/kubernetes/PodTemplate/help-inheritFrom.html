@@ -1,0 +1,10 @@
+A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.
+
+Service account and Node selector when are overridden completely substitute any possible value found on the 'parent'.
+
+Container templates that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
+If no matching containerTemplate is found, the template is added as is.
+
+Volume inheritance works exactly as Container templates.
+
+Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).

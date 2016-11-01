@@ -61,6 +61,31 @@ The jnlp agent image used can be customized by adding it to the template
 containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
+A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.
+
+**Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'. 
+
+**Container templates** that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
+If no matching containerTemplate is found, the template is added as is.
+
+**Volume** inheritance works exactly as **Container templates**.
+
+**Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
+
+In the example below, we will inherit the podTemplate we created previously, and will just override the version of 'maven' so that it uses jdk-7 instead:
+
+```groovy
+podTemplate(label: 'anotherpod', inheritFrom: 'mypod'  containers: [
+    containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-7-alpine')    
+  ]) {
+      
+      //Let's not repeat ourselves and ommit this part
+}
+```
+
+Note that we only need to specify the things that are different. So, `ttyEnabled` and `command` are not specified, as they are inherited. Also the `golang` container will be added as is defined in the 'parent' template. 
+
+
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
