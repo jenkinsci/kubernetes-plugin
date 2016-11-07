@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URL;
 
 import org.junit.Assume;
 
@@ -47,11 +48,14 @@ public class KubernetesTestUtil {
 
                 // leave last line only, ie. when a new version is available it will print some info message
                 int i = stdout.lastIndexOf("\n");
+                String s;
                 if (i > 0) {
-                    ip = stdout.substring(i);
+                    s = stdout.substring(i);
                 } else {
-                    ip = stdout;
+                    s = stdout;
                 }
+                URL url = new URL(s);
+                ip = url.toString();
 
             } catch (InterruptedException | IOException x) {
                 ip = "";
