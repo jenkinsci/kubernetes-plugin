@@ -74,7 +74,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    private List<ToolLocationNodeProperty> nodeProperties;
+    private final List<ToolLocationNodeProperty> nodeProperties = Collections.emptyList();
 
     @DataBoundConstructor
     public PodTemplate() {
@@ -279,7 +279,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundSetter
     public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
-        this.nodeProperties = nodeProperties;
+        this.nodeProperties.addAll(nodeProperties);
     }
 
     public List<ToolLocationNodeProperty> getNodeProperties(){

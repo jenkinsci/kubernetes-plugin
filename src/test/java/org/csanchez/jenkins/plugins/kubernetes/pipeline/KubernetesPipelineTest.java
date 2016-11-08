@@ -81,6 +81,9 @@ public class KubernetesPipelineTest {
 
     @BeforeClass
     public static void configureCloud() throws Exception {
+        // do not run if minikube is not running
+        assumeMiniKube();
+
         cloud.setServerUrl(new URL("https", miniKubeIp(), 8443, "").toExternalForm());
         cloud.setNamespace("default");
         cloud.connect();
@@ -102,8 +105,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        // do not run if minikube is not running
-        assumeMiniKube();
 
         // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
