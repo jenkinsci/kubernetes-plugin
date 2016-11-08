@@ -24,6 +24,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 
@@ -31,6 +32,9 @@ import javax.annotation.CheckForNull;
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class KubernetesFactoryAdapter {
+
+    private static final int DEFAULT_CONNECT_TIMEOUT = 5;
+    private static final int DEFAULT_READ_TIMEOUT = 15;
 
     private final String serviceAddress;
     private final String namespace;
@@ -40,20 +44,28 @@ public class KubernetesFactoryAdapter {
     private final StandardCredentials credentials;
 
     private final boolean skipTlsVerify;
+    private final int connectTimeout;
+    private final int readTimeout;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
         this(serviceAddress, null, caCertData, credentials, skipTlsVerify);
     }
 
-
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
+        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+    }
+
+    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+                                    @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
         this.credentials = credentials != null ? getCredentials(credentials) : null;
         this.skipTlsVerify = skipTlsVerify;
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
     }
 
     private StandardCredentials getCredentials(String credentials) {
@@ -66,7 +78,10 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesClient createClient() throws NoSuchAlgorithmException, UnrecoverableKeyException,
             KeyStoreException, IOException, CertificateEncodingException {
-        ConfigBuilder builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+        ConfigBuilder builder = new ConfigBuilder().withMasterUrl(serviceAddress)
+                .withRequestTimeout(readTimeout * 1000)
+                .withConnectionTimeout(connectTimeout * 1000);
+
         if (namespace != null && !namespace.isEmpty()) {
             builder.withNamespace(namespace);
         }

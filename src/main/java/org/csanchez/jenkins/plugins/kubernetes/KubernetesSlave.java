@@ -103,7 +103,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         try {
-            cloud.connect().pods().inNamespace(cloud.getNamespace()).withName(name).delete();
+            cloud.connect().pods().withName(name).delete();
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
