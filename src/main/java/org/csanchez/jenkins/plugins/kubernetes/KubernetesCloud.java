@@ -109,6 +109,8 @@ public class KubernetesCloud extends Cloud {
     private String credentialsId;
     private int containerCap = Integer.MAX_VALUE;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
+    private int connectTimeout;
+    private int readTimeout;
 
     private transient KubernetesClient client;
 
@@ -127,10 +129,14 @@ public class KubernetesCloud extends Cloud {
         setServerUrl(serverUrl);
         setNamespace(namespace);
         setJenkinsUrl(jenkinsUrl);
-        if (templates != null)
+        if (templates != null) {
             this.templates.addAll(templates);
+        }
         setContainerCapStr(containerCapStr);
         setRetentionTimeout(retentionTimeout);
+        setConnectTimeout(connectTimeout);
+        setReadTimeout(readTimeout);
+
     }
 
     public int getRetentionTimeout() {
@@ -237,6 +243,22 @@ public class KubernetesCloud extends Cloud {
         }
     }
 
+    public int getReadTimeout() {
+        return readTimeout;
+    }
+
+    public void setReadTimeout(int readTimeout) {
+        this.readTimeout = readTimeout;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+
     /**
      * Connects to Kubernetes.
      *
@@ -251,7 +273,7 @@ public class KubernetesCloud extends Cloud {
         if (client == null) {
             synchronized (this) {
                 if (client == null) {
-                    client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify)
+                    client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify, connectTimeout, readTimeout)
                             .createClient();
                 }
             }
@@ -667,11 +689,13 @@ public class KubernetesCloud extends Cloud {
         public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
-                                               @QueryParameter String namespace) throws Exception {
+                                               @QueryParameter String namespace,
+                                               @QueryParameter int connectionTimeout,
+                                               @QueryParameter int readTimeout) throws Exception {
 
             KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
                     namespace,
-                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify)
+                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify, connectionTimeout, readTimeout)
                     .createClient();
 
             client.pods().list();
