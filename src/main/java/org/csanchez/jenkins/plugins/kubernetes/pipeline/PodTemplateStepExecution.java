@@ -62,6 +62,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
             newTemplate.setLabel(step.getLabel());
             newTemplate.setName(name);
+            newTemplate.setNodeSelector(step.getNodeSelector());
 
             kubernetesCloud.addTemplate(newTemplate);
             getContext().newBodyInvoker()
