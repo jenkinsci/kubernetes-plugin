@@ -66,26 +66,26 @@ items:
                   cpu: 0.5
                   memory: 500Mi
               env:
-              - name: CPU_REQUEST
-                valueFrom:
-                  resourceFieldRef:
-                    resource: requests.cpu
-              - name: CPU_LIMIT
-                valueFrom:
-                  resourceFieldRef:
-                    resource: limits.cpu
-              - name: MEM_REQUEST
-                valueFrom:
-                  resourceFieldRef:
-                    resource: requests.memory
-                    divisor: "1Mi"
-              - name: MEM_LIMIT
-                valueFrom:
-                  resourceFieldRef:
-                    resource: limits.memory
-                    divisor: "1Mi"
-              - name: JAVA_OPTS
-          value: "-Xmx$(MEM_REQUEST)m"     
+                - name: CPU_REQUEST
+                  valueFrom:
+                    resourceFieldRef:
+                      resource: requests.cpu
+                - name: CPU_LIMIT
+                  valueFrom:
+                    resourceFieldRef:
+                      resource: limits.cpu
+                - name: MEM_REQUEST
+                  valueFrom:
+                    resourceFieldRef:
+                      resource: requests.memory
+                      divisor: "1Mi"
+                - name: MEM_LIMIT
+                  valueFrom:
+                    resourceFieldRef:
+                      resource: limits.memory
+                      divisor: "1Mi"
+                - name: JAVA_OPTS
+                  value: "-Xmx$(MEM_REQUEST)m"
               volumeMounts: 
                 - name: "jenkins"
                   mountPath: "/var/jenkins_home"

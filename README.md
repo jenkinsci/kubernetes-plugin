@@ -20,6 +20,7 @@ For that some environment variables are automatically injected:
 Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-slave),
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
+
 # Pipeline support
 
 Nodes can be defined in a pipeline and then used
@@ -109,6 +110,7 @@ as it will be the container acting as Jenkins agent.
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
 
+
 # Configuration on Google Container Engine
 
 Create a cluster 
@@ -124,6 +126,7 @@ Or use Google Developer Console to create a Container Engine cluster, then run
 
 the last command will output kubernetes cluster configuration including API server URL, admin password and root certificate
 
+
 # Debugging
 
 To inspect the json messages sent back and forth to the Kubernetes API server you can configure
@@ -135,16 +138,20 @@ at `DEBUG` level.
 
 Run `mvn clean package` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
+
 # Docker image
 
 Docker image for Jenkins, with plugin installed.
 Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
-## Running
+## Running the Docker image
 
     docker run --rm --name jenkins -p 8080:8080 -p 50000:50000 -v /var/jenkins_home csanchez/jenkins-kubernetes
 
-## Testing locally
+
+# Running in Kubernetes
+
+## Running locally with minikube
 
 A local testing cluster with one node can be created with [minukube](https://github.com/kubernetes/minikube)
 
@@ -156,7 +163,7 @@ Then create the Jenkins ReplicationController and Service with
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 
-## Running in Kubernetes (Google Container Engine)
+## Running in Google Container Engine GKE
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and slaves there.
 
@@ -220,10 +227,14 @@ Tearing it down
 
     kubectl delete namespace/kubernetes-plugin
 
-## Modify default request/limits (Kubernetes Resource API)
+
+## Customizing the deployment
+
+### Modify CPUa and memory request/limits (Kubernetes Resource API)
 
 Modify file `./src/main/kubernetes/gke.yml` with desired limits
-~~~
+
+```yaml
 resources:
       limits:
         cpu: 1
@@ -231,7 +242,7 @@ resources:
       requests:
         cpu: 0.5
         memory: 500Mi
-~~~
+```
 
 Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 
