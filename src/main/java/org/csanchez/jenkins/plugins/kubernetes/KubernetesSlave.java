@@ -21,6 +21,10 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.OfflineCause;
+import io.fabric8.kubernetes.api.model.DoneablePod;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ClientPodResource;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -103,7 +107,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         try {
-            cloud.connect().pods().withName(name).delete();
+            KubernetesClient client = cloud.connect();
+            ClientPodResource<Pod, DoneablePod> pods = client.pods().withName(name);
+            pods.delete();
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
