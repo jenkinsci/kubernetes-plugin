@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.tools.ToolLocationNodeProperty;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -282,6 +283,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.nodeProperties = nodeProperties;
     }
 
+    @NonNull
     public List<ToolLocationNodeProperty> getNodeProperties(){
         if (nodeProperties == null) {
             return Collections.emptyList();
