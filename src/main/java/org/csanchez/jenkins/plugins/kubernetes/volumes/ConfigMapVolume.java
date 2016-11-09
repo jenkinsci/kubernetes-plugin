@@ -48,7 +48,7 @@ public class ConfigMapVolume extends PodVolume {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewConfigMap()
-                    .withName(volumeName)
+                    .withName(getConfigMapName())
                 .and()
                 .build();
     }
