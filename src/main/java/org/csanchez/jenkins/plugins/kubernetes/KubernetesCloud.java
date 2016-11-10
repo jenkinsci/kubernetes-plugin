@@ -54,7 +54,9 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
+import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.NodeProvisioner;
+import hudson.slaves.RetentionStrategy;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.model.Container;
@@ -73,6 +75,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 /**
  * Kubernetes cloud provider.
@@ -539,9 +542,14 @@ public class KubernetesCloud extends Cloud {
 
         public Node call() throws Exception {
             KubernetesSlave slave = null;
+            RetentionStrategy retentionStrategy = null;
             try {
-
-                slave = new KubernetesSlave(t, t.getName(), cloud, t.getLabel());
+                if (t.getIdleMinutes() == Integer.MIN_VALUE) {
+                    retentionStrategy = new OnceRetentionStrategy(cloud.getRetentionTimeout());
+                } else {
+                    retentionStrategy = new CloudRetentionStrategy(cloud.getRetentionTimeout());
+                }
+                slave = new KubernetesSlave(t, t.getName(), cloud, t.getLabel(), retentionStrategy);
                 Jenkins.getActiveInstance().addNode(slave);
 
                 Pod pod = getPodTemplate(slave, label);

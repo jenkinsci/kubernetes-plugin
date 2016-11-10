@@ -51,6 +51,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private int instanceCap = Integer.MAX_VALUE;
 
+    private int idleMinutes = Integer.MIN_VALUE;
+
     private String label;
 
     private String serviceAccount;
@@ -200,6 +202,31 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
             return "";
         } else {
             return String.valueOf(instanceCap);
+        }
+    }
+
+    public void setIdleMinutes(int i) {
+        this.idleMinutes = i;
+    }
+
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutesStr(String idleMinutes) {
+        if ("".equals(idleMinutes)) {
+            setIdleMinutes(Integer.MIN_VALUE);
+        } else {
+            setIdleMinutes(Integer.parseInt(idleMinutes));
+        }
+    }
+
+    public String getIdleMinutesStr() {
+        if (getIdleMinutes() == Integer.MIN_VALUE) {
+            return "";
+        } else {
+            return String.valueOf(idleMinutes);
         }
     }
 

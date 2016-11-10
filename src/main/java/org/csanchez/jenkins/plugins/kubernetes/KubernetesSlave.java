@@ -19,8 +19,8 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.JNLPLauncher;
-import hudson.slaves.NodeProperty;
 import hudson.slaves.OfflineCause;
+import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -44,9 +44,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private transient final KubernetesCloud cloud;
 
-    @DataBoundConstructor
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
+
+
         super(getSlaveName(template),
                 nodeDescription,
                 template.getRemoteFs(),
@@ -76,6 +77,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         // this.pod = pod;
         this.cloud = cloud;
+    }
+
+    @DataBoundConstructor
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr,
+                           RetentionStrategy rs)
+            throws Descriptor.FormException, IOException {
+
+        this(template, nodeDescription, cloud, labelStr);
+
+        this.setRetentionStrategy(rs);
     }
 
     static String getSlaveName(PodTemplate template) {
@@ -114,7 +125,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failure to terminate instance for slave " + name, e);
+            LOGGER.log(Level.SEVERE, "Failed to terminate pod for slave " + name, e);
         }
     }
 
