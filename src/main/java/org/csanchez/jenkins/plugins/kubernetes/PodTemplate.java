@@ -272,6 +272,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     }
 
     public List<PodAnnotation> getAnnotations() {
+        if (annotations == null) {
+            return Collections.emptyList();
+        }
         return annotations;
     }
 
@@ -281,6 +284,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     }
 
     public List<PodImagePullSecret> getImagePullSecrets() {
+        if (imagePullSecrets == null) {
+            return Collections.emptyList();
+        }
         return imagePullSecrets;
     }
 
@@ -356,6 +362,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @Nonnull
     public List<PodVolume> getVolumes() {
+        if (volumes == null) {
+            return Collections.emptyList();
+        }
         return volumes;
     }
 
@@ -369,6 +378,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @Nonnull
     public List<ContainerTemplate> getContainers() {
+        if (containers == null) {
+            return Collections.emptyList();
+        }
         return containers;
     }
 

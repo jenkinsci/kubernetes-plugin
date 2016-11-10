@@ -61,6 +61,8 @@ The jnlp agent image used can be customized by adding it to the template
 containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
+### Pod template inheritance 
+
 A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.
 
 **Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'. 
@@ -85,6 +87,11 @@ podTemplate(label: 'anotherpod', inheritFrom: 'mypod'  containers: [
 
 Note that we only need to specify the things that are different. So, `ttyEnabled` and `command` are not specified, as they are inherited. Also the `golang` container will be added as is defined in the 'parent' template. 
 
+#### Multiple Pod template inheritance
+
+Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will be processed in the order they appear in the list *(later items overriding earlier ones)*.
+In any case if the referenced template is not found it will be ignored.
+ 
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:

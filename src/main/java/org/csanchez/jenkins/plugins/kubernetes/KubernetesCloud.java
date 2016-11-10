@@ -298,7 +298,8 @@ public class KubernetesCloud extends Cloud {
         return "jenkins/" + label.getName();
     }
 
-    private Container createContainer(KubernetesSlave slave, Pod parentPod, ContainerTemplate containerTemplate, Collection<VolumeMount> volumeMounts) {
+
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<VolumeMount> volumeMounts) {
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -340,11 +341,10 @@ public class KubernetesCloud extends Cloud {
             containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
         }
 
-        Container baseContainer = getContainer(parentPod, containerTemplate.getName());
-        return (baseContainer != null ? new ContainerBuilder(baseContainer) : new ContainerBuilder())
+        return new ContainerBuilder()
                 .withName(containerTemplate.getName())
                 .withImage(containerTemplate.getImage())
-                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
+                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() != null && containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                     .withPrivileged(containerTemplate.isPrivileged())
                 .endSecurityContext()
@@ -361,28 +361,11 @@ public class KubernetesCloud extends Cloud {
                 .build();
     }
 
+
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        final PodTemplate template = getTemplate(label);
+        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), templates);
         if (template == null) {
             return null;
-        }
-
-        Label parentLabel;
-        PodTemplate parentTemplate = null;
-        Pod parentPod = null;
-
-        List<PodVolume> allVolumes = new ArrayList<>();
-        List<ContainerTemplate> allContainers = new ArrayList<>();
-
-        if (!Strings.isNullOrEmpty(template.getInheritFrom())) {
-            parentLabel = Label.get(template.getInheritFrom());
-            parentTemplate = getTemplate(parentLabel);
-
-            if (parentTemplate != null) {
-                parentPod = getPodTemplate(slave, parentLabel);
-                allVolumes.addAll(parentTemplate.getVolumes());
-                allContainers.addAll(parentTemplate.getContainers());
-            }
         }
 
         // Build volumes and volume mounts.
@@ -390,8 +373,7 @@ public class KubernetesCloud extends Cloud {
         Map<String, VolumeMount> volumeMounts = new HashMap();
 
         int i = 0;
-        allVolumes.addAll(template.getVolumes());
-        for (final PodVolume volume : allVolumes) {
+        for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
             //We need to normalize the path or we can end up in really hard to debug issues.
             final String mountPath = Paths.get(volume.getMountPath()).normalize().toString();
@@ -403,42 +385,20 @@ public class KubernetesCloud extends Cloud {
         }
         // add an empty volume to share the workspace across the pod
         volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
-
-        // Build image pull secrets.
-        Map<String, LocalObjectReference> imagePullSecrets = new HashMap<>();
-        if (parentTemplate != null && parentTemplate.getImagePullSecrets() != null) {
-            for (PodImagePullSecret podImagePullSecret : template.getImagePullSecrets()) {
-                imagePullSecrets.put(podImagePullSecret.getName(), new LocalObjectReference(podImagePullSecret.getName()));
-            }
-        }
-
-        if (template.getImagePullSecrets() != null) {
-            for (PodImagePullSecret podImagePullSecret : template.getImagePullSecrets()) {
-                imagePullSecrets.put(podImagePullSecret.getName(), new LocalObjectReference(podImagePullSecret.getName()));
-            }
-        }
-
         Map<String, Container> containers = new HashMap<>();
-        allContainers.addAll(template.getContainers());
 
-        for (ContainerTemplate containerTemplate : allContainers) {
-            containers.put(containerTemplate.getName(), createContainer(slave, parentPod, containerTemplate, volumeMounts.values()));
+        for (ContainerTemplate containerTemplate : template.getContainers()) {
+            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, volumeMounts.values()));
         }
 
         if (!containers.containsKey(JNLP_NAME)) {
             ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
             containerTemplate.setName(JNLP_NAME);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
-            containers.put(JNLP_NAME, createContainer(slave, parentPod, containerTemplate, volumeMounts.values()));
+            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, volumeMounts.values()));
         }
 
-        String serviceAccount = !Strings.isNullOrEmpty(template.getServiceAccount()) ? template.getServiceAccount()
-                : (parentTemplate != null ? parentTemplate.getServiceAccount() : null);
-
-        String nodeSelector = !Strings.isNullOrEmpty(template.getNodeSelector()) ? template.getNodeSelector()
-                : (parentTemplate != null ? parentTemplate.getNodeSelector() : null);
-
-        return (parentPod != null ? new PodBuilder(parentPod) : new PodBuilder())
+        return new PodBuilder()
                 .withNewMetadata()
                     .withName(slave.getNodeName())
                     .withLabels(getLabelsMap(template.getLabelSet()))
@@ -446,17 +406,13 @@ public class KubernetesCloud extends Cloud {
                 .endMetadata()
                 .withNewSpec()
                     .withVolumes(volumes)
-                    .withServiceAccount(serviceAccount)
-                    .withImagePullSecrets(imagePullSecrets.values().toArray(new LocalObjectReference[imagePullSecrets.size()]))
+                    .withServiceAccount(template.getServiceAccount())
+                    .withImagePullSecrets(template.getImagePullSecrets().toArray(new LocalObjectReference[template.getImagePullSecrets().size()]))
                     .withContainers(containers.values().toArray(new Container[containers.size()]))
-                    .withNodeSelector(getNodeSelectorMap(nodeSelector))
+                    .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                     .withRestartPolicy("Never")
                 .endSpec()
                 .build();
-    }
-
-    private Container getContainer(Pod pod, String containerName) {
-        return pod == null ? null : pod.getSpec().getContainers().stream().filter(c -> c.getName().equals(containerName)).findFirst().orElse(null);
     }
 
     private Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
@@ -702,12 +658,7 @@ public class KubernetesCloud extends Cloud {
      * @return the template
      */
     public PodTemplate getTemplate(Label label) {
-        for (PodTemplate t : templates) {
-            if (label == null || label.matches(t.getLabelSet())) {
-                return t;
-            }
-        }
-        return null;
+        return PodTemplateUtils.getTemplate(label, templates);
     }
 
     /**
