@@ -156,6 +156,11 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 A local testing cluster with one node can be created with [minukube](https://github.com/kubernetes/minikube)
 
     minikube start
+    
+SSH into the minikube machine and create the storage directory for Jenkins data:
+
+    sudo mkdir -p /data/kubernetes-plugin-jenkins
+    sudo chown 1000 /data/kubernetes-plugin-jenkins
 
 Then create the Jenkins ReplicationController and Service with
 
