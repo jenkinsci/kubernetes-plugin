@@ -48,6 +48,8 @@
       <f:textbox/>
     </f:entry>
 
+    <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
+
   </f:advanced>
 
 </j:jelly>
