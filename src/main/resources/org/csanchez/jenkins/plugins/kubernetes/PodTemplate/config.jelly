@@ -22,6 +22,11 @@
                                     deleteCaption="Delete Container" />
   </f:entry>
 
+  <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
+        <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="Add Environment Variable"
+                                    deleteCaption="Delete Environment Variable" />
+  </f:entry>
+
   <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
     <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
                                 deleteCaption="Delete Volume" />

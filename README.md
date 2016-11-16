@@ -61,6 +61,29 @@ The jnlp agent image used can be customized by adding it to the template
 containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
+### Pod and container template configuration
+
+The `podTemplate` is a template of a pod that will be used to create slaves. It can be either configured via the user interface, or via pipeline. 
+Either way it provides access to the following fields:
+
+* **name** The name of the pod.
+* **label** The label of the pod.
+* **container** The container templates that are use to create the containers of the pod *(see below)*.
+* **serviceAccount** The service account of the pod.
+* **nodeSelector** The node selector of the pod.
+* **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
+* **envVars*** Environment variables that are applied to **ALL** containers. 
+* **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
+
+The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
+
+* **name** The name of the container.
+* **image** The image of the container.
+* **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
+* **command** The command the container will execute.
+* **args** The arugments passed to the command.
+* **ttyEnabled** Flag to mark that tty should be enabled.
+
 ### Pod template inheritance 
 
 A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.

@@ -299,7 +299,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<VolumeMount> volumeMounts) {
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<PodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -319,6 +319,11 @@ public class KubernetesCloud extends Cloud {
         url = url.endsWith("/") ? url : url + "/";
         env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
+        if (globalEnvVars != null) {
+            for (PodEnvVar podEnvVar : globalEnvVars) {
+                env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+            }
+        }
         if (containerTemplate.getEnvVars() != null) {
             for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
                 env.add(new EnvVar(containerEnvVar.getKey(), containerEnvVar.getValue(), null));
@@ -388,14 +393,14 @@ public class KubernetesCloud extends Cloud {
         Map<String, Container> containers = new HashMap<>();
 
         for (ContainerTemplate containerTemplate : template.getContainers()) {
-            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, volumeMounts.values()));
+            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
         if (!containers.containsKey(JNLP_NAME)) {
             ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
             containerTemplate.setName(JNLP_NAME);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
-            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, volumeMounts.values()));
+            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
         return new PodBuilder()

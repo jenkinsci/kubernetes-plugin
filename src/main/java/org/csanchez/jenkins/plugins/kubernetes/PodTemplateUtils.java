@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import hudson.model.Label;
@@ -103,6 +104,11 @@ public class PodTemplateUtils {
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
 
         //Containers
+        Map<String, String> combinedEnvVars = new HashMap<>();
+        combinedEnvVars.putAll(parent.getEnvVars().stream().collect(Collectors.toMap(e -> e.getKey(),e -> e.getValue())));
+        combinedEnvVars.putAll(template.getEnvVars().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+
+        //Containers
         Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> c));
         combinedContainers.putAll(parentContainers);
         combinedContainers.putAll(template.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
@@ -122,6 +128,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
+        podTemplate.setEnvVars(combinedEnvVars.entrySet().stream().map(e -> new PodEnvVar(e.getKey(), e.getValue())).collect(Collectors.toList()));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));

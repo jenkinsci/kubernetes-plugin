@@ -69,8 +69,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    @SuppressWarnings("deprecation")
-    private transient final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
 
     private final List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
@@ -257,18 +256,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    @Deprecated
-    @SuppressWarnings("deprecation")
     public List<PodEnvVar> getEnvVars() {
-        return getFirstContainer().map((i) -> PodEnvVar.fromContainerEnvVar(i.getEnvVars()))
-                .orElse(Collections.emptyList());
+        if (envVars == null) {
+            return Collections.emptyList();
+        }
+        return envVars;
     }
 
-    @Deprecated
-    @SuppressWarnings("deprecation")
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
-        getFirstContainer().ifPresent((i) -> i.setEnvVars(PodEnvVar.asContainerEnvVar(envVars)));
+        if (envVars != null) {
+            this.envVars.addAll(envVars);
+        }
     }
 
     public List<PodAnnotation> getAnnotations() {
