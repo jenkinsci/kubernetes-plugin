@@ -12,7 +12,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import hudson.model.Label;
@@ -21,6 +22,11 @@ import hudson.tools.ToolLocationNodeProperty;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 public class PodTemplateUtils {
+
+    private static final String PLACEHOLDER_KEY = "key";
+    private static final String PLACEHOLDER_FORMAT = "\\$\\{%s\\}";
+    private static final String PLACEHOLDER_REGEX = String.format(PLACEHOLDER_FORMAT, "(?<" + PLACEHOLDER_KEY + ">[a-zA-Z0-9_]+)");
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
@@ -168,5 +174,59 @@ public class PodTemplateUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * Substitutes a placeholder with a value found in the environment.
+     * @param s     The placeholder. Should be use the format: ${placeholder}.
+     * @return      The substituted value if found, or the input value otherwise.
+     */
+    public static String substituteEnv(String s) {
+        return substitute(s, System.getenv());
+    }
+
+    /**
+     * Substitutes a placeholder with a value found in the environment.
+     * @param s             The placeholder. Should be use the format: ${placeholder}.
+     * @param defaultValue  The default value to return if no match is found.
+     * @return              The substituted value if found, or the default value otherwise.
+     */
+    public static String substituteEnv(String s, String defaultValue) {
+        return substitute(s, System.getenv(), defaultValue);
+    }
+
+    /**
+     * Substitutes a placeholder with a value found in the specified map.
+     * @param s             The placeholder. Should be use the format: ${placeholder}.
+     * @param properties    The map with the key value pairs to use for substitution.
+     * @return              The substituted value if found, or the input value otherwise.
+     */
+    public static String substitute(String s, Map<String, String> properties) {
+        return substitute(s, properties, null);
+    }
+
+    /**
+     * Substitutes a placeholder with a value found in the specified map.
+     * @param s             The placeholder. Should be use the format: ${placeholder}.
+     * @param properties    The map with the key value pairs to use for substitution.
+     * @param defaultValue  The default value to return if no match is found.
+     * @return              The substituted value if found, or the default value otherwise.
+     */
+    public static String substitute(String s, Map<String, String> properties, String defaultValue) {
+        if (Strings.isNullOrEmpty(s)) {
+            return defaultValue;
+        }
+
+        Matcher m = PLACEHOLDER_PATTERN.matcher(s);
+        while (m.find()) {
+            String key = m.group(PLACEHOLDER_KEY);
+            String val = properties.get(key);
+            if (val != null) {
+                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), val);
+            } else if (defaultValue != null) {
+                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), defaultValue);
+            }
+        }
+        return s;
     }
 }

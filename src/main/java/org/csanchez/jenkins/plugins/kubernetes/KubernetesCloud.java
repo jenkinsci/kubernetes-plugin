@@ -72,6 +72,7 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
  * Kubernetes cloud provider.
@@ -321,12 +322,12 @@ public class KubernetesCloud extends Cloud {
 
         if (globalEnvVars != null) {
             for (PodEnvVar podEnvVar : globalEnvVars) {
-                env.add(new EnvVar(podEnvVar.getKey(), podEnvVar.getValue(), null));
+                env.add(new EnvVar(podEnvVar.getKey(), substituteEnv(podEnvVar.getValue()), null));
             }
         }
         if (containerTemplate.getEnvVars() != null) {
             for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
-                env.add(new EnvVar(containerEnvVar.getKey(), containerEnvVar.getValue(), null));
+                env.add(new EnvVar(containerEnvVar.getKey(), substituteEnv(containerEnvVar.getValue()), null));
             }
         }
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
@@ -347,13 +348,13 @@ public class KubernetesCloud extends Cloud {
         }
 
         return new ContainerBuilder()
-                .withName(containerTemplate.getName())
-                .withImage(containerTemplate.getImage())
+                .withName(substituteEnv(containerTemplate.getName()))
+                .withImage(substituteEnv(containerTemplate.getImage()))
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() != null && containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                     .withPrivileged(containerTemplate.isPrivileged())
                 .endSecurityContext()
-                .withWorkingDir(containerTemplate.getWorkingDir())
+                .withWorkingDir(substituteEnv(containerTemplate.getWorkingDir()))
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
                 .addToEnv(env.toArray(new EnvVar[env.size()]))
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
@@ -381,7 +382,7 @@ public class KubernetesCloud extends Cloud {
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
             //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = Paths.get(volume.getMountPath()).normalize().toString();
+            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString());
             if (!volumeMounts.containsKey(mountPath)) {
                 volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false));
                 volumes.add(volume.buildVolume(volumeName));
@@ -405,13 +406,13 @@ public class KubernetesCloud extends Cloud {
 
         return new PodBuilder()
                 .withNewMetadata()
-                    .withName(slave.getNodeName())
+                    .withName(substituteEnv(slave.getNodeName()))
                     .withLabels(getLabelsMap(template.getLabelSet()))
                     .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
                 .withNewSpec()
                     .withVolumes(volumes)
-                    .withServiceAccount(template.getServiceAccount())
+                    .withServiceAccount(substituteEnv(template.getServiceAccount()))
                     .withImagePullSecrets(template.getImagePullSecrets().toArray(new LocalObjectReference[template.getImagePullSecrets().size()]))
                     .withContainers(containers.values().toArray(new Container[containers.size()]))
                     .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
@@ -433,12 +434,14 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity> builder();
-        if (StringUtils.isNotBlank(memory)) {
-            Quantity memoryQuantity = new Quantity(memory);
+        String actualMemory = substituteEnv(memory, null);
+        String actualCpu = substituteEnv(cpu, null);
+        if (StringUtils.isNotBlank(actualMemory)) {
+            Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
         }
-        if (StringUtils.isNotBlank(cpu)) {
-            Quantity cpuQuantity = new Quantity(cpu);
+        if (StringUtils.isNotBlank(actualCpu)) {
+            Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
         }
         return builder.build();
@@ -448,7 +451,7 @@ public class KubernetesCloud extends Cloud {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
         if (annotations != null) {
             for (PodAnnotation podAnnotation : annotations) {
-                builder.put(podAnnotation.getKey(), podAnnotation.getValue());
+                builder.put(podAnnotation.getKey(), substituteEnv(podAnnotation.getValue()));
             }
         }
         return builder.build();
@@ -463,7 +466,7 @@ public class KubernetesCloud extends Cloud {
             for (String selector : selectors.split(",")) {
                 String[] parts = selector.split("=");
                 if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
-                    builder = builder.put(parts[0], parts[1]);
+                    builder = builder.put(parts[0], substituteEnv(parts[1]));
                 } else {
                     LOGGER.log(Level.WARNING, "Ignoring selector '" + selector
                             + "'. Selectors must be in the format 'label1=value1,label2=value2'.");
@@ -487,7 +490,7 @@ public class KubernetesCloud extends Cloud {
         Matcher m = SPLIT_IN_SPACES.matcher(dockerCommand);
         List<String> commands = new ArrayList<String>();
         while (m.find()) {
-            commands.add(m.group(1).replace("\"", ""));
+            commands.add(substituteEnv(m.group(1).replace("\"", "")));
         }
         return commands;
     }
