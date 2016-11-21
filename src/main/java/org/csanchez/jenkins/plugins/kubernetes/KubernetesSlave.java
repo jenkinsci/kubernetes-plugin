@@ -47,19 +47,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
 
-
-        super(getSlaveName(template),
-                nodeDescription,
-                template.getRemoteFs(),
-                1,
-                Node.Mode.NORMAL,
-                labelStr == null ? null : labelStr,
-                new JNLPLauncher(),
-                new OnceRetentionStrategy(cloud.getRetentionTimeout()),
-                template.getNodeProperties());
-
-        // this.pod = pod;
-        this.cloud = cloud;
+        this(template, nodeDescription, cloud, labelStr, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
     }
 
     @Deprecated
@@ -84,9 +72,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
 
-        this(template, nodeDescription, cloud, labelStr);
+        super(getSlaveName(template),
+                nodeDescription,
+                template.getRemoteFs(),
+                1,
+                Node.Mode.NORMAL,
+                labelStr == null ? null : labelStr,
+                new JNLPLauncher(),
+                rs,
+                template.getNodeProperties());
 
-        this.setRetentionStrategy(rs);
+        // this.pod = pod;
+        this.cloud = cloud;
     }
 
     static String getSlaveName(PodTemplate template) {
