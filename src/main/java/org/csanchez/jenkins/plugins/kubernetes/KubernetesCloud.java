@@ -608,19 +608,22 @@ public class KubernetesCloud extends Cloud {
 
         KubernetesClient client = connect();
         PodList slaveList = client.pods().withLabels(POD_LABEL).list();
+        List<Pod> slaveListItems = slaveList.getItems();
+
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
         PodList namedList = client.pods().withLabels(labelsMap).list();
+        List<Pod> namedListItems = namedList.getItems();
 
-        if (containerCap < slaveList.getItems().size()) {
+        if (slaveListItems != null && containerCap < slaveListItems.size()) {
             LOGGER.log(Level.INFO, "Total container cap of {0} reached, not provisioning: {1} running in namespace {2}",
-                    new Object[] { containerCap, slaveList.getItems().size(), client.getNamespace() });
+                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace() });
             return false;
         }
 
-        if (template.getInstanceCap() < namedList.getItems().size()) {
+        if (namedListItems != null && slaveListItems != null && template.getInstanceCap() < namedListItems.size()) {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace {3} with label {4}",
-                    new Object[] { template.getInstanceCap(), template.getName(), slaveList.getItems().size(),
+                    new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
                             client.getNamespace(), label.toString() });
             return false; // maxed out
         }
