@@ -547,7 +547,7 @@ public class KubernetesCloud extends Cloud {
                 if (t.getIdleMinutes() == Integer.MIN_VALUE) {
                     retentionStrategy = new OnceRetentionStrategy(cloud.getRetentionTimeout());
                 } else {
-                    retentionStrategy = new CloudRetentionStrategy(cloud.getRetentionTimeout());
+                    retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
                 }
                 slave = new KubernetesSlave(t, t.getName(), cloud, t.getLabel(), retentionStrategy);
                 Jenkins.getActiveInstance().addNode(slave);
