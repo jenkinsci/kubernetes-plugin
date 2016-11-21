@@ -216,6 +216,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     @DataBoundSetter
     public void setIdleMinutesStr(String idleMinutes) {
         if ("".equals(idleMinutes)) {
+            setIdleMinutes(0);
+        } else {
             setIdleMinutes(Integer.parseInt(idleMinutes));
         }
     }
