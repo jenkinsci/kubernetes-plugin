@@ -24,6 +24,8 @@ import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Kubernetes Pod Template
  * 
@@ -190,7 +192,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundSetter
     public void setInstanceCapStr(String instanceCapStr) {
-        if ("".equals(instanceCapStr)) {
+        if (StringUtils.isBlank(instanceCapStr)) {
             setInstanceCap(Integer.MAX_VALUE);
         } else {
             setInstanceCap(Integer.parseInt(instanceCapStr));
@@ -215,7 +217,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @DataBoundSetter
     public void setIdleMinutesStr(String idleMinutes) {
-        if ("".equals(idleMinutes)) {
+        if (StringUtils.isBlank(idleMinutes)) {
             setIdleMinutes(0);
         } else {
             setIdleMinutes(Integer.parseInt(idleMinutes));
