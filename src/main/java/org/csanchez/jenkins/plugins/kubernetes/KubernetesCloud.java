@@ -544,7 +544,7 @@ public class KubernetesCloud extends Cloud {
             KubernetesSlave slave = null;
             RetentionStrategy retentionStrategy = null;
             try {
-                if (t.getIdleMinutes() == Integer.MIN_VALUE) {
+                if (t.getIdleMinutes() == 0) {
                     retentionStrategy = new OnceRetentionStrategy(cloud.getRetentionTimeout());
                 } else {
                     retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
