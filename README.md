@@ -65,24 +65,27 @@ containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args:
 When configuring a container in a pipeline podTemplate the following options are available:
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
-    containerTemplate(
-        name: 'mariadb', 
-        image: 'mariadb:10.1', 
-        ttyEnabled: true, 
-        command: 'cat'
-        privileged: false,
-        alwaysPullImage: false,
-        workingDir: '/home/jenkins',
-        args: '',
-        instanceCap: 1,
-        resourceRequestCpu: '50m',
-        resourceLimitCpu: '100m',
-        resourceRequestMemory: '100Mi',
-        resourceLimitMemory: '200Mi',
-        envVars: [
-            containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
-            ...
+podTemplate(
+    label: 'mypod', 
+    instanceCap: 1, 
+    containers: [
+        containerTemplate(
+            name: 'mariadb', 
+            image: 'mariadb:10.1', 
+            ttyEnabled: true, 
+            command: 'cat'
+            privileged: false,
+            alwaysPullImage: false,
+            workingDir: '/home/jenkins',
+            args: '',
+            resourceRequestCpu: '50m',
+            resourceLimitCpu: '100m',
+            resourceRequestMemory: '100Mi',
+            resourceLimitMemory: '200Mi',
+            envVars: [
+                containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+                ...
+            ])
         ]
     ),
     ...
