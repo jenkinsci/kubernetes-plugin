@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import hudson.model.Label;
 import hudson.tools.ToolLocationNodeProperty;
@@ -54,19 +55,16 @@ public class PodTemplateUtils {
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
 
         List<ContainerEnvVar> combinedEnvVars = new ArrayList<ContainerEnvVar>();
-
         Map<String, String> envVars = new HashMap<>();
-        for (ContainerEnvVar envVar : parent.getEnvVars()) {
-            envVars.put(envVar.getKey(), envVar.getValue());
-        }
+        parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
+                e -> envVars.put(e.getKey(), e.getValue())
+        );
 
-        for (ContainerEnvVar envVar : template.getEnvVars()) {
-            envVars.put(envVar.getKey(), envVar.getValue());
-        }
+        template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
+                e -> envVars.put(e.getKey(), e.getValue())
+        );
 
-        for (Map.Entry<String, String> e : envVars.entrySet()) {
-            combinedEnvVars.add(new ContainerEnvVar(e.getKey(), e.getValue()));
-        }
+        envVars.entrySet().forEach(e -> combinedEnvVars.add(new ContainerEnvVar(e.getKey(), e.getValue())));
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -109,10 +107,10 @@ public class PodTemplateUtils {
         Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
 
-        //Containers
+        //Env Vars
         Map<String, String> combinedEnvVars = new HashMap<>();
-        combinedEnvVars.putAll(parent.getEnvVars().stream().collect(Collectors.toMap(e -> e.getKey(),e -> e.getValue())));
-        combinedEnvVars.putAll(template.getEnvVars().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+        combinedEnvVars.putAll(parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(),e -> e.getValue())));
+        combinedEnvVars.putAll(template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
         //Containers
         Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> c));
