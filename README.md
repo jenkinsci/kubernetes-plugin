@@ -116,6 +116,54 @@ Field `inheritFrom` may refer a single podTemplate or multiple separated by spac
 In any case if the referenced template is not found it will be ignored.
  
 
+#### Nesting Pod templates
+
+Field `inheritFrom` provides an easy way to compose podTemplates that have been pre-configured. In many cases it would be useful to define and compose podTemplates directly in the pipeline using groovy.
+This is made possible via nesting. You can nest multiple pod templates together in order to compose a single one.
+
+The example below composes two different podTemplates in order to create one with maven and docker capabilities.
+
+    podTemplate(label: 'docker', containers: [containerTemplate(image: 'docker)]) {
+        podTemplate(label: 'maven', containers: [containerTemplate(image: 'maven)]) {
+            // do stuff
+        }
+    }
+ 
+This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
+
+For example one could create a function for a maven template, say `mavenTemplate.groovy`:
+
+    #!/usr/bin/groovy
+    def call() {
+    podTemplate(label: label,
+            containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
+            volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
+                      persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
+        body()
+    }
+
+and also a function for a docker template, say `dockerTemplate.groovy`:
+
+    #!/usr/bin/groovy
+    def call() {
+    podTemplate(label: label,
+            containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
+            volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
+        body()
+    }
+
+Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two:
+
+    dockerTemplate {
+        mavenTemplate {
+            ssh """
+               mvn clean install
+               docker build -t  myimage ./target/docker/
+            """
+        }
+    }
+ 
+
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
