@@ -21,9 +21,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String image;
 
-    private boolean privileged;
+    private Boolean privileged;
 
-    private boolean alwaysPullImage;
+    private Boolean alwaysPullImage;
 
     private String workingDir = DEFAULT_WORKING_DIR;
 
@@ -31,7 +31,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String args;
 
-    private boolean ttyEnabled;
+    private Boolean ttyEnabled;
 
     private String resourceRequestCpu;
 
@@ -52,6 +52,14 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
+    }
+
+    ContainerTemplate(String name, String image, String command, String args) {
+        Preconditions.checkArgument(!StringUtils.isBlank(image));
+        this.name = name;
+        this.image = image;
+        this.command = command;
+        this.args = args;
     }
 
     @DataBoundSetter
@@ -91,11 +99,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setTtyEnabled(boolean ttyEnabled) {
+    public void setTtyEnabled(Boolean ttyEnabled) {
         this.ttyEnabled = ttyEnabled;
     }
 
-    public boolean isTtyEnabled() {
+    public Boolean isTtyEnabled() {
         return ttyEnabled;
     }
 
@@ -113,20 +121,20 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setPrivileged(boolean privileged) {
+    public void setPrivileged(Boolean privileged) {
         this.privileged = privileged;
     }
 
-    public boolean isPrivileged() {
+    public Boolean isPrivileged() {
         return privileged;
     }
 
     @DataBoundSetter
-    public void setAlwaysPullImage(boolean alwaysPullImage) {
+    public void setAlwaysPullImage(Boolean alwaysPullImage) {
         this.alwaysPullImage = alwaysPullImage;
     }
 
-    public boolean isAlwaysPullImage() {
+    public Boolean isAlwaysPullImage() {
         return alwaysPullImage;
     }
 

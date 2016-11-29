@@ -33,6 +33,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
+    private String inheritFrom;
+
     private String name;
 
     private transient String image;
@@ -67,8 +69,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    @SuppressWarnings("deprecation")
-    private transient final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
 
     private final List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
@@ -87,6 +88,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.setInstanceCap(from.getInstanceCap());
         this.setLabel(from.getLabel());
         this.setName(from.getName());
+        this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
         this.setServiceAccount(from.getServiceAccount());
         this.setVolumes(from.getVolumes());
@@ -114,6 +116,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private Optional<ContainerTemplate> getFirstContainer() {
         return Optional.ofNullable(getContainers().isEmpty() ? null : getContainers().get(0));
+    }
+
+    public String getInheritFrom() {
+        return inheritFrom;
+    }
+
+    @DataBoundSetter
+    public void setInheritFrom(String inheritFrom) {
+        this.inheritFrom = inheritFrom;
     }
 
     @DataBoundSetter
@@ -245,21 +256,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    @Deprecated
-    @SuppressWarnings("deprecation")
     public List<PodEnvVar> getEnvVars() {
-        return getFirstContainer().map((i) -> PodEnvVar.fromContainerEnvVar(i.getEnvVars()))
-                .orElse(Collections.emptyList());
+        if (envVars == null) {
+            return Collections.emptyList();
+        }
+        return envVars;
     }
 
-    @Deprecated
-    @SuppressWarnings("deprecation")
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
-        getFirstContainer().ifPresent((i) -> i.setEnvVars(PodEnvVar.asContainerEnvVar(envVars)));
+        if (envVars != null) {
+            this.envVars.addAll(envVars);
+        }
     }
 
     public List<PodAnnotation> getAnnotations() {
+        if (annotations == null) {
+            return Collections.emptyList();
+        }
         return annotations;
     }
 
@@ -269,6 +283,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
     }
 
     public List<PodImagePullSecret> getImagePullSecrets() {
+        if (imagePullSecrets == null) {
+            return Collections.emptyList();
+        }
         return imagePullSecrets;
     }
 
@@ -344,6 +361,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @Nonnull
     public List<PodVolume> getVolumes() {
+        if (volumes == null) {
+            return Collections.emptyList();
+        }
         return volumes;
     }
 
@@ -357,6 +377,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     @Nonnull
     public List<ContainerTemplate> getContainers() {
+        if (containers == null) {
+            return Collections.emptyList();
+        }
         return containers;
     }
 

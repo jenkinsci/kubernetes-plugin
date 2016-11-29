@@ -34,6 +34,7 @@
     <jackson.version>2.5.0</jackson.version>
     <spring.version>3.2.14.RELEASE</spring.version>
     <jenkins.version>2.7.4</jenkins.version>
+    <powermock.version>1.6.5</powermock.version>
   </properties>
 
   <dependencies>
@@ -88,6 +89,20 @@
       <artifactId>workflow-durable-task-step</artifactId>
       <version>2.4</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
@@ -106,6 +121,7 @@
       <version>2.3</version>
       <classifier>tests</classifier>
       <scope>test</scope>
+
     </dependency>
     <dependency> <!-- SemaphoreStep -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>

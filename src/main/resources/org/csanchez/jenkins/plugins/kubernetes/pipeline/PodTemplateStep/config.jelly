@@ -5,7 +5,7 @@
     <f:entry field="cloud" title="The cloud to use">
       <f:textbox default="kubernetes"/>
     </f:entry>
-    <f:entry field="inheritFrom" title="The name of the pod inheritFrom to use">
+    <f:entry field="inheritFrom" title="The name of the pod template to inherit from">
       <f:textbox/>
     </f:entry>
 	<f:entry field="name" title="The name of the template">
