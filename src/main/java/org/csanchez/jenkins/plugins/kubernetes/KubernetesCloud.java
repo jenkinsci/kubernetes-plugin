@@ -577,6 +577,7 @@ public class KubernetesCloud extends Cloud {
 
                     List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
                     List<ContainerStatus> terminatedContainers = new ArrayList<>();
+                    Boolean allContainersAreReady = true;
                     for (ContainerStatus info : containerStatuses) {
                         if (info != null) {
                             if (info.getState().getWaiting() != null) {
@@ -587,15 +588,22 @@ public class KubernetesCloud extends Cloud {
                             }
                             if (info.getState().getTerminated() != null) {
                                 terminatedContainers.add(info);
+                            } else if (!info.getReady()) {
+                                allContainersAreReady = false;
                             }
                         }
                     }
+
                     if (!terminatedContainers.isEmpty()) {
                         Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors.toMap(
                                 ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
                         throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
                     }
 
+                    if (!allContainersAreReady) {
+                        continue;
+                    }
+                    
                     if (validStates.contains(pod.getStatus().getPhase())) {
                         break;
                     }
