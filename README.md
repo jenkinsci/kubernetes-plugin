@@ -178,7 +178,6 @@ podTemplate(label: 'mypod', containers: [
         alwaysPullImage: false,
         workingDir: '/home/jenkins',
         args: '',
-        instanceCap: 1,
         resourceRequestCpu: '50m',
         resourceLimitCpu: '100m',
         resourceRequestMemory: '100Mi',
