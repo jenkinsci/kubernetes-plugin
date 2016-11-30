@@ -1,5 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import com.google.common.base.Strings;
+
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -26,12 +28,13 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
         if (cloud instanceof KubernetesCloud) {
             KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-
             String name = String.format(NAME_FORMAT, UUID.randomUUID().toString().replaceAll("-", ""));
+
+            PodTemplateAction action = new PodTemplateAction(step.getRun());
 
             PodTemplate newTemplate = new PodTemplate();
             newTemplate.setName(name);
-            newTemplate.setInheritFrom(step.getInheritFrom());
+            newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
             newTemplate.setLabel(step.getLabel());
             newTemplate.setVolumes(step.getVolumes());
             newTemplate.setContainers(step.getContainers());
@@ -42,6 +45,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             getContext().newBodyInvoker()
                     .withCallback(new PodTemplateCallback(newTemplate))
                     .start();
+
+
+            action.push(step.getLabel());
             return false;
         } else {
             getContext().onFailure(new IllegalStateException("Could not find cloud with name:[" + step.getCloud() + "]."));
@@ -51,6 +57,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     @Override
     public void stop(Throwable cause) throws Exception {
+        new PodTemplateAction(step.getRun()).pop();
     }
 
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {

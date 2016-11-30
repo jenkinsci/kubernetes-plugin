@@ -8,11 +8,13 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
+import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import hudson.Extension;
+import hudson.model.Run;
 
 public class PodTemplateStep extends AbstractStepImpl implements Serializable {
 
@@ -32,6 +34,13 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     private String serviceAccount;
     private String nodeSelector;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
+
+    @StepContextParameter
+    private transient Run run;
+
+    public Run getRun() {
+        return run;
+    }
 
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {
