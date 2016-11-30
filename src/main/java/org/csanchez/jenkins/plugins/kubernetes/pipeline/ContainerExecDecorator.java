@@ -84,7 +84,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
-                if (waitUntilContainerIsReady()) {
+                if (!waitUntilContainerIsReady()) {
                     throw new IOException("Failed to execute shell script inside container " +
                             "[" + containerName + "] of pod [" + podName + "]." +
                             " Timed out waiting for container to become ready!");
