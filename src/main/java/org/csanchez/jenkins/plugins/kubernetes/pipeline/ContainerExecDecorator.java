@@ -150,7 +150,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private boolean waitUntilContainerIsReady() {
-                final Pod pod = client.pods().withName(podName).get();
+                Pod pod = client.pods().withName(podName).get();
 
                 if (pod == null) {
                     throw new IllegalArgumentException("Container with name:[" + containerName+"] not found in pod:[" + podName + "]");
@@ -166,7 +166,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     public void eventReceived(Action action, Pod resource) {
                         switch (action) {
                             case MODIFIED:
-                                if (isContainerReady(pod, containerName)) {
+                                if (isContainerReady(resource, containerName)) {
                                     latch.countDown();
                                 }
                                 break;
