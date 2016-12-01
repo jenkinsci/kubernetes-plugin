@@ -173,7 +173,7 @@ podTemplate(label: 'mypod', containers: [
         name: 'mariadb', 
         image: 'mariadb:10.1', 
         ttyEnabled: true, 
-        command: 'cat'
+        command: 'cat',
         privileged: false,
         alwaysPullImage: false,
         workingDir: '/home/jenkins',
