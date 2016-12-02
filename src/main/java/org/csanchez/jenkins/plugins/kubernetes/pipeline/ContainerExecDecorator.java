@@ -16,8 +16,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import com.squareup.okhttp.Response;
-
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.Proc;
@@ -30,6 +28,7 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import okhttp3.Response;
 
 import java.io.Closeable;
 import java.io.IOException;
