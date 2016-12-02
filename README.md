@@ -213,6 +213,16 @@ Other containers must run a long running process, so the container does not exit
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
 
 
+# Over provisioning flags
+
+By default, Jenkins spawns slaves conservatively. Say, if there are 2 builds in queue, it won't spawn 2 executors immediately.
+It will spawn one executor and wait for sometime for the first executor to be freed before deciding to spawn the second executor.
+Jenkins makes sure every executor it spawns is utilized to the maximum.
+If you want to override this behaviour and spawn an executor for each build in queue immediately without waiting,
+you can use these flags during Jenkins startup:
+`-Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85`
+
+
 # Configuration on minikube
 
 Create and start [minikube](https://github.com/kubernetes/minikube)
