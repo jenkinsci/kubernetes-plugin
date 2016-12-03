@@ -1,0 +1,1 @@
+Tests for demo Docker image produced by https://github.com/tfennelly/spring-petclinic.git.
