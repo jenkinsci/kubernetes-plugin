@@ -54,7 +54,7 @@ items:
         spec: 
           containers: 
             - name: "jenkins"
-              image: "jenkins:2.19.1-alpine"
+              image: "jenkins:2.19.4-alpine"
               ports: 
                 - containerPort: 8080
                 - containerPort: 50000
