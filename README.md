@@ -213,12 +213,29 @@ Other containers must run a long running process, so the container does not exit
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
 
 
+# Configuration on minikube
+
+Create and start [minikube](https://github.com/kubernetes/minikube)
+
+The client certificate needs to be converted to PKCS, will need a password
+
+    openssl pkcs12 -export -out ~/.minikube/minikube.pfx -inkey ~/.minikube/apiserver.key -in ~/.minikube/apiserver.crt -certfile ~/.minikube/ca.crt -passout pass:secret
+
+Validate that the certificates work
+
+    curl --cacert ~/.minikube/ca.crt --cert ~/.minikube/minikube.pfx:secret https://$(minikube ip):8443
+
+Add a Jenkins credential of type certificate, upload it from `~/.minikube/minikube.pfx`, password `secret`
+
+Fill *Kubernetes server certificate key* with the contents of `~/.minikube/ca.crt`
+
+
 # Configuration on Google Container Engine
 
 Create a cluster 
-```
+
     gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
-```
+
 and note the admin password and server certitifate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run 
@@ -259,11 +276,20 @@ A local testing cluster with one node can be created with [minukube](https://git
 
     minikube start
 
+Set the correct permissions for the host mounted volume
+
+    minikube ssh
+    sudo mkdir -p /data/kubernetes-plugin-jenkins
+    sudo chown 1000:1000 /data/kubernetes-plugin-jenkins
+
 Then create the Jenkins ReplicationController and Service with
 
     kubectl create -f ./src/main/kubernetes/minikube.yml
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
+Get the url to connect to with
+
+    minikube service jenkins --namespace kubernetes-plugin --url
 
 ## Running in Google Container Engine GKE
 
