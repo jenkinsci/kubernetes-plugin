@@ -549,7 +549,7 @@ public class KubernetesCloud extends Cloud {
                 } else {
                     retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
                 }
-                slave = new KubernetesSlave(t, t.getName(), cloud, t.getLabel(), retentionStrategy);
+                slave = new KubernetesSlave(t, t.getName(), cloud.name, t.getLabel(), retentionStrategy);
                 Jenkins.getActiveInstance().addNode(slave);
 
                 Pod pod = getPodTemplate(slave, label);
