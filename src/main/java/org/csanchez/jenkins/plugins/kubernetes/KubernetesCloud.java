@@ -732,13 +732,16 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
 
-            KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(),
-                    namespace,
-                    Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify, connectionTimeout, readTimeout)
-                    .createClient();
+            try {
+                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), namespace,
+                        Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
+                        connectionTimeout, readTimeout).createClient();
 
-            client.pods().list();
-            return FormValidation.ok("Connection successful");
+                client.pods().list();
+                return FormValidation.ok("Connection successful");
+            } catch (Exception e) {
+                return FormValidation.error("Error connecting: %s", e.getMessage());
+            }
         }
 
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter URL serverUrl) {
