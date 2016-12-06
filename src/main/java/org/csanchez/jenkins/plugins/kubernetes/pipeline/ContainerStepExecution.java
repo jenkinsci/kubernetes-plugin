@@ -3,8 +3,11 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.model.TaskListener;
+import hudson.slaves.Cloud;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
@@ -45,7 +48,9 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         final CountDownLatch podStarted = new CountDownLatch(1);
         final CountDownLatch podFinished = new CountDownLatch(1);
 
-        client = new DefaultKubernetesClient();
+        KubernetesCloud cloud = (KubernetesCloud) Jenkins.getInstance().getCloud(step.getCloud());
+        client = cloud.connect();
+
         decorator = new ContainerExecDecorator(client, podName, containerName, workspace.getRemote(), podAlive, podStarted, podFinished);
         context.newBodyInvoker()
                 .withContext(BodyInvoker
