@@ -72,6 +72,7 @@ Either way it provides access to the following fields:
 * **nodeSelector** The node selector of the pod.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars*** Environment variables that are applied to **ALL** containers. 
+* **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
