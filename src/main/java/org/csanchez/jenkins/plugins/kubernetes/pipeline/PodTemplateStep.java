@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -36,6 +37,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
+    private List<PodAnnotation> annotations = new ArrayList<>();
 
     private int instanceCap;
     private String serviceAccount;
@@ -140,6 +142,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @Override
     public StepExecution start(StepContext context) throws Exception {
         return new PodTemplateStepExecution(this, context);
+    }
+
+    public List<PodAnnotation> getAnnotations() {
+        return annotations;
+    }
+
+    @DataBoundSetter
+    public void setAnnotations(List<PodAnnotation> annotations) {
+        this.annotations = annotations;
     }
 
     @Extension
