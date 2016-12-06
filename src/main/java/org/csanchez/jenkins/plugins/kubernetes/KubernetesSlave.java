@@ -18,6 +18,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
+import hudson.slaves.Cloud;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
@@ -25,6 +26,7 @@ import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ClientPodResource;
+import jenkins.model.Jenkins;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -40,9 +42,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
-    // private final Pod pod;
-
-    private transient final KubernetesCloud cloud;
+    private final String cloudName;
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
@@ -56,8 +56,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this(template, nodeDescription, cloud, label.toString(), new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
     }
 
-    @DataBoundConstructor
+    @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr,
+                           RetentionStrategy rs)
+            throws Descriptor.FormException, IOException {
+        this(template, nodeDescription, cloud.name, labelStr, rs);
+    }
+
+    @DataBoundConstructor
+    public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
 
@@ -72,7 +79,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getNodeProperties());
 
         // this.pod = pod;
-        this.cloud = cloud;
+        this.cloudName = cloudName;
     }
 
     static String getSlaveName(PodTemplate template) {
@@ -103,8 +110,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
+        if (cloudName == null) {
+            LOGGER.log(Level.SEVERE, "Cloud name is not set for slave, can't terminate: {0}", name);
+        }
+
         try {
-            KubernetesClient client = cloud.connect();
+            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+            if (!(cloud instanceof KubernetesCloud)) {
+                LOGGER.log(Level.SEVERE, "Slave cloud is not a KubernetesCloud, something is very wrong: {0}", name);
+            }
+            KubernetesClient client = ((KubernetesCloud) cloud).connect();
             ClientPodResource<Pod, DoneablePod> pods = client.pods().withName(name);
             pods.delete();
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
