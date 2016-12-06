@@ -47,7 +47,7 @@ public class SecretVolume extends PodVolume {
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder()
                 .withName(volumeName)
-                .withNewSecret(getSecretName())
+                .withNewSecret().withSecretName(getSecretName()).endSecret()
                 .build();
     }
 

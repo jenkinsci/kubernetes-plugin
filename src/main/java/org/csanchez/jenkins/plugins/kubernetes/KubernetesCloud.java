@@ -347,7 +347,7 @@ public class KubernetesCloud extends Cloud {
         List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
         if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
                 && !PodVolume.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
-            containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false));
+            containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false, null));
         }
 
         return new ContainerBuilder()
@@ -387,7 +387,7 @@ public class KubernetesCloud extends Cloud {
             //We need to normalize the path or we can end up in really hard to debug issues.
             final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString());
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false));
+                volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false, null));
                 volumes.add(volume.buildVolume(volumeName));
                 i++;
             }
