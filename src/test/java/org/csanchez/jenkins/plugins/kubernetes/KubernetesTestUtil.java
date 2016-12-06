@@ -28,44 +28,64 @@ import static org.hamcrest.Matchers.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.junit.Assume;
 
+import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.util.StreamTaskListener;
 
 public class KubernetesTestUtil {
 
+    private static final Logger LOGGER = Logger.getLogger(KubernetesTestUtil.class.getName());
+
+    private static final String[] MINIKUBE_COMMANDS = new String[] { "minikube", "/usr/local/bin/minikube" };
     private static String ip = null;
 
     public static String miniKubeIp() {
         if (ip == null) {
-            Launcher.LocalLauncher localLauncher = new Launcher.LocalLauncher(StreamTaskListener.NULL);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try {
-                localLauncher.launch().cmds("minikube", "ip").stdout(baos).join();
-                String stdout = baos.toString().trim();
-
-                // leave last line only, ie. when a new version is available it will print some info message
-                int i = stdout.lastIndexOf("\n");
-                String s;
-                if (i > 0) {
-                    s = stdout.substring(i);
-                } else {
-                    s = stdout;
+            for (String cmd : MINIKUBE_COMMANDS) {
+                String s = miniKubeIp(new Launcher.LocalLauncher(StreamTaskListener.NULL), cmd);
+                if (s != null) {
+                    ip = s;
+                    LOGGER.log(Level.INFO, "Using minikube at {0}", ip);
+                    return ip;
                 }
-                URL url = new URL(s);
-                ip = url.toString();
-
-            } catch (InterruptedException | IOException x) {
-                ip = "";
             }
+            LOGGER.warning("Minikube was not found or is stopped");
+            ip = "";
         }
         return ip;
     }
 
+    private static String miniKubeIp(Launcher.LocalLauncher localLauncher, String cmd) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            localLauncher.decorateByEnv(new EnvVars("PATH", System.getenv("PATH") + ":/usr/local/bin")).launch()
+                    .cmds(cmd, "ip").stdout(baos).join();
+            String stdout = baos.toString().trim();
+
+            // leave last line only, ie. when a new version is available it will print some info message
+            int i = stdout.lastIndexOf("\n");
+            String s;
+            if (i > 0) {
+                s = stdout.substring(i);
+            } else {
+                s = stdout;
+            }
+            // check that we got an ip and is valid
+            new URL("http://" + s);
+            return s;
+
+        } catch (InterruptedException | IOException x) {
+            return null;
+        }
+    }
+
     public static void assumeMiniKube() throws Exception {
-        Assume.assumeThat("MiniKube working", ip, not(isEmptyOrNullString()));
+        Assume.assumeThat("MiniKube working", miniKubeIp(), not(isEmptyOrNullString()));
     }
 
 }
