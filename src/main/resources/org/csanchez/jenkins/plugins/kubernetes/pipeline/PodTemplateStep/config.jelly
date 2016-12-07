@@ -25,7 +25,11 @@
                                 deleteCaption="Delete Volume" />
   </f:entry>
 
+
 	<f:advanced>
+        <f:entry field="instanceCap" title="${%Max number of instances}">
+          <f:textbox default="0"/>
+        </f:entry>
 		<f:entry field="serviceAccount" title="The service account">
           <f:textbox/>
         </f:entry>
