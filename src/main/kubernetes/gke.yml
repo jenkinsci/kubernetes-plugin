@@ -85,7 +85,7 @@ items:
                       resource: limits.memory
                       divisor: "1Mi"
                 - name: JAVA_OPTS
-                  value: "-Xmx$(MEM_REQUEST)m"
+                  value: "-Xmx$(MEM_REQUEST)m -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85"
               volumeMounts: 
                 - name: "jenkins"
                   mountPath: "/var/jenkins_home"
