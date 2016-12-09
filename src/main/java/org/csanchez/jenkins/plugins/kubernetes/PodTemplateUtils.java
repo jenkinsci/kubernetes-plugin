@@ -43,12 +43,12 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        Boolean privileged = template.isPrivileged() != null ? template.isPrivileged() : (parent.isPrivileged() != null ? parent.isPrivileged() : false);
-        Boolean alwaysPullImage = template.isAlwaysPullImage() != null ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() != null ? parent.isAlwaysPullImage() : false);
+        boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
+        boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getCommand();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
         String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
-        Boolean ttyEnabled = template.isTtyEnabled() != null ? template.isTtyEnabled() : (parent.isTtyEnabled() != null ? parent.isTtyEnabled() : false);;
+        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);;
         String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();

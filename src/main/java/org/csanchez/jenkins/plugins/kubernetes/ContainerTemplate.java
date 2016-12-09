@@ -21,9 +21,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String image;
 
-    private Boolean privileged;
+    private boolean privileged;
 
-    private Boolean alwaysPullImage;
+    private boolean alwaysPullImage;
 
     private String workingDir = DEFAULT_WORKING_DIR;
 
@@ -31,7 +31,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String args;
 
-    private Boolean ttyEnabled;
+    private boolean ttyEnabled;
 
     private String resourceRequestCpu;
 
@@ -99,11 +99,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setTtyEnabled(Boolean ttyEnabled) {
+    public void setTtyEnabled(boolean ttyEnabled) {
         this.ttyEnabled = ttyEnabled;
     }
 
-    public Boolean isTtyEnabled() {
+    public boolean isTtyEnabled() {
         return ttyEnabled;
     }
 
@@ -121,20 +121,20 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setPrivileged(Boolean privileged) {
+    public void setPrivileged(boolean privileged) {
         this.privileged = privileged;
     }
 
-    public Boolean isPrivileged() {
+    public boolean isPrivileged() {
         return privileged;
     }
 
     @DataBoundSetter
-    public void setAlwaysPullImage(Boolean alwaysPullImage) {
+    public void setAlwaysPullImage(boolean alwaysPullImage) {
         this.alwaysPullImage = alwaysPullImage;
     }
 
-    public Boolean isAlwaysPullImage() {
+    public boolean isAlwaysPullImage() {
         return alwaysPullImage;
     }
 
