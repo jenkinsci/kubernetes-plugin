@@ -353,7 +353,7 @@ public class KubernetesCloud extends Cloud {
         return new ContainerBuilder()
                 .withName(substituteEnv(containerTemplate.getName()))
                 .withImage(substituteEnv(containerTemplate.getImage()))
-                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() != null && containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
+                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                     .withPrivileged(containerTemplate.isPrivileged())
                 .endSecurityContext()
