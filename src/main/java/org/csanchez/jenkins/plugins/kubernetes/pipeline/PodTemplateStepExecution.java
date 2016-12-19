@@ -1,19 +1,26 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import com.google.common.base.Strings;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import hudson.slaves.Cloud;
-import jenkins.model.Jenkins;
+import javax.inject.Inject;
+
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import javax.inject.Inject;
-import java.util.UUID;
+import com.google.common.base.Strings;
+
+import hudson.AbortException;
+import hudson.slaves.Cloud;
+import jenkins.model.Jenkins;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
+
+    private static final Logger LOGGER = Logger.getLogger(PodTemplateStepExecution.class.getName());
 
     private static final long serialVersionUID = -6139090518333729333L;
 
@@ -26,36 +33,38 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     public boolean start() throws Exception {
 
         Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
-        if (cloud instanceof KubernetesCloud) {
-            KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-            String name = String.format(NAME_FORMAT, UUID.randomUUID().toString().replaceAll("-", ""));
-
-            PodTemplateAction action = new PodTemplateAction(step.getRun());
-
-            PodTemplate newTemplate = new PodTemplate();
-            newTemplate.setName(name);
-            newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
-            newTemplate.setInstanceCap(step.getInstanceCap());
-            newTemplate.setLabel(step.getLabel());
-            newTemplate.setVolumes(step.getVolumes());
-            newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
-            newTemplate.setWorkspaceVolume(step.getWorkspaceVolume());
-            newTemplate.setContainers(step.getContainers());
-            newTemplate.setNodeSelector(step.getNodeSelector());
-            newTemplate.setServiceAccount(step.getServiceAccount());
-
-            kubernetesCloud.addTemplate(newTemplate);
-            getContext().newBodyInvoker()
-                    .withCallback(new PodTemplateCallback(newTemplate))
-                    .start();
-
-
-            action.push(step.getLabel());
-            return false;
-        } else {
-            getContext().onFailure(new IllegalStateException("Could not find cloud with name:[" + step.getCloud() + "]."));
-            return true;
+        if (cloud == null) {
+            throw new AbortException(String.format("Cloud does not exist: %s", step.getCloud()));
         }
+        if (!(cloud instanceof KubernetesCloud)) {
+            throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", step.getCloud(),
+                    cloud.getClass().getName()));
+        }
+        KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
+        String name = String.format(NAME_FORMAT, UUID.randomUUID().toString().replaceAll("-", ""));
+
+        PodTemplateAction action = new PodTemplateAction(step.getRun());
+
+        PodTemplate newTemplate = new PodTemplate();
+        newTemplate.setName(name);
+        newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
+        newTemplate.setInstanceCap(step.getInstanceCap());
+        newTemplate.setLabel(step.getLabel());
+        newTemplate.setVolumes(step.getVolumes());
+        newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
+        newTemplate.setWorkspaceVolume(step.getWorkspaceVolume());
+        newTemplate.setContainers(step.getContainers());
+        newTemplate.setNodeSelector(step.getNodeSelector());
+        newTemplate.setServiceAccount(step.getServiceAccount());
+
+        kubernetesCloud.addTemplate(newTemplate);
+        getContext().newBodyInvoker()
+                .withCallback(new PodTemplateCallback(newTemplate))
+                .start();
+
+
+        action.push(step.getLabel());
+        return false;
     }
 
     @Override
@@ -79,6 +88,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          */
         protected void finished(StepContext context) throws Exception {
             Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
+            if (cloud == null) {
+                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
+                        new Object[] { step.getCloud(), podTemplate.getName() });
+                return;
+            }
             if (cloud instanceof KubernetesCloud) {
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeTemplate(podTemplate);

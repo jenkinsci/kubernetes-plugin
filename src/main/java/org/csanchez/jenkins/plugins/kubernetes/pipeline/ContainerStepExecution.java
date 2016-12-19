@@ -1,10 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import hudson.AbortException;
 import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.model.TaskListener;
-import hudson.slaves.Cloud;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -49,6 +48,9 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         final CountDownLatch podFinished = new CountDownLatch(1);
 
         KubernetesCloud cloud = (KubernetesCloud) Jenkins.getInstance().getCloud(step.getCloud());
+        if (cloud == null) {
+            throw new AbortException(String.format("Cloud does not exist: %s", step.getCloud()));
+        }
         client = cloud.connect();
 
         decorator = new ContainerExecDecorator(client, podName, containerName, workspace.getRemote(), podAlive, podStarted, podFinished);
