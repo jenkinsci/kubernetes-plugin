@@ -3,6 +3,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.LocalObjectReference;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecret> {
@@ -22,6 +24,9 @@ public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecr
         this.name = name;
     }
 
+    public LocalObjectReference toLocalObjectReference() {
+        return new LocalObjectReference(name);
+    }
 
     @Override
     public boolean equals(Object o) {

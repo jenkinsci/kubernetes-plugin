@@ -407,6 +407,8 @@ public class KubernetesCloud extends Cloud {
             containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
+        List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
+                .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
         return new PodBuilder()
                 .withNewMetadata()
                     .withName(substituteEnv(slave.getNodeName()))
@@ -416,7 +418,7 @@ public class KubernetesCloud extends Cloud {
                 .withNewSpec()
                     .withVolumes(volumes)
                     .withServiceAccount(substituteEnv(template.getServiceAccount()))
-                    .withImagePullSecrets(template.getImagePullSecrets().toArray(new LocalObjectReference[template.getImagePullSecrets().size()]))
+                    .withImagePullSecrets(imagePullSecrets)
                     .withContainers(containers.values().toArray(new Container[containers.size()]))
                     .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                     .withRestartPolicy("Never")
