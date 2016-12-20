@@ -4,12 +4,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.logging.Logger;
 
 import hudson.BulkChange;
 import hudson.model.InvisibleAction;
 import hudson.model.Run;
 
 public class PodTemplateAction extends InvisibleAction {
+
+    private static final Logger LOGGER = Logger.getLogger(PodTemplateAction.class.getName());
 
     private final Stack<String> names = new Stack<>();
     private final Run run;
@@ -20,6 +23,10 @@ public class PodTemplateAction extends InvisibleAction {
     }
 
     public void push(String template) throws IOException {
+        if (run == null) {
+            LOGGER.warning("run is null, cannot push");
+            return;
+        }
         synchronized (run) {
             BulkChange bc = new BulkChange(run);
             try {
@@ -37,6 +44,10 @@ public class PodTemplateAction extends InvisibleAction {
     }
 
     public String pop() throws IOException {
+        if (run == null) {
+            LOGGER.warning("run is null, cannot pop");
+            return null;
+        }
         synchronized (run) {
             BulkChange bc = new BulkChange(run);
             try {
