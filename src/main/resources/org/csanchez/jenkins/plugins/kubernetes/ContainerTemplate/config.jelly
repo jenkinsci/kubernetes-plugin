@@ -7,11 +7,11 @@
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
   <f:entry field="name" title="${%Name}">
-    <f:textbox/>
+    <f:textbox clazz="required"/>
   </f:entry>
 
   <f:entry field="image" title="${%Docker image}">
-    <f:textbox/>
+    <f:textbox clazz="required"/>
   </f:entry>
 
   <f:entry field="alwaysPullImage" title="${%Always pull image}">
