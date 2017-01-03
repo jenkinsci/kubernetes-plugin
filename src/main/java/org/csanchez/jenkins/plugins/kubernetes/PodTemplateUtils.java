@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -122,6 +123,8 @@ public class PodTemplateUtils {
         combinedVolumes.putAll(parentVolumes);
         combinedVolumes.putAll(template.getVolumes().stream().collect(Collectors.toMap(v -> v.getMountPath(), v -> v)));
 
+        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
+
         //Tool location node properties
         List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
         toolLocationNodeProperties.addAll(parent.getNodeProperties());
@@ -134,6 +137,7 @@ public class PodTemplateUtils {
         podTemplate.setServiceAccount(serviceAccount);
         podTemplate.setEnvVars(combinedEnvVars.entrySet().stream().map(e -> new PodEnvVar(e.getKey(), e.getValue())).collect(Collectors.toList()));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
+        podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
         podTemplate.setNodeProperties(toolLocationNodeProperties);

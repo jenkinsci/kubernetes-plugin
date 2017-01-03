@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
@@ -30,6 +31,7 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
 
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
+    private WorkspaceVolume workspaceVolume;
 
     private int instanceCap;
     private String serviceAccount;
@@ -91,6 +93,15 @@ public class PodTemplateStep extends AbstractStepImpl implements Serializable {
     @DataBoundSetter
     public void setVolumes(List<PodVolume> volumes) {
         this.volumes = volumes;
+    }
+
+    public WorkspaceVolume getWorkspaceVolume() {
+        return workspaceVolume;
+    }
+
+    @DataBoundSetter
+    public void setWorkspaceVolume(WorkspaceVolume workspaceVolume) {
+        this.workspaceVolume = workspaceVolume;
     }
 
     public int getInstanceCap() {
