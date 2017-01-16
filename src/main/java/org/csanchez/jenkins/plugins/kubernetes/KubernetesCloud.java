@@ -392,6 +392,7 @@ public class KubernetesCloud extends Cloud {
                 i++;
             }
         }
+
         // add an empty volume to share the workspace across the pod
         volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
         Map<String, Container> containers = new HashMap<>();
@@ -400,7 +401,8 @@ public class KubernetesCloud extends Cloud {
             containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
-        if (!containers.containsKey(JNLP_NAME)) {
+        // If there are currently no containers, add a default JNLP container.
+        if (containers.empty()) {
             ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
             containerTemplate.setName(JNLP_NAME);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
