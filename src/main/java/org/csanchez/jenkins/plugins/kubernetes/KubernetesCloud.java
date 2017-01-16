@@ -402,7 +402,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         // If there are currently no containers, add a default JNLP container.
-        if (containers.empty()) {
+        if (containers.isEmpty()) {
             ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
             containerTemplate.setName(JNLP_NAME);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
