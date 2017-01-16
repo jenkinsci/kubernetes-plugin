@@ -206,8 +206,8 @@ volumes: [
 # Constraints
 
 Multiple containers can be defined in a pod.
-One of them must run the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-as it will be the container acting as Jenkins agent.
+One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
+and will be the container acting as Jenkins agent. It can ve overridden by defining a container with the same name.
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
