@@ -1,10 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -49,13 +47,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     ContainerTemplate(String name, String image) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
     }
 
     ContainerTemplate(String name, String image, String command, String args) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
         this.command = command;

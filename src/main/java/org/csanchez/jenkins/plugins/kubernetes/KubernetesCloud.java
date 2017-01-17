@@ -309,6 +309,8 @@ public class KubernetesCloud extends Cloud {
 
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<PodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+        Preconditions.checkNotNull(containerTemplate, "ContainerTemplate cannot be null");
+        Preconditions.checkArgument(!StringUtils.isBlank(containerTemplate.getImage()), "Container image cannot be null");
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -408,7 +410,14 @@ public class KubernetesCloud extends Cloud {
 
         Map<String, Container> containers = new HashMap<>();
 
+        if (template.isCustomJnlpContainerEnabled() && template.getJnlpContainer() != null) {
+            containers.put(JNLP_NAME, createContainer(slave, template.getJnlpContainer(), template.getEnvVars(), volumeMounts.values()));
+        }
+
         for (ContainerTemplate containerTemplate : template.getContainers()) {
+            if (containers.containsKey(containerTemplate.getName())) {
+                throw new IllegalArgumentException("Multiple containers with name:[" + containerTemplate.getName() + "], has been defined.");
+            }
             containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
