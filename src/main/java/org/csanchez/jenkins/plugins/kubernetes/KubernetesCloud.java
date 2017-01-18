@@ -112,6 +112,8 @@ public class KubernetesCloud extends Cloud {
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
+    private String defaultsTemplateName;
+
     private List<PodTemplate> templates = new ArrayList<PodTemplate>();
     private String serverUrl;
     @CheckForNull
@@ -164,6 +166,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
         this.retentionTimeout = retentionTimeout;
+    }
+
+    public String getDefaultsTemplateName() {
+        return defaultsTemplateName;
+    }
+
+    @DataBoundSetter
+    public void setDefaultsTemplateName(String defaultsTemplateName) {
+        this.defaultsTemplateName = defaultsTemplateName;
     }
 
     public List<PodTemplate> getTemplates() {
@@ -380,7 +391,7 @@ public class KubernetesCloud extends Cloud {
 
 
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), templates);
+        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), defaultsTemplateName, templates);
         if (template == null) {
             return null;
         }

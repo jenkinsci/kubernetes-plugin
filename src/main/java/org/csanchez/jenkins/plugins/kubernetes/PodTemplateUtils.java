@@ -7,8 +7,10 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +95,8 @@ public class PodTemplateUtils {
         Preconditions.checkNotNull(template, "Pod template should not be null");
         if (parent == null) {
             return template;
+        } else if (parent.getName().equals(template.getName())) {
+            return template;
         }
 
         String name = template.getName();
@@ -145,20 +149,33 @@ public class PodTemplateUtils {
 
     /**
      * Unwraps the hierarchy of the PodTemplate.
-     * @param template
+     *
+     * @param template                The template to unwrap.
+     * @param defaultsTemplateName    The name of the template to use as the base of all.
+     * @param allTemplates            A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
+    static PodTemplate unwrap(PodTemplate template, String defaultsTemplateName, Collection<PodTemplate> allTemplates) {
         if (template == null) {
             return null;
         }
 
-        if (Strings.isNullOrEmpty(template.getInheritFrom())) {
+        StringBuilder sb = new StringBuilder();
+        if (!Strings.isNullOrEmpty(defaultsTemplateName)) {
+            sb.append(defaultsTemplateName).append(" ");
+
+        }
+        if (!Strings.isNullOrEmpty(template.getInheritFrom())) {
+            sb.append(template.getInheritFrom()).append(" ");
+        }
+        String inheritFrom = sb.toString();
+
+        if (Strings.isNullOrEmpty(inheritFrom)) {
             return template;
         } else {
-            String[] parents = template.getInheritFrom().split("[ ]+");
+            String[] parents = inheritFrom.split("[ ]+");
             PodTemplate parent = null;
-            for (String name : parents) {
+            for (String name : new HashSet<>(Arrays.asList(parents))) {
                 PodTemplate next = getTemplateByName(name, allTemplates);
                 if (next != null) {
                     parent = combine(parent, unwrap(next, allTemplates));
@@ -166,6 +183,17 @@ public class PodTemplateUtils {
             }
             return combine(parent, template);
         }
+    }
+
+    /**
+     * Unwraps the hierarchy of the PodTemplate.
+     *
+     * @param template                The template to unwrap.
+     * @param allTemplates            A collection of all the known templates
+     * @return
+     */
+    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
+        return unwrap(template, null, allTemplates);
     }
 
     public static PodTemplate getTemplateByLabel(Label label, Collection<PodTemplate> templates) {
