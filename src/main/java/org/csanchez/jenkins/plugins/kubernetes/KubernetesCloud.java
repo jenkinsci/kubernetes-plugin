@@ -746,7 +746,7 @@ public class KubernetesCloud extends Cloud {
      * @return the template
      */
     public PodTemplate getTemplate(Label label) {
-        return PodTemplateUtils.getTemplate(label, templates);
+        return PodTemplateUtils.getTemplateByLabel(label, templates);
     }
 
     /**

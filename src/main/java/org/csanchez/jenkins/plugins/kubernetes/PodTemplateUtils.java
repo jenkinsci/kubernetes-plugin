@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import hudson.model.Label;
 import hudson.tools.ToolLocationNodeProperty;
@@ -157,10 +156,10 @@ public class PodTemplateUtils {
         if (Strings.isNullOrEmpty(template.getInheritFrom())) {
             return template;
         } else {
-            String[] parentLabels = template.getInheritFrom().split("[ ]+");
+            String[] parents = template.getInheritFrom().split("[ ]+");
             PodTemplate parent = null;
-            for (String label : parentLabels) {
-                PodTemplate next = getTemplate(Label.get(label), allTemplates);
+            for (String name : parents) {
+                PodTemplate next = getTemplateByName(name, allTemplates);
                 if (next != null) {
                     parent = combine(parent, unwrap(next, allTemplates));
                 }
@@ -169,9 +168,18 @@ public class PodTemplateUtils {
         }
     }
 
-    public static PodTemplate getTemplate(Label label, Collection<PodTemplate> templates) {
+    public static PodTemplate getTemplateByLabel(Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
             if (label == null || label.matches(t.getLabelSet())) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    public static PodTemplate getTemplateByName(String name, Collection<PodTemplate> templates) {
+        for (PodTemplate t : templates) {
+            if (name != null && name.equals(t.getName())) {
                 return t;
             }
         }
