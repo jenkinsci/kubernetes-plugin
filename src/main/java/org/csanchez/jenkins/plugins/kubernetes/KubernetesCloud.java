@@ -1,5 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -25,10 +27,10 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import hudson.model.labels.LabelAtom;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -53,6 +55,7 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
+import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudRetentionStrategy;
@@ -74,10 +77,10 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 /**
  * Kubernetes cloud provider.
@@ -563,6 +566,32 @@ public class KubernetesCloud extends Cloud {
             this.label = label;
         }
 
+        /**
+         * Log the last lines of containers logs
+         */
+        private void logLastLines(List<ContainerStatus> containers, String podId, KubernetesSlave slave,
+                Map<String, Integer> errors) {
+            for (ContainerStatus containerStatus : containers) {
+                String containerName = containerStatus.getName();
+
+                try {
+                    PrettyLoggable<String, LogWatch> tailingLines = connect().pods().withName(podId)
+                            .inContainer(containerStatus.getName()).tailingLines(20);
+                    String log = tailingLines.getLog();
+                    if (!StringUtils.isBlank(log)) {
+                        String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName))
+                                : "";
+                        LOGGER.log(Level.SEVERE,
+                                "Error in provisioning; slave={0}, template={1}. Container {2}{3}. Logs: {4}",
+                                new Object[] { slave, t, containerName, msg, tailingLines.getLog() });
+                    }
+                } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
+                        | KeyStoreException | IOException e) {
+                    LOGGER.log(Level.SEVERE, "Could not get logs for pod " + podId, e);
+                }
+            }
+        }
+
         public Node call() throws Exception {
             KubernetesSlave slave = null;
             RetentionStrategy retentionStrategy = null;
@@ -590,6 +619,8 @@ public class KubernetesCloud extends Cloud {
                 int i = 0;
                 int j = 100; // wait 600 seconds
 
+                List<ContainerStatus> containerStatuses = null;
+
                 // wait for Pod to be running
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
@@ -599,7 +630,7 @@ public class KubernetesCloud extends Cloud {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
 
-                    List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+                    containerStatuses = pod.getStatus().getContainerStatuses();
                     List<ContainerStatus> terminatedContainers = new ArrayList<>();
                     Boolean allContainersAreReady = true;
                     for (ContainerStatus info : containerStatuses) {
@@ -621,8 +652,10 @@ public class KubernetesCloud extends Cloud {
                     if (!terminatedContainers.isEmpty()) {
                         Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors.toMap(
                                 ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
-                        LOGGER.log(Level.WARNING, "Containers are terminated with exit codes: {0}", errors);
-                        return null;
+
+                        // Print the last lines of failed containers
+                        logLastLines(terminatedContainers, podId, slave, errors);
+                        throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
                     }
 
                     if (!allContainersAreReady) {
@@ -651,6 +684,9 @@ public class KubernetesCloud extends Cloud {
                     Thread.sleep(1000);
                 }
                 if (!slave.getComputer().isOnline()) {
+                    if (containerStatuses != null) {
+                        logLastLines(containerStatuses, podId, slave, null);
+                    }
                     throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
                 }
 
