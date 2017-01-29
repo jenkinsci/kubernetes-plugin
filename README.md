@@ -258,7 +258,7 @@ the last command will output kubernetes cluster configuration including API serv
 # Debugging
 
 To inspect the json messages sent back and forth to the Kubernetes API server you can configure
-a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for `org.apache.http`
+a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for `okhttp3`
 at `DEBUG` level.
 
 
