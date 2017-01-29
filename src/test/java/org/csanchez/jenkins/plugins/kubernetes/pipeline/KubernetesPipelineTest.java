@@ -77,7 +77,7 @@ public class KubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    private static KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+    private static KubernetesCloud cloud = new KubernetesCloud("minikube");
 
     @BeforeClass
     public static void configureCloud() throws Exception {
@@ -116,7 +116,7 @@ public class KubernetesPipelineTest {
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("" //
-                + "podTemplate(label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [\n" //
+                + "podTemplate(cloud: 'minikube', label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [\n" //
                 + "        containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),\n" //
                 + "        containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),\n" //
                 + "        containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: 'cat')\n" //
@@ -125,13 +125,13 @@ public class KubernetesPipelineTest {
                 + "    node ('mypod') {\n" //
                 + "    sh \"echo My Kubernetes Pipeline\" \n" //
                 + "    sh \"ls /\" \n" //
-                // + " stage 'Get a Maven project'\n" //
-                // + " git 'https://github.com/jenkinsci/kubernetes-plugin.git'\n" //
-                // + " container('maven') {\n" //
-                // + " stage 'Build a Maven project'\n" //
-                // + " sh 'mvn clean install'\n" //
-                // + " }\n" //
-                // + "\n" //
+                + "\n" //
+                + "    stage('Run maven') {\n" //
+                + "      container('maven') {\n" //
+                + "        sh 'mvn -version'\n" //
+                + "      }\n" //
+                + "    }\n" //
+                + "\n" //
                 // + " stage 'Get a Golang project'\n" //
                 // + " git url: 'https://github.com/hashicorp/terraform.git'\n" //
                 // + " container('golang') {\n" //
@@ -151,6 +151,7 @@ public class KubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
+        r.assertLogContains("Apache Maven 3.3.9", b);
     }
 
     // @Test
