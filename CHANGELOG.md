@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+* **NOTE if you have defined a JNLP container in your Pod definition**, you need to remove it or rename it to `jnlp`, otherwise a new container called `jnlp` will be created.
+
+* The workspace volume is now configurable [#114](https://github.com/jenkinsci/kubernetes-plugin/pull/114)
+* Fixing deletion of containers in pod templates, containers property is databound [#113](https://github.com/jenkinsci/kubernetes-plugin/pull/113)
+* Prevent NPE in PodTemplateAction [#112](https://github.com/jenkinsci/kubernetes-plugin/pull/112)
+* [JENKINS-40457] java.lang.ArrayStoreException when a image pull secret is defined [#111](https://github.com/jenkinsci/kubernetes-plugin/pull/111)
+
 0.10
 -----
 
