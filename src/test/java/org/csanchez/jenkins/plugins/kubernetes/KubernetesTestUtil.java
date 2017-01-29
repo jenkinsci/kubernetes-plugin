@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,12 +45,20 @@ public class KubernetesTestUtil {
     private static final String[] MINIKUBE_COMMANDS = new String[] { "minikube", "/usr/local/bin/minikube" };
     private static String ip = null;
 
+    public static URL miniKubeUrl() {
+        try {
+            return new URL("https", miniKubeIp(), 8443, "");
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String miniKubeIp() {
         if (ip == null) {
             for (String cmd : MINIKUBE_COMMANDS) {
                 String s = miniKubeIp(new Launcher.LocalLauncher(StreamTaskListener.NULL), cmd);
                 if (s != null) {
-                    ip = s;
+                    ip = s.trim();
                     LOGGER.log(Level.INFO, "Using minikube at {0}", ip);
                     return ip;
                 }

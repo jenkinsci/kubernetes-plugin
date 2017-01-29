@@ -84,7 +84,7 @@ public class KubernetesPipelineTest {
         // do not run if minikube is not running
         assumeMiniKube();
 
-        cloud.setServerUrl(new URL("https", miniKubeIp(), 8443, "").toExternalForm());
+        cloud.setServerUrl(miniKubeUrl().toExternalForm());
         cloud.setNamespace("default");
         cloud.connect();
     }
