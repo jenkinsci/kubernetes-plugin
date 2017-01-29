@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -68,6 +69,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private transient String resourceLimitMemory;
 
+    private boolean customWorkspaceVolumeEnabled;
+    private WorkspaceVolume workspaceVolume;
+
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
@@ -95,6 +99,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         this.setNodeSelector(from.getNodeSelector());
         this.setServiceAccount(from.getServiceAccount());
         this.setVolumes(from.getVolumes());
+        this.setWorkspaceVolume(from.getWorkspaceVolume());
     }
 
     @Deprecated
@@ -397,6 +402,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
             return Collections.emptyList();
         }
         return volumes;
+    }
+
+    public boolean isCustomWorkspaceVolumeEnabled() {
+        return customWorkspaceVolumeEnabled;
+    }
+
+    @DataBoundSetter
+    public void setCustomWorkspaceVolumeEnabled(boolean customWorkspaceVolumeEnabled) {
+        this.customWorkspaceVolumeEnabled = customWorkspaceVolumeEnabled;
+    }
+
+    public WorkspaceVolume getWorkspaceVolume() {
+        return workspaceVolume;
+    }
+
+    @DataBoundSetter
+    public void setWorkspaceVolume(WorkspaceVolume workspaceVolume) {
+        this.workspaceVolume = workspaceVolume;
     }
 
     @DataBoundSetter

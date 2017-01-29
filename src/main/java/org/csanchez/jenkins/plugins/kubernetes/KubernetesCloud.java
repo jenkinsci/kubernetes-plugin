@@ -26,8 +26,8 @@ import javax.annotation.Nonnull;
 
 import hudson.model.labels.LabelAtom;
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -345,6 +345,7 @@ public class KubernetesCloud extends Cloud {
 
 
         List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
+
         if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
                 && !PodVolume.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
             containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false, null));
@@ -392,8 +393,14 @@ public class KubernetesCloud extends Cloud {
                 i++;
             }
         }
-        // add an empty volume to share the workspace across the pod
-        volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+
+        if (template.getWorkspaceVolume() != null) {
+            volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
+        } else {
+            // add an empty volume to share the workspace across the pod
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+        }
+
         Map<String, Container> containers = new HashMap<>();
 
         for (ContainerTemplate containerTemplate : template.getContainers()) {
