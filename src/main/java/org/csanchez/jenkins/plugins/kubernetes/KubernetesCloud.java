@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.security.KeyStoreException;
@@ -72,6 +73,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
@@ -532,10 +534,22 @@ public class KubernetesCloud extends Cloud {
                 }
             }
             return r;
+        } catch (KubernetesClientException e) {
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                if (cause instanceof SocketTimeoutException) {
+                    LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes: {0}",
+                            cause.getMessage());
+                } else {
+                    LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", cause);
+                }
+            } else {
+                LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
+            }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
-            return Collections.emptyList();
         }
+        return Collections.emptyList();
     }
 
     private class ProvisioningCallback implements Callable<Node> {
@@ -607,7 +621,8 @@ public class KubernetesCloud extends Cloud {
                     if (!terminatedContainers.isEmpty()) {
                         Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors.toMap(
                                 ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
-                        throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
+                        LOGGER.log(Level.WARNING, "Containers are terminated with exit codes: {0}", errors);
+                        return null;
                     }
 
                     if (!allContainersAreReady) {
@@ -620,7 +635,7 @@ public class KubernetesCloud extends Cloud {
                 }
                 String status = pod.getStatus().getPhase();
                 if (!validStates.contains(status)) {
-                    throw new IllegalStateException("Container is not running after " + j + " attempts: " + status);
+                    throw new IllegalStateException("Container is not running after " + j + " attempts, status: " + status);
                 }
 
                 // now wait for slave to be online
@@ -636,7 +651,7 @@ public class KubernetesCloud extends Cloud {
                     Thread.sleep(1000);
                 }
                 if (!slave.getComputer().isOnline()) {
-                    throw new IllegalStateException("Slave is not connected after " + j + " attempts: " + status);
+                    throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
                 }
 
                 return slave;
@@ -752,8 +767,11 @@ public class KubernetesCloud extends Cloud {
 
                 client.pods().list();
                 return FormValidation.ok("Connection successful");
+            } catch (KubernetesClientException e) {
+                return FormValidation.error("Error connecting to %s: %s", serverUrl,
+                        e.getCause() == null ? e.getMessage() : e.getCause().getMessage());
             } catch (Exception e) {
-                return FormValidation.error("Error connecting: %s", e.getMessage());
+                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getMessage());
             }
         }
 
