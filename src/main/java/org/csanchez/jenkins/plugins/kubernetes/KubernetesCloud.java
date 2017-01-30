@@ -559,6 +559,7 @@ public class KubernetesCloud extends Cloud {
                     retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
                 }
                 slave = new KubernetesSlave(t, t.getName(), cloud.name, t.getLabel(), retentionStrategy);
+                LOGGER.log(Level.FINER, "Adding Jenkins node: {0}", slave.getNodeName());
                 Jenkins.getActiveInstance().addNode(slave);
 
                 Pod pod = getPodTemplate(slave, label);
@@ -641,7 +642,10 @@ public class KubernetesCloud extends Cloud {
                 return slave;
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
-                ex.printStackTrace();
+                if (slave != null) {
+                    LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
+                    Jenkins.getInstance().removeNode(slave);
+                }
                 throw Throwables.propagate(ex);
             }
         }
