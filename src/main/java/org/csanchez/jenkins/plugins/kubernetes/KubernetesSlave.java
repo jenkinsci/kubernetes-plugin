@@ -106,23 +106,40 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         Computer computer = toComputer();
         if (computer == null) {
-            LOGGER.log(Level.SEVERE, "Computer for slave is null: {0}", name);
+            String msg = String.format("Computer for slave is null: %s", name);
+            LOGGER.log(Level.SEVERE, msg);
+            listener.fatalError(msg);
             return;
         }
 
         if (cloudName == null) {
-            LOGGER.log(Level.SEVERE, "Cloud name is not set for slave, can't terminate: {0}", name);
+            String msg = String.format("Cloud name is not set for slave, can't terminate: %s", name);
+            LOGGER.log(Level.SEVERE, msg);
+            listener.fatalError(msg);
+            return;
         }
 
         try {
             Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+            if (cloud == null) {
+                String msg = String.format("Slave cloud no longer exists: %s", cloudName);
+                LOGGER.log(Level.WARNING, msg);
+                listener.fatalError(msg);
+                return;
+            }
             if (!(cloud instanceof KubernetesCloud)) {
-                LOGGER.log(Level.SEVERE, "Slave cloud is not a KubernetesCloud, something is very wrong: {0}", name);
+                String msg = String.format("Slave cloud is not a KubernetesCloud, something is very wrong: %s",
+                        cloudName);
+                LOGGER.log(Level.SEVERE, msg);
+                listener.fatalError(msg);
+                return;
             }
             KubernetesClient client = ((KubernetesCloud) cloud).connect();
             ClientPodResource<Pod, DoneablePod> pods = client.pods().withName(name);
             pods.delete();
-            LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
+            String msg = String.format("Terminated Kubernetes instance for slave %s", name);
+            LOGGER.log(Level.INFO, msg);
+            listener.getLogger().println(msg);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
         } catch (Exception e) {
