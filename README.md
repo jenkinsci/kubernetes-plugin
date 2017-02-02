@@ -196,6 +196,10 @@ volumes: [
     hostPathVolume(mountPath: '/etc/mount4', hostPath: '/mnt/my-mount'),
     nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
     persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
+],
+annotations: [
+    podAnnotation(key: "my-key", value: "my-value")
+    ...
 ]) {
    ...
 }
