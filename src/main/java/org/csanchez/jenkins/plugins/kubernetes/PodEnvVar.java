@@ -4,6 +4,7 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,7 +14,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * Environment variables that are meant to be applied to all containers.
  */
-public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> {
+public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> implements Serializable {
 
     private String key;
     private String value;
