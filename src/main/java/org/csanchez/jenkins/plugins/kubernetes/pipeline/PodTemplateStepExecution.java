@@ -4,8 +4,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.inject.Inject;
-
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -15,6 +13,7 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import com.google.common.base.Strings;
 
 import hudson.AbortException;
+import hudson.model.Run;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
 
@@ -26,13 +25,17 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "kubernetes-%s";
 
-    @Inject
-    private PodTemplateStep step;
+    private final PodTemplateStep step;
+
+    PodTemplateStepExecution(PodTemplateStep step, StepContext context) {
+        super(context);
+        this.step = step;
+    }
 
     @Override
     public boolean start() throws Exception {
 
-        Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
+        Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
         if (cloud == null) {
             throw new AbortException(String.format("Cloud does not exist: %s", step.getCloud()));
         }
@@ -43,7 +46,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
         String name = String.format(NAME_FORMAT, UUID.randomUUID().toString().replaceAll("-", ""));
 
-        PodTemplateAction action = new PodTemplateAction(step.getRun());
+        PodTemplateAction action = new PodTemplateAction(getContext().get(Run.class));
 
         PodTemplate newTemplate = new PodTemplate();
         newTemplate.setName(name);
@@ -58,9 +61,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setServiceAccount(step.getServiceAccount());
 
         kubernetesCloud.addTemplate(newTemplate);
-        getContext().newBodyInvoker()
-                .withCallback(new PodTemplateCallback(newTemplate))
-                .start();
+        getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
 
         action.push(step.getLabel());
@@ -69,7 +70,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     @Override
     public void stop(Throwable cause) throws Exception {
-        new PodTemplateAction(step.getRun()).pop();
+        new PodTemplateAction(getContext().get(Run.class)).pop();
     }
 
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {
@@ -87,7 +88,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.getActiveInstance().getCloud(step.getCloud());
+            Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
             if (cloud == null) {
                 LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
                         new Object[] { step.getCloud(), podTemplate.getName() });
