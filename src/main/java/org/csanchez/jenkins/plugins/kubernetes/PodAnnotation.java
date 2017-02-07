@@ -5,7 +5,11 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> {
+import java.io.Serializable;
+
+public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> implements Serializable {
+
+    private static final long serialVersionUID = -5667326362260252552L;
 
     private String key;
     private String value;

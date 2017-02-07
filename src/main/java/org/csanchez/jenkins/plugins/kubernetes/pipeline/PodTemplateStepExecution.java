@@ -77,7 +77,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         private static final long serialVersionUID = 6043919968776851324L;
 
-        private final transient PodTemplate podTemplate;
+        private final PodTemplate podTemplate;
 
         private PodTemplateCallback(PodTemplate podTemplate) {
             this.podTemplate = podTemplate;

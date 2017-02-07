@@ -15,6 +15,8 @@ import java.util.List;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
+    private static final long serialVersionUID = 4212681620316294146L;
+
     public static final String DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String name;
