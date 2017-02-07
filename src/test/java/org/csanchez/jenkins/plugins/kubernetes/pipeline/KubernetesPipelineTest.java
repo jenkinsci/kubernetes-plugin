@@ -262,6 +262,7 @@ public class KubernetesPipelineTest {
                 + "pipeline {\n"
                 + "  agent {\n"
                 + "    kubernetes {\n"
+                + "      cloud 'minikube'\n"
                 + "      label 'mypod'\n"
                 + "      containerTemplate {\n"
                 + "        name 'maven'\n"
