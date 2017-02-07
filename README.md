@@ -208,7 +208,7 @@ Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
 and will be the container acting as Jenkins agent. 
 
-It can ve overridden by defining a container with the same name, or by explicitly:
+It can be overridden by defining a container with the same name, or by explicitly:
 
 ```groovy
 podTemplate(label: 'mypod', jnlpContainer: 
