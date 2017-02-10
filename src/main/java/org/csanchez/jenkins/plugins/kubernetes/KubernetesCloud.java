@@ -309,39 +309,51 @@ public class KubernetesCloud extends Cloud {
 
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<PodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
-        List<EnvVar> env = new ArrayList<EnvVar>(3);
-        // always add some env vars
-        env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
-        env.add(new EnvVar("JENKINS_NAME", slave.getComputer().getName(), null));
+        // Last-write wins map of environment variable names to values
+        HashMap<String, String> env = new HashMap<>();
+
+        // Add some default env vars for Jenkins
+        env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
+        env.put("JENKINS_NAME", slave.getComputer().getName());
+
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
         String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
-        env.add(new EnvVar("JENKINS_LOCATION_URL", locationConfigurationUrl, null));
         String url = StringUtils.isBlank(jenkinsUrl) ? locationConfigurationUrl : jenkinsUrl;
-        env.add(new EnvVar("JENKINS_URL", url, null));
-        if (!StringUtils.isBlank(jenkinsTunnel)) {
-            env.add(new EnvVar("JENKINS_TUNNEL", jenkinsTunnel, null));
-        }
 
         if (url == null) {
             throw new IllegalStateException("Jenkins URL is null while computing JNLP url");
         }
-        url = url.endsWith("/") ? url : url + "/";
-        env.add(new EnvVar("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp", null));
 
-        if (globalEnvVars != null) {
-            for (PodEnvVar podEnvVar : globalEnvVars) {
-                env.add(new EnvVar(podEnvVar.getKey(), substituteEnv(podEnvVar.getValue()), null));
-            }
+        env.put("JENKINS_LOCATION_URL", locationConfigurationUrl);
+        env.put("JENKINS_URL", url);
+        if (!StringUtils.isBlank(jenkinsTunnel)) {
+            env.put("JENKINS_TUNNEL", jenkinsTunnel);
         }
-        if (containerTemplate.getEnvVars() != null) {
-            for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
-                env.add(new EnvVar(containerEnvVar.getKey(), substituteEnv(containerEnvVar.getValue()), null));
-            }
-        }
+
+        url = url.endsWith("/") ? url : url + "/";
+        env.put("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp");
+
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
         // As a result, container is running without a home set for user, resulting into using `/` for some tools,
         // and `?` for java build tools. So we force HOME to a safe location.
-        env.add(new EnvVar("HOME", containerTemplate.getWorkingDir(), null));
+        env.put("HOME", containerTemplate.getWorkingDir());
+
+        if (globalEnvVars != null) {
+            for (PodEnvVar podEnvVar : globalEnvVars) {
+                env.put(podEnvVar.getKey(), substituteEnv(podEnvVar.getValue()));
+            }
+        }
+
+        if (containerTemplate.getEnvVars() != null) {
+            for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
+                env.put(containerEnvVar.getKey(), substituteEnv(containerEnvVar.getValue()));
+            }
+        }
+
+        // Convert our env map to an array
+        EnvVar[] envVars = env.entrySet().stream()
+                .map(entry -> new EnvVar(entry.getKey(), entry.getValue(), null))
+                .toArray(size -> new EnvVar[size]);
 
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(containerTemplate.getArgs() //
@@ -365,7 +377,7 @@ public class KubernetesCloud extends Cloud {
                 .endSecurityContext()
                 .withWorkingDir(substituteEnv(containerTemplate.getWorkingDir()))
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
-                .addToEnv(env.toArray(new EnvVar[env.size()]))
+                .addToEnv(envVars)
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
                 .withArgs(arguments)
                 .withTty(containerTemplate.isTtyEnabled())
