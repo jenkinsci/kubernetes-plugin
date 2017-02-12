@@ -18,6 +18,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import hudson.model.Label;
 import hudson.tools.ToolLocationNodeProperty;
 
@@ -36,7 +39,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static ContainerTemplate combine(ContainerTemplate parent, ContainerTemplate template) {
+    public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @Nonnull ContainerTemplate template) {
         Preconditions.checkNotNull(template, "Container template should not be null");
         if (parent == null) {
             return template;
