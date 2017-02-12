@@ -377,7 +377,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    private Pod getPodTemplate(KubernetesSlave slave, Label label) {
+    private Pod getPodTemplate(KubernetesSlave slave, @CheckForNull Label label) {
         final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), templates);
         if (template == null) {
             return null;
@@ -513,7 +513,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Override
-    public synchronized Collection<NodeProvisioner.PlannedNode> provision(final Label label, final int excessWorkload) {
+    public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
 
             LOGGER.log(Level.INFO, "Excess workload after pending Spot instances: " + excessWorkload);
@@ -556,11 +556,14 @@ public class KubernetesCloud extends Cloud {
     }
 
     private class ProvisioningCallback implements Callable<Node> {
+        @Nonnull
         private final KubernetesCloud cloud;
+        @Nonnull
         private final PodTemplate t;
+        @CheckForNull
         private final Label label;
 
-        public ProvisioningCallback(KubernetesCloud cloud, PodTemplate t, Label label) {
+        public ProvisioningCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t, @CheckForNull Label label) {
             this.cloud = cloud;
             this.t = t;
             this.label = label;
@@ -706,7 +709,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(PodTemplate template, Label label) throws Exception {
+    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label) throws Exception {
         if (containerCap == 0) {
             return true;
         }
@@ -727,16 +730,16 @@ public class KubernetesCloud extends Cloud {
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace {3} with label {4}",
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace '{3}' with label '{4}'",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
-                            client.getNamespace(), label.toString() });
+                            client.getNamespace(), label == null ? "" : label.toString() });
             return false; // maxed out
         }
         return true;
     }
 
     @Override
-    public boolean canProvision(Label label) {
+    public boolean canProvision(@CheckForNull Label label) {
         return getTemplate(label) != null;
     }
 
@@ -745,7 +748,7 @@ public class KubernetesCloud extends Cloud {
      * @param label label to look for in templates
      * @return the template
      */
-    public PodTemplate getTemplate(Label label) {
+    public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplate(label, templates);
     }
 
@@ -754,7 +757,7 @@ public class KubernetesCloud extends Cloud {
      * @param label label to look for in templates
      * @return list of matching templates
      */
-    public ArrayList<PodTemplate> getMatchingTemplates(Label label) {
+    public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
         ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
         for (PodTemplate t : templates) {
             if (label == null || label.matches(t.getLabelSet())) {
