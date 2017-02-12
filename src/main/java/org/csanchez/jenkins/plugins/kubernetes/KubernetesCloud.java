@@ -97,7 +97,7 @@ public class KubernetesCloud extends Cloud {
     private static final String DEFAULT_ID = "jenkins/slave-default";
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
-    private static final String JNLP_NAME = "jnlp";
+    public static final String JNLP_NAME = "jnlp";
     private static final String DEFAULT_JNLP_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
     private static final String DEFAULT_JNLP_IMAGE = System
