@@ -3,6 +3,7 @@ CHANGELOG
 
 * **NOTE if you have defined a JNLP container in your Pod definition**, you need to remove it or rename it to `jnlp`, otherwise a new container called `jnlp` will be created.
 
+* Pod Template "Annotations" Field [#105](https://github.com/jenkinsci/kubernetes-plugin/pull/105)
 * The workspace volume is now configurable [#114](https://github.com/jenkinsci/kubernetes-plugin/pull/114)
 
 * Remove node if pod startup fails [#122](https://github.com/jenkinsci/kubernetes-plugin/pull/122)
