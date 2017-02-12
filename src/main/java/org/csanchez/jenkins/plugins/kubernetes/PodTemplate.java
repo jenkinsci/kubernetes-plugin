@@ -82,7 +82,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
 
-    private final List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
+    private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
     private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
@@ -460,6 +460,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
+
+        if (annotations == null) {
+            annotations = new ArrayList<>();
+        }
+
         return this;
     }
 

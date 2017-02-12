@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
@@ -37,6 +38,7 @@ public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> implem
     }
 
     @Extension
+    @Symbol("podAnnotation")
     public static class DescriptorImpl extends Descriptor<PodAnnotation> {
         @Override
         public String getDisplayName() {

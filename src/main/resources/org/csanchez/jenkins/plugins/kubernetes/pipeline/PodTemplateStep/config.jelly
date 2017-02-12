@@ -25,6 +25,11 @@
                                 deleteCaption="Delete Volume" />
   </f:entry>
 
+  <f:entry title="${%Annotations}" description="${%List of annotations to add to the pod metadata}" field="annotations">
+    <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
+                                deleteCaption="Delete Annotation" />
+  </f:entry>
+
 	<f:advanced>
         <f:entry field="instanceCap" title="${%Max number of instances}">
           <f:textbox default="0"/>
