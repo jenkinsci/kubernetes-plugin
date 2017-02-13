@@ -211,7 +211,30 @@ annotations: [
 
 Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent. It can ve overridden by defining a container with the same name.
+and will be the container acting as Jenkins agent. 
+
+It can be overridden by defining a container with the same name, or by explicitly:
+
+```groovy
+podTemplate(label: 'mypod', jnlpContainer: 
+    containerTemplate(
+        name: 'jnlp', 
+        image: 'customJnlpImage',  
+        args: '${computer.jnlpmac} ${computer.name}'
+    ),
+volumes: [
+    emptyDirVolume(mountPath: '/etc/mount1', memory: false),
+    secretVolume(mountPath: '/etc/mount2', secretName: 'my-secret'),
+    configMapVolume(mountPath: '/etc/mount3', configMapName: 'my-config'),
+    hostPathVolume(mountPath: '/etc/mount4', hostPath: '/mnt/my-mount'),
+    nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
+    persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
+]) {
+   ...
+}
+
+```
+
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.

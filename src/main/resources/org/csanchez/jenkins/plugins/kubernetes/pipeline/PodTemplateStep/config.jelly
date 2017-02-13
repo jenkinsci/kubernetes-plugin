@@ -15,6 +15,15 @@
       <f:textbox/>
     </f:entry>
 
+
+    <f:block>
+        <table>
+            <f:optionalBlock title="${%Use custom JNLP container}" checked="${instance.jnlpContainer != null}" inline="true">
+                <f:property field="jnlpContainer"/>
+            </f:optionalBlock>
+        </table>
+    </f:block>
+
   <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />

@@ -56,6 +56,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setVolumes(step.getVolumes());
         newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
         newTemplate.setWorkspaceVolume(step.getWorkspaceVolume());
+        newTemplate.setCustomJnlpContainerEnabled(step.getJnlpContainer() != null);
+        newTemplate.setJnlpContainer(step.getJnlpContainer());
         newTemplate.setContainers(step.getContainers());
         newTemplate.setNodeSelector(step.getNodeSelector());
         newTemplate.setServiceAccount(step.getServiceAccount());

@@ -78,6 +78,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
+    private boolean customJnlpContainerEnabled;
+
+    private ContainerTemplate jnlpContainer;
+
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
@@ -94,6 +98,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public PodTemplate(PodTemplate from) {
         this.setAnnotations(from.getAnnotations());
+        this.setCustomJnlpContainerEnabled(from.isCustomJnlpContainerEnabled());
+        this.setJnlpContainer(from.getJnlpContainer());
         this.setContainers(from.getContainers());
         this.setImagePullSecrets(from.getImagePullSecrets());
         this.setInstanceCap(from.getInstanceCap());
@@ -406,6 +412,23 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return Collections.emptyList();
         }
         return volumes;
+    }
+    public boolean isCustomJnlpContainerEnabled() {
+        return customJnlpContainerEnabled;
+    }
+
+    @DataBoundSetter
+    public void setCustomJnlpContainerEnabled(boolean customJnlpContainerEnabled) {
+        this.customJnlpContainerEnabled = customJnlpContainerEnabled;
+    }
+
+    public ContainerTemplate getJnlpContainer() {
+        return jnlpContainer;
+    }
+
+    @DataBoundSetter
+    public void setJnlpContainer(ContainerTemplate jnlpContainer) {
+        this.jnlpContainer = jnlpContainer;
     }
 
     public boolean isCustomWorkspaceVolumeEnabled() {

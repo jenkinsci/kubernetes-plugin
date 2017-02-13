@@ -34,6 +34,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private final String label;
     private final String name;
 
+    private ContainerTemplate jnlpContainer;
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
@@ -74,6 +75,16 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setInheritFrom(String inheritFrom) {
         this.inheritFrom = inheritFrom;
+    }
+
+
+    public ContainerTemplate getJnlpContainer() {
+        return jnlpContainer;
+    }
+
+    @DataBoundSetter
+    public void setJnlpContainer(ContainerTemplate jnlpContainer) {
+        this.jnlpContainer = jnlpContainer;
     }
 
     public List<ContainerTemplate> getContainers() {

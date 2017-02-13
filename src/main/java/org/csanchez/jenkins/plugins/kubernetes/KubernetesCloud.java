@@ -112,6 +112,8 @@ public class KubernetesCloud extends Cloud {
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
+    private String defaultsTemplateName;
+
     private List<PodTemplate> templates = new ArrayList<PodTemplate>();
     private String serverUrl;
     @CheckForNull
@@ -164,6 +166,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
         this.retentionTimeout = retentionTimeout;
+    }
+
+    public String getDefaultsTemplateName() {
+        return defaultsTemplateName;
+    }
+
+    @DataBoundSetter
+    public void setDefaultsTemplateName(String defaultsTemplateName) {
+        this.defaultsTemplateName = defaultsTemplateName;
     }
 
     public List<PodTemplate> getTemplates() {
@@ -309,6 +320,8 @@ public class KubernetesCloud extends Cloud {
 
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<PodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+        Preconditions.checkNotNull(containerTemplate, "ContainerTemplate cannot be null");
+        Preconditions.checkArgument(!StringUtils.isBlank(containerTemplate.getImage()), "Container image cannot be null");
         List<EnvVar> env = new ArrayList<EnvVar>(3);
         // always add some env vars
         env.add(new EnvVar("JENKINS_SECRET", slave.getComputer().getJnlpMac(), null));
@@ -378,7 +391,7 @@ public class KubernetesCloud extends Cloud {
 
 
     private Pod getPodTemplate(KubernetesSlave slave, Label label) {
-        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), templates);
+        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), defaultsTemplateName, templates);
         if (template == null) {
             return null;
         }
@@ -408,7 +421,14 @@ public class KubernetesCloud extends Cloud {
 
         Map<String, Container> containers = new HashMap<>();
 
+        if (template.isCustomJnlpContainerEnabled() && template.getJnlpContainer() != null) {
+            containers.put(JNLP_NAME, createContainer(slave, template.getJnlpContainer(), template.getEnvVars(), volumeMounts.values()));
+        }
+
         for (ContainerTemplate containerTemplate : template.getContainers()) {
+            if (containers.containsKey(containerTemplate.getName())) {
+                throw new IllegalArgumentException("Multiple containers with name:[" + containerTemplate.getName() + "], has been defined.");
+            }
             containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
@@ -746,7 +766,7 @@ public class KubernetesCloud extends Cloud {
      * @return the template
      */
     public PodTemplate getTemplate(Label label) {
-        return PodTemplateUtils.getTemplate(label, templates);
+        return PodTemplateUtils.getTemplateByLabel(label, templates);
     }
 
     /**
