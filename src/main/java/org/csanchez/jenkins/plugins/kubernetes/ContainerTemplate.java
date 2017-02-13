@@ -11,6 +11,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
@@ -141,7 +142,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public List<ContainerEnvVar> getEnvVars() {
-        return envVars;
+        return envVars != null ? envVars : Collections.emptyList();
     }
 
     @DataBoundSetter
