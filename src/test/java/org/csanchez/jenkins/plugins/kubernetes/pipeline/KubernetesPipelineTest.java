@@ -28,6 +28,7 @@ import static org.junit.Assert.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -103,9 +104,7 @@ public class KubernetesPipelineTest {
     // });
     // }
 
-    @Test
-    public void runInPod() throws Exception {
-
+    private void configureCloud(JenkinsRuleNonLocalhost r) throws Exception {
         // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
         URL nonLocalhostUrl = new URL(url.getProtocol(), InetAddress.getLocalHost().getHostAddress(), url.getPort(),
@@ -113,7 +112,11 @@ public class KubernetesPipelineTest {
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
 
         r.jenkins.clouds.add(cloud);
+    }
 
+    @Test
+    public void runInPod() throws Exception {
+        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("" //
                 + "podTemplate(cloud: 'minikube', label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [\n" //
@@ -123,14 +126,14 @@ public class KubernetesPipelineTest {
                 + "    ]) {\n" //
                 + "\n" //
                 + "    node ('mypod') {\n" //
-                + "    sh \"echo My Kubernetes Pipeline\" \n" //
-                + "    sh \"ls /\" \n" //
+                + "      sh \"echo My Kubernetes Pipeline\" \n" //
+                + "      sh \"ls /\" \n" //
                 + "\n" //
-                + "    stage('Run maven') {\n" //
-                + "      container('maven') {\n" //
-                + "        sh 'mvn -version'\n" //
+                + "      stage('Run maven') {\n" //
+                + "        container('maven') {\n" //
+                + "          sh 'mvn -version'\n" //
+                + "        }\n" //
                 + "      }\n" //
-                + "    }\n" //
                 + "\n" //
                 // + " stage 'Get a Golang project'\n" //
                 // + " git url: 'https://github.com/hashicorp/terraform.git'\n" //
@@ -152,6 +155,31 @@ public class KubernetesPipelineTest {
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
+    }
+
+    @Test
+    public void runJobWithSpaces() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p with spaces");
+        p.setDefinition(new CpsFlowDefinition("" //
+                + "podTemplate(cloud: 'minikube', label: 'mypod', containers: [\n" //
+                + "        containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),\n" //
+                + "    ]) {\n" //
+                + "\n" //
+                + "    node ('mypod') {\n" //
+                + "      stage('Run') {\n" //
+                + "        container('busybox') {\n" //
+                + "          sh 'echo \"pwd is -$(pwd)-\"'\n" //
+                + "        }\n" //
+                + "      }\n" //
+                + "\n" //
+                + "    }\n" //
+                + "}\n" //
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("pwd is -/home/jenkins/workspace/p with spaces-", b);
     }
 
     // @Test
