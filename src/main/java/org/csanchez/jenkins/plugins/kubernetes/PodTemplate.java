@@ -447,7 +447,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<ContainerTemplate>();
-            ContainerTemplate containerTemplate = new ContainerTemplate(this.name, this.image);
+            ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
