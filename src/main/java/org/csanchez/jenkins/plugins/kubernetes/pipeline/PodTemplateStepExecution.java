@@ -23,7 +23,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final long serialVersionUID = -6139090518333729333L;
 
-    private static final transient String NAME_FORMAT = "kubernetes-%s";
+    private static final transient String NAME_FORMAT = "%s-%s";
 
     private final PodTemplateStep step;
 
@@ -44,7 +44,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                     cloud.getClass().getName()));
         }
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-        String name = String.format(NAME_FORMAT, UUID.randomUUID().toString().replaceAll("-", ""));
+        String uuid = UUID.randomUUID().toString().replaceAll("-", "");
+        String name = String.format(NAME_FORMAT, step.getName(), uuid);
 
         PodTemplateAction action = new PodTemplateAction(getContext().get(Run.class));
 
