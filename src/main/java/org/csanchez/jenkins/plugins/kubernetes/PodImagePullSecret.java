@@ -7,7 +7,11 @@ import io.fabric8.kubernetes.api.model.LocalObjectReference;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecret> {
+import java.io.Serializable;
+
+public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecret> implements Serializable {
+
+    private static final long serialVersionUID = 4701392068377557526L;
 
     private String name;
 

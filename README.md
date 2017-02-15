@@ -72,6 +72,7 @@ Either way it provides access to the following fields:
 * **nodeSelector** The node selector of the pod.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars*** Environment variables that are applied to **ALL** containers. 
+* **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
@@ -196,6 +197,10 @@ volumes: [
     hostPathVolume(mountPath: '/etc/mount4', hostPath: '/mnt/my-mount'),
     nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
     persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
+],
+annotations: [
+    podAnnotation(key: "my-key", value: "my-value")
+    ...
 ]) {
    ...
 }

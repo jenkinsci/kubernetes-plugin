@@ -3,9 +3,14 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> {
+import java.io.Serializable;
+
+public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> implements Serializable {
+
+    private static final long serialVersionUID = -5667326362260252552L;
 
     private String key;
     private String value;
@@ -33,6 +38,7 @@ public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> {
     }
 
     @Extension
+    @Symbol("podAnnotation")
     public static class DescriptorImpl extends Descriptor<PodAnnotation> {
         @Override
         public String getDisplayName() {

@@ -7,8 +7,10 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import hudson.model.Label;
 import hudson.tools.ToolLocationNodeProperty;
@@ -36,7 +41,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static ContainerTemplate combine(ContainerTemplate parent, ContainerTemplate template) {
+    public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @Nonnull ContainerTemplate template) {
         Preconditions.checkNotNull(template, "Container template should not be null");
         if (parent == null) {
             return template;
@@ -146,21 +151,34 @@ public class PodTemplateUtils {
 
     /**
      * Unwraps the hierarchy of the PodTemplate.
-     * @param template
+     *
+     * @param template                   The template to unwrap.
+     * @param defaultProviderTemplate    The name of the template that provides the default values.
+     * @param allTemplates               A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
+    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
         if (template == null) {
             return null;
         }
 
-        if (Strings.isNullOrEmpty(template.getInheritFrom())) {
+        StringBuilder sb = new StringBuilder();
+        if (!Strings.isNullOrEmpty(defaultProviderTemplate)) {
+            sb.append(defaultProviderTemplate).append(" ");
+
+        }
+        if (!Strings.isNullOrEmpty(template.getInheritFrom())) {
+            sb.append(template.getInheritFrom()).append(" ");
+        }
+        String inheritFrom = sb.toString();
+
+        if (Strings.isNullOrEmpty(inheritFrom)) {
             return template;
         } else {
-            String[] parentLabels = template.getInheritFrom().split("[ ]+");
+            String[] parentNames = inheritFrom.split("[ ]+");
             PodTemplate parent = null;
-            for (String label : parentLabels) {
-                PodTemplate next = getTemplate(Label.get(label), allTemplates);
+            for (String name : parentNames) {
+                PodTemplate next = getTemplateByName(name, allTemplates);
                 if (next != null) {
                     parent = combine(parent, unwrap(next, allTemplates));
                 }
@@ -169,9 +187,42 @@ public class PodTemplateUtils {
         }
     }
 
-    public static PodTemplate getTemplate(Label label, Collection<PodTemplate> templates) {
+    /**
+     * Unwraps the hierarchy of the PodTemplate.
+     *
+     * @param template                The template to unwrap.
+     * @param allTemplates            A collection of all the known templates
+     * @return
+     */
+    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
+        return unwrap(template, null, allTemplates);
+    }
+
+
+    /**
+     * Gets the {@link PodTemplate} by {@link Label}.
+     * @param label         The label.
+     * @param templates     The list of all templates.
+     * @return              The first pod template from the collection that has a matching label.
+     */
+    public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
             if (label == null || label.matches(t.getLabelSet())) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets the {@link PodTemplate} by name.
+     * @param name          The name.
+     * @param templates     The list of all templates.
+     * @return              The first pod template from the collection that has a matching name.
+     */
+    public static PodTemplate getTemplateByName(@CheckForNull String name, Collection<PodTemplate> templates) {
+        for (PodTemplate t : templates) {
+            if (name != null && name.equals(t.getName())) {
                 return t;
             }
         }

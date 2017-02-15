@@ -40,7 +40,7 @@
     <f:textbox/>
   </f:entry>
 
-    <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}">
+    <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}" field="annotations">
       <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
                                   deleteCaption="Delete annotation Variable" />
     </f:entry>

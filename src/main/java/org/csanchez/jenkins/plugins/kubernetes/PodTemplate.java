@@ -1,6 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.tools.ToolLocationNodeProperty;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +33,9 @@ import hudson.model.labels.LabelAtom;
  * 
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
+
+    private static final long serialVersionUID = 3285310269140845583L;
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
@@ -39,17 +43,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String name;
 
-    private transient String image;
+    private String image;
 
-    private transient boolean privileged;
+    private boolean privileged;
 
-    private transient boolean alwaysPullImage;
+    private boolean alwaysPullImage;
 
-    private transient String command;
+    private String command;
 
-    private transient String args;
+    private String args;
 
-    private transient String remoteFs;
+    private String remoteFs;
 
     private int instanceCap = Integer.MAX_VALUE;
 
@@ -61,13 +65,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private String nodeSelector;
 
-    private transient String resourceRequestCpu;
+    private String resourceRequestCpu;
 
-    private transient String resourceRequestMemory;
+    private String resourceRequestMemory;
 
-    private transient String resourceLimitCpu;
+    private String resourceLimitCpu;
 
-    private transient String resourceLimitMemory;
+    private String resourceLimitMemory;
 
     private boolean customWorkspaceVolumeEnabled;
     private WorkspaceVolume workspaceVolume;
@@ -78,11 +82,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
 
     private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
 
-    private final List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
+    private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
     private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    private List<ToolLocationNodeProperty> nodeProperties;
+    private transient List<ToolLocationNodeProperty> nodeProperties;
 
     @DataBoundConstructor
     public PodTemplate() {
@@ -443,7 +447,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<ContainerTemplate>();
-            ContainerTemplate containerTemplate = new ContainerTemplate(this.name, this.image);
+            ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
@@ -456,6 +460,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> {
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
+
+        if (annotations == null) {
+            annotations = new ArrayList<>();
+        }
+
         return this;
     }
 
