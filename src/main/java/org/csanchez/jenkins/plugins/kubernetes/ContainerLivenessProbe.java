@@ -15,14 +15,14 @@ import java.io.Serializable;
  */
 public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLivenessProbe> implements Serializable {
     private String execArgs;
-    private Integer timeoutSeconds;
-    private Integer initialDelaySeconds;
-    private Integer failureThreshold;
-    private Integer periodSeconds;
-    private Integer successThreshold;
+    private int timeoutSeconds;
+    private int initialDelaySeconds;
+    private int failureThreshold;
+    private int periodSeconds;
+    private int successThreshold;
 
     @DataBoundConstructor
-    public ContainerLivenessProbe(String execArgs, Integer timeoutSeconds, Integer initialDelaySeconds, Integer failureThreshold, Integer periodSeconds, Integer successThreshold) {
+    public ContainerLivenessProbe(String execArgs, int timeoutSeconds, int initialDelaySeconds, int failureThreshold, int periodSeconds, int successThreshold) {
         this.execArgs = execArgs;
         this.timeoutSeconds = timeoutSeconds;
         this.initialDelaySeconds = initialDelaySeconds;
@@ -39,43 +39,43 @@ public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLiv
         this.execArgs = execArgs;
     }
 
-    public Integer getTimeoutSeconds() {
+    public int getTimeoutSeconds() {
         return timeoutSeconds;
     }
 
-    public void setTimeoutSeconds(Integer timeoutSeconds) {
+    public void setTimeoutSeconds(int timeoutSeconds) {
         this.timeoutSeconds = timeoutSeconds;
     }
 
-    public Integer getInitialDelaySeconds() {
+    public int getInitialDelaySeconds() {
         return initialDelaySeconds;
     }
 
-    public void setInitialDelaySeconds(Integer initialDelaySeconds) {
+    public void setInitialDelaySeconds(int initialDelaySeconds) {
         this.initialDelaySeconds = initialDelaySeconds;
     }
 
-    public Integer getFailureThreshold() {
+    public int getFailureThreshold() {
         return failureThreshold;
     }
 
-    public void setFailureThreshold(Integer failureThreshold) {
+    public void setFailureThreshold(int failureThreshold) {
         this.failureThreshold = failureThreshold;
     }
 
-    public Integer getPeriodSeconds() {
+    public int getPeriodSeconds() {
         return periodSeconds;
     }
 
-    public void setPeriodSeconds(Integer periodSeconds) {
+    public void setPeriodSeconds(int periodSeconds) {
         this.periodSeconds = periodSeconds;
     }
 
-    public Integer getSuccessThreshold() {
+    public int getSuccessThreshold() {
         return successThreshold;
     }
 
-    public void setSuccessThreshold(Integer successThreshold) {
+    public void setSuccessThreshold(int successThreshold) {
         this.successThreshold = successThreshold;
     }
 
