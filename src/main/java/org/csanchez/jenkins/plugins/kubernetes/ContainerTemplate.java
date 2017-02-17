@@ -45,6 +45,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private String resourceLimitMemory;
 
     private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
+    private final List<PortMapping> ports = new ArrayList<PortMapping>();
 
     @DataBoundConstructor
     public ContainerTemplate(String image) {
@@ -148,6 +149,15 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setEnvVars(List<ContainerEnvVar> envVars) {
         this.envVars.addAll(envVars);
+    }
+
+    public List<PortMapping> getPorts() {
+        return ports != null ? ports : Collections.emptyList();
+    }
+
+    @DataBoundSetter
+    public void setPorts(List<PortMapping> ports) {
+        this.ports.addAll(ports);
     }
 
     public String getResourceRequestMemory() {
