@@ -108,6 +108,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
+* **ports** Expose ports on the container.
 
 #### Liveness Probe Usage
 ```groovy
@@ -132,7 +133,7 @@ In the example below, we will inherit the podTemplate we created previously, and
 
 ```groovy
 podTemplate(label: 'anotherpod', inheritFrom: 'mypod'  containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-7-alpine')    
+    containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-7-alpine')
   ]) {
 
       //Let's not repeat ourselves and ommit this part
@@ -221,7 +222,8 @@ podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
         envVars: [
             containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
             ...
-        ]
+        ],
+        ports: [portMapping(name: 'mysql', containerPort: 3306, hostPort: 3306)]
     ),
     ...
 ],
