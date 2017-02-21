@@ -25,10 +25,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
 import hudson.model.Result
 import org.jenkinsci.plugins.pipeline.modeldefinition.SyntheticStageNames
-import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentScript
-import org.jenkinsci.plugins.pipeline.modeldefinition.model.Root
-import org.jenkinsci.plugins.pipeline.modeldefinition.options.impl.SkipDefaultCheckout
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 
 
@@ -43,13 +40,14 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
             try {
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
-                        if (describable.context instanceof Root) {
-                            Root root = (Root)describable.context
-                            SkipDefaultCheckout skip = (SkipDefaultCheckout)root.options?.options?.get("skipDefaultCheckout")
-                            if (!skip?.isSkipDefaultCheckout() && Utils.hasScmContext(script)) {
+                        if (describable.isDoCheckout() && describable.hasScmContext(script)) {
+                            if (!describable.inStage) {
                                 script.stage(SyntheticStageNames.checkout()) {
                                     script.checkout script.scm
                                 }
+                            } else {
+                                // No stage when we're in a nested stage already
+                                script.checkout script.scm
                             }
                         }
                         script.container(describable.containerTemplate.name) {

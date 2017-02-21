@@ -58,7 +58,7 @@
     <jenkins-subversion.version>2.5</jenkins-subversion.version>
     <jenkins-workflow-scm-step.version>2.3</jenkins-workflow-scm-step.version>
     <jenkins-scm-api.version>1.3</jenkins-scm-api.version>
-    <jenkins-declarative.version>1.0</jenkins-declarative.version>
+    <jenkins-declarative.version>1.0.2</jenkins-declarative.version>
 
     <!-- testing tools versions -->
     <powermock.version>1.6.5</powermock.version>
@@ -113,8 +113,12 @@
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
-      <!-- TODO: Make changes to checkout logic in Declarative so we don't need to depend on all of Declarative here -->
-      <artifactId>pipeline-model-definition</artifactId>
+      <artifactId>pipeline-model-declarative-agent</artifactId>
+      <version>${jenkins-declarative.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-api</artifactId>
       <version>${jenkins-declarative.version}</version>
     </dependency>
 
