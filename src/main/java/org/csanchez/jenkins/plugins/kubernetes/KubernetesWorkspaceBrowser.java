@@ -21,20 +21,25 @@ public class KubernetesWorkspaceBrowser extends WorkspaceBrowser{
 
     @Override
     public FilePath getWorkspace(Job job) {
-        LOGGER.info("Nodes went offline. Hence fetching it through master");
-        if(job instanceof AbstractProject) {
-            String assignedLabel = ((AbstractProject) job).getAssignedLabelString();
-            KubernetesCloud kubernetesCloud = Hudson.getInstance().clouds.get(KubernetesCloud.class);
-            if(kubernetesCloud != null) {
-                List<PodTemplate> podTemplates = kubernetesCloud.getTemplates();
-                for(PodTemplate podTemplate : podTemplates) {
-                    if(ObjectUtils.equals(podTemplate.getLabel(), assignedLabel)) {
-                        String workspacePath = Jenkins.getInstance().getWorkspaceFor((TopLevelItem) job).toString();
-                        LOGGER.info("Workspace Path: " + workspacePath);
-                        File workspace = new File(workspacePath);
-                        LOGGER.info("Workspace exists ? " + workspace.exists());
-                        if (workspace.exists()) {
-                            return new FilePath(workspace);
+        if(job != null) {
+            LOGGER.info("Nodes went offline. Hence fetching it through master");
+            if (job instanceof AbstractProject) {
+                String assignedLabel = ((AbstractProject) job).getAssignedLabelString();
+                KubernetesCloud kubernetesCloud = Hudson.getInstance().clouds.get(KubernetesCloud.class);
+                if (kubernetesCloud != null) {
+                    List<PodTemplate> podTemplates = kubernetesCloud.getTemplates();
+                    for (PodTemplate podTemplate : podTemplates) {
+                        if (ObjectUtils.equals(podTemplate.getLabel(), assignedLabel)) {
+                            FilePath filePath = Jenkins.getInstance().getWorkspaceFor((TopLevelItem) job);
+                            if(filePath != null) {
+                                String workspacePath = filePath.toString();
+                                LOGGER.info("Workspace Path: " + workspacePath);
+                                File workspace = new File(workspacePath);
+                                LOGGER.info("Workspace exists ? " + workspace.exists());
+                                if (workspace.exists()) {
+                                    return new FilePath(workspace);
+                                }
+                            }
                         }
                     }
                 }
