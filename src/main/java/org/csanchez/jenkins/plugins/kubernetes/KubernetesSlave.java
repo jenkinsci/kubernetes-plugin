@@ -25,7 +25,7 @@ import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.ClientPodResource;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.Jenkins;
 
 /**
@@ -135,7 +135,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 return;
             }
             KubernetesClient client = ((KubernetesCloud) cloud).connect();
-            ClientPodResource<Pod, DoneablePod> pods = client.pods().withName(name);
+            PodResource<Pod, DoneablePod> pods = client.pods().withName(name);
             pods.delete();
             String msg = String.format("Terminated Kubernetes instance for slave %s", name);
             LOGGER.log(Level.INFO, msg);
