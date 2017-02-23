@@ -66,7 +66,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
 
-        action.push(step.getLabel());
+        action.push(name);
         return false;
     }
 
