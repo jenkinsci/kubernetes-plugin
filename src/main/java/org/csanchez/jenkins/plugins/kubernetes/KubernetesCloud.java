@@ -697,6 +697,8 @@ public class KubernetesCloud extends Cloud {
                     throw new IllegalStateException("Container is not running after " + j + " attempts, status: " + status);
                 }
 
+                j = t.getSlaveConnectTimeout();
+
                 // now wait for slave to be online
                 for (; i < j; i++) {
                     if (slave.getComputer() == null) {
