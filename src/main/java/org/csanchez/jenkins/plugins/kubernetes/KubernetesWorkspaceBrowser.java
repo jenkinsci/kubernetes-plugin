@@ -24,23 +24,26 @@ public class KubernetesWorkspaceBrowser extends WorkspaceBrowser{
         LOGGER.info("Nodes went offline. Hence fetching it through master");
         if (job instanceof AbstractProject) {
             String assignedLabel = ((AbstractProject) job).getAssignedLabelString();
-            List<KubernetesCloud> kubernetesClouds = Hudson.getInstanceOrNull().clouds.getAll(KubernetesCloud.class);
+            Jenkins jenkinsInstance = Hudson.getInstanceOrNull();
+            if(jenkinsInstance != null) {
+                List<KubernetesCloud> kubernetesClouds = jenkinsInstance.clouds.getAll(KubernetesCloud.class);
 
-            //We only care about Kubernetes clouds for the Jenkins instance.
-            //Go through the list of Kube clouds and check if we find a match for the job label with any of the pod templates
-            for(KubernetesCloud kubernetesCloud : kubernetesClouds) {
-                if (kubernetesCloud != null) {
-                    List<PodTemplate> podTemplates = kubernetesCloud.getTemplates();
-                    for (PodTemplate podTemplate : podTemplates) {
-                        if (ObjectUtils.equals(podTemplate.getLabel(), assignedLabel)) {
-                            FilePath filePath = Jenkins.getInstance().getWorkspaceFor((TopLevelItem) job);
-                            if (filePath != null) {
-                                String workspacePath = filePath.toString();
-                                LOGGER.fine("Workspace Path: " + workspacePath);
-                                File workspace = new File(workspacePath);
-                                LOGGER.fine("Workspace exists ? " + workspace.exists());
-                                if (workspace.exists()) {
-                                    return new FilePath(workspace);
+                //We only care about Kubernetes clouds for the Jenkins instance.
+                //Go through the list of Kube clouds and check if we find a match for the job label with any of the pod templates
+                for (KubernetesCloud kubernetesCloud : kubernetesClouds) {
+                    if (kubernetesCloud != null) {
+                        List<PodTemplate> podTemplates = kubernetesCloud.getTemplates();
+                        for (PodTemplate podTemplate : podTemplates) {
+                            if (ObjectUtils.equals(podTemplate.getLabel(), assignedLabel)) {
+                                FilePath filePath = Jenkins.getInstance().getWorkspaceFor((TopLevelItem) job);
+                                if (filePath != null) {
+                                    String workspacePath = filePath.toString();
+                                    LOGGER.fine("Workspace Path: " + workspacePath);
+                                    File workspace = new File(workspacePath);
+                                    LOGGER.fine("Workspace exists ? " + workspace.exists());
+                                    if (workspace.exists()) {
+                                        return new FilePath(workspace);
+                                    }
                                 }
                             }
                         }
