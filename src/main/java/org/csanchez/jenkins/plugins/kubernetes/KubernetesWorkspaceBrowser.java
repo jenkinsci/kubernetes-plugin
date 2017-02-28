@@ -21,7 +21,7 @@ public class KubernetesWorkspaceBrowser extends WorkspaceBrowser{
 
     @Override
     public FilePath getWorkspace(Job job) {
-        LOGGER.info("Nodes went offline. Hence fetching it through master");
+        LOGGER.info("Nodes went offline. Hence fetching workspace through master");
         if (job instanceof AbstractProject) {
             String assignedLabel = ((AbstractProject) job).getAssignedLabelString();
             Jenkins jenkinsInstance = Hudson.getInstanceOrNull();
