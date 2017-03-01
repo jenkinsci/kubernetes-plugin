@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
@@ -83,16 +84,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     static String getSlaveName(PodTemplate template) {
-        String hex = Long.toHexString(System.nanoTime());
+        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
         if (StringUtils.isEmpty(name)) {
-            return hex;
+            return String.format("kubernetes-%s", randString);
         }
         // no spaces
         name = template.getName().replace(" ", "-").toLowerCase();
-        // keep it under 256 chars
-        name = name.substring(0, Math.min(name.length(), 256 - hex.length()));
-        return String.format("%s-%s", name, hex);
+        // keep it under 63 chars (62 is used to account for the '-')
+        name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
+        return String.format("%s-%s", name, randString);
     }
 
     @Override

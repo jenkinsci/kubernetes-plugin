@@ -44,13 +44,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                     cloud.getClass().getName()));
         }
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-        String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-        String name = String.format(NAME_FORMAT, step.getName(), uuid);
 
         PodTemplateAction action = new PodTemplateAction(getContext().get(Run.class));
 
         PodTemplate newTemplate = new PodTemplate();
-        newTemplate.setName(name);
+        newTemplate.setName(step.getName());
         newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setLabel(step.getLabel());
@@ -66,7 +64,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
 
-        action.push(name);
+        action.push(step.getName());
         return false;
     }
 
