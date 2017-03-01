@@ -103,9 +103,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             }
 
                             @Override
-                            public void onFailure(IOException e, Response response) {
+                            public void onFailure(Throwable t, Response response) {
                                 alive.set(false);
-                                e.printStackTrace(launcher.getListener().getLogger());
+                                t.printStackTrace(launcher.getListener().getLogger());
                                 started.countDown();
                                 finished.countDown();
                             }
