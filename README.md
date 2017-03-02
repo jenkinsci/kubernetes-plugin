@@ -286,7 +286,7 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
 ## Running locally with minikube
 
-A local testing cluster with one node can be created with [minukube](https://github.com/kubernetes/minikube)
+A local testing cluster with one node can be created with [minikube](https://github.com/kubernetes/minikube)
 
     minikube start
 
