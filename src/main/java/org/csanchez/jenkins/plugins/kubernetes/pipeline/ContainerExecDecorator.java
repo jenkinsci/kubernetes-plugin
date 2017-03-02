@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.fabric8.kubernetes.client.Watcher.Action.MODIFIED;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
@@ -59,7 +58,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final transient KubernetesClient client;
     private final String podName;
     private final String containerName;
-    private final String path;
     private final AtomicBoolean alive;
 
     private transient CountDownLatch started;
@@ -72,7 +70,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.client = client;
         this.podName = podName;
         this.containerName = containerName;
-        this.path = path;
         this.alive = alive;
         this.started = started;
         this.finished = finished;
@@ -122,7 +119,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 //We need to get into the project workspace.
                 //The workspace is not known in advance, so we have to execute a cd command.
-                watch.getInput().write(String.format("cd \"%s\"%s", path, NEWLINE).getBytes(StandardCharsets.UTF_8));
+                watch.getInput().write(String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
                 doExec(watch, launcher.getListener().getLogger(), getCommands(starter));
                 proc = new ContainerExecProc(watch, alive, finished);
                 return proc;
