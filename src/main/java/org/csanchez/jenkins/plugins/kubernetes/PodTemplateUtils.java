@@ -275,7 +275,7 @@ public class PodTemplateUtils {
             String key = m.group(PLACEHOLDER_KEY);
             String val = properties.get(key);
             if (val != null) {
-                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), val);
+                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), Matcher.quoteReplacement(val));
             } else if (defaultValue != null) {
                 s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), defaultValue);
             }
