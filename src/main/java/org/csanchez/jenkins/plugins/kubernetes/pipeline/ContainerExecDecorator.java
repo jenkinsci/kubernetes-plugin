@@ -75,6 +75,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.finished = finished;
     }
 
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+        this(client, podName, containerName, alive, started, finished);
+    }
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
         return new Launcher.DecoratedLauncher(launcher) {
@@ -149,7 +154,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 Pod pod = client.pods().withName(podName).get();
 
                 if (pod == null) {
-                    throw new IllegalArgumentException("Container with name:[" + containerName+"] not found in pod:[" + podName + "]");
+                    throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "]");
                 }
                 if (isContainerReady(pod, containerName)) {
                     return true;
