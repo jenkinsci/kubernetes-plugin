@@ -66,7 +66,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private transient ExecWatch watch;
     private transient ContainerExecProc proc;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
         this.client = client;
         this.podName = podName;
         this.containerName = containerName;
