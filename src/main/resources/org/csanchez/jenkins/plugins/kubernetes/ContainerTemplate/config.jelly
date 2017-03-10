@@ -30,6 +30,11 @@
     <f:textbox default="cat"/>
   </f:entry>
 
+    <f:entry title="${%Liveness Probe}" description="${%Liveness Probe for the Container}">
+      <f:repeatableHeteroProperty field="livenessProbe" oneEach="true" hasHeader="true" addCaption="Add Liveness Probe"
+                                  deleteCaption="Delete Liveness Probe" />
+    </f:entry>
+
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
     <f:checkbox default="true"/>
   </f:entry>

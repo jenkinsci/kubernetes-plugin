@@ -83,6 +83,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **command** The command the container will execute.
 * **args** The arugments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
+* **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 
 ### Pod template inheritance 
 

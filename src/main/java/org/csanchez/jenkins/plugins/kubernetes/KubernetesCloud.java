@@ -27,6 +27,9 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+
+import hudson.model.labels.LabelAtom;
+import io.fabric8.kubernetes.api.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -63,18 +66,6 @@ import hudson.slaves.NodeProvisioner;
 import hudson.slaves.RetentionStrategy;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
@@ -379,6 +370,20 @@ public class KubernetesCloud extends Cloud {
             containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false, null));
         }
 
+        Probe livenessProbe = null;
+        for (ContainerLivenessProbe clp : containerTemplate.getLivenessProbe()) {
+            if (parseLivenessProbe(clp.getExecArgs()) != null) {
+                livenessProbe = new ProbeBuilder()
+                    .withExec(new ExecAction(parseLivenessProbe(clp.getExecArgs())))
+                    .withInitialDelaySeconds(clp.getInitialDelaySeconds())
+                    .withTimeoutSeconds(clp.getTimeoutSeconds())
+                    .withFailureThreshold(clp.getFailureThreshold())
+                    .withPeriodSeconds(clp.getPeriodSeconds())
+                    .withSuccessThreshold(clp.getSuccessThreshold())
+                    .build();
+            }
+        }
+
         return new ContainerBuilder()
                 .withName(substituteEnv(containerTemplate.getName()))
                 .withImage(substituteEnv(containerTemplate.getImage()))
@@ -390,7 +395,8 @@ public class KubernetesCloud extends Cloud {
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
                 .addToEnv(envVars)
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
-                .withArgs(arguments)
+				.withArgs(arguments)
+                .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
                     .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
@@ -528,6 +534,25 @@ public class KubernetesCloud extends Cloud {
         }
         // handle quoted arguments
         Matcher m = SPLIT_IN_SPACES.matcher(dockerCommand);
+        List<String> commands = new ArrayList<String>();
+        while (m.find()) {
+            commands.add(substituteEnv(m.group(1).replace("\"", "")));
+        }
+        return commands;
+    }
+
+    /**
+     * Split a command in the parts that LivenessProbe need
+     * 
+     * @param livenessProbeExec
+     * @return
+     */
+    List<String> parseLivenessProbe(String livenessProbeExec) {
+        if (livenessProbeExec == null || livenessProbeExec.isEmpty()) {
+            return null;
+        }
+        // handle quoted arguments
+        Matcher m = SPLIT_IN_SPACES.matcher(livenessProbeExec);
         List<String> commands = new ArrayList<String>();
         while (m.find()) {
             commands.add(substituteEnv(m.group(1).replace("\"", "")));
