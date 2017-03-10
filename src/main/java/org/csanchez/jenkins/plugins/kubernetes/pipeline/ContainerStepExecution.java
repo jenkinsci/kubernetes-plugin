@@ -55,7 +55,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         }
         client = cloud.connect();
 
-        decorator = new ContainerExecDecorator(client, podName, containerName, workspace.getRemote(), podAlive, podStarted, podFinished);
+        decorator = new ContainerExecDecorator(client, podName, containerName, podAlive, podStarted, podFinished);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))

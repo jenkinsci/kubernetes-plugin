@@ -60,8 +60,6 @@ import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * @author Carlos Sanchez
- * @since
- *
  */
 public class KubernetesPipelineTest {
 
@@ -182,6 +180,40 @@ public class KubernetesPipelineTest {
         r.assertLogContains("pwd is -/home/jenkins/workspace/p with spaces-", b);
     }
 
+    @Test
+    public void runDirContext() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition("" //
+                + "podTemplate(cloud: 'minikube', label: 'mypod', containers: [\n" //
+                + "        containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),\n" //
+                + "    ]) {\n" //
+                + "\n" //
+                + "    node ('mypod') {\n" //
+                + "      stage('Run') {\n" //
+                + "        container('busybox') {\n" //
+                + "          sh 'mkdir hz'\n" //
+                + "          sh 'echo \"initpwd is -$(pwd)-\"'\n" //
+                + "          dir('hz') {\n" //
+                + "             sh 'echo \"dirpwd is -$(pwd)-\"'\n" //
+                + "          }\n" //
+                + "          sh 'echo \"postpwd is -$(pwd)-\"'\n" //
+                + "        }\n" //
+                + "      }\n" //
+                + "\n" //
+                + "    }\n" //
+                + "}\n" //
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        String workspace = "/home/jenkins/workspace/job with dir";
+        r.assertLogContains("initpwd is -" + workspace + "-", b);
+        r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
+        r.assertLogContains("postpwd is -" + workspace + "-", b);
+
+    }
+
     // @Test
     public void runInPodWithRestart() throws Exception {
         story.addStep(new Statement() {
@@ -191,7 +223,7 @@ public class KubernetesPipelineTest {
 
                 story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                         Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>> emptyList())); // TODO JENKINS-26398 clumsy
+                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
                 WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition("" //
                         + "node('slave') {\n" //
@@ -223,7 +255,7 @@ public class KubernetesPipelineTest {
                         + "    }" //
                         + "  }" //
                         + "}" //
-                , true));
+                        , true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 SemaphoreStep.waitForStart("withDisplayAfterRestart/1", b);
             }
