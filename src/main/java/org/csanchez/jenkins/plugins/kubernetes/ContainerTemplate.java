@@ -46,18 +46,19 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
 
-    @DataBoundConstructor
+    @Deprecated
     public ContainerTemplate(String image) {
         this(null, image);
     }
 
-    ContainerTemplate(String name, String image) {
+    @DataBoundConstructor
+    public ContainerTemplate(String name, String image) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
     }
 
-    ContainerTemplate(String name, String image, String command, String args) {
+    public ContainerTemplate(String name, String image, String command, String args) {
         Preconditions.checkArgument(!StringUtils.isBlank(image));
         this.name = name;
         this.image = image;
