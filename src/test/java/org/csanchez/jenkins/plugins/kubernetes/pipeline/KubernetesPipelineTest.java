@@ -34,7 +34,9 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.logging.Level;
 
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -56,12 +58,17 @@ import hudson.model.Node;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * @author Carlos Sanchez
  */
 public class KubernetesPipelineTest {
+
+    private static final String TESTING_NAMESPACE = "kubernetes-plugin-test";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -84,8 +91,19 @@ public class KubernetesPipelineTest {
         assumeMiniKube();
 
         cloud.setServerUrl(miniKubeUrl().toExternalForm());
-        cloud.setNamespace("default");
-        cloud.connect();
+        cloud.setNamespace(TESTING_NAMESPACE);
+        KubernetesClient client = cloud.connect();
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+
+        // Create a busybox template
+        PodTemplate busyboxTemplate = new PodTemplate();
+        busyboxTemplate.setLabel("busybox");
+        ContainerTemplate busybox = new ContainerTemplate("busybox", "busybox", "cat", "");
+        busybox.setTtyEnabled(true);
+        busyboxTemplate.getContainers().add(busybox);
+        cloud.addTemplate(busyboxTemplate);
     }
 
     // @Test
@@ -153,6 +171,28 @@ public class KubernetesPipelineTest {
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
+    }
+
+    @Test
+    public void runInPodWithExistingTemplate() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("" //
+                + "    node ('busybox') {\n" //
+                + "      sh 'echo outside container'\n" //
+                + "\n" //
+                + "      stage('Run busybox') {\n" //
+                + "        container('busybox') {\n" //
+                + "          sh 'echo inside container'\n" //
+                + "        }\n" //
+                + "      }\n" //
+                + "    }\n" //
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("outside container", b);
+        r.assertLogContains("inside container", b);
     }
 
     @Test

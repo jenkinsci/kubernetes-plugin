@@ -602,7 +602,7 @@ public class KubernetesCloud extends Cloud {
 
                 try {
                     PrettyLoggable<String, LogWatch> tailingLines = connect().pods().withName(podId)
-                            .inContainer(containerStatus.getName()).tailingLines(20);
+                            .inContainer(containerStatus.getName()).tailingLines(30);
                     String log = tailingLines.getLog();
                     if (!StringUtils.isBlank(log)) {
                         String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName))

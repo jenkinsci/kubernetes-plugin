@@ -83,6 +83,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this.cloudName = cloudName;
     }
 
+    public String getCloudName() {
+        return cloudName;
+    }
+
+    public Cloud getCloud() {
+        return Jenkins.getInstance().getCloud(getCloudName());
+    }
+
     static String getSlaveName(PodTemplate template) {
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
@@ -113,7 +121,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
-        if (cloudName == null) {
+        if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for slave, can't terminate: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
@@ -121,16 +129,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         try {
-            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+            Cloud cloud = getCloud();
             if (cloud == null) {
-                String msg = String.format("Slave cloud no longer exists: %s", cloudName);
+                String msg = String.format("Slave cloud no longer exists: %s", getCloudName());
                 LOGGER.log(Level.WARNING, msg);
                 listener.fatalError(msg);
                 return;
             }
             if (!(cloud instanceof KubernetesCloud)) {
                 String msg = String.format("Slave cloud is not a KubernetesCloud, something is very wrong: %s",
-                        cloudName);
+                        getCloudName());
                 LOGGER.log(Level.SEVERE, msg);
                 listener.fatalError(msg);
                 return;

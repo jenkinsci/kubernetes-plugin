@@ -52,7 +52,7 @@ import org.jvnet.hudson.test.ThreadPoolImpl;
 public class JenkinsRuleNonLocalhost extends JenkinsRule {
     private static final Logger LOGGER = Logger.getLogger(JenkinsRuleNonLocalhost.class.getName());
 
-    private static final String HOST = System.getProperty("connectorHost", "localhost");
+    private static final String HOST = System.getProperty("connectorHost", "0.0.0.0");
 
     /**
      * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
