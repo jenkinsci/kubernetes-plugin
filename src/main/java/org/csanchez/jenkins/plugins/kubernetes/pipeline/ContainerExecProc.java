@@ -49,7 +49,8 @@ public class ContainerExecProc extends Proc {
     @Override
     public int join() throws IOException, InterruptedException {
         finished.await();
-        return 1;
+        // TODO we need to get the process exit code
+        return 0;
     }
 
     @Override

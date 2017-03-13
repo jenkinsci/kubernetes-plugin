@@ -23,12 +23,17 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,10 +42,14 @@ import org.junit.Assume;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.util.StreamTaskListener;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
 public class KubernetesTestUtil {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesTestUtil.class.getName());
+
+    public static final String TESTING_NAMESPACE = "kubernetes-plugin-test";
 
     private static final String[] MINIKUBE_COMMANDS = new String[] { "minikube", "/usr/local/bin/minikube" };
     private static String ip = null;
@@ -97,4 +106,15 @@ public class KubernetesTestUtil {
         Assume.assumeThat("MiniKube working", miniKubeIp(), not(isEmptyOrNullString()));
     }
 
+    public static KubernetesCloud setupCloud() throws UnrecoverableKeyException, CertificateEncodingException,
+            NoSuchAlgorithmException, KeyStoreException, IOException {
+        KubernetesCloud cloud = new KubernetesCloud("minikube");
+        cloud.setServerUrl(miniKubeUrl().toExternalForm());
+        cloud.setNamespace(TESTING_NAMESPACE);
+        KubernetesClient client = cloud.connect();
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        return cloud;
+    }
 }

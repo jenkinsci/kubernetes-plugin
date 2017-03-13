@@ -16,19 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.Launcher;
-import hudson.LauncherDecorator;
-import hudson.Proc;
-import hudson.model.Node;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.dsl.ExecListener;
-import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import okhttp3.Response;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -45,14 +33,34 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
+import com.google.common.io.NullOutputStream;
 
+import hudson.Launcher;
+import hudson.LauncherDecorator;
+import hudson.Proc;
+import hudson.model.Node;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.ExecListener;
+import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import okhttp3.Response;
+
+/**
+ * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
+ * the Jenkins slave to execute commands.
+ *
+ */
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
 
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
+    private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
@@ -97,12 +105,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             "[" + containerName + "] of pod [" + podName + "]." +
                             " Timed out waiting for container to become ready!");
                 }
-                launcher.getListener().getLogger().println("Executing shell script inside container [" + containerName + "] of pod [" + podName + "]");
+
+                PrintStream stream = launcher.getListener().getLogger();
+                // Do not send this command to the output when in quiet mode
+                if (starter.quiet()) {
+                    stream = new PrintStream(new NullOutputStream());
+                }
+                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
+                LOGGER.log(Level.FINEST, msg);
+                stream.println(msg);
+
                 watch = client.pods().inNamespace(namespace).withName(podName)
                         .inContainer(containerName)
                         .redirectingInput()
-                        .writingOutput(launcher.getListener().getLogger())
-                        .writingError(launcher.getListener().getLogger())
+                        .writingOutput(stream)
+                        .writingError(stream)
                         .withTTY()
                         .usingListener(new ExecListener() {
                             @Override
@@ -129,16 +146,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 waitQuietly(started);
 
-                //We need to get into the project workspace.
-                //The workspace is not known in advance, so we have to execute a cd command.
-                watch.getInput().write(String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
-                doExec(watch, launcher.getListener().getLogger(), getCommands(starter));
+                if (starter.pwd() != null) {
+                    // We need to get into the project workspace.
+                    // The workspace is not known in advance, so we have to execute a cd command.
+                    watch.getInput().write(
+                            String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                }
+                doExec(watch, stream, getCommands(starter));
                 proc = new ContainerExecProc(watch, alive, finished);
                 return proc;
             }
 
             @Override
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
+                // String cookie = modelEnvVars.get(COOKIE_VAR);
+                // TODO we need to use the cookie for something
                 getListener().getLogger().println("Killing process.");
                 ContainerExecDecorator.this.close();
             }
@@ -226,30 +248,31 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
         try {
             out.print("Executing command: ");
+            StringBuilder sb = new StringBuilder();
             for (String stmt : statements) {
-                String s = String.format("%s ", stmt);
+                String s = String.format("\"%s\" ", stmt);
+                sb.append(s);
                 out.print(s);
                 watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             out.println();
+            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            LOGGER.log(Level.FINEST, "Executing command: {0}", sb.toString());
+            // get the command exit code
+            watch.getInput().write(String.format("echo EXIT CODE: $?%s", NEWLINE).getBytes(StandardCharsets.UTF_8));
             //We need to exit so that we know when the command has finished.
-            watch.getInput().write("\nexit\n".getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(String.format("%s%s", EXIT, NEWLINE).getBytes(StandardCharsets.UTF_8));
             watch.getInput().flush();
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace(out);
+            throw new RuntimeException(e);
         }
     }
 
     private static String[] getCommands(Launcher.ProcStarter starter) {
         List<String> allCommands = new ArrayList<String>();
 
-
-        boolean first = true;
         for (String cmd : starter.cmds()) {
-            if (first && "nohup".equals(cmd)) {
-                first = false;
-                continue;
-            }
             //I shouldn't been doing that, but clearly the script that is passed to us is wrong?
             allCommands.add(cmd.replaceAll("\\$\\$", "\\$"));
         }
