@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,6 +36,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
     private static final long serialVersionUID = -8642936855413034232L;
+    private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
 
     /**
      * The resource bundle reference
@@ -95,10 +95,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
         if (StringUtils.isEmpty(name)) {
-            return String.format("kubernetes-%s", randString);
+            return String.format("%s-%s", DEFAULT_AGENT_PREFIX,  randString);
         }
         // no spaces
-        name = template.getName().replace(" ", "-").toLowerCase();
+        name = name.replaceAll("[ _]", "-").toLowerCase();
         // keep it under 63 chars (62 is used to account for the '-')
         name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
         return String.format("%s-%s", name, randString);
