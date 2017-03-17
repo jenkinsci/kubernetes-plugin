@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -47,8 +48,13 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         PodTemplateAction action = new PodTemplateAction(getContext().get(Run.class));
 
+        //Let's generate a random name based on the user specified to make sure that we don't have
+        //issues with concurrent builds, or messing with pre-existing configuration
+        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        String name = String.format(NAME_FORMAT, step.getName(), randString);
+
         PodTemplate newTemplate = new PodTemplate();
-        newTemplate.setName(step.getName());
+        newTemplate.setName(name);
         newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setLabel(step.getLabel());
@@ -64,7 +70,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
 
-        action.push(step.getName());
+        action.push(name);
         return false;
     }
 
