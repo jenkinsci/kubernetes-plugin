@@ -60,6 +60,11 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry title="${%PortMappings}" description="${%List of exposed ports}">
+      <f:repeatableHeteroProperty field="ports" hasHeader="true" addCaption="Add Port Mapping"
+                                    deleteCaption="Delete Port Mapping" />
+    </f:entry>
+
   </f:advanced>
 
 </j:jelly>
