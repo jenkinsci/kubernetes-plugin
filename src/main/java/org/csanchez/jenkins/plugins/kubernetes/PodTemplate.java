@@ -45,6 +45,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final int DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = 100;
 
+    public static final String DEFAULT_POD_RESTART_POLICY = "Always";
+
     private String inheritFrom;
 
     private String name;
@@ -81,6 +83,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceLimitMemory;
 
+    private String restartPolicy = DEFAULT_POD_RESTART_POLICY;
+
     private boolean customWorkspaceVolumeEnabled;
     private WorkspaceVolume workspaceVolume;
 
@@ -109,6 +113,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setName(from.getName());
         this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
+        this.setRestartPolicy(from.getRestartPolicy());
         this.setServiceAccount(from.getServiceAccount());
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
         this.setVolumes(from.getVolumes());
@@ -303,6 +308,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public String getNodeSelector() {
         return nodeSelector;
+    }
+
+    @DataBoundSetter
+    public void setRestartPolicy(String restartPolicy) {
+        this.restartPolicy = restartPolicy;
+    }
+
+    public String getRestartPolicy() {
+        return restartPolicy;
     }
 
     @Deprecated

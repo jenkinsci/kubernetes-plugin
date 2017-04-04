@@ -452,6 +452,7 @@ public class KubernetesCloud extends Cloud {
                 .endMetadata()
                 .withNewSpec()
                     .withVolumes(volumes)
+                    .withRestartPolicy(substituteEnv(template.getRestartPolicy()))
                     .withServiceAccount(substituteEnv(template.getServiceAccount()))
                     .withImagePullSecrets(imagePullSecrets)
                     .withContainers(containers.values().toArray(new Container[containers.size()]))

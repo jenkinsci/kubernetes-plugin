@@ -83,6 +83,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **command** The command the container will execute.
 * **args** The arugments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
+* **restartPolicy** Possible values Always, OnFailure, and Never. [see](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy)
 
 ### Pod template inheritance 
 

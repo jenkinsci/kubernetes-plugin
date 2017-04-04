@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -43,6 +44,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private String serviceAccount;
     private String nodeSelector;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
+    private String restartPolicy = PodTemplate.DEFAULT_POD_RESTART_POLICY;
 
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {
@@ -132,6 +134,15 @@ public class PodTemplateStep extends Step implements Serializable {
 
     public String getWorkingDir() {
         return workingDir;
+    }
+
+    @DataBoundSetter
+    public void setRestartPolicy(String restartPolicy) {
+        this.restartPolicy = restartPolicy;
+    }
+
+    public String getRestartPolicy() {
+        return restartPolicy;
     }
 
     @DataBoundSetter
