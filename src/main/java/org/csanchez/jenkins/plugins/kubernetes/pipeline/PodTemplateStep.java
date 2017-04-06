@@ -34,6 +34,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private final String label;
     private final String name;
 
+    private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
@@ -56,6 +57,15 @@ public class PodTemplateStep extends Step implements Serializable {
 
     public String getName() {
         return name;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @DataBoundSetter
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     public String getCloud() {

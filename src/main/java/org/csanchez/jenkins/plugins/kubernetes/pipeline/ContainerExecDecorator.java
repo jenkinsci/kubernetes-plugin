@@ -57,6 +57,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private final transient KubernetesClient client;
     private final String podName;
+    private final String namespace;
     private final String containerName;
     private final AtomicBoolean alive;
 
@@ -66,9 +67,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private transient ExecWatch watch;
     private transient ContainerExecProc proc;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
         this.client = client;
         this.podName = podName;
+        this.namespace = namespace;
         this.containerName = containerName;
         this.alive = alive;
         this.started = started;
@@ -76,8 +78,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     }
 
     @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+        this(client, podName, containerName, alive, started, finished, null);
+    }
+
+    @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, alive, started, finished);
+        this(client, podName, containerName, alive, started, finished, null);
     }
 
     @Override
@@ -91,7 +98,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             " Timed out waiting for container to become ready!");
                 }
                 launcher.getListener().getLogger().println("Executing shell script inside container [" + containerName + "] of pod [" + podName + "]");
-                watch = client.pods().withName(podName)
+                watch = client.pods().inNamespace(namespace).withName(podName)
                         .inContainer(containerName)
                         .redirectingInput()
                         .writingOutput(launcher.getListener().getLogger())
@@ -151,7 +158,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private boolean waitUntilContainerIsReady() {
-                Pod pod = client.pods().withName(podName).get();
+                Pod pod = client.pods().inNamespace(namespace).withName(podName).get();
 
                 if (pod == null) {
                     throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "]");
@@ -181,7 +188,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 };
 
-                try (Watch watch = client.pods().withName(podName).watch(podWatcher)) {
+                try (Watch watch = client.pods().inNamespace(namespace).withName(podName).watch(podWatcher)) {
                     if (latch.await(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES)) {
                         return true;
                     }

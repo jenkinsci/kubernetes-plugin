@@ -595,13 +595,13 @@ public class KubernetesCloud extends Cloud {
         /**
          * Log the last lines of containers logs
          */
-        private void logLastLines(List<ContainerStatus> containers, String podId, KubernetesSlave slave,
+        private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
                 Map<String, Integer> errors) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
 
                 try {
-                    PrettyLoggable<String, LogWatch> tailingLines = connect().pods().withName(podId)
+                    PrettyLoggable<String, LogWatch> tailingLines = connect().pods().inNamespace(namespace).withName(podId)
                             .inContainer(containerStatus.getName()).tailingLines(30);
                     String log = tailingLines.getLog();
                     if (!StringUtils.isBlank(log)) {
@@ -631,11 +631,15 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.FINER, "Adding Jenkins node: {0}", slave.getNodeName());
                 Jenkins.getActiveInstance().addNode(slave);
 
+                KubernetesClient client = connect();
                 Pod pod = getPodTemplate(slave, label);
-                // Why the hell doesn't createPod return a Pod object ?
-                pod = connect().pods().create(pod);
 
                 String podId = pod.getMetadata().getName();
+                String namespace = Strings.isNullOrEmpty(t.getNamespace())
+                        ? client.getNamespace()
+                        : t.getNamespace();
+
+                pod = client.pods().inNamespace(namespace).create(pod);
                 LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
 
                 // We need the pod to be running and connected before returning
@@ -651,7 +655,7 @@ public class KubernetesCloud extends Cloud {
                 for (; i < j; i++) {
                     LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
                     Thread.sleep(6000);
-                    pod = connect().pods().withName(podId).get();
+                    pod = connect().pods().inNamespace(namespace).withName(podId).get();
                     if (pod == null) {
                         throw new IllegalStateException("Pod no longer exists: " + podId);
                     }
@@ -680,7 +684,7 @@ public class KubernetesCloud extends Cloud {
                                 ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
 
                         // Print the last lines of failed containers
-                        logLastLines(terminatedContainers, podId, slave, errors);
+                        logLastLines(terminatedContainers, podId, namespace, slave, errors);
                         throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
                     }
 
@@ -713,7 +717,7 @@ public class KubernetesCloud extends Cloud {
                 }
                 if (!slave.getComputer().isOnline()) {
                     if (containerStatuses != null) {
-                        logLastLines(containerStatuses, podId, slave, null);
+                        logLastLines(containerStatuses, podId, namespace, slave, null);
                     }
                     throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
                 }
@@ -740,11 +744,11 @@ public class KubernetesCloud extends Cloud {
         }
 
         KubernetesClient client = connect();
-        PodList slaveList = client.pods().withLabels(POD_LABEL).list();
+        PodList slaveList = client.pods().inNamespace(template.getNamespace()).withLabels(POD_LABEL).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
-        PodList namedList = client.pods().withLabels(labelsMap).list();
+        PodList namedList = client.pods().inNamespace(template.getNamespace()).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {

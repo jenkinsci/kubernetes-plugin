@@ -11,6 +11,9 @@
 	<f:entry field="name" title="The name of the template">
 	  <f:textbox/>
 	</f:entry>
+	<f:entry field="namespace" title="The namespace of the template">
+	  <f:textbox/>
+	</f:entry>
 	<f:entry field="label" title="The label">
       <f:textbox/>
     </f:entry>

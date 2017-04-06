@@ -66,6 +66,7 @@ The `podTemplate` is a template of a pod that will be used to create slaves. It 
 Either way it provides access to the following fields:
 
 * **name** The name of the pod.
+* **namespace** The namespace of the pod.
 * **label** The label of the pod.
 * **container** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
@@ -162,7 +163,13 @@ Then consumers of the library could just express the need for a maven pod with d
             """
         }
     }
+
+#### Using a different namespace
  
+There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
+For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing. 
+For those cases you can explicitly configure a namespace either using the ui or the pipeline.
+
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
