@@ -137,6 +137,7 @@ public class PodTemplateUtils {
 
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName(name);
+        podTemplate.setNamespace(!Strings.isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);

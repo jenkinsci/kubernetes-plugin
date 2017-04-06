@@ -9,6 +9,10 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="namespace" title="${%Namespace}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="label" title="${%Labels}">
     <f:textbox/>
   </f:entry>

@@ -44,6 +44,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
     private final String cloudName;
+    private final String namespace;
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
@@ -81,10 +82,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         // this.pod = pod;
         this.cloudName = cloudName;
+        this.namespace = template.getNamespace();
     }
 
     public String getCloudName() {
         return cloudName;
+    }
+
+    public String getNamespace() {
+        return namespace;
     }
 
     public Cloud getCloud() {
@@ -144,7 +150,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 return;
             }
             KubernetesClient client = ((KubernetesCloud) cloud).connect();
-            PodResource<Pod, DoneablePod> pods = client.pods().withName(name);
+            PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(name);
             pods.delete();
             String msg = String.format("Terminated Kubernetes instance for slave %s", name);
             LOGGER.log(Level.INFO, msg);

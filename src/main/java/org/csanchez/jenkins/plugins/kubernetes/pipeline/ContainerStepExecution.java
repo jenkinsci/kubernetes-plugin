@@ -1,12 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -14,14 +7,20 @@ import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import hudson.AbortException;
 import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.model.Node;
 import hudson.model.TaskListener;
-import hudson.slaves.Cloud;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.Jenkins;
 
 public class ContainerStepExecution extends AbstractStepExecutionImpl {
 
@@ -45,6 +44,8 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         LOGGER.log(Level.FINE, "Starting container step.");
         FilePath workspace = getContext().get(FilePath.class);
         String podName = workspace.child(HOSTNAME_FILE).readToString().trim();
+        String namespace = workspace.child(Config.KUBERNETES_NAMESPACE_PATH).readToString().trim();
+
         String containerName = step.getName();
 
         final AtomicBoolean podAlive = new AtomicBoolean(false);
@@ -62,7 +63,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         }
         client = cloud.connect();
 
-        decorator = new ContainerExecDecorator(client, podName, containerName, podAlive, podStarted, podFinished);
+        decorator = new ContainerExecDecorator(client, podName,  containerName, podAlive, podStarted, podFinished, namespace);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))

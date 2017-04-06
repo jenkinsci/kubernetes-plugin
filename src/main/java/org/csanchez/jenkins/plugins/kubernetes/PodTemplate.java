@@ -49,6 +49,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String name;
 
+    private String namespace;
+
     private String image;
 
     private boolean privileged;
@@ -155,6 +157,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public String getName() {
         return name;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @DataBoundSetter
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     @Deprecated
