@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.logging.Level;
 
 import hudson.model.Node;
+import hudson.model.Run;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
@@ -177,6 +178,28 @@ public class KubernetesPipelineTest {
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);
 
+    }
+
+    @Test
+    public void runWithOverriddenNamespace() throws Exception {
+        configureCloud(r);
+        String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
+        KubernetesClient client = cloud.connect();
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata()
+                        .build());
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace.groovy"), true));
+
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        NamespaceAction namespaceAction = new NamespaceAction(b);
+        namespaceAction.push(overriddenNamespace);
+
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains(overriddenNamespace, b);
     }
 
     // @Test
