@@ -41,6 +41,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodAnnotation> annotations = new ArrayList<>();
 
     private int instanceCap;
+    private int idleMinutes;
+
     private String serviceAccount;
     private String nodeSelector;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
@@ -120,6 +122,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setInstanceCap(int instanceCap) {
         this.instanceCap = instanceCap;
+    }
+
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutes(int instanceCap) {
+        this.idleMinutes = idleMinutes;
     }
 
     public String getServiceAccount() {
