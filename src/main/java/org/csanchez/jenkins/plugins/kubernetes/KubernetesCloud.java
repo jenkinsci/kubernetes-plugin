@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -572,6 +573,8 @@ public class KubernetesCloud extends Cloud {
             } else {
                 LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
             }
+        } catch (ConnectException e) {
+            LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}", serverUrl);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
         }
