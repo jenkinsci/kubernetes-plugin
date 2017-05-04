@@ -69,6 +69,7 @@ containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args:
 The `podTemplate` is a template of a pod that will be used to create slaves. It can be either configured via the user interface, or via pipeline. 
 Either way it provides access to the following fields:
 
+* **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod.
@@ -179,7 +180,7 @@ For those cases you can explicitly configure a namespace either using the ui or 
 When configuring a container in a pipeline podTemplate the following options are available:
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
+podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
     containerTemplate(
         name: 'mariadb', 
         image: 'mariadb:10.1', 
