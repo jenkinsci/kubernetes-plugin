@@ -158,11 +158,32 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private boolean waitUntilContainerIsReady() {
+                int i = 0;
+                int j = 10; // wait 60 seconds
                 Pod pod = client.pods().inNamespace(namespace).withName(podName).get();
 
                 if (pod == null) {
-                    throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "]");
+                    launcher.getListener().getLogger().println("Waiting for pod [" + podName + "] to exist.");
+                    // wait for Pod to be running.
+                    for (; i < j; i++) {
+                        LOGGER.log(Level.INFO, "Getting pod ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        pod = client.pods().inNamespace(namespace).withName(podName).get();
+                        if (pod != null) {
+                            break;
+                        }
+                        LOGGER.log(Level.INFO, "Waiting 6 seconds before checking if pod exists ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        try {
+                            Thread.sleep(6000);
+                        } catch (InterruptedException e) {
+                            return false;
+                        }
+                    }
                 }
+
+                if (pod == null) {
+                    throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "], pod doesn't exist");
+                }
+
                 if (isContainerReady(pod, containerName)) {
                     return true;
                 }
