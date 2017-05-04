@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.Proc;
-import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,8 +8,15 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import hudson.Proc;
+import io.fabric8.kubernetes.client.dsl.ExecWatch;
 
 public class ContainerExecProc extends Proc {
+
+    private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
 
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
@@ -29,11 +35,15 @@ public class ContainerExecProc extends Proc {
 
     @Override
     public void kill() throws IOException, InterruptedException {
-        //What we actually do is send a ctrl-c to the current process and then exit the shell.
-        watch.getInput().write(Constants.CTRL_C);
-        watch.getInput().write(Constants.EXIT.getBytes(StandardCharsets.UTF_8));
-        watch.getInput().write(Constants.NEWLINE.getBytes(StandardCharsets.UTF_8));
-        watch.getInput().flush();
+        try {
+            //What we actually do is send a ctrl-c to the current process and then exit the shell.
+            watch.getInput().write(CTRL_C);
+            watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().flush();
+        } catch (IOException e) {
+            LOGGER.log(Level.FINE, "Proc kill failed, ignoring", e);
+        }
     }
 
     @Override
