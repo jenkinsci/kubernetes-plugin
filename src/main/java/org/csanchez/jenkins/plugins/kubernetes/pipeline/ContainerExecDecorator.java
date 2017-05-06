@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.fabric8.kubernetes.client.Watcher.Action.MODIFIED;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
@@ -58,8 +57,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private final transient KubernetesClient client;
     private final String podName;
+    private final String namespace;
     private final String containerName;
-    private final String path;
     private final AtomicBoolean alive;
 
     private transient CountDownLatch started;
@@ -68,14 +67,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private transient ExecWatch watch;
     private transient ContainerExecProc proc;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
         this.client = client;
         this.podName = podName;
+        this.namespace = namespace;
         this.containerName = containerName;
-        this.path = path;
         this.alive = alive;
         this.started = started;
         this.finished = finished;
+    }
+
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+        this(client, podName, containerName, alive, started, finished, null);
+    }
+
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
+        this(client, podName, containerName, alive, started, finished, null);
     }
 
     @Override
@@ -89,7 +98,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             " Timed out waiting for container to become ready!");
                 }
                 launcher.getListener().getLogger().println("Executing shell script inside container [" + containerName + "] of pod [" + podName + "]");
-                watch = client.pods().withName(podName)
+                watch = client.pods().inNamespace(namespace).withName(podName)
                         .inContainer(containerName)
                         .redirectingInput()
                         .writingOutput(launcher.getListener().getLogger())
@@ -103,9 +112,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             }
 
                             @Override
-                            public void onFailure(IOException e, Response response) {
+                            public void onFailure(Throwable t, Response response) {
                                 alive.set(false);
-                                e.printStackTrace(launcher.getListener().getLogger());
+                                t.printStackTrace(launcher.getListener().getLogger());
                                 started.countDown();
                                 finished.countDown();
                             }
@@ -122,7 +131,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 //We need to get into the project workspace.
                 //The workspace is not known in advance, so we have to execute a cd command.
-                watch.getInput().write(String.format("cd \"%s\"%s", path, NEWLINE).getBytes(StandardCharsets.UTF_8));
+                watch.getInput().write(String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
                 doExec(watch, launcher.getListener().getLogger(), getCommands(starter));
                 proc = new ContainerExecProc(watch, alive, finished);
                 return proc;
@@ -149,11 +158,32 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private boolean waitUntilContainerIsReady() {
-                Pod pod = client.pods().withName(podName).get();
+                int i = 0;
+                int j = 10; // wait 60 seconds
+                Pod pod = client.pods().inNamespace(namespace).withName(podName).get();
 
                 if (pod == null) {
-                    throw new IllegalArgumentException("Container with name:[" + containerName+"] not found in pod:[" + podName + "]");
+                    launcher.getListener().getLogger().println("Waiting for pod [" + podName + "] to exist.");
+                    // wait for Pod to be running.
+                    for (; i < j; i++) {
+                        LOGGER.log(Level.INFO, "Getting pod ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        pod = client.pods().inNamespace(namespace).withName(podName).get();
+                        if (pod != null) {
+                            break;
+                        }
+                        LOGGER.log(Level.INFO, "Waiting 6 seconds before checking if pod exists ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        try {
+                            Thread.sleep(6000);
+                        } catch (InterruptedException e) {
+                            return false;
+                        }
+                    }
                 }
+
+                if (pod == null) {
+                    throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "], pod doesn't exist");
+                }
+
                 if (isContainerReady(pod, containerName)) {
                     return true;
                 }
@@ -179,7 +209,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 };
 
-                try (Watch watch = client.pods().withName(podName).watch(podWatcher)) {
+                try (Watch watch = client.pods().inNamespace(namespace).withName(podName).watch(podWatcher)) {
                     if (latch.await(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES)) {
                         return true;
                     }

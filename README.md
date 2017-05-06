@@ -31,23 +31,27 @@ podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'golang', image: 'golang:1.6.3', ttyEnabled: true, command: 'cat')
   ]) {
 
-    node ('mypod') {
-        stage 'Get a Maven project'
-        git 'https://github.com/jenkinsci/kubernetes-plugin.git'
-        container('maven') {
-            stage 'Build a Maven project'
-            sh 'mvn clean install'
+    node('mypod') {
+        stage('Get a Maven project') {
+            git 'https://github.com/jenkinsci/kubernetes-plugin.git'
+            container('maven') {
+                stage('Build a Maven project') {
+                    sh 'mvn clean install'
+                }
+            }
         }
 
-        stage 'Get a Golang project'
-        git url: 'https://github.com/hashicorp/terraform.git'
-        container('golang') {
-            stage 'Build a Go project'
-            sh """
-            mkdir -p /go/src/github.com/hashicorp
-            ln -s `pwd` /go/src/github.com/hashicorp/terraform
-            cd /go/src/github.com/hashicorp/terraform && make core-dev
-            """
+        stage('Get a Golang project') {
+            git url: 'https://github.com/hashicorp/terraform.git'
+            container('golang') {
+                stage('Build a Go project') {
+                    sh """
+                    mkdir -p /go/src/github.com/hashicorp
+                    ln -s `pwd` /go/src/github.com/hashicorp/terraform
+                    cd /go/src/github.com/hashicorp/terraform && make core-dev
+                    """
+                }
+            }
         }
 
     }
@@ -65,7 +69,9 @@ containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args:
 The `podTemplate` is a template of a pod that will be used to create slaves. It can be either configured via the user interface, or via pipeline. 
 Either way it provides access to the following fields:
 
+* **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
+* **namespace** The namespace of the pod.
 * **label** The label of the pod.
 * **container** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
@@ -162,13 +168,19 @@ Then consumers of the library could just express the need for a maven pod with d
             """
         }
     }
+
+#### Using a different namespace
  
+There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
+For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing. 
+For those cases you can explicitly configure a namespace either using the ui or the pipeline.
+
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
+podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
     containerTemplate(
         name: 'mariadb', 
         image: 'mariadb:10.1', 
@@ -294,7 +306,7 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
 ## Running locally with minikube
 
-A local testing cluster with one node can be created with [minukube](https://github.com/kubernetes/minikube)
+A local testing cluster with one node can be created with [minikube](https://github.com/kubernetes/minikube)
 
     minikube start
 

@@ -1,10 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
@@ -25,7 +25,7 @@ import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.ClientPodResource;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.Jenkins;
 
 /**
@@ -36,6 +36,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
     private static final long serialVersionUID = -8642936855413034232L;
+    private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
 
     /**
      * The resource bundle reference
@@ -43,6 +44,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
     private final String cloudName;
+    private final String namespace;
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
@@ -80,19 +82,32 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         // this.pod = pod;
         this.cloudName = cloudName;
+        this.namespace = template.getNamespace();
+    }
+
+    public String getCloudName() {
+        return cloudName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public Cloud getCloud() {
+        return Jenkins.getInstance().getCloud(getCloudName());
     }
 
     static String getSlaveName(PodTemplate template) {
-        String hex = Long.toHexString(System.nanoTime());
+        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
         if (StringUtils.isEmpty(name)) {
-            return hex;
+            return String.format("%s-%s", DEFAULT_AGENT_PREFIX,  randString);
         }
         // no spaces
-        name = template.getName().replace(" ", "-").toLowerCase();
-        // keep it under 256 chars
-        name = name.substring(0, Math.min(name.length(), 256 - hex.length()));
-        return String.format("%s-%s", name, hex);
+        name = name.replaceAll("[ _]", "-").toLowerCase();
+        // keep it under 63 chars (62 is used to account for the '-')
+        name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
+        return String.format("%s-%s", name, randString);
     }
 
     @Override
@@ -112,7 +127,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
-        if (cloudName == null) {
+        if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for slave, can't terminate: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
@@ -120,22 +135,22 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         try {
-            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+            Cloud cloud = getCloud();
             if (cloud == null) {
-                String msg = String.format("Slave cloud no longer exists: %s", cloudName);
+                String msg = String.format("Slave cloud no longer exists: %s", getCloudName());
                 LOGGER.log(Level.WARNING, msg);
                 listener.fatalError(msg);
                 return;
             }
             if (!(cloud instanceof KubernetesCloud)) {
                 String msg = String.format("Slave cloud is not a KubernetesCloud, something is very wrong: %s",
-                        cloudName);
+                        getCloudName());
                 LOGGER.log(Level.SEVERE, msg);
                 listener.fatalError(msg);
                 return;
             }
             KubernetesClient client = ((KubernetesCloud) cloud).connect();
-            ClientPodResource<Pod, DoneablePod> pods = client.pods().withName(name);
+            PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(name);
             pods.delete();
             String msg = String.format("Terminated Kubernetes instance for slave %s", name);
             LOGGER.log(Level.INFO, msg);

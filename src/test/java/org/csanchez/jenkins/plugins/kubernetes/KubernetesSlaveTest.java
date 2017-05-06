@@ -44,10 +44,12 @@ public class KubernetesSlaveTest {
         List<? extends PodVolume> volumes = Collections.emptyList();
         List<ContainerTemplate> containers = Collections.emptyList();
 
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)), "^[0-9a-f]{10,}$");
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^[0-9a-f]{10,}$");
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)), "^jenkins-agent-[0-9a-z]{5}$");
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^jenkins-agent-[0-9a-z]{5}$");
         assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("a name", volumes, containers)),
-                ("^a-name-[0-9a-f]{10,}$"));
+                ("^a-name-[0-9a-z]{5}$"));
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("an_other_name", volumes, containers)),
+                ("^an-other-name-[0-9a-z]{5}$"));
     }
 
     private void assertRegex(String name, String regex) {

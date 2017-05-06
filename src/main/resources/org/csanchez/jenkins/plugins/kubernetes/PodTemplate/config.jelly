@@ -9,6 +9,10 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="namespace" title="${%Namespace}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="label" title="${%Labels}">
     <f:textbox/>
   </f:entry>
@@ -37,6 +41,10 @@
   </f:entry>
 
   <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="slaveConnectTimeoutStr" title="${%Timeout in seconds for Jenkins connection}">
     <f:textbox/>
   </f:entry>
 

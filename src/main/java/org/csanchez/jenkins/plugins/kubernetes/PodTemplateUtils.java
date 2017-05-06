@@ -137,6 +137,7 @@ public class PodTemplateUtils {
 
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName(name);
+        podTemplate.setNamespace(!Strings.isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
@@ -275,7 +276,7 @@ public class PodTemplateUtils {
             String key = m.group(PLACEHOLDER_KEY);
             String val = properties.get(key);
             if (val != null) {
-                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), val);
+                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), Matcher.quoteReplacement(val));
             } else if (defaultValue != null) {
                 s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), defaultValue);
             }
