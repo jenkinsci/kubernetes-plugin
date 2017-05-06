@@ -89,6 +89,13 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **command** The command the container will execute.
 * **args** The arugments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
+* **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
+
+#### Liveness Probe Usage
+```groovy
+containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: 'cat', livenessProbe: containerLivenessProbe( execArgs: 'some --command', initialDelaySeconds: 30, timeoutSeconds: 1, failureThreshold: 3, periodSeconds: 10, successThreshold: 1))
+```
+See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-a-liveness-command) for more details.
 
 ### Pod template inheritance 
 
