@@ -44,8 +44,8 @@
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
     <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
-    <jenkins-durable-task.version>1.12</jenkins-durable-task.version>
-    <jenkins-durable-task-step.version>2.7</jenkins-durable-task-step.version>
+    <jenkins-durable-task.version>1.13</jenkins-durable-task.version>
+    <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
     <jenkins-git.version>2.6.0</jenkins-git.version>
     <jenkins-mailer.version>1.17</jenkins-mailer.version>
     <jenkins-pipeline-stage-step.version>2.2</jenkins-pipeline-stage-step.version>

@@ -70,30 +70,61 @@ public class ContainerExecDecoratorTest {
 
     @AfterClass
     public static void deletePods() throws Exception {
-        client.pods().withLabel("class", labels.get("class")).delete();
+        if (client != null) {
+            client.pods().withLabel("class", labels.get("class")).delete();
+        }
     }
 
     @Test
     public void testCommandExecution() throws Exception {
-        String output = execCommand(false, "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertTrue("Output should contain pid: " + output, PID_PATTERN.matcher(output).find());
+        ProcReturn r = execCommand(false, "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    public void testCommandExecutionFailure() throws Exception {
+        ProcReturn r = execCommand(false, "false");
+        assertEquals(1, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    public void testCommandExecutionFailureHighError() throws Exception {
+        ProcReturn r = execCommand(false, "sh", "-c", "return 127");
+        assertEquals(127, r.exitCode);
+        assertFalse(r.proc.isAlive());
     }
 
     @Test
     public void testQuietCommandExecution() throws Exception {
-        String output = execCommand(true, "echo", "pid is 9999");
-        assertFalse("Output should not contain command: " + output, PID_PATTERN.matcher(output).find());
+        ProcReturn r = execCommand(true, "echo", "pid is 9999");
+        assertFalse("Output should not contain command: " + r.output, PID_PATTERN.matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
     }
 
     @Test
     public void testCommandExecutionWithNohup() throws Exception {
-        String output = execCommand(false, "nohup", "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertFalse("Output should not contain pid: " + output, PID_PATTERN.matcher(output).find());
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
     }
 
-    private String execCommand(boolean quiet, String... cmd) throws Exception {
+    @Test
+    public void testCommandExecutionWithNohupAndError() throws Exception {
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
+        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        assertEquals(127, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
         String image = "busybox";
-        Container c = new ContainerBuilder().withName(image).withImage(image).withCommand("cat").withTty(true).build();
+        Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
+                .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         Pod pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
                 .endMetadata().withNewSpec().withContainers(c).endSpec().build());
@@ -112,9 +143,21 @@ public class ContainerExecDecoratorTest {
                     .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
             ContainerExecProc proc = (ContainerExecProc) launcher
                     .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
-            proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
-            return out.toString();
+            assertTrue(proc.isAlive());
+            int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
+            return new ProcReturn(proc, exitCode, out.toString());
         }
     }
 
+    class ProcReturn {
+        public int exitCode;
+        public String output;
+        public ContainerExecProc proc;
+
+        ProcReturn(ContainerExecProc proc, int exitCode, String output) {
+            this.proc = proc;
+            this.exitCode = exitCode;
+            this.output = output;
+        }
+    }
 }
