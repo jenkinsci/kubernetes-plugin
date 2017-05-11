@@ -27,10 +27,11 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
+import hudson.model.Node;
 
 /**
  * Kubernetes Pod Template
- * 
+ *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
@@ -64,6 +65,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String serviceAccount;
 
     private String nodeSelector;
+
+    private Node.Mode nodeUsageMode;
 
     private String resourceRequestCpu;
 
@@ -101,6 +104,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setName(from.getName());
         this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
+        this.setNodeUsageMode(from.getNodeUsageMode());
         this.setServiceAccount(from.getServiceAccount());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
@@ -264,6 +268,20 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public String getNodeSelector() {
         return nodeSelector;
+    }
+
+    @DataBoundSetter
+    public void setNodeUsageMode(Node.Mode nodeUsageMode) {
+        this.nodeUsageMode = nodeUsageMode;
+    }
+
+    @DataBoundSetter
+    public void setNodeUsageMode(String nodeUsageMode) {
+        this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
+    }
+
+    public Node.Mode getNodeUsageMode() {
+        return nodeUsageMode;
     }
 
     @Deprecated

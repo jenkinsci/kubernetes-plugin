@@ -24,6 +24,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import hudson.model.Label;
+import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
@@ -105,6 +106,7 @@ public class PodTemplateUtils {
         String label = template.getLabel();
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
+        Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodImagePullSecret> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getImagePullSecrets());
@@ -146,6 +148,8 @@ public class PodTemplateUtils {
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
+        podTemplate.setNodeUsageMode(nodeUsageMode);
+
         return podTemplate;
     }
 
