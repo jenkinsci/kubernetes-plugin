@@ -26,6 +26,28 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 Nodes can be defined in a pipeline and then used
 
 ```groovy
+podTemplate(label: 'mypod') {
+    node('mypod') {
+        stage('Run shell') {
+            sh 'echo hello world'
+        }
+    }
+}
+```
+
+The default jnlp agent image used can be customized by adding it to the template
+
+```groovy
+containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+```
+
+### Container Group Support
+
+Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
+
+The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
+
+```groovy
 podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.6.3', ttyEnabled: true, command: 'cat')
@@ -58,11 +80,6 @@ podTemplate(label: 'mypod', containers: [
 }
 ```
 
-The jnlp agent image used can be customized by adding it to the template
-
-```groovy
-containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
-```
 
 ### Pod and container template configuration
 
@@ -87,7 +104,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **image** The image of the container.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
 * **command** The command the container will execute.
-* **args** The arugments passed to the command.
+* **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
 
 ### Pod template inheritance 
