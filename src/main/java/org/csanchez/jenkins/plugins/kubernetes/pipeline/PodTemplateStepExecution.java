@@ -84,10 +84,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private String checkNamespace(KubernetesCloud kubernetesCloud, NamespaceAction namespaceAction) {
         String namespace = null;
-        if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
-            namespace = namespaceAction.getNamespace();
-        } else if (!Strings.isNullOrEmpty(step.getNamespace())) {
+        if (!Strings.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
+        } else if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
+            namespace = namespaceAction.getNamespace();
         } else if (!Strings.isNullOrEmpty(kubernetesCloud.getNamespace())) {
             namespace = kubernetesCloud.getNamespace();
         } else {

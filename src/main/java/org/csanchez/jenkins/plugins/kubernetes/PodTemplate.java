@@ -109,6 +109,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setInstanceCap(from.getInstanceCap());
         this.setLabel(from.getLabel());
         this.setName(from.getName());
+        this.setNamespace(from.getNamespace());
         this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
         this.setServiceAccount(from.getServiceAccount());
