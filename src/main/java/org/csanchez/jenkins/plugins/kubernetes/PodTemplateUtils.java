@@ -52,7 +52,7 @@ public class PodTemplateUtils {
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
         boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
-        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getCommand();
+        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
         String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
         boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);;
@@ -139,6 +139,7 @@ public class PodTemplateUtils {
 
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName(name);
+        podTemplate.setNamespace(!Strings.isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
@@ -279,7 +280,7 @@ public class PodTemplateUtils {
             String key = m.group(PLACEHOLDER_KEY);
             String val = properties.get(key);
             if (val != null) {
-                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), val);
+                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), Matcher.quoteReplacement(val));
             } else if (defaultValue != null) {
                 s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), defaultValue);
             }

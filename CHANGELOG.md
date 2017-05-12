@@ -1,10 +1,18 @@
 CHANGELOG
 =========
 
+0.11
+-----
+
 * Pod Template "Annotations" Field [#105](https://github.com/jenkinsci/kubernetes-plugin/pull/105)
 * The workspace volume is now configurable [#114](https://github.com/jenkinsci/kubernetes-plugin/pull/114)
-
+* Allow the user to configure a pod template that will be used for providing the default values. [#133](https://github.com/jenkinsci/kubernetes-plugin/pull/133)
+* Cleanup environment variable mapping, allow overriding HOME env variable [#128](https://github.com/jenkinsci/kubernetes-plugin/pull/128)
 * When upgrading from <0.9 set the container name to jnlp. To avoid creating an extra container, the one that exists and the new jnlp auto generated [#132](https://github.com/jenkinsci/kubernetes-plugin/pull/132)
+* Make the name field in the pod template the pod name [#134](https://github.com/jenkinsci/kubernetes-plugin/pull/134)
+* [JENKINS-41847] NPE in addProvisionedSlave when label is null [#129](https://github.com/jenkinsci/kubernetes-plugin/pull/129)
+* [JENKINS-41725] NPE in PodTemplateUtils.combine [#130](https://github.com/jenkinsci/kubernetes-plugin/pull/130)
+* [JENKINS-41287] Fix error when job contains spaces [#131](https://github.com/jenkinsci/kubernetes-plugin/pull/131)
 * Remove node if pod startup fails [#122](https://github.com/jenkinsci/kubernetes-plugin/pull/122)
 * Avoid NPE if cloud is deleted or renamed [#118](https://github.com/jenkinsci/kubernetes-plugin/pull/118)
 * Fixing deletion of containers in pod templates, containers property is databound [#113](https://github.com/jenkinsci/kubernetes-plugin/pull/113)

@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
 
@@ -40,9 +42,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
+    private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
+
+    private static final int DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = 100;
+
     private String inheritFrom;
 
     private String name;
+
+    private String namespace;
 
     private String image;
 
@@ -57,6 +65,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String remoteFs;
 
     private int instanceCap = Integer.MAX_VALUE;
+
+    private int slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
 
     private int idleMinutes;
 
@@ -106,6 +116,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setNodeSelector(from.getNodeSelector());
         this.setNodeUsageMode(from.getNodeUsageMode());
         this.setServiceAccount(from.getServiceAccount());
+        this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
     }
@@ -150,6 +161,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public String getName() {
         return name;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @DataBoundSetter
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     @Deprecated
@@ -206,6 +226,23 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return instanceCap;
     }
 
+    public void setSlaveConnectTimeout(int slaveConnectTimeout) {
+        if (slaveConnectTimeout <= 0) {
+            LOGGER.log(Level.WARNING, "Slave -> Jenkins connection timeout " +
+                    "cannot be <= 0. Falling back to the default value: " +
+                    DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
+            this.slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
+        } else {
+            this.slaveConnectTimeout = slaveConnectTimeout;
+        }
+    }
+
+    public int getSlaveConnectTimeout() {
+        if (slaveConnectTimeout == 0)
+            return DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
+        return slaveConnectTimeout;
+    }
+
     @DataBoundSetter
     public void setInstanceCapStr(String instanceCapStr) {
         if (StringUtils.isBlank(instanceCapStr)) {
@@ -221,6 +258,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         } else {
             return String.valueOf(instanceCap);
         }
+    }
+
+    @DataBoundSetter
+    public void setSlaveConnectTimeoutStr(String slaveConnectTimeoutStr) {
+        if (StringUtils.isBlank(slaveConnectTimeoutStr)) {
+            setSlaveConnectTimeout(DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
+        } else {
+            setSlaveConnectTimeout(Integer.parseInt(slaveConnectTimeoutStr));
+        }
+    }
+
+    public String getSlaveConnectTimeoutStr() {
+        return String.valueOf(slaveConnectTimeout);
     }
 
     public void setIdleMinutes(int i) {

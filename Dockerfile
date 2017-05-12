@@ -1,6 +1,6 @@
-FROM csanchez/jenkins-for-volumes
+FROM jenkins
 
-RUN /usr/local/bin/install-plugins.sh durable-task:1.12 credentials:2.1.4 kubernetes:0.7
+RUN /usr/local/bin/install-plugins.sh kubernetes:0.11
 
 # ENV VERSION 0.4-SNAPSHOT
 # COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi

@@ -1,9 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -44,14 +44,20 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                     cloud.getClass().getName()));
         }
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-        String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-        String name = String.format(NAME_FORMAT, step.getName(), uuid);
 
-        PodTemplateAction action = new PodTemplateAction(getContext().get(Run.class));
+        PodTemplateAction podTemplateAction = new PodTemplateAction(getContext().get(Run.class));
+        NamespaceAction namespaceAction = new NamespaceAction(getContext().get(Run.class));
+
+        //Let's generate a random name based on the user specified to make sure that we don't have
+        //issues with concurrent builds, or messing with pre-existing configuration
+        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        String name = String.format(NAME_FORMAT, step.getName(), randString);
+        String namespace = checkNamespace(kubernetesCloud, namespaceAction);
 
         PodTemplate newTemplate = new PodTemplate();
         newTemplate.setName(name);
-        newTemplate.setInheritFrom(!Strings.isNullOrEmpty( action.getParentTemplates()) ? action.getParentTemplates() : step.getInheritFrom());
+        newTemplate.setNamespace(namespace);
+        newTemplate.setInheritFrom(!Strings.isNullOrEmpty( podTemplateAction.getParentTemplates()) ? podTemplateAction.getParentTemplates() : step.getInheritFrom());
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setLabel(step.getLabel());
         newTemplate.setVolumes(step.getVolumes());
@@ -66,14 +72,37 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         kubernetesCloud.addTemplate(newTemplate);
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
-
-        action.push(step.getLabel());
+        podTemplateAction.push(name);
+        namespaceAction.push(namespace);
         return false;
     }
 
     @Override
     public void stop(Throwable cause) throws Exception {
         new PodTemplateAction(getContext().get(Run.class)).pop();
+    }
+
+
+    private String checkNamespace(KubernetesCloud kubernetesCloud, NamespaceAction namespaceAction) {
+        String namespace = null;
+        if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
+            namespace = namespaceAction.getNamespace();
+        } else if (!Strings.isNullOrEmpty(step.getNamespace())) {
+            namespace = step.getNamespace();
+        } else if (!Strings.isNullOrEmpty(kubernetesCloud.getNamespace())) {
+            namespace = kubernetesCloud.getNamespace();
+        } else {
+            try {
+                namespace = kubernetesCloud.connect().getNamespace();
+            } catch (Throwable t) {
+                //We can just ignore...
+            }
+        }
+
+        if (Strings.isNullOrEmpty(namespace)) {
+            throw new IllegalStateException("No target namespace has been found.");
+        }
+        return namespace;
     }
 
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {

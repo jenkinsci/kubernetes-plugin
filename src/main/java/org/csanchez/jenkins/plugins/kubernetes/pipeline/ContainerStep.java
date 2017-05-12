@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.model.Node;
 import hudson.model.TaskListener;
 
 public class ContainerStep extends Step implements Serializable {
@@ -60,7 +61,7 @@ public class ContainerStep extends Step implements Serializable {
 
         @Override
         public Set<? extends Class<?>> getRequiredContext() {
-            return ImmutableSet.of(PodTemplateStep.class, FilePath.class, TaskListener.class);
+            return ImmutableSet.of(Node.class, FilePath.class, TaskListener.class);
         }
     }
 }
