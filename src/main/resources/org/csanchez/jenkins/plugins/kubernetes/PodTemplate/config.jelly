@@ -64,6 +64,9 @@
           <f:textbox/>
      </f:entry>
 
+    <f:entry field="restartPolicy" title="${%Restart Policy}">
+          <f:textbox/>
+     </f:entry>
 
     <f:entry field="nodeSelector" title="${%Node Selector}">
       <f:textbox/>
