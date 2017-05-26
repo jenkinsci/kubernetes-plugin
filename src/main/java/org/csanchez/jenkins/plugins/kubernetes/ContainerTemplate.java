@@ -44,6 +44,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceLimitMemory;
 
+    private boolean slaveImage;
+
+    private boolean selfRegisteringSlave;
+
     private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
 
     @Deprecated
@@ -185,6 +189,31 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         this.resourceRequestCpu = resourceRequestCpu;
+    }
+
+    public static String getDefaultWorkingDir() {
+        return DEFAULT_WORKING_DIR;
+    }
+
+    public boolean isSlaveImage() {
+        return slaveImage;
+    }
+
+    @DataBoundSetter
+    public void setSlaveImage(boolean slaveImage) {
+        this.slaveImage = slaveImage;
+        if (!slaveImage) {
+            selfRegisteringSlave = false;
+        }
+    }
+
+    public boolean isSelfRegisteringSlave() {
+        return slaveImage && selfRegisteringSlave;
+    }
+
+    @DataBoundSetter
+    public void setSelfRegisteringSlave(boolean selfRegisteringSlave) {
+        this.selfRegisteringSlave = selfRegisteringSlave;
     }
 
     @Extension

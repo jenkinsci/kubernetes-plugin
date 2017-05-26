@@ -3,13 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Environment variables that are meant to be applied to all containers.
@@ -93,5 +92,15 @@ public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> implements Ser
         public String getDisplayName() {
             return "Global Environment Variable (applied to all containers)";
         }
+    }
+
+    public interface Names {
+        String JENKINS_URL = "JENKINS_URL";
+        String JENKINS_LOCATION_URL = "JENKINS_LOCATION_URL";
+        String JENKINS_TUNNEL = "JENKINS_TUNNEL";
+        String JENKINS_SECRET = "JENKINS_SECRET";
+        String JENKINS_NAME = "JENKINS_NAME";
+        String JENKINS_JNLP_URL = "JENKINS_JNLP_URL";
+        String HOME = "HOME";
     }
 }

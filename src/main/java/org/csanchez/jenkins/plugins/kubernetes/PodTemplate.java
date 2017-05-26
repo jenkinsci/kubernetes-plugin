@@ -1,18 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.google.common.base.Strings;
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.Label;
+import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.annotation.Nonnull;
-
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -21,14 +16,15 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import com.google.common.base.Strings;
-
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
+import javax.annotation.Nonnull;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Kubernetes Pod Template
@@ -84,6 +80,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String resourceLimitMemory;
 
     private boolean customWorkspaceVolumeEnabled;
+
     private WorkspaceVolume workspaceVolume;
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
@@ -490,6 +487,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return Collections.emptyList();
         }
         return containers;
+    }
+
+    public boolean hasSelfRegisteringSlave() {
+        return containers.stream().filter(ContainerTemplate::isSelfRegisteringSlave).count() > 0;
     }
 
     @SuppressWarnings("deprecation")

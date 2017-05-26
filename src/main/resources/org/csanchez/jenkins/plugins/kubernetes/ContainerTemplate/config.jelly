@@ -22,7 +22,13 @@
     <f:textbox default="/home/jenkins"/>
   </f:entry>
 
-  <f:entry field="command" title="${%Command to run slave agent}">
+  <f:optionalBlock name="slaveImage" inline="true" title="A Jenkins slave image" checked="${instance.slaveImage}">
+    <f:entry field="selfRegisteringSlave" title="${%Self-registering slave}">
+      <f:checkbox/>
+    </f:entry>
+  </f:optionalBlock>
+
+  <f:entry field="command" title="${%Custom ENTRYPOINT command}">
     <f:textbox default="/bin/sh -c"/>
   </f:entry>
 
