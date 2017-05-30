@@ -490,7 +490,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean hasSelfRegisteringSlave() {
-        return containers.stream().filter(ContainerTemplate::isSelfRegisteringSlave).count() > 0;
+        return containers.stream().anyMatch(ContainerTemplate::isSelfRegisteringSlave);
     }
 
     @SuppressWarnings("deprecation")

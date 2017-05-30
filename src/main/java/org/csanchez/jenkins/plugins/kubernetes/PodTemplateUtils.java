@@ -53,7 +53,7 @@ public class PodTemplateUtils {
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-        boolean slaveImage = template.isSlaveImage() ? template.isSlaveImage() : parent.isSlaveImage();
+        boolean slaveImage = template.isSlaveImage() || parent.isSlaveImage();
         boolean selfRegisteringSlave = template.isSelfRegisteringSlave() ? template.isSelfRegisteringSlave() : parent.isSelfRegisteringSlave();
 
         List<ContainerEnvVar> combinedEnvVars = new ArrayList<ContainerEnvVar>();

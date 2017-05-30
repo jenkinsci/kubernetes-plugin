@@ -83,13 +83,13 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.HOME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_JNLP_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_LOCATION_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_SECRET;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_TUNNEL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.Names.JENKINS_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.HOME;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_JNLP_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_LOCATION_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_SECRET;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_TUNNEL;
+import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_URL;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
@@ -492,8 +492,7 @@ public class KubernetesCloud extends Cloud {
 
         // If no agents are present in template, we need a default one to make pod available as agent in Jenkins
         if (agentContainerCount == 0) {
-            ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
-            containerTemplate.setName(JNLP_NAME);
+            ContainerTemplate containerTemplate = new ContainerTemplate(JNLP_NAME, DEFAULT_JNLP_IMAGE);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
             containers.put(JNLP_NAME, createContainer(slaveInfo, containerTemplate, envVars, volumeMounts.values()));
         } else if (agentContainerCount > 1) {
@@ -640,7 +639,9 @@ public class KubernetesCloud extends Cloud {
     }
 
     @VisibleForTesting
-    class SimpleProvisioningCallback implements Callable<Node> {
+    public class SimpleProvisioningCallback implements Callable<Node> {
+
+        static final String NODE_WAS_DELETED_COMPUTER_IS_NULL_MSG = "Node was deleted, computer is null";
 
         @Nonnull
         protected final KubernetesCloud cloud;
@@ -711,11 +712,10 @@ public class KubernetesCloud extends Cloud {
                 // otherwise this method keeps being called multiple times
                 ImmutableList<String> validStates = ImmutableList.of("Running");
 
-                String slaveNodeName = slaveInfo.getNodeName();
-                waitForPodStatus(podId, namespace, slaveNodeName, validStates);
+                waitForPodStatus(podId, namespace, podId, validStates);
 
                 // now wait for slave to be online
-                return waitForSlaveToComeOnline(podId, namespace, slaveNodeName).getSlave();
+                return waitForSlaveToComeOnline(podId, namespace).getSlave();
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
                 if (slave != null) {
@@ -744,26 +744,28 @@ public class KubernetesCloud extends Cloud {
             return pod.getMetadata().getNamespace();
         }
 
-        private SlaveOperationDetails waitForSlaveToComeOnline(String podId, String namespace, String slaveName) throws Exception {
-            Slave slave = (Slave) jenkins().getNode(slaveName);
-            Pod pod = getPodByNamespaceAndPodId(namespace, podId);
-            int slaveConnectTimeoutInSeconds = t.getSlaveConnectTimeout();
-            int attemptsToMake = slaveConnectTimeoutInSeconds / SlaveTimeLimitedTaskRunner.DEFAULT_SLEEP_AFTER_FAILURE_IN_MILLIS;
+        @VisibleForTesting
+        SlaveOperationDetails waitForSlaveToComeOnline(String podId, String namespace) throws Exception {
+            // Default delay is 1 second, so max number of attempts == number of seconds
+            int attemptsToMake = t.getSlaveConnectTimeout();
+            Slave slave = (Slave) jenkins().getNode(podId);
 
             try {
                 return SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
                     if (slave == null || slave.getComputer() == null) {
-                        throw new IllegalStateException("Node was deleted, computer is null");
+                        throw new IllegalStateException(NODE_WAS_DELETED_COMPUTER_IS_NULL_MSG);
                     }
                     if (slave.getComputer().isOnline()) {
+                        LOGGER.log(Level.INFO, "Slave {0} is online", new Object[]{podId});
                         return Optional.of(new SlaveOperationDetails(slave, null));
                     }
                     LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}",
                             new Object[]{podId, attemptNumber, attemptsToMake});
                     return Optional.empty();
-                }, slaveConnectTimeoutInSeconds);
+                }, attemptsToMake);
             } catch (SlaveOperationTimeoutException e) {
-                logLastSlaveContainerLines(pod, slaveName);
+                Pod pod = getPodByNamespaceAndPodId(namespace, podId);
+                logLastSlaveContainerLines(pod, podId);
                 throw failureToConnectOnlineSlave(pod, attemptsToMake);
             }
         }

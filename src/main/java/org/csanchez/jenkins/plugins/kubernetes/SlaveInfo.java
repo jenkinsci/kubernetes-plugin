@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
+ * @author <a href="mailto:kirill.shepitko@gmail.com">Kirill Shepitko</a>
  */
 public class SlaveInfo {
 

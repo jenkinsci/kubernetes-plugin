@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.slaves.Cloud;
@@ -20,7 +21,10 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.apache.commons.lang.StringUtils.isNotBlank;
+
 /**
+ * @author <a href="mailto:kirill.shepitko@gmail.com">Kirill Shepitko</a>
  */
 public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStrategy {
 
@@ -36,6 +40,7 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
     private final int maxMinutesIdle;
 
     public SelfRegisteredSlaveRetentionStrategy(String cloudName, String namespace, int maxMinutesIdle) {
+        Preconditions.checkArgument(isNotBlank(cloudName), "Cloud name needs to be defined");
         this.cloudName = cloudName;
         this.namespace = namespace;
         this.maxMinutesIdle = maxMinutesIdle;
@@ -52,32 +57,40 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
     }
 
     @Override
-    protected void kill(Node n) throws IOException {
-        LOGGER.info("Node " + n.getNodeDescription() + " will be killed now");
-        terminate(n);
+    protected void kill(Node node) throws IOException {
+        LOGGER.info("Node " + node.getNodeDescription() + " will be killed now");
+        if (canTerminate(node)) {
+            terminate(node);
+        }
     }
 
-    private void terminate(Node n) throws IOException {
-        String name = n.getNodeName();
-        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
+    @VisibleForTesting
+    boolean canTerminate(Node node) {
+        String name = node.getNodeName();
+        LOGGER.log(Level.FINE, "Checking if can terminate Kubernetes instance for slave {0}", name);
 
-        Computer computer = n.toComputer();
+        Computer computer = getNodeComputer(node);
         if (computer == null) {
             LOGGER.log(Level.SEVERE, "Computer for slave is null: {0}", name);
-            return;
+            return false;
         }
 
-        if (cloudName == null) {
-            LOGGER.log(Level.SEVERE, "Cloud name is not set for slave, can't terminate: {0}", name);
+        Cloud cloud = getCloud();
+        if (!(cloud instanceof KubernetesCloud)) {
+            LOGGER.log(Level.SEVERE, "Slave cloud is not a KubernetesCloud, something is very wrong: {0}", name);
+            return false;
         }
+        return true;
+    }
 
+    @VisibleForTesting
+    void terminate(Node node) throws IOException {
+        String name = node.getNodeName();
         try {
-            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
-            if (!(cloud instanceof KubernetesCloud)) {
-                LOGGER.log(Level.SEVERE, "Slave cloud is not a KubernetesCloud, something is very wrong: {0}", name);
-            }
+            Cloud cloud = getCloud();
             KubernetesClient client = ((KubernetesCloud) cloud).connect();
             deletePod(name, client);
+            Computer computer = getNodeComputer(node);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
         } catch (Exception e) {
@@ -85,7 +98,19 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
         }
     }
 
-    private void deletePod(String name, KubernetesClient client) {
+    // Have to have it in a separate method for tests, as toComputer() is final and can't be mocked
+    @VisibleForTesting
+    Computer getNodeComputer(Node node) {
+        return node.toComputer();
+    }
+
+    @VisibleForTesting
+    Cloud getCloud() {
+        return Jenkins.getInstance().getCloud(cloudName);
+    }
+
+    @VisibleForTesting
+    void deletePod(String name, KubernetesClient client) {
         String podName = getPodName(name);
         PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(podName);
         Boolean deletionResult = pods.delete();

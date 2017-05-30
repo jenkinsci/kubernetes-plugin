@@ -94,13 +94,17 @@ public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> implements Ser
         }
     }
 
-    public interface Names {
-        String JENKINS_URL = "JENKINS_URL";
-        String JENKINS_LOCATION_URL = "JENKINS_LOCATION_URL";
-        String JENKINS_TUNNEL = "JENKINS_TUNNEL";
-        String JENKINS_SECRET = "JENKINS_SECRET";
-        String JENKINS_NAME = "JENKINS_NAME";
-        String JENKINS_JNLP_URL = "JENKINS_JNLP_URL";
-        String HOME = "HOME";
+    public static class EnvironmentVariableNames {
+
+        static final String JENKINS_URL = "JENKINS_URL";
+        static final String JENKINS_LOCATION_URL = "JENKINS_LOCATION_URL";
+        static final String JENKINS_TUNNEL = "JENKINS_TUNNEL";
+        static final String JENKINS_SECRET = "JENKINS_SECRET";
+        static final String JENKINS_NAME = "JENKINS_NAME";
+        static final String JENKINS_JNLP_URL = "JENKINS_JNLP_URL";
+        static final String HOME = "HOME";
+
+        private EnvironmentVariableNames() {}
+
     }
 }
