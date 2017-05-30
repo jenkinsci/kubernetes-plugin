@@ -24,18 +24,21 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static java.util.Arrays.asList;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Map;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableMap;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.Secret;
 import org.apache.commons.compress.utils.IOUtils;
-import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.*;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -66,6 +69,9 @@ import jenkins.model.JenkinsLocationConfiguration;
  */
 public class KubernetesPipelineTest {
 
+    private static final String SECRET_VALUE = "pa55w0rd";
+    private static final String ENV_VAR_VALUE = "env-var-value";
+
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
 
@@ -85,13 +91,18 @@ public class KubernetesPipelineTest {
     public static void configureCloud() throws Exception {
         cloud = setupCloud();
 
+        createSecret(cloud.connect());
+
         // Create a busybox template
-        PodTemplate busyboxTemplate = new PodTemplate();
-        busyboxTemplate.setLabel("busybox");
-        ContainerTemplate busybox = new ContainerTemplate("busybox", "busybox", "cat", "");
-        busybox.setTtyEnabled(true);
-        busyboxTemplate.getContainers().add(busybox);
-        cloud.addTemplate(busyboxTemplate);
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setLabel("busybox");
+        setPodEnvVariables(podTemplate);
+
+        ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
+        setContainerEnvVariables(containerTemplate);
+        containerTemplate.setTtyEnabled(true);
+        podTemplate.getContainers().add(containerTemplate);
+        cloud.addTemplate(podTemplate);
     }
 
     @Before
@@ -137,6 +148,54 @@ public class KubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("outside container", b);
         r.assertLogContains("inside container", b);
+    }
+
+    @Test
+    public void runInPodWithExistingContainerSimpleEnvVariable() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingContainerEnvVariable.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains(ENV_VAR_VALUE, b);
+    }
+
+    @Test
+    public void runInPodWithExistingContainerSecretEnvVariable() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingContainerSecretEnvVariable.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains(SECRET_VALUE, b);
+    }
+
+    @Test
+    public void runInPodWithExistingPodSimpleEnvVariable() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingPodSimpleEnvVariable.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains(ENV_VAR_VALUE, b);
+    }
+
+    @Test
+    public void runInPodWithExistingPodSecretEnvVariable() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingPodSecretEnvVariable.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains(SECRET_VALUE, b);
     }
 
     @Test
@@ -268,4 +327,24 @@ public class KubernetesPipelineTest {
         }
     }
 
+    private static void createSecret(KubernetesClient client) {
+        Map<String, String> data = ImmutableMap.of("password", SECRET_VALUE);
+        ObjectMeta metadata = new ObjectMeta();
+        metadata.setName("secret");
+        metadata.setNamespace(TESTING_NAMESPACE);
+        Secret secret = new Secret("v1", data, "Secret", metadata, data, "Opaque");
+        client.secrets().createOrReplace(secret);
+    }
+
+    private static void setPodEnvVariables(PodTemplate podTemplate) {
+        PodSecretEnvVar podSecretEnvVar = new PodSecretEnvVar("POD_ENV_VAR_FROM_SECRET", "secret", "password");
+        PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_SIMPLE_ENV_VAR", ENV_VAR_VALUE);
+        podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
+    }
+
+    private static void setContainerEnvVariables(ContainerTemplate containerTemplate) {
+        ContainerEnvVar containerEnvVariable = new ContainerEnvVar("ENV_VAR", ENV_VAR_VALUE);
+        ContainerSecretEnvVar containerSecretEnvVariable = new ContainerSecretEnvVar("ENV_VAR_FROM_SECRET", "secret", "password");
+        containerTemplate.setEnvVars(asList(containerEnvVariable, containerSecretEnvVariable));
+    }
 }

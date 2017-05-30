@@ -44,7 +44,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceLimitMemory;
 
-    private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
+    private final List<AbstractContainerEnvVar> envVars = new ArrayList<>();
     private List<PortMapping> ports = new ArrayList<PortMapping>();
 
     private ContainerLivenessProbe livenessProbe;
@@ -145,12 +145,12 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return alwaysPullImage;
     }
 
-    public List<ContainerEnvVar> getEnvVars() {
+    public List<AbstractContainerEnvVar> getEnvVars() {
         return envVars != null ? envVars : Collections.emptyList();
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<ContainerEnvVar> envVars) {
+    public void setEnvVars(List<AbstractContainerEnvVar> envVars) {
         this.envVars.addAll(envVars);
     }
 

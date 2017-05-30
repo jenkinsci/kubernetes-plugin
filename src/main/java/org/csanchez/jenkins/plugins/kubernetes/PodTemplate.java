@@ -93,11 +93,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private List<AbstractPodEnvVar> envVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
-    private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+    private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
@@ -366,7 +366,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<PodEnvVar> getEnvVars() {
+    public List<AbstractPodEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
         }
@@ -374,14 +374,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void addEnvVars(List<PodEnvVar> envVars) {
+    public void addEnvVars(List<AbstractPodEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.addAll(envVars);
         }
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<PodEnvVar> envVars) {
+    public void setEnvVars(List<AbstractPodEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.clear();
             this.addEnvVars(envVars);
@@ -541,7 +541,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
-            containers = new ArrayList<ContainerTemplate>();
+            containers = new ArrayList<>();
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);

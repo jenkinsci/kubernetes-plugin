@@ -147,7 +147,7 @@ public class KubernetesCloud extends Cloud {
 
     @Deprecated
     public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
-            String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
+                           String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         this(name);
 
         Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
@@ -299,7 +299,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @return Kubernetes client.
      */
-    @SuppressFBWarnings({ "IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK" })
+    @SuppressFBWarnings({"IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK"})
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
@@ -325,7 +325,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<PodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<AbstractPodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
@@ -355,27 +355,29 @@ public class KubernetesCloud extends Cloud {
         // and `?` for java build tools. So we force HOME to a safe location.
         env.put("HOME", containerTemplate.getWorkingDir());
 
+        List<EnvVar> envVarsList = new ArrayList<>();
+
         if (globalEnvVars != null) {
-            for (PodEnvVar podEnvVar : globalEnvVars) {
-                env.put(podEnvVar.getKey(), substituteEnv(podEnvVar.getValue()));
-            }
+            envVarsList.addAll(globalEnvVars.stream()
+                    .map(AbstractPodEnvVar::buildEnvVar)
+                    .collect(Collectors.toList()));
         }
-
         if (containerTemplate.getEnvVars() != null) {
-            for (ContainerEnvVar containerEnvVar : containerTemplate.getEnvVars()) {
-                env.put(containerEnvVar.getKey(), substituteEnv(containerEnvVar.getValue()));
-            }
+            envVarsList.addAll(containerTemplate.getEnvVars().stream()
+                    .map(AbstractContainerEnvVar::buildEnvVar)
+                    .collect(Collectors.toList()));
         }
 
-        // Convert our env map to an array
-        EnvVar[] envVars = env.entrySet().stream()
+        List<EnvVar> defaultEnvVars = env.entrySet().stream()
                 .map(entry -> new EnvVar(entry.getKey(), entry.getValue(), null))
-                .toArray(size -> new EnvVar[size]);
+                .collect(Collectors.toList());
+        envVarsList.addAll(defaultEnvVars);
+        EnvVar [] envVars = envVarsList.stream().toArray(EnvVar[]::new);
 
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(containerTemplate.getArgs() //
-                        .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
-                        .replaceAll(NAME_REF, slave.getComputer().getName()));
+                .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
+                .replaceAll(NAME_REF, slave.getComputer().getName()));
 
 
         List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
@@ -405,7 +407,7 @@ public class KubernetesCloud extends Cloud {
                 .withImage(substituteEnv(containerTemplate.getImage()))
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
-                    .withPrivileged(containerTemplate.isPrivileged())
+                .withPrivileged(containerTemplate.isPrivileged())
                 .endSecurityContext()
                 .withWorkingDir(substituteEnv(containerTemplate.getWorkingDir()))
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
@@ -416,8 +418,8 @@ public class KubernetesCloud extends Cloud {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                    .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                    .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
                 .endResources()
                 .build();
     }
@@ -468,26 +470,26 @@ public class KubernetesCloud extends Cloud {
                 .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
         return new PodBuilder()
                 .withNewMetadata()
-                    .withName(substituteEnv(slave.getNodeName()))
-                    .withLabels(getLabelsMap(template.getLabelSet()))
-                    .withAnnotations(getAnnotationsMap(template.getAnnotations()))
+                .withName(substituteEnv(slave.getNodeName()))
+                .withLabels(getLabelsMap(template.getLabelSet()))
+                .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
                 .withNewSpec()
-                    .withVolumes(volumes)
-                    .withServiceAccount(substituteEnv(template.getServiceAccount()))
-                    .withImagePullSecrets(imagePullSecrets)
-                    .withContainers(containers.values().toArray(new Container[containers.size()]))
-                    .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
-                    .withRestartPolicy("Never")
+                .withVolumes(volumes)
+                .withServiceAccount(substituteEnv(template.getServiceAccount()))
+                .withImagePullSecrets(imagePullSecrets)
+                .withContainers(containers.values().toArray(new Container[containers.size()]))
+                .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
+                .withRestartPolicy("Never")
                 .endSpec()
                 .build();
     }
 
     private Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
         builder.putAll(POD_LABEL);
         if (!labelSet.isEmpty()) {
-            for (LabelAtom label: labelSet) {
+            for (LabelAtom label : labelSet) {
                 builder.put(getIdForLabel(label), "true");
             }
         }
@@ -495,7 +497,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
-        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity> builder();
+        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory, null);
         String actualCpu = substituteEnv(cpu, null);
         if (StringUtils.isNotBlank(actualMemory)) {
@@ -510,7 +512,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Map<String, String> getAnnotationsMap(List<PodAnnotation> annotations) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
         if (annotations != null) {
             for (PodAnnotation podAnnotation : annotations) {
                 builder.put(podAnnotation.getKey(), substituteEnv(podAnnotation.getValue()));
@@ -523,7 +525,7 @@ public class KubernetesCloud extends Cloud {
         if (Strings.isNullOrEmpty(selectors)) {
             return ImmutableMap.of();
         } else {
-            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
 
             for (String selector : selectors.split(",")) {
                 String[] parts = selector.split("=");
@@ -595,7 +597,7 @@ public class KubernetesCloud extends Cloud {
                     }
 
                     r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                                .submit(new ProvisioningCallback(this, t, label)), 1));
+                            .submit(new ProvisioningCallback(this, t, label)), 1));
                 }
                 if (r.size() > 0) {
                     // Already found a matching template
@@ -638,7 +640,7 @@ public class KubernetesCloud extends Cloud {
          * Log the last lines of containers logs
          */
         private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
-                Map<String, Integer> errors) {
+                                  Map<String, Integer> errors) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
 
@@ -651,7 +653,7 @@ public class KubernetesCloud extends Cloud {
                                 : "";
                         LOGGER.log(Level.SEVERE,
                                 "Error in provisioning; slave={0}, template={1}. Container {2}{3}. Logs: {4}",
-                                new Object[] { slave, t, containerName, msg, tailingLines.getLog() });
+                                new Object[]{slave, t, containerName, msg, tailingLines.getLog()});
                     }
                 } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
                         | KeyStoreException | IOException e) {
@@ -698,7 +700,7 @@ public class KubernetesCloud extends Cloud {
 
                 // wait for Pod to be running
                 for (; i < j; i++) {
-                    LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] {podId, i, j});
+                    LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[]{podId, i, j});
                     Thread.sleep(6000);
                     pod = connect().pods().inNamespace(namespace).withName(podId).get();
                     if (pod == null) {
@@ -713,7 +715,7 @@ public class KubernetesCloud extends Cloud {
                             if (info.getState().getWaiting() != null) {
                                 // Pod is waiting for some reason
                                 LOGGER.log(Level.INFO, "Container is waiting {0} [{2}]: {1}",
-                                        new Object[] { podId, info.getState().getWaiting(), info.getName() });
+                                        new Object[]{podId, info.getState().getWaiting(), info.getName()});
                                 // break;
                             }
                             if (info.getState().getTerminated() != null) {
@@ -756,8 +758,8 @@ public class KubernetesCloud extends Cloud {
                     if (slave.getComputer().isOnline()) {
                         break;
                     }
-                    LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[] { podId,
-                            i, j });
+                    LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[]{podId,
+                            i, j});
                     Thread.sleep(1000);
                 }
                 if (!slave.getComputer().isOnline()) {
@@ -798,15 +800,15 @@ public class KubernetesCloud extends Cloud {
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO, "Total container cap of {0} reached, not provisioning: {1} running in namespace {2}",
-                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace() });
+                    new Object[]{containerCap, slaveListItems.size(), client.getNamespace()});
             return false;
         }
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace '{3}' with label '{4}'",
-                    new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
-                            client.getNamespace(), label == null ? "" : label.toString() });
+                    new Object[]{template.getInstanceCap(), template.getName(), slaveListItems.size(),
+                            client.getNamespace(), label == null ? "" : label.toString()});
             return false; // maxed out
         }
         return true;

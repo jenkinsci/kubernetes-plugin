@@ -7,10 +7,8 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +16,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -38,9 +35,9 @@ public class PodTemplateUtils {
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
-     * @param parent        The parent container template (nullable).
-     * @param template      The actual container template
-     * @return              The combined container template.
+     * @param parent   The parent container template (nullable).
+     * @param template The actual container template
+     * @return The combined container template.
      */
     public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @Nonnull ContainerTemplate template) {
         Preconditions.checkNotNull(template, "Container template should not be null");
@@ -55,23 +52,11 @@ public class PodTemplateUtils {
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
         String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
-        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);;
+        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
         String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-
-        List<ContainerEnvVar> combinedEnvVars = new ArrayList<ContainerEnvVar>();
-        Map<String, String> envVars = new HashMap<>();
-        parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
-                e -> envVars.put(e.getKey(), e.getValue())
-        );
-
-        template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
-                e -> envVars.put(e.getKey(), e.getValue())
-        );
-
-        envVars.entrySet().forEach(e -> combinedEnvVars.add(new ContainerEnvVar(e.getKey(), e.getValue())));
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -86,15 +71,15 @@ public class PodTemplateUtils {
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
-        combined.setEnvVars(combinedEnvVars);
+        combined.setEnvVars(combineEnvVars(parent, template));
         return combined;
     }
 
     /**
      * Combines a {@link PodTemplate} with its parent.
-     * @param parent        The parent container template (nullable).
-     * @param template      The actual container template
-     * @return              The combined container template.
+     * @param parent   The parent container template (nullable).
+     * @param template The actual container template
+     * @return The combined container template.
      */
     public static PodTemplate combine(PodTemplate parent, PodTemplate template) {
         Preconditions.checkNotNull(template, "Pod template should not be null");
@@ -114,11 +99,6 @@ public class PodTemplateUtils {
 
         Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
-
-        //Env Vars
-        Map<String, String> combinedEnvVars = new HashMap<>();
-        combinedEnvVars.putAll(parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(),e -> e.getValue())));
-        combinedEnvVars.putAll(template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
         //Containers
         Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> c));
@@ -143,7 +123,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
-        podTemplate.setEnvVars(combinedEnvVars.entrySet().stream().map(e -> new PodEnvVar(e.getKey(), e.getValue())).collect(Collectors.toList()));
+        podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
@@ -157,9 +137,9 @@ public class PodTemplateUtils {
     /**
      * Unwraps the hierarchy of the PodTemplate.
      *
-     * @param template                   The template to unwrap.
-     * @param defaultProviderTemplate    The name of the template that provides the default values.
-     * @param allTemplates               A collection of all the known templates
+     * @param template                The template to unwrap.
+     * @param defaultProviderTemplate The name of the template that provides the default values.
+     * @param allTemplates            A collection of all the known templates
      * @return
      */
     static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
@@ -195,8 +175,8 @@ public class PodTemplateUtils {
     /**
      * Unwraps the hierarchy of the PodTemplate.
      *
-     * @param template                The template to unwrap.
-     * @param allTemplates            A collection of all the known templates
+     * @param template     The template to unwrap.
+     * @param allTemplates A collection of all the known templates
      * @return
      */
     static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
@@ -206,9 +186,9 @@ public class PodTemplateUtils {
 
     /**
      * Gets the {@link PodTemplate} by {@link Label}.
-     * @param label         The label.
-     * @param templates     The list of all templates.
-     * @return              The first pod template from the collection that has a matching label.
+     * @param label     The label.
+     * @param templates The list of all templates.
+     * @return The first pod template from the collection that has a matching label.
      */
     public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
@@ -221,9 +201,9 @@ public class PodTemplateUtils {
 
     /**
      * Gets the {@link PodTemplate} by name.
-     * @param name          The name.
-     * @param templates     The list of all templates.
-     * @return              The first pod template from the collection that has a matching name.
+     * @param name      The name.
+     * @param templates The list of all templates.
+     * @return The first pod template from the collection that has a matching name.
      */
     public static PodTemplate getTemplateByName(@CheckForNull String name, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
@@ -236,8 +216,8 @@ public class PodTemplateUtils {
 
     /**
      * Substitutes a placeholder with a value found in the environment.
-     * @param s     The placeholder. Should be use the format: ${placeholder}.
-     * @return      The substituted value if found, or the input value otherwise.
+     * @param s The placeholder. Should be use the format: ${placeholder}.
+     * @return The substituted value if found, or the input value otherwise.
      */
     public static String substituteEnv(String s) {
         return substitute(s, System.getenv());
@@ -245,9 +225,9 @@ public class PodTemplateUtils {
 
     /**
      * Substitutes a placeholder with a value found in the environment.
-     * @param s             The placeholder. Should be use the format: ${placeholder}.
-     * @param defaultValue  The default value to return if no match is found.
-     * @return              The substituted value if found, or the default value otherwise.
+     * @param s            The placeholder. Should be use the format: ${placeholder}.
+     * @param defaultValue The default value to return if no match is found.
+     * @return The substituted value if found, or the default value otherwise.
      */
     public static String substituteEnv(String s, String defaultValue) {
         return substitute(s, System.getenv(), defaultValue);
@@ -255,9 +235,9 @@ public class PodTemplateUtils {
 
     /**
      * Substitutes a placeholder with a value found in the specified map.
-     * @param s             The placeholder. Should be use the format: ${placeholder}.
-     * @param properties    The map with the key value pairs to use for substitution.
-     * @return              The substituted value if found, or the input value otherwise.
+     * @param s          The placeholder. Should be use the format: ${placeholder}.
+     * @param properties The map with the key value pairs to use for substitution.
+     * @return The substituted value if found, or the input value otherwise.
      */
     public static String substitute(String s, Map<String, String> properties) {
         return substitute(s, properties, null);
@@ -265,10 +245,10 @@ public class PodTemplateUtils {
 
     /**
      * Substitutes a placeholder with a value found in the specified map.
-     * @param s             The placeholder. Should be use the format: ${placeholder}.
-     * @param properties    The map with the key value pairs to use for substitution.
-     * @param defaultValue  The default value to return if no match is found.
-     * @return              The substituted value if found, or the default value otherwise.
+     * @param s            The placeholder. Should be use the format: ${placeholder}.
+     * @param properties   The map with the key value pairs to use for substitution.
+     * @param defaultValue The default value to return if no match is found.
+     * @return The substituted value if found, or the default value otherwise.
      */
     public static String substitute(String s, Map<String, String> properties, String defaultValue) {
         if (Strings.isNullOrEmpty(s)) {
@@ -286,5 +266,20 @@ public class PodTemplateUtils {
             }
         }
         return s;
+    }
+
+    private static List<AbstractContainerEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
+        List<AbstractContainerEnvVar> combinedSimpleEnvVars = new ArrayList<>();
+        combinedSimpleEnvVars.addAll(parent.getEnvVars());
+        combinedSimpleEnvVars.addAll(template.getEnvVars());
+        return combinedSimpleEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(Collectors.toList());
+    }
+
+
+    private static List<AbstractPodEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
+        List<AbstractPodEnvVar> combinedSimpleEnvVars = new ArrayList<>();
+        combinedSimpleEnvVars.addAll(parent.getEnvVars());
+        combinedSimpleEnvVars.addAll(template.getEnvVars());
+        return combinedSimpleEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(Collectors.toList());
     }
 }
