@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -273,14 +272,13 @@ public class PodTemplateUtils {
         List<AbstractContainerEnvVar> combinedEnvVars = new ArrayList<>();
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(Collectors.toList());
+        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
     }
-
 
     private static List<AbstractPodEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
         List<AbstractPodEnvVar> combinedEnvVars = new ArrayList<>();
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(Collectors.toList());
+        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
     }
 }

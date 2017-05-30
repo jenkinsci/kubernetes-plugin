@@ -98,8 +98,8 @@ Either way it provides access to the following fields:
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars** Environment variables that are applied to **ALL** containers.
-    * **simple** An environment variable whose value is defined inline. 
-    * **secret** An environment variable whose value is derived from a Kubernetes secret.
+    * **podEnvVar** An environment variable whose value is defined inline. 
+    * **podSecretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
@@ -108,8 +108,8 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **name** The name of the container.
 * **image** The image of the container.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
-    * **simple** An environment variable whose value is defined inline. 
-    * **secret** An environment variable whose value is derived from a Kubernetes secret.
+    * **containerEnvVar** An environment variable whose value is defined inline. 
+    * **containerSecretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **command** The command the container will execute.
 * **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
@@ -227,6 +227,7 @@ podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
         resourceLimitMemory: '200Mi',
         envVars: [
             containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+            containerSecretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
             ...
         ],
         ports: [portMapping(name: 'mysql', containerPort: 3306, hostPort: 3306)]

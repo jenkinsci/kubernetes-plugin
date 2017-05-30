@@ -115,12 +115,11 @@ public class KubernetesPipelineTest {
         // Create a busybox template
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(label);
-        setEnvVariables(podTemplate);
 
         ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
-        setEnvVariables(containerTemplate);
         containerTemplate.setTtyEnabled(true);
         podTemplate.getContainers().add(containerTemplate);
+        setEnvVariables(podTemplate);
         return podTemplate;
     }
 
@@ -196,10 +195,14 @@ public class KubernetesPipelineTest {
 
     private void assertEnvVars(JenkinsRuleNonLocalhost r2, WorkflowRun b) throws Exception {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET =\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
     }
 
     @Test
@@ -342,14 +345,12 @@ public class KubernetesPipelineTest {
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
+        PodSecretEnvVar podSecretEnvVar = new PodSecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
         PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
-        PodSecretEnvVar podSecretEnvVar = new PodSecretEnvVar("POD_ENV_VAR_FROM_SECRET", "secret", "password");
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
-    }
-
-    private static void setEnvVariables(ContainerTemplate containerTemplate) {
         ContainerEnvVar containerEnvVariable = new ContainerEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        ContainerSecretEnvVar containerSecretEnvVariable = new ContainerSecretEnvVar("ENV_VAR_FROM_SECRET", "secret", "password");
-        containerTemplate.setEnvVars(asList(containerEnvVariable, containerSecretEnvVariable));
+        ContainerSecretEnvVar containerSecretEnvVariable = new ContainerSecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
+                "container-secret", SECRET_KEY);
+        podTemplate.getContainers().get(0).setEnvVars(asList(containerEnvVariable, containerSecretEnvVariable));
     }
 }
