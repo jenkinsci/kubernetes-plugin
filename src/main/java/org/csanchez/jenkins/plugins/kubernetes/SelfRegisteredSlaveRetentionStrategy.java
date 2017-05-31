@@ -117,7 +117,7 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
         if (deletionResult == null) {
             LOGGER.log(Level.SEVERE, "Pod {0} was not found in namespace {1}", new Object[] {podName, namespace});
         } else if (!deletionResult) {
-            LOGGER.log(Level.SEVERE, "Failed to delete pod {0 from namespace {1}", new Object[] {podName, namespace});
+            LOGGER.log(Level.SEVERE, "Failed to delete pod {0} from namespace {1}", new Object[] {podName, namespace});
         } else {
             LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
         }
