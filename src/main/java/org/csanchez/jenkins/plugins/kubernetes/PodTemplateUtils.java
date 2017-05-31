@@ -2,15 +2,16 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
+import hudson.model.Label;
+import hudson.tools.ToolLocationNodeProperty;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,13 +19,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import hudson.model.Label;
-import hudson.tools.ToolLocationNodeProperty;
 
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
@@ -59,6 +53,8 @@ public class PodTemplateUtils {
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
+        boolean slaveImage = template.isSlaveImage() || parent.isSlaveImage();
+        boolean selfRegisteringSlave = template.isSelfRegisteringSlave() ? template.isSelfRegisteringSlave() : parent.isSelfRegisteringSlave();
 
         List<ContainerEnvVar> combinedEnvVars = new ArrayList<ContainerEnvVar>();
         Map<String, String> envVars = new HashMap<>();
@@ -83,6 +79,8 @@ public class PodTemplateUtils {
         combined.setResourceLimitMemory(resourceLimitMemory);
         combined.setResourceRequestCpu(resourceRequestCpu);
         combined.setResourceRequestMemory(resourceRequestMemory);
+        combined.setSlaveImage(slaveImage);
+        combined.setSelfRegisteringSlave(selfRegisteringSlave);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
         combined.setEnvVars(combinedEnvVars);
