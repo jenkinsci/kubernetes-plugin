@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
@@ -43,6 +44,14 @@ public class SlaveTimeLimitedTaskRunnerTest {
                 SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> sampleSlaveOperation(), 1, 300);
         assertSame(slave, slaveOperationDetails.getSlave());
         verify(slaveSupplier, atLeast(2)).get();
+    }
+
+    @Test
+    public void slaveOperationMaxAttempts() {
+        assertEquals(1, SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts(0, 300));
+        assertEquals(5, SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts(5));
+        assertEquals(5, SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts(5, 1000));
+        assertEquals(50, SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts(5, 100));
     }
 
     private Optional<SlaveOperationDetails> sampleSlaveOperation() {

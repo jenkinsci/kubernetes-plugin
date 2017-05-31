@@ -91,6 +91,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVaria
 import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_TUNNEL;
 import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_URL;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import static org.csanchez.jenkins.plugins.kubernetes.SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts;
 
 /**
  * Kubernetes cloud provider.
@@ -746,8 +747,7 @@ public class KubernetesCloud extends Cloud {
 
         @VisibleForTesting
         SlaveOperationDetails waitForSlaveToComeOnline(String podId, String namespace) throws Exception {
-            // Default delay is 1 second, so max number of attempts == number of seconds
-            int attemptsToMake = t.getSlaveConnectTimeout();
+            int attemptsToMake = slaveOperationMaxAttempts(t.getSlaveConnectTimeout());
             Slave slave = (Slave) jenkins().getNode(podId);
 
             try {
@@ -928,7 +928,7 @@ public class KubernetesCloud extends Cloud {
 
             // now wait for slave to be online
             LOGGER.log(Level.FINE, "Waiting for slave from pod {0} (namespace {1}) to come online", new Object[] { podId, namespace });
-            int onlineWaitTimeoutInSeconds = t.getSlaveConnectTimeout() - slaveConnectDetails.getSecondsSpent();
+            int onlineWaitTimeoutInSeconds = slaveOperationMaxAttempts(t.getSlaveConnectTimeout() - slaveConnectDetails.getSecondsSpent());
 
             Jenkins jenkins = jenkins();
             SlaveOperationDetails slaveOperationDetails;
@@ -976,7 +976,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         private SlaveOperationDetails waitForSlaveToConnect(String podId, String namespace) throws InterruptedException {
-            int slaveConnectTimeoutInSeconds = t.getSlaveConnectTimeout();
+            int slaveConnectTimeoutInSeconds = slaveOperationMaxAttempts(t.getSlaveConnectTimeout());
             try {
                 return SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
                     Optional<Node> kubeSlave = findSelfStartedSlaveByPodId(podId);

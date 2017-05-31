@@ -11,7 +11,7 @@ import java.util.Optional;
  */
 class SlaveTimeLimitedTaskRunner {
 
-    static final int DEFAULT_SLEEP_AFTER_FAILURE_IN_MILLIS = 1000;
+    private static final int DEFAULT_SLEEP_AFTER_FAILURE_IN_MILLIS = 1000;
 
     static SlaveOperationDetails performUntilTimeout(SlaveTimeLimitedTask callback, int timeoutInSeconds)
             throws SlaveOperationTimeoutException {
@@ -34,6 +34,19 @@ class SlaveTimeLimitedTaskRunner {
             }
             sleep(sleepAfterFailureInMillis);
         }
+    }
+
+    static int slaveOperationMaxAttempts(int slaveConnectTimeoutInSeconds) {
+        return slaveOperationMaxAttempts(slaveConnectTimeoutInSeconds, SlaveTimeLimitedTaskRunner.DEFAULT_SLEEP_AFTER_FAILURE_IN_MILLIS);
+    }
+
+    static int slaveOperationMaxAttempts(int slaveConnectTimeoutInSeconds, int sleepAfterFailureInMillis) {
+        if (slaveConnectTimeoutInSeconds == 0) {
+            // We have to make at least one attempt
+            return 1;
+        }
+        // Assuming that operation finishes immediately
+        return slaveConnectTimeoutInSeconds * 1000 / sleepAfterFailureInMillis;
     }
 
     private static int secondsPassedSince(Instant start) {
