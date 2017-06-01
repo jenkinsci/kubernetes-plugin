@@ -205,6 +205,28 @@ public class KubernetesPipelineTest {
     }
 
     @Test
+    public void runWithOverriddenNamespace2() throws Exception {
+        configureCloud(r);
+        String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
+        KubernetesClient client = cloud.connect();
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName("testns2").endMetadata()
+                        .build());
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace2.groovy"), true));
+
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        NamespaceAction namespaceAction = new NamespaceAction(b);
+        namespaceAction.push(overriddenNamespace);
+
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("testns2", b);
+    }
+
+    @Test
     public void runInPodWithLivenessProbe() throws Exception {
         configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with liveness probe");
