@@ -107,6 +107,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **command** The command the container will execute.
 * **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
+* **ports** Expose ports on the container.
 
 ### Pod template inheritance
 
@@ -214,7 +215,8 @@ podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
         envVars: [
             containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
             ...
-        ]
+        ],
+        ports: [portMapping(name: 'mysql', containerPort: 3306, hostPort: 3306)]
     ),
     ...
 ],
