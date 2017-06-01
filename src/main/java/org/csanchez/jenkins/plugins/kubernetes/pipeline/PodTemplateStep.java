@@ -42,6 +42,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodAnnotation> annotations = new ArrayList<>();
 
     private int instanceCap;
+    private int idleMinutes;
+
     private String serviceAccount;
     private String nodeSelector;
     private Node.Mode nodeUsageMode;
@@ -122,6 +124,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setInstanceCap(int instanceCap) {
         this.instanceCap = instanceCap;
+    }
+
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutes(int idleMinutes) {
+        this.idleMinutes = idleMinutes;
     }
 
     public String getServiceAccount() {
