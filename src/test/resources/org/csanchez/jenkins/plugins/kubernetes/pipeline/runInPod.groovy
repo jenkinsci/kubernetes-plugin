@@ -12,7 +12,5 @@ podTemplate(cloud: 'minikube', label: 'mypod', containers: [
           """
         }
       }
-
-
     }
 }

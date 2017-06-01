@@ -59,12 +59,14 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNamespace(namespace);
         newTemplate.setInheritFrom(!Strings.isNullOrEmpty( podTemplateAction.getParentTemplates()) ? podTemplateAction.getParentTemplates() : step.getInheritFrom());
         newTemplate.setInstanceCap(step.getInstanceCap());
+        newTemplate.setIdleMinutes(step.getIdleMinutes());
         newTemplate.setLabel(step.getLabel());
         newTemplate.setVolumes(step.getVolumes());
         newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
         newTemplate.setWorkspaceVolume(step.getWorkspaceVolume());
         newTemplate.setContainers(step.getContainers());
         newTemplate.setNodeSelector(step.getNodeSelector());
+        newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
         newTemplate.setAnnotations(step.getAnnotations());
 
@@ -84,10 +86,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private String checkNamespace(KubernetesCloud kubernetesCloud, NamespaceAction namespaceAction) {
         String namespace = null;
-        if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
-            namespace = namespaceAction.getNamespace();
-        } else if (!Strings.isNullOrEmpty(step.getNamespace())) {
+        if (!Strings.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
+        } else if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
+            namespace = namespaceAction.getNamespace();
         } else if (!Strings.isNullOrEmpty(kubernetesCloud.getNamespace())) {
             namespace = kubernetesCloud.getNamespace();
         } else {

@@ -42,20 +42,25 @@
     <slf4j.version>1.7.7</slf4j.version>
 
     <!-- jenkins plugins versions -->
-    <jenkins-basic-steps.version>2.1</jenkins-basic-steps.version>
-    <jenkins-credentials.version>1.24</jenkins-credentials.version>
+    <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
+    <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
     <jenkins-durable-task.version>1.12</jenkins-durable-task.version>
     <jenkins-durable-task-step.version>2.7</jenkins-durable-task-step.version>
-    <jenkins-git.version>2.4.1</jenkins-git.version>
-    <jenkins-mailer.version>1.16</jenkins-mailer.version>
+    <jenkins-git.version>2.6.0</jenkins-git.version>
+    <jenkins-mailer.version>1.17</jenkins-mailer.version>
     <jenkins-pipeline-stage-step.version>2.2</jenkins-pipeline-stage-step.version>
-    <jenkins-ssh-credentials.version>1.11</jenkins-ssh-credentials.version>
-    <jenkins-structs.version>1.5</jenkins-structs.version>
-    <jenkins-workflow-cps.version>2.17</jenkins-workflow-cps.version>
-    <jenkins-workflow-job.version>2.6</jenkins-workflow-job.version>
-    <jenkins-workflow-step-api.version>2.7</jenkins-workflow-step-api.version>
-    <jenkins-workflow-support.version>2.12</jenkins-workflow-support.version>
+    <jenkins-ssh-credentials.version>1.12</jenkins-ssh-credentials.version>
+    <jenkins-structs.version>1.6</jenkins-structs.version>
+    <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
+    <jenkins-workflow-job.version>2.9</jenkins-workflow-job.version>
+    <jenkins-workflow-step-api.version>2.9</jenkins-workflow-step-api.version>
+    <jenkins-workflow-support.version>2.14</jenkins-workflow-support.version>
+    <jenkins-workflow-api.version>2.11</jenkins-workflow-api.version>
     <jenkins-subversion.version>2.5</jenkins-subversion.version>
+    <jenkins-workflow-scm-step.version>2.4</jenkins-workflow-scm-step.version>
+    <jenkins-scm-api.version>2.0.7</jenkins-scm-api.version>
+    <jenkins-declarative.version>1.1.2</jenkins-declarative.version>
+    <jenkins-script-security.version>1.26</jenkins-script-security.version>
 
     <!-- testing tools versions -->
     <powermock.version>1.6.5</powermock.version>
@@ -108,6 +113,27 @@
       <artifactId>workflow-cps</artifactId>
       <version>${jenkins-workflow-cps.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-extensions</artifactId>
+      <version>${jenkins-declarative.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-api</artifactId>
+      <version>${jenkins-declarative.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>script-security</artifactId>
+      <version>${jenkins-script-security.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <version>${jenkins-workflow-support.version}</version>
+    </dependency>
+
 
     <!-- for testing -->
     <dependency>
@@ -155,6 +181,30 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-scm-step</artifactId>
+      <version>${jenkins-workflow-scm-step.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>scm-api</artifactId>
+      <version>${jenkins-scm-api.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-definition</artifactId>
+      <version>${jenkins-declarative.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-api</artifactId>
+      <version>${jenkins-workflow-api.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>junit</artifactId>
       <version>1.6</version>
@@ -180,6 +230,7 @@
       <version>${jenkins-pipeline-stage-step.version}</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
   <dependencyManagement>

@@ -16,6 +16,7 @@ items:
     kind: "PersistentVolume"
     metadata: 
       name: "jenkins"
+      namespace: "kubernetes-plugin"
     spec: 
       accessModes:
         - ReadWriteOnce
@@ -35,6 +36,7 @@ items:
       resources:
         requests:
           storage: 100Mi
+      storageClassName: ""
 
   - apiVersion: "v1"
     kind: "ReplicationController"
@@ -53,7 +55,7 @@ items:
         spec: 
           containers: 
             - name: "jenkins"
-              image: "jenkins:2.19.4-alpine"
+              image: "jenkins:2.46.2-alpine"
               ports: 
                 - containerPort: 8080
                 - containerPort: 50000

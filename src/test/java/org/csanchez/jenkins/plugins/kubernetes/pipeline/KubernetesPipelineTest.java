@@ -49,6 +49,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
@@ -207,6 +209,40 @@ public class KubernetesPipelineTest {
         r.assertLogContains(overriddenNamespace, b);
     }
 
+    @Test
+    public void runWithOverriddenNamespace2() throws Exception {
+        configureCloud(r);
+        String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
+        KubernetesClient client = cloud.connect();
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName("testns2").endMetadata()
+                        .build());
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace2.groovy"), true));
+
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        NamespaceAction namespaceAction = new NamespaceAction(b);
+        namespaceAction.push(overriddenNamespace);
+
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("testns2", b);
+    }
+
+    @Test
+    public void runInPodWithLivenessProbe() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with liveness probe");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithLivenessProbe.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Still alive", b);
+    }
+
     // @Test
     public void runInPodWithRestart() throws Exception {
         story.addStep(new Statement() {
@@ -240,12 +276,52 @@ public class KubernetesPipelineTest {
         });
     }
 
-
     private String loadPipelineScript(String name) {
         try {
             return new String(IOUtils.toByteArray(getClass().getResourceAsStream(name)));
         } catch (Throwable t) {
-            throw new RuntimeException("Could not read resource:["+name+"].");
+            throw new RuntimeException("Could not read resource:[" + name + "].");
         }
+    }
+
+    @Issue("JENKINS-41758")
+    @Test
+    public void declarative() throws Exception {
+
+        // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
+        URL url = r.getURL();
+        URL nonLocalhostUrl = new URL(url.getProtocol(), InetAddress.getLocalHost().getHostAddress(), url.getPort(),
+                url.getFile());
+        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+
+        r.jenkins.clouds.add(cloud);
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("" //
+                + "pipeline {\n"
+                + "  agent {\n"
+                + "    kubernetes {\n"
+                + "      cloud 'minikube'\n"
+                + "      label 'mypod'\n"
+                + "      containerTemplate {\n"
+                + "        name 'maven'\n"
+                + "        image 'maven:3.3.9-jdk-8-alpine'\n"
+                + "        ttyEnabled true\n"
+                + "        command 'cat'\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "  stages {\n"
+                + "    stage('Run maven') {\n"
+                + "      steps {\n"
+                + "        sh 'mvn -version'\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}\n", true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
     }
 }

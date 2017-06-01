@@ -26,6 +26,28 @@ see the [Docker image source code](https://github.com/carlossg/jenkins-slave-doc
 Nodes can be defined in a pipeline and then used
 
 ```groovy
+podTemplate(label: 'mypod') {
+    node('mypod') {
+        stage('Run shell') {
+            sh 'echo hello world'
+        }
+    }
+}
+```
+
+The default jnlp agent image used can be customized by adding it to the template
+
+```groovy
+containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+```
+
+### Container Group Support
+
+Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
+
+The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
+
+```groovy
 podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.6.3', ttyEnabled: true, command: 'cat')
@@ -58,25 +80,22 @@ podTemplate(label: 'mypod', containers: [
 }
 ```
 
-The jnlp agent image used can be customized by adding it to the template
-
-```groovy
-containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
-```
 
 ### Pod and container template configuration
 
-The `podTemplate` is a template of a pod that will be used to create slaves. It can be either configured via the user interface, or via pipeline. 
+The `podTemplate` is a template of a pod that will be used to create slaves. It can be either configured via the user interface, or via pipeline.
 Either way it provides access to the following fields:
 
+* **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod.
 * **container** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
+* **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
-* **envVars*** Environment variables that are applied to **ALL** containers. 
+* **envVars*** Environment variables that are applied to **ALL** containers.
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
@@ -86,14 +105,21 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **image** The image of the container.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
 * **command** The command the container will execute.
-* **args** The arugments passed to the command.
+* **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
+* **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 
-### Pod template inheritance 
+#### Liveness Probe Usage
+```groovy
+containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: 'cat', livenessProbe: containerLivenessProbe( execArgs: 'some --command', initialDelaySeconds: 30, timeoutSeconds: 1, failureThreshold: 3, periodSeconds: 10, successThreshold: 1))
+```
+See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-a-liveness-command) for more details.
+
+### Pod template inheritance
 
 A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.
 
-**Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'. 
+**Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
 
 **Container templates** that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
 If no matching containerTemplate is found, the template is added as is.
@@ -108,18 +134,18 @@ In the example below, we will inherit the podTemplate we created previously, and
 podTemplate(label: 'anotherpod', inheritFrom: 'mypod'  containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-7-alpine')    
   ]) {
-      
+
       //Let's not repeat ourselves and ommit this part
 }
 ```
 
-Note that we only need to specify the things that are different. So, `ttyEnabled` and `command` are not specified, as they are inherited. Also the `golang` container will be added as is defined in the 'parent' template. 
+Note that we only need to specify the things that are different. So, `ttyEnabled` and `command` are not specified, as they are inherited. Also the `golang` container will be added as is defined in the 'parent' template.
 
 #### Multiple Pod template inheritance
 
 Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will be processed in the order they appear in the list *(later items overriding earlier ones)*.
 In any case if the referenced template is not found it will be ignored.
- 
+
 
 #### Nesting Pod templates
 
@@ -133,7 +159,7 @@ The example below composes two different podTemplates in order to create one wit
             // do stuff
         }
     }
- 
+
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
 For example one could create a function for a maven template, say `mavenTemplate.groovy`:
@@ -169,21 +195,20 @@ Then consumers of the library could just express the need for a maven pod with d
     }
 
 #### Using a different namespace
- 
-There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
-For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing. 
-For those cases you can explicitly configure a namespace either using the ui or the pipeline.
 
+There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
+For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing.
+For those cases you can explicitly configure a namespace either using the ui or the pipeline.
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
+podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
     containerTemplate(
-        name: 'mariadb', 
-        image: 'mariadb:10.1', 
-        ttyEnabled: true, 
+        name: 'mariadb',
+        image: 'mariadb:10.1',
+        ttyEnabled: true,
         command: 'cat',
         privileged: false,
         alwaysPullImage: false,
@@ -257,13 +282,13 @@ Fill *Kubernetes server certificate key* with the contents of `~/.minikube/ca.cr
 
 # Configuration on Google Container Engine
 
-Create a cluster 
+Create a cluster
 
     gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
 
 and note the admin password and server certitifate.
 
-Or use Google Developer Console to create a Container Engine cluster, then run 
+Or use Google Developer Console to create a Container Engine cluster, then run
 
     gcloud container clusters get-credentials jenkins
     kubectl config view --raw
