@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import hudson.model.labels.LabelAtom;
+import io.fabric8.kubernetes.api.model.*;
+
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -380,6 +383,19 @@ public class KubernetesCloud extends Cloud {
             containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false, null));
         }
 
+        ContainerLivenessProbe clp = containerTemplate.getLivenessProbe();
+        Probe livenessProbe = null;
+        if(clp != null && parseLivenessProbe(clp.getExecArgs()) != null) {
+            livenessProbe = new ProbeBuilder()
+                    .withExec(new ExecAction(parseLivenessProbe(clp.getExecArgs())))
+                    .withInitialDelaySeconds(clp.getInitialDelaySeconds())
+                    .withTimeoutSeconds(clp.getTimeoutSeconds())
+                    .withFailureThreshold(clp.getFailureThreshold())
+                    .withPeriodSeconds(clp.getPeriodSeconds())
+                    .withSuccessThreshold(clp.getSuccessThreshold())
+                    .build();
+        }
+
         return new ContainerBuilder()
                 .withName(substituteEnv(containerTemplate.getName()))
                 .withImage(substituteEnv(containerTemplate.getImage()))
@@ -392,6 +408,7 @@ public class KubernetesCloud extends Cloud {
                 .addToEnv(envVars)
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
                 .withArgs(arguments)
+                .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
                     .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
@@ -535,6 +552,26 @@ public class KubernetesCloud extends Cloud {
         return commands;
     }
 
+    /**
+     * Split a command in the parts that LivenessProbe need
+     *
+     * @param livenessProbeExec
+     * @return
+     */
+    List<String> parseLivenessProbe(String livenessProbeExec) {
+        if (StringUtils.isBlank(livenessProbeExec)) {
+            return null;
+        }
+        // handle quoted arguments
+        Matcher m = SPLIT_IN_SPACES.matcher(livenessProbeExec);
+        List<String> commands = new ArrayList<String>();
+        while (m.find()) {
+            commands.add(substituteEnv(m.group(1).replace("\"", "").replace("?:\\\"", "")));
+        }
+        return commands;
+    }
+
+
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
@@ -546,6 +583,7 @@ public class KubernetesCloud extends Cloud {
             ArrayList<PodTemplate> templates = getMatchingTemplates(label);
 
             for (PodTemplate t: templates) {
+                LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
                 for (int i = 1; i <= excessWorkload; i++) {
                     if (!addProvisionedSlave(t, label)) {
                         break;

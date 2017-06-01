@@ -13,7 +13,5 @@ podTemplate(cloud: 'minikube', label: 'mypod', volumes: [emptyDirVolume(mountPat
                 sh 'mvn -version'
             }
         }
-
-
     }
 }

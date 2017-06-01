@@ -1,0 +1,30 @@
+<!--
+  Config page
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:entry field="execArgs" title="${%Exec action}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="initialDelaySeconds" title="${%Initial Delay Seconds}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="timeoutSeconds" title="${%Timeout Seconds}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="failureThreshold" title="${%Failure Threshold}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="periodSeconds" title="${%Period Seconds}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="successThreshold" title="${%Success Threshold}">
+    <f:textbox/>
+  </f:entry>
+</j:jelly>

@@ -226,6 +226,18 @@ public class KubernetesPipelineTest {
         r.assertLogContains("testns2", b);
     }
 
+    @Test
+    public void runInPodWithLivenessProbe() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with liveness probe");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithLivenessProbe.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Still alive", b);
+    }
+
     // @Test
     public void runInPodWithRestart() throws Exception {
         story.addStep(new Statement() {
