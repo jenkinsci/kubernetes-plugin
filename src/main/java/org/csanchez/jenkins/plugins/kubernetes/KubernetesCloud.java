@@ -85,9 +85,9 @@ import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Kubernetes cloud provider.
- * 
+ *
  * Starts slaves in a Kubernetes cluster using defined Docker templates for each label.
- * 
+ *
  * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesCloud extends Cloud {
@@ -401,8 +401,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    private Pod getPodTemplate(KubernetesSlave slave, @CheckForNull Label label) {
-        final PodTemplate template = PodTemplateUtils.unwrap(getTemplate(label), defaultsProviderTemplate, templates);
+    private Pod getPodTemplate(KubernetesSlave slave, PodTemplate template) {
         if (template == null) {
             return null;
         }
@@ -519,7 +518,7 @@ public class KubernetesCloud extends Cloud {
 
     /**
      * Split a command in the parts that Docker need
-     * 
+     *
      * @param dockerCommand
      * @return
      */
@@ -630,12 +629,15 @@ public class KubernetesCloud extends Cloud {
                 } else {
                     retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
                 }
-                slave = new KubernetesSlave(t, t.getName(), cloud.name, t.getLabel(), retentionStrategy);
+
+                final PodTemplate unwrappedTemplate = PodTemplateUtils.unwrap(getTemplate(label), defaultsProviderTemplate, templates);
+                slave = new KubernetesSlave(unwrappedTemplate, unwrappedTemplate.getName(), cloud.name, unwrappedTemplate.getLabel(), retentionStrategy);
+
                 LOGGER.log(Level.FINER, "Adding Jenkins node: {0}", slave.getNodeName());
                 Jenkins.getActiveInstance().addNode(slave);
 
                 KubernetesClient client = connect();
-                Pod pod = getPodTemplate(slave, label);
+                Pod pod = getPodTemplate(slave, unwrappedTemplate);
 
                 String podId = pod.getMetadata().getName();
                 String namespace = Strings.isNullOrEmpty(t.getNamespace())
@@ -694,7 +696,7 @@ public class KubernetesCloud extends Cloud {
                     if (!allContainersAreReady) {
                         continue;
                     }
-                    
+
                     if (validStates.contains(pod.getStatus().getPhase())) {
                         break;
                     }
@@ -810,7 +812,7 @@ public class KubernetesCloud extends Cloud {
 
     /**
      * Remove a
-     * 
+     *
      * @param t docker template
      */
     public void removeTemplate(PodTemplate t) {
