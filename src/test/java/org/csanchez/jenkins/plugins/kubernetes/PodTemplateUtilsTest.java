@@ -1,9 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.base.Preconditions;
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
-import jenkins.model.Jenkins;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,13 +11,16 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import hudson.model.Label;
+import hudson.model.labels.LabelAtom;
+import jenkins.model.Jenkins;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.unwrap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.*;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.mockito.Matchers.anyString;
 
 @RunWith(PowerMockRunner.class)

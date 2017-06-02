@@ -152,7 +152,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithExistingContainerSimpleEnvVariable() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingContainerEnvVariable.groovy")
                 , true));
@@ -164,7 +163,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithExistingContainerSecretEnvVariable() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingContainerSecretEnvVariable.groovy")
                 , true));
@@ -176,7 +174,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithExistingPodSimpleEnvVariable() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingPodSimpleEnvVariable.groovy")
                 , true));
@@ -188,7 +185,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithExistingPodSecretEnvVariable() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingPodSecretEnvVariable.groovy")
                 , true));
