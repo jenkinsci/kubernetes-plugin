@@ -28,16 +28,17 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -60,6 +61,8 @@ public class ContainerExecDecoratorTest {
             ContainerExecDecoratorTest.class.getSimpleName());
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
+    private ContainerExecDecorator decorator;
+
     @BeforeClass
     public static void configureCloud() throws Exception {
         // do not run if minikube is not running
@@ -75,12 +78,62 @@ public class ContainerExecDecoratorTest {
         }
     }
 
-    @Test
+    @Before
+    public void containerExecDecorator() throws Exception {
+        String image = "busybox";
+        Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
+                .withCommand("cat").withTty(true).build();
+        String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        Pod pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
+                .endMetadata().withNewSpec().withContainers(c).endSpec().build());
+
+        System.out.println("Created pod: " + pod.getMetadata().getName());
+
+        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image, client.getNamespace());
+    }
+
+    @Test(timeout=10000)
     public void testCommandExecution() throws Exception {
-        ProcReturn r = execCommand(false, "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
-        assertEquals(0, r.exitCode);
-        assertFalse(r.proc.isAlive());
+        Thread[] t = new Thread[10];
+        List<ProcReturn> results = new ArrayList<>(t.length);
+        for (int i = 0; i < t.length; i++) {
+            t[i] = newThread(i, results);
+        }
+        for (int i = 0; i < t.length; i++) {
+            t[i].start();
+        }
+        for (int i = 0; i < t.length; i++) {
+            t[i].join();
+        }
+        assertEquals("Not all threads finished successfully", t.length, results.size());
+        for (ProcReturn r : results) {
+            assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+            assertEquals(0, r.exitCode);
+            assertFalse(r.proc.isAlive());
+        }
+    }
+
+    private Thread newThread(int i, List<ProcReturn> results) {
+        return new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    command(results, i);
+                } finally {
+                    System.out.println("Thread " + i + " finished");
+                }
+            }
+        }, "test-" + i);
+    }
+
+    private void command(List<ProcReturn> results, int i) {
+        ProcReturn r;
+        try {
+            r = execCommand(false, "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        results.add(r);
     }
 
     @Test
@@ -122,31 +175,14 @@ public class ContainerExecDecoratorTest {
     }
 
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
-        String image = "busybox";
-        Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
-                .withCommand("cat").withTty(true).build();
-        String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        Pod pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
-                .endMetadata().withNewSpec().withContainers(c).endSpec().build());
-
-        System.out.println("Created pod: " + pod.getMetadata().getName());
-
-        final AtomicBoolean podAlive = new AtomicBoolean(false);
-        final CountDownLatch podStarted = new CountDownLatch(1);
-        final CountDownLatch podFinished = new CountDownLatch(1);
-
-        try (ContainerExecDecorator decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image,
-                podAlive, podStarted, podFinished, client.getNamespace())) {
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Launcher launcher = decorator
-                    .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
-            ContainerExecProc proc = (ContainerExecProc) launcher
-                    .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
-            assertTrue(proc.isAlive());
-            int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
-            return new ProcReturn(proc, exitCode, out.toString());
-        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Launcher launcher = decorator
+                .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
+        ContainerExecProc proc = (ContainerExecProc) launcher
+                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
+        assertTrue(proc.isAlive());
+        int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
+        return new ProcReturn(proc, exitCode, out.toString());
     }
 
     class ProcReturn {

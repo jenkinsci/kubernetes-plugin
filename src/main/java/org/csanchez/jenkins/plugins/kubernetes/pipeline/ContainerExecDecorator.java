@@ -74,32 +74,30 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final String podName;
     private final String namespace;
     private final String containerName;
-    private final AtomicBoolean alive;
-
-    private transient CountDownLatch started;
-    private transient CountDownLatch finished;
 
     private transient ExecWatch watch;
     private transient ContainerExecProc proc;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
+    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, String namespace) {
         this.client = client;
         this.podName = podName;
         this.namespace = namespace;
         this.containerName = containerName;
-        this.alive = alive;
-        this.started = started;
-        this.finished = finished;
+    }
+
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
+        this(client, podName, containerName, namespace);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, alive, started, finished, null);
+        this(client, podName, containerName, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, alive, started, finished, null);
+        this(client, podName, containerName, null);
     }
 
     @Override
@@ -112,6 +110,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             "[" + containerName + "] of pod [" + podName + "]." +
                             " Timed out waiting for container to become ready!");
                 }
+
+                final CountDownLatch started = new CountDownLatch(1);
+                final CountDownLatch finished = new CountDownLatch(1);
+                final AtomicBoolean alive = new AtomicBoolean(false);
 
                 PrintStream printStream = launcher.getListener().getLogger();
                 OutputStream stream = printStream;
@@ -145,6 +147,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 alive.set(false);
                                 t.printStackTrace(launcher.getListener().getLogger());
                                 started.countDown();
+                                LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
+                                if (finished.getCount() == 0) {
+                                    LOGGER.log(Level.WARNING,
+                                            "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
+                                }
                                 finished.countDown();
                             }
 
@@ -152,6 +159,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onClose(int i, String s) {
                                 alive.set(false);
                                 started.countDown();
+                                LOGGER.log(Level.FINEST, "onClose : {0}", finished);
+                                if (finished.getCount() == 0) {
+                                    LOGGER.log(Level.SEVERE,
+                                            "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
+                                }
                                 finished.countDown();
                             }
                         }).exec();
