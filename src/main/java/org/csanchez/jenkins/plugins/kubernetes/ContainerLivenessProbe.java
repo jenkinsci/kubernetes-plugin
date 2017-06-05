@@ -85,13 +85,5 @@ public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLiv
         public String getDisplayName() {
             return "Container Liveness Probe";
         }
-
-        public FormValidation doCheckExecArgs(@QueryParameter String execArgs) {
-            if(execArgs == null || execArgs.isEmpty()) {
-                return FormValidation.error("Liveness Probe > Exec Action should not be empty");
-            } else {
-                return FormValidation.ok();
-            }
-        }
     }
 }

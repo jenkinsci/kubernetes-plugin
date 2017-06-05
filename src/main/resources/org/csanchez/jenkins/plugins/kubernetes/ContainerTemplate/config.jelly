@@ -39,14 +39,6 @@
                                   deleteCaption="Delete Environment Variable" />
     </f:entry>
 
-  <f:entry field="livenessProbe" title="${%Liveness Probe}">
-    <f:rowSet name="${field}">
-      <j:set var="descriptor" value="${attrs.propertyDescriptor ?: app.getDescriptorOrDie(descriptor.getPropertyTypeOrDie(instance,field).clazz)}" />
-      <j:set var="instance" value="${instance[field]}"/>
-      <st:include from="${descriptor}" page="${descriptor.configPage}" />
-    </f:rowSet>
-  </f:entry>
-
   <f:advanced>
     <f:entry field="privileged" title="${%Run in privileged mode}">
       <f:checkbox/>
@@ -66,6 +58,14 @@
 
     <f:entry field="resourceLimitMemory" title="${%Limit Memory}">
       <f:textbox/>
+    </f:entry>
+
+    <f:entry field="livenessProbe" title="${%Liveness Probe}">
+      <f:rowSet name="${field}">
+        <j:set var="descriptor" value="${attrs.propertyDescriptor ?: app.getDescriptorOrDie(descriptor.getPropertyTypeOrDie(instance,field).clazz)}" />
+        <j:set var="instance" value="${instance[field]}"/>
+        <st:include from="${descriptor}" page="${descriptor.configPage}" />
+      </f:rowSet>
     </f:entry>
 
   </f:advanced>
