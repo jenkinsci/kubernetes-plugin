@@ -44,6 +44,7 @@ import org.junit.Test;
 
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
+import hudson.Launcher.ProcStarter;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -92,7 +93,7 @@ public class ContainerExecDecoratorTest {
         decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image, client.getNamespace());
     }
 
-    @Test(timeout=10000)
+    @Test(timeout = 10000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = new ArrayList<>(t.length);
@@ -162,6 +163,23 @@ public class ContainerExecDecoratorTest {
     public void testCommandExecutionWithNohup() throws Exception {
         ProcReturn r = execCommand(false, "nohup", "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
         assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    public void commandsEscaping() {
+        ProcStarter procStarter = new DummyLauncher(null).launch();
+        procStarter = procStarter.cmds("$$$$", "$$?");
+        String[] commands = ContainerExecDecorator.getCommands(procStarter);
+        assertArrayEquals(new String[] { "\\$\\$", "\\$?" }, commands);
+    }
+
+    @Test
+    public void testCommandExecutionWithEscaping() throws Exception {
+        ProcReturn r = execCommand(false, "sh", "-c", "cd /tmp; false; echo result is $$? > test; cat /tmp/test");
+        assertTrue("Output should contain result: " + r.output,
+                Pattern.compile("^(result is 1)$", Pattern.MULTILINE).matcher(r.output).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }

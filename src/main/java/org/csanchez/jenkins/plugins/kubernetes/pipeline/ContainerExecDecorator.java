@@ -324,12 +324,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static String[] getCommands(Launcher.ProcStarter starter) {
+    static String[] getCommands(Launcher.ProcStarter starter) {
         List<String> allCommands = new ArrayList<String>();
 
+        // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
-            //I shouldn't been doing that, but clearly the script that is passed to us is wrong?
-            allCommands.add(cmd.replaceAll("\\$\\$", "\\$"));
+            allCommands.add(cmd.replaceAll("\\$\\$", "\\\\\\$"));
         }
         return allCommands.toArray(new String[allCommands.size()]);
     }
