@@ -120,7 +120,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Do not send this command to the output when in quiet mode
                 if (starter.quiet()) {
                     stream = new NullOutputStream();
-                    printStream = new PrintStream(stream);
+                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
                 
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
@@ -251,6 +251,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 }
                                 break;
                             default:
+                                break;
                         }
                     }
 
@@ -354,7 +355,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     /**
      * Keeps the last bytes of the output stream to parse the exit code
      */
-    class ExitCodeOutputStream extends OutputStream {
+    static class ExitCodeOutputStream extends OutputStream {
 
         public static final String EXIT_COMMAND_TXT = "EXITCODE";
         public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
@@ -369,7 +370,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         public void write(int b) throws IOException {
             queue.add(b);
             byte[] bb = new byte[]{(byte) b};
-            System.out.print(new String(bb));
+            System.out.print(new String(bb, StandardCharsets.UTF_8));
         }
 
         public int getExitCode() {
