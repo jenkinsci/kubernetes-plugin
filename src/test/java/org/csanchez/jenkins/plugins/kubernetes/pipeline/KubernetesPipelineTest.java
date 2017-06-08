@@ -24,6 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.junit.Assert.*;
+
+import java.net.InetAddress;
+import java.net.URL;
+import java.util.Collections;
+import java.util.logging.Level;
+
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -40,28 +48,17 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.util.Collections;
-import java.util.logging.Level;
-
 import hudson.model.Node;
-import hudson.model.Run;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
-
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeMiniKube;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.miniKubeUrl;
-import static org.junit.Assert.assertNotNull;
 /**
  * @author Carlos Sanchez
  */
@@ -271,6 +268,18 @@ public class KubernetesPipelineTest {
         });
     }
 
+    @Issue("JENKINS-41758")
+    @Test
+    public void declarative() throws Exception {
+        configureCloud(r);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+    }
+
     private String loadPipelineScript(String name) {
         try {
             return new String(IOUtils.toByteArray(getClass().getResourceAsStream(name)));
@@ -279,44 +288,4 @@ public class KubernetesPipelineTest {
         }
     }
 
-    @Issue("JENKINS-41758")
-    @Test
-    public void declarative() throws Exception {
-
-        // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
-        URL url = r.getURL();
-        URL nonLocalhostUrl = new URL(url.getProtocol(), InetAddress.getLocalHost().getHostAddress(), url.getPort(),
-                url.getFile());
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
-
-        r.jenkins.clouds.add(cloud);
-
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("" //
-                + "pipeline {\n"
-                + "  agent {\n"
-                + "    kubernetes {\n"
-                + "      cloud 'minikube'\n"
-                + "      label 'mypod'\n"
-                + "      containerTemplate {\n"
-                + "        name 'maven'\n"
-                + "        image 'maven:3.3.9-jdk-8-alpine'\n"
-                + "        ttyEnabled true\n"
-                + "        command 'cat'\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }\n"
-                + "  stages {\n"
-                + "    stage('Run maven') {\n"
-                + "      steps {\n"
-                + "        sh 'mvn -version'\n"
-                + "      }\n"
-                + "    }\n"
-                + "  }\n"
-                + "}\n", true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Apache Maven 3.3.9", b);
-    }
 }
