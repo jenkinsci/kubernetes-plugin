@@ -45,7 +45,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private String resourceLimitMemory;
 
     private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
-    private final List<PortMapping> ports = new ArrayList<PortMapping>();
+    private List<PortMapping> ports = new ArrayList<PortMapping>();
 
     private ContainerLivenessProbe livenessProbe;
 
@@ -169,8 +169,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setPorts(List<PortMapping> ports) {
         if (ports != null) {
-            this.ports.clear();
-            this.ports.addAll(ports);
+            this.ports = ports;
         }
     }
 
