@@ -265,6 +265,14 @@ you can use these flags during Jenkins startup:
 `-Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85`
 
 
+# Workspace availability on Master
+
+Job workspace can now be made accessible on Jenkins Master
+
+A job's workspace can be copied to master as a Post-build action using [copy to slave plugin](https://wiki.jenkins-ci.org/display/JENKINS/Copy+To+Slave+Plugin).
+Upon clicking 'Workspace' on the Job's page, Jenkins will try to access the workspace from Master if all slaves are offline. The activity can be seen under Jenkins log
+
+
 # Configuration on minikube
 
 Create and start [minikube](https://github.com/kubernetes/minikube)
