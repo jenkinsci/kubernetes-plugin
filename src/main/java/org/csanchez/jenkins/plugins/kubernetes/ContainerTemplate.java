@@ -168,9 +168,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setPorts(List<PortMapping> ports) {
-        if (ports != null) {
-            this.ports = ports;
-        }
+        this.ports = ports;
     }
 
     public String getResourceRequestMemory() {
