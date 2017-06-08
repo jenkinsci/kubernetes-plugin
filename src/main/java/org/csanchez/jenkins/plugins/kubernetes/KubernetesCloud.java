@@ -600,15 +600,12 @@ public class KubernetesCloud extends Cloud {
             return r;
         } catch (KubernetesClientException e) {
             Throwable cause = e.getCause();
-            if (cause != null) {
-                if (cause instanceof SocketTimeoutException) {
-                    LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes: {0}",
-                            cause.getMessage());
-                } else {
-                    LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", cause);
-                }
+            if (cause instanceof SocketTimeoutException || cause instanceof ConnectException) {
+                LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}: {1}",
+                        new String[] { serverUrl, cause.getMessage() });
             } else {
-                LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
+                LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes",
+                        cause != null ? cause : e);
             }
         } catch (ConnectException e) {
             LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}", serverUrl);
