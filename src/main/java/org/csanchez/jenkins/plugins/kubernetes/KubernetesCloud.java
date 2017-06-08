@@ -330,7 +330,7 @@ public class KubernetesCloud extends Cloud {
 
         // Add some default env vars for Jenkins
         env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
-        env.put("JENKINS_NAME", slave.getComputer().getName());
+        env.put("JENKINS_AGENT_NAME", slave.getComputer().getName());
 
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
         String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
