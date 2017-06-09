@@ -198,7 +198,7 @@ Then consumers of the library could just express the need for a maven pod with d
 #### Using a different namespace
 
 There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
-For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing.
+For example you may need the slave to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
 
 ## Container Configuration
