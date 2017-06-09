@@ -190,10 +190,40 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
                 // String cookie = modelEnvVars.get(COOKIE_VAR);
                 // TODO we need to use the cookie for something
-                getListener().getLogger().println("Killing process.");
+                getListener().getLogger().println("Killing process: " + modelEnvVars);
+                LOGGER.log(Level.INFO, "Killing process: " + modelEnvVars);
+
+//                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//                String executable = getExecutable();
+//                if (getInner().launch().cmds(executable, "exec", container, "ps", "-A", "-o", "pid,command", "e").stdout(baos).quiet(true).start().joinWithTimeout(10, TimeUnit.SECONDS, listener) != 0) {
+//                    throw new IOException("failed to run ps");
+//                }
+//                List<String> pids = new ArrayList<String>();
+//                LINE: for (String line : baos.toString(Charset.defaultCharset().name()).split("\n")) {
+//                    for (Map.Entry<String,String> entry : modelEnvVars.entrySet()) {
+//                        // TODO this is imprecise: false positive when argv happens to match KEY=value even if environment does not. Cf. trick in BourneShellScript.
+//                        if (!line.contains(entry.getKey() + "=" + entry.getValue())) {
+//                            continue LINE;
+//                        }
+//                    }
+//                    line = line.trim();
+//                    int spc = line.indexOf(' ');
+//                    if (spc == -1) {
+//                        continue;
+//                    }
+//                    pids.add(line.substring(0, spc));
+//                }
+//                LOGGER.log(Level.FINE, "killing {0}", pids);
+//                if (!pids.isEmpty()) {
+//                    List<String> cmds = new ArrayList<>(Arrays.asList(executable, "exec", container, "kill"));
+//                    cmds.addAll(pids);
+//                    if (getInner().launch().cmds(cmds).quiet(true).start().joinWithTimeout(10, TimeUnit.SECONDS, listener) != 0) {
+//                        throw new IOException("failed to run kill");
+//                    }
+//                }
+                
                 ContainerExecDecorator.this.close();
             }
-
 
             private boolean isContainerReady(Pod pod, String container) {
                 if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {

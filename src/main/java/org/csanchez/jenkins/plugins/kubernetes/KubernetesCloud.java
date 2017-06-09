@@ -650,7 +650,7 @@ public class KubernetesCloud extends Cloud {
                                 : "";
                         LOGGER.log(Level.SEVERE,
                                 "Error in provisioning; slave={0}, template={1}. Container {2}{3}. Logs: {4}",
-                                new Object[] { slave, t, containerName, msg, tailingLines.getLog() });
+                                new Object[] { slave, t.getName(), containerName, msg, tailingLines.getLog() });
                     }
                 } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
                         | KeyStoreException | IOException e) {
@@ -768,7 +768,8 @@ public class KubernetesCloud extends Cloud {
 
                 return slave;
             } catch (Throwable ex) {
-                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
+                LOGGER.log(Level.SEVERE,
+                        String.format("Error in provisioning; slave=%s, template=%s", slave, t.getName()), ex);
                 if (slave != null) {
                     LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
                     Jenkins.getInstance().removeNode(slave);
