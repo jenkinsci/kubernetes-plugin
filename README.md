@@ -35,6 +35,8 @@ podTemplate(label: 'mypod') {
 }
 ```
 
+Find more examples in the [examples dir](examples).
+
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
