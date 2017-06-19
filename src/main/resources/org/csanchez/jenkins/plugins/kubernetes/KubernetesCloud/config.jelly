@@ -9,14 +9,6 @@
       <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
-      <f:textarea/>
-    </f:entry>
-
-    <f:entry title="${%Disable https certificate check}" field="skipTlsVerify">
-      <f:checkbox />
-    </f:entry>
-
     <f:entry title="${%Kubernetes Namespace}" field="namespace">
       <f:textbox default="default" />
     </f:entry>
@@ -25,7 +17,15 @@
       <c:select/>
     </f:entry>
 
-    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
+   <f:advanced>
+       <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
+         <f:textarea/>
+       </f:entry>
+
+       <f:entry title="${%Disable https certificate check}" field="skipTlsVerify">
+         <f:checkbox />
+       </f:entry>
+    </f:advanced>
 
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
       <f:textbox />
@@ -35,27 +35,33 @@
       <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
-        <f:textbox default="5"/>
+    <f:entry title="${%Default JNLP Image}" field="defaultJnlpImage">
+      <f:textbox default='jenkinsci/jnlp-slave:alpine'/>
     </f:entry>
 
-    <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
-        <f:textbox default="15"/>
-    </f:entry>
+   <f:advanced>
+       <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
+           <f:textbox default=""/>
+       </f:entry>
 
-    <f:entry title="${%Container Cap}" field="containerCapStr">
-        <f:textbox default="10"/>
-    </f:entry>
+       <f:entry title="${%Container Cap}" field="containerCapStr">
+            <f:textbox default="10"/>
+        </f:entry>
 
-    <f:advanced>
-      <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
-        <f:textbox default="5"/>
-      </f:entry>
+       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
+         <f:textbox default="5"/>
+       </f:entry>
+
+       <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
+           <f:textbox default="5"/>
+       </f:entry>
+
+       <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
+           <f:textbox default="15"/>
+       </f:entry>
     </f:advanced>
 
-    <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
-        <f:textbox default=""/>
-    </f:entry>
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
 
     <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
       <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="Add Pod Template"

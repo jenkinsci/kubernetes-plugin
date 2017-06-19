@@ -104,6 +104,7 @@ public class KubernetesCloud extends Cloud {
 
     public static final String JNLP_NAME = "jnlp";
     private static final String DEFAULT_JNLP_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
+    private static final String DEFAULT_JNLP_COMMAND = "";
 
     private static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkinsci/jnlp-slave:alpine");
@@ -136,6 +137,8 @@ public class KubernetesCloud extends Cloud {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout;
     private int readTimeout;
+    private String defaultJnlpImage;
+
 
     private transient KubernetesClient client;
 
@@ -292,6 +295,11 @@ public class KubernetesCloud extends Cloud {
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }
+
+    public String getDefaultJnlpImage(){ return defaultJnlpImage;}
+
+    @DataBoundSetter
+    public void setDefaultJnlpImage (String defaultJnlpImage) { this.defaultJnlpImage = defaultJnlpImage;}
 
     /**
      * Connects to Kubernetes.
@@ -456,12 +464,17 @@ public class KubernetesCloud extends Cloud {
             containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
-        if (!containers.containsKey(JNLP_NAME)) {
-            ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
-            containerTemplate.setName(JNLP_NAME);
-            containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
+        // JNLP Image Config. (default jnlp -> top level jnlp  -> jnlp pod template)
+        if ((!containers.containsKey(JNLP_NAME)) && (defaultJnlpImage != null && !defaultJnlpImage.isEmpty())){
+            ContainerTemplate containerTemplate = new ContainerTemplate(JNLP_NAME, defaultJnlpImage, DEFAULT_JNLP_COMMAND, DEFAULT_JNLP_ARGUMENTS);
             containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
+        // if no custom jnlp settings are provided, use defaults
+        else if ((!containers.containsKey(JNLP_NAME))) {
+            ContainerTemplate containerTemplate = new ContainerTemplate(JNLP_NAME, DEFAULT_JNLP_IMAGE, DEFAULT_JNLP_COMMAND, DEFAULT_JNLP_ARGUMENTS);
+            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
+        }
+
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
                 .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
