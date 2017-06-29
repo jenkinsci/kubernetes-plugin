@@ -212,7 +212,7 @@ public class PodTemplateUtils {
      */
     public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
-            if (label == null || label.matches(t.getLabelSet())) {
+            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
                 return t;
             }
         }
