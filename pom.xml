@@ -30,6 +30,8 @@
   </developers>
 
   <properties>
+    <kubernetes.context>minikube</kubernetes.context>
+
     <java.level>8</java.level>
 
     <!-- dependency versions -->
@@ -259,6 +261,7 @@
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <!-- listen in all interfaces from connections from kubernetes pods -->
             <connectorHost>0.0.0.0</connectorHost>
+            <kubernetes.context>${kubernetes.context}</kubernetes.context>
           </systemPropertyVariables>
         </configuration>
       </plugin>
