@@ -360,7 +360,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         public static final String EXIT_COMMAND_TXT = "EXITCODE";
         public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
 
-        private EvictingQueue<Integer> queue = EvictingQueue.create(13);
+        private EvictingQueue<Integer> queue = EvictingQueue.create(20);
 
         public ExitCodeOutputStream() {
             
@@ -385,7 +385,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.WARNING, "Unable to find \"{0}\" in {1}", new Object[] { EXIT_COMMAND_TXT, s });
                 return i;
             }
-            s = s.substring(s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length(), s.length()).trim();
+            // parse the exitcode int printed after EXITCODE
+            int start = s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length();
+            s = s.substring(start, start + 4).trim();
             try {
                 i = Integer.parseInt(s);
             } catch (NumberFormatException e) {
