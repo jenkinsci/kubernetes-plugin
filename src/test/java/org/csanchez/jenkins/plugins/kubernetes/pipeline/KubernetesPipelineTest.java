@@ -82,9 +82,6 @@ public class KubernetesPipelineTest {
 
     @BeforeClass
     public static void configureCloud() throws Exception {
-        // do not run if minikube is not running
-        assumeMiniKube();
-
         cloud = setupCloud();
 
         // Create a busybox template

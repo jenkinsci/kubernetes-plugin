@@ -35,6 +35,8 @@ podTemplate(label: 'mypod') {
 }
 ```
 
+Find more examples in the [examples dir](examples).
+
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
@@ -50,7 +52,7 @@ The `container` statement allows to execute commands directly into each containe
 ```groovy
 podTemplate(label: 'mypod', containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
-    containerTemplate(name: 'golang', image: 'golang:1.6.3', ttyEnabled: true, command: 'cat')
+    containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
   ]) {
 
     node('mypod') {
@@ -58,7 +60,7 @@ podTemplate(label: 'mypod', containers: [
             git 'https://github.com/jenkinsci/kubernetes-plugin.git'
             container('maven') {
                 stage('Build a Maven project') {
-                    sh 'mvn clean install'
+                    sh 'mvn -B clean install'
                 }
             }
         }
@@ -198,7 +200,7 @@ Then consumers of the library could just express the need for a maven pod with d
 #### Using a different namespace
 
 There might be cases, where you need to have the slave pod run inside a different namespace than the one configured with the cloud definition.
-For example you may need the slave to run inside an `ephemeral` namespace for the shake of testing.
+For example you may need the slave to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
 
 ## Container Configuration
@@ -249,7 +251,7 @@ annotations: [
 
 Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent. It can ve overridden by defining a container with the same name.
+and will be the container acting as Jenkins agent. It can be overridden by defining a container with the same name.
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
@@ -300,10 +302,16 @@ the last command will output kubernetes cluster configuration including API serv
 
 # Debugging
 
+Configure a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for
+`org.csanchez.jenkins.plugins.kubernetes` at `ALL` level.
+
 To inspect the json messages sent back and forth to the Kubernetes API server you can configure
 a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for `okhttp3`
 at `DEBUG` level.
 
+## Deleting pods in bad state
+
+    kubectl get -a pods -o name --selector=jenkins=slave | xargs -I {} kubectl delete {}
 
 # Building
 

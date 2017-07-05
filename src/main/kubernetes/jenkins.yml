@@ -1,0 +1,153 @@
+---
+apiVersion: "v1"
+kind: "Namespace"
+metadata: 
+  name: "kubernetes-plugin"
+  labels: 
+    name: "kubernetes-plugin"
+
+# jenkins
+
+---
+# apiVersion: "v1"
+# kind: "PersistentVolume"
+# metadata: 
+#   name: "jenkins"
+#   namespace: "kubernetes-plugin"
+# spec: 
+#   accessModes:
+#     - ReadWriteOnce
+#   capacity:
+#     storage: 100Mi
+#   hostPath:
+#     path: "/data/kubernetes-plugin-jenkins"
+
+---
+apiVersion: "v1"
+kind: "PersistentVolumeClaim"
+metadata: 
+  name: "jenkins"
+  namespace: "kubernetes-plugin"
+spec: 
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  # storageClassName: ""
+
+---
+apiVersion: "apps/v1beta1"
+kind: "StatefulSet"
+metadata: 
+  name: "jenkins"
+  namespace: "kubernetes-plugin"
+  labels: 
+    name: "jenkins"
+spec:
+  serviceName: "jenkins"
+  replicas: 1
+  template: 
+    metadata: 
+      name: "jenkins"
+      labels: 
+        name: "jenkins"
+    spec: 
+      terminationGracePeriodSeconds: 10
+      containers: 
+        - name: "jenkins"
+          image: "jenkinsci/jenkins:2.46.3"
+          ports: 
+            - containerPort: 8080
+            - containerPort: 50000
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 0.5
+              memory: 500Mi
+          env:
+            - name: JAVA_OPTS
+              value: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85"
+          volumeMounts: 
+            - name: "jenkins"
+              mountPath: "/var/jenkins_home"
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+      securityContext:
+        fsGroup: 1000
+      volumes: 
+        - name: "jenkins"
+          persistentVolumeClaim:
+            claimName: "jenkins"
+
+---
+apiVersion: "v1"
+kind: "Service"
+metadata: 
+  name: "jenkins"
+  namespace: "kubernetes-plugin"
+  annotations:
+    # ensure the client ip is propagated to avoid the invalid crumb issue
+    service.beta.kubernetes.io/external-traffic: OnlyLocal
+spec: 
+  type: LoadBalancer
+  selector: 
+    name: "jenkins"
+  ports: 
+    - 
+      name: "http"
+      port: 80
+      targetPort: 8080
+      protocol: "TCP"
+    - 
+      name: "slave"
+      port: 50000
+      protocol: "TCP"
+
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   name: "jenkins"
+#   namespace: "kubernetes-plugin"
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     ingress.kubernetes.io/ssl-redirect: "true"
+# spec:
+#   rules:
+#   - host: jenkins.gke.csanchez.org
+#     http:
+#       paths:
+#       - path: /
+#         backend:
+#           serviceName: jenkins
+#           servicePort: 80
+
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: "nginx-ingress"
+#   namespace: "kubernetes-plugin"
+#   annotations:
+#     service.beta.kubernetes.io/external-traffic: OnlyLocal
+#   #     service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-east-1:844301238566:certificate/e0d67b47-64b6-43f8-a0d9-af91163a50f6
+#   #     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+#   #     service.beta.kubernetes.io/aws-load-balancer-ssl-ports: https
+# spec:
+#   type: LoadBalancer
+#   ports:
+#     - port: 80
+#       name: http
+#     - port: 443
+#       targetPort: 80
+#       name: https
+#   selector:
+#     k8s-app: nginx-ingress-lb
+

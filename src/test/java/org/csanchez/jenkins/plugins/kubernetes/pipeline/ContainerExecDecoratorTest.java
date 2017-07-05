@@ -66,8 +66,6 @@ public class ContainerExecDecoratorTest {
 
     @BeforeClass
     public static void configureCloud() throws Exception {
-        // do not run if minikube is not running
-        assumeMiniKube();
         client = setupCloud().connect();
         deletePods();
     }

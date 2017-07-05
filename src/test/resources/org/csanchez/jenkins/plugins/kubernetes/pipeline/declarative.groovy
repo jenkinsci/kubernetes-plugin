@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      cloud 'minikube'
+      cloud 'kubernetes-plugin-test'
       label 'mypod'
       containerTemplate {
         name 'maven'
