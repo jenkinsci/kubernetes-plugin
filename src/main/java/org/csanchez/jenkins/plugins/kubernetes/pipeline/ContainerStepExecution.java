@@ -1,18 +1,16 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import hudson.AbortException;
 import hudson.FilePath;
@@ -48,10 +46,6 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
 
         String containerName = step.getName();
 
-        final AtomicBoolean podAlive = new AtomicBoolean(false);
-        final CountDownLatch podStarted = new CountDownLatch(1);
-        final CountDownLatch podFinished = new CountDownLatch(1);
-
         Node node = getContext().get(Node.class);
         if (! (node instanceof KubernetesSlave)) {
             throw new AbortException(String.format("Node is not a Kubernetes node: %s", node.getNodeName()));
@@ -63,7 +57,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         }
         client = cloud.connect();
 
-        decorator = new ContainerExecDecorator(client, podName,  containerName, podAlive, podStarted, podFinished, namespace);
+        decorator = new ContainerExecDecorator(client, podName,  containerName, namespace);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
@@ -95,6 +89,8 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     }
 
     private static class ContainerExecCallback extends BodyExecutionCallback {
+
+        private static final long serialVersionUID = 6385838254761750483L;
 
         @Override
         public void onSuccess(StepContext context, Object result) {

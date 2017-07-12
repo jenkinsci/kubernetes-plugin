@@ -66,8 +66,8 @@ public class KubernetesTestUtil {
         Assume.assumeThat("Kubernetes context is configured: " + KUBERNETES_CONTEXT, context.isPresent(), is(true));
 
         String clusterName = context.get().getContext().getCluster();
-        Optional<NamedCluster> clusterOptional = config.getClusters().stream().filter((c) -> c.getName().equals(clusterName))
-                .findFirst();
+        Optional<NamedCluster> clusterOptional = config.getClusters().stream()
+                .filter((c) -> c.getName().equals(clusterName)).findFirst();
         Assume.assumeThat("Kubernetes cluster is configured: " + clusterName, clusterOptional.isPresent(), is(true));
 
         Cluster cluster = clusterOptional.get().getCluster();

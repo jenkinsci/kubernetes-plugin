@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -14,6 +15,10 @@ import java.util.logging.Logger;
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 
+/**
+ * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.
+ *
+ */
 public class ContainerExecProc extends Proc {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
@@ -21,11 +26,22 @@ public class ContainerExecProc extends Proc {
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
+    private final Callable<Integer> exitCode;
 
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished) {
+    /**
+     * 
+     * @param watch
+     * @param alive
+     * @param finished
+     * @param exitCode
+     *            a way to get the exit code
+     */
+    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
+            Callable<Integer> exitCode) {
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
+        this.exitCode = exitCode;
     }
 
     @Override
@@ -36,7 +52,7 @@ public class ContainerExecProc extends Proc {
     @Override
     public void kill() throws IOException, InterruptedException {
         try {
-            //What we actually do is send a ctrl-c to the current process and then exit the shell.
+            // What we actually do is send a ctrl-c to the current process and then exit the shell.
             watch.getInput().write(CTRL_C);
             watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
             watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
@@ -48,8 +64,15 @@ public class ContainerExecProc extends Proc {
 
     @Override
     public int join() throws IOException, InterruptedException {
+        LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
         finished.await();
-        return 1;
+        LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
+        try {
+            return exitCode.call();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error getting exit code", e);
+            return -1;
+        }
     }
 
     @Override
@@ -59,11 +82,12 @@ public class ContainerExecProc extends Proc {
 
     @Override
     public InputStream getStderr() {
-        return watch.getOutput();
+        return watch.getError();
     }
 
     @Override
     public OutputStream getStdin() {
         return watch.getInput();
     }
+
 }

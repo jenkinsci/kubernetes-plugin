@@ -1,17 +1,16 @@
-podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [
-        containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
-        containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
-        containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: 'cat')
-]) {
+podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod', containers: [
+        containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
+    ]) {
 
     node ('mypod') {
-        sh "echo My Kubernetes Pipeline"
-        sh "ls /"
-
-        stage('Run maven') {
-            container('maven') {
-                sh 'mvn -version'
-            }
+      stage('Run') {
+        container('busybox') {
+          sh """
+            echo "PID file: \$(find ../.. -iname pid))"
+            echo "PID file contents: \$(find ../.. -iname pid -exec cat {} \\;)"
+            test -n "\$(cat \$(find ../.. -iname pid))"
+          """
         }
+      }
     }
 }
