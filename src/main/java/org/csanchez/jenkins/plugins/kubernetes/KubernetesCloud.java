@@ -302,7 +302,7 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + name + " URL " + serverUrl);
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + getDisplayName() + " URL " + serverUrl);
 
         if (client == null) {
             synchronized (this) {
