@@ -383,7 +383,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
-            this.envVars = new ArrayList<PodEnvVar>();
+            this.envVars.clear();
             this.addEnvVars(envVars);
         }
     }
@@ -425,7 +425,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         @DataBoundSetter
     public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
         if(imagePullSecrets != null) {
-            this.imagePullSecrets = new ArrayList<PodImagePullSecret>();
+            this.imagePullSecrets.clear();
             this.addImagePullSecrets(imagePullSecrets);
         }
     }
