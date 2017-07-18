@@ -313,10 +313,20 @@ at `DEBUG` level.
 
     kubectl get -a pods -o name --selector=jenkins=slave | xargs -I {} kubectl delete {}
 
-# Building
+# Building and Testing
 
-Run `mvn clean package` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
+Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
+For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
+Tests will detect it and run a set of integration tests in a new namespace.
+
+To run the tests in a different kubernetes cluster, get the context with `kubectl config get-contexts` and pass it to Maven with `-Dkubernetes.context`
+
+    mvn clean install -Dkubernetes.context=_your-kubernetes-context_
+
+ie. for a [minishift](https://github.com/minishift/minishift) context
+
+    mvn clean install -Dkubernetes.context=myproject/192-168-64-2:8443/developer
 
 # Docker image
 
