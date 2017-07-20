@@ -269,6 +269,12 @@
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
+          <!-- with the default setting seems that an older version of jackson from core is used
+            java.lang.NoSuchMethodError: com.fasterxml.jackson.core.JsonFactory.requiresPropertyOrdering()Z
+            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:549)
+            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:460)
+            at io.fabric8.kubernetes.client.utils.Serialization.<clinit>(Serialization.java:37)
+          -->
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
         </configuration>
       </plugin>
