@@ -9,34 +9,6 @@ metadata:
 # jenkins
 
 ---
-# apiVersion: "v1"
-# kind: "PersistentVolume"
-# metadata: 
-#   name: "jenkins"
-#   namespace: "kubernetes-plugin"
-# spec: 
-#   accessModes:
-#     - ReadWriteOnce
-#   capacity:
-#     storage: 100Mi
-#   hostPath:
-#     path: "/data/kubernetes-plugin-jenkins"
-
----
-apiVersion: "v1"
-kind: "PersistentVolumeClaim"
-metadata: 
-  name: "jenkins"
-  namespace: "kubernetes-plugin"
-spec: 
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
-  # storageClassName: ""
-
----
 apiVersion: "apps/v1beta1"
 kind: "StatefulSet"
 metadata: 
@@ -46,6 +18,7 @@ metadata:
     name: "jenkins"
 spec:
   serviceName: "jenkins"
+  serviceAccountName: jenkins
   replicas: 1
   template: 
     metadata: 
@@ -56,7 +29,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers: 
         - name: "jenkins"
-          image: "jenkinsci/jenkins:2.46.3"
+          image: "jenkinsci/jenkins:2.60.1"
           ports: 
             - containerPort: 8080
             - containerPort: 50000
@@ -71,7 +44,7 @@ spec:
             - name: JAVA_OPTS
               value: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85"
           volumeMounts: 
-            - name: "jenkins"
+            - name: "jenkins-home"
               mountPath: "/var/jenkins_home"
           livenessProbe:
             httpGet:
@@ -81,10 +54,16 @@ spec:
             timeoutSeconds: 5
       securityContext:
         fsGroup: 1000
-      volumes: 
-        - name: "jenkins"
-          persistentVolumeClaim:
-            claimName: "jenkins"
+  volumeClaimTemplates:
+  - metadata:
+      name: jenkins-home
+      # annotations:
+      #   volume.beta.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
 
 ---
 apiVersion: "v1"
@@ -93,12 +72,14 @@ metadata:
   name: "jenkins"
   namespace: "kubernetes-plugin"
   annotations:
-    # ensure the client ip is propagated to avoid the invalid crumb issue
+    # ensure the client ip is propagated to avoid the invalid crumb issue (k8s <1.7)
     service.beta.kubernetes.io/external-traffic: OnlyLocal
 spec: 
   type: LoadBalancer
   selector: 
     name: "jenkins"
+  # k8s 1.7+
+  # externalTrafficPolicy: Local
   ports: 
     - 
       name: "http"

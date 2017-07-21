@@ -340,13 +340,16 @@ Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
 
 # Running in Kubernetes
 
+The example configuration will create a stateful set running Jenkins with persistent volume
+and using a service account to authenticate to Kubernetes API.
+
 ## Running locally with minikube
 
 A local testing cluster with one node can be created with [minikube](https://github.com/kubernetes/minikube)
 
     minikube start
 
-Set the correct permissions for the host mounted volume
+You may need to set the correct permissions for host mounted volumes
 
     minikube ssh
     sudo mkdir -p /data/kubernetes-plugin-jenkins
@@ -354,7 +357,8 @@ Set the correct permissions for the host mounted volume
 
 Then create the Jenkins ReplicationController and Service with
 
-    kubectl create -f ./src/main/kubernetes/minikube.yml
+    kubectl create -f src/main/kubernetes/service-account.yml
+    kubectl create -f src/main/kubernetes/jenkins.yml
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 Get the url to connect to with
@@ -365,13 +369,10 @@ Get the url to connect to with
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and slaves there.
 
-Create a GCE disk named `kubernetes-jenkins` to store the data.
+Creating all the elements and setting the default namespace
 
-    gcloud compute disks create --size 20GB kubernetes-jenkins
-
-Creating all the elements and setting the default namespace (Optionally modify default K8 Compute Resources limits [5ooMi RAM]; See below)
-
-    kubectl create -f ./src/main/kubernetes/gke.yml
+    kubectl create -f src/main/kubernetes/service-account.yml
+    kubectl create -f src/main/kubernetes/gke.yml
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
