@@ -1,19 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import hudson.security.ACL;
-import hudson.util.Secret;
-import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.Jenkins;
-import org.apache.commons.codec.binary.Base64;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -24,14 +10,34 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+
+import hudson.security.ACL;
+import hudson.util.Secret;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class KubernetesFactoryAdapter {
+
+    private static final Logger LOGGER = Logger.getLogger(KubernetesFactoryAdapter.class.getName());
 
     private static final int DEFAULT_CONNECT_TIMEOUT = 5;
     private static final int DEFAULT_READ_TIMEOUT = 15;
@@ -82,28 +88,25 @@ public class KubernetesFactoryAdapter {
                 .withRequestTimeout(readTimeout * 1000)
                 .withConnectionTimeout(connectTimeout * 1000);
 
-        if (namespace != null && !namespace.isEmpty()) {
+        if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
         }
-        if (credentials != null) {
-            if (credentials instanceof TokenProducer) {
-                final String token = ((TokenProducer)credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
-                builder.withOauthToken(token);
-            }
-            else if (credentials instanceof UsernamePasswordCredentials) {
-                UsernamePasswordCredentials usernamePassword = (UsernamePasswordCredentials) credentials;
-                builder.withUsername(usernamePassword.getUsername()).withPassword(Secret.toString(usernamePassword.getPassword()));
-            }
-            else if (credentials instanceof StandardCertificateCredentials) {
-                StandardCertificateCredentials certificateCredentials = (StandardCertificateCredentials) credentials;
-                KeyStore keyStore = certificateCredentials.getKeyStore();
-                String alias = keyStore.aliases().nextElement();
-                X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
-                Key key = keyStore.getKey(alias, Secret.toString(certificateCredentials.getPassword()).toCharArray());
-                builder.withClientCertData(Base64.encodeBase64String(certificate.getEncoded()))
-                        .withClientKeyData(pemEncodeKey(key))
-                        .withClientKeyPassphrase(Secret.toString(certificateCredentials.getPassword()));
-            }
+        if (credentials instanceof TokenProducer) {
+            final String token = ((TokenProducer) credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
+            builder.withOauthToken(token);
+        } else if (credentials instanceof UsernamePasswordCredentials) {
+            UsernamePasswordCredentials usernamePassword = (UsernamePasswordCredentials) credentials;
+            builder.withUsername(usernamePassword.getUsername())
+                    .withPassword(Secret.toString(usernamePassword.getPassword()));
+        } else if (credentials instanceof StandardCertificateCredentials) {
+            StandardCertificateCredentials certificateCredentials = (StandardCertificateCredentials) credentials;
+            KeyStore keyStore = certificateCredentials.getKeyStore();
+            String alias = keyStore.aliases().nextElement();
+            X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
+            Key key = keyStore.getKey(alias, Secret.toString(certificateCredentials.getPassword()).toCharArray());
+            builder.withClientCertData(Base64.encodeBase64String(certificate.getEncoded()))
+                    .withClientKeyData(pemEncodeKey(key))
+                    .withClientKeyPassphrase(Secret.toString(certificateCredentials.getPassword()));
         }
 
         if (skipTlsVerify) {
@@ -111,8 +114,10 @@ public class KubernetesFactoryAdapter {
         }
 
         if (caCertData != null) {
-            builder.withCaCertData(caCertData);
+            // JENKINS-38829 CaCertData expects a Base64 encoded certificate
+            builder.withCaCertData(new String(Base64.encodeBase64String(caCertData.getBytes())));
         }
+        LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
         return new DefaultKubernetesClient(builder.build());
     }
 
@@ -122,5 +127,12 @@ public class KubernetesFactoryAdapter {
                 .append(Base64.encodeBase64String(key.getEncoded())) //
                 .append("\n-----END PRIVATE KEY-----\n") //
                 .toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public String toString() {
+        return "KubernetesFactoryAdapter [serviceAddress=" + serviceAddress + ", namespace=" + namespace
+                + ", caCertData=" + caCertData + ", credentials=" + credentials + ", skipTlsVerify=" + skipTlsVerify
+                + ", connectTimeout=" + connectTimeout + ", readTimeout=" + readTimeout + "]";
     }
 }

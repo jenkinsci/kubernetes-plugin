@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import hudson.model.labels.LabelAtom;
 import io.fabric8.kubernetes.api.model.*;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -768,7 +769,7 @@ public class KubernetesCloud extends Cloud {
 
                 return slave;
             } catch (Throwable ex) {
-                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
+                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}: {2}", new Object[] { slave, t, ex.getMessage() });
                 if (slave != null) {
                     LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
                     Jenkins.getInstance().removeNode(slave);
@@ -913,6 +914,11 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Object readResolve() {
+        if ((serverCertificate != null) && !serverCertificate.startsWith("-----BEGIN CERTIFICATE-----")) {
+            serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes()));
+            LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
+                    serverCertificate.substring(0, 80));
+        }
         return this;
     }
 
