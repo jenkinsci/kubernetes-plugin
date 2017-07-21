@@ -40,6 +40,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -93,21 +94,8 @@ public class KubernetesPipelineTest {
         cloud.addTemplate(busyboxTemplate);
     }
 
-    // @Test
-    // public void configRoundTrip() {
-    // story.addStep(new Statement() {
-    // @Override
-    // public void evaluate() throws Throwable {
-    // Xvnc xvnc = new Xvnc(true, false);er-1
-
-    // CoreWrapperStep step = new CoreWrapperStep(xvnc);
-    // step = new StepConfigTester(story.j).configRoundTrip(step);
-    // story.j.assertEqualDataBoundBeans(xvnc, step.getDelegate());
-    // }
-    // });
-    // }
-
-    private void configureCloud(JenkinsRuleNonLocalhost r) throws Exception {
+    @Before
+    public void addCloudToJenkins() throws Exception {
         // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
         URL nonLocalhostUrl = new URL(url.getProtocol(), InetAddress.getLocalHost().getHostAddress(), url.getPort(),
@@ -119,7 +107,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -130,7 +117,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithMultipleContainers.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -143,7 +129,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithExistingTemplate() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingTemplate.groovy")
                 , true));
@@ -156,7 +141,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runJobWithSpaces() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p with spaces");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runJobWithSpaces.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -167,7 +151,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runDirContext() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runDirContext.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -182,7 +165,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runWithOverriddenNamespace() throws Exception {
-        configureCloud(r);
         String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
@@ -204,7 +186,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runWithOverriddenNamespace2() throws Exception {
-        configureCloud(r);
         String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
@@ -226,7 +207,6 @@ public class KubernetesPipelineTest {
 
     @Test
     public void runInPodWithLivenessProbe() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with liveness probe");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithLivenessProbe.groovy")
                 , true));
@@ -272,7 +252,6 @@ public class KubernetesPipelineTest {
     @Issue("JENKINS-41758")
     @Test
     public void declarative() throws Exception {
-        configureCloud(r);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
