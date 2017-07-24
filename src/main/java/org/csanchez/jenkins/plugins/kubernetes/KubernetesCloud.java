@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
 import hudson.model.labels.LabelAtom;
 import io.fabric8.kubernetes.api.model.*;
 
@@ -789,8 +790,10 @@ public class KubernetesCloud extends Cloud {
         }
 
         KubernetesClient client = connect();
-        PodList slaveList = client.pods().inNamespace(template.getNamespace()).withLabels(POD_LABEL).list();
-        List<Pod> slaveListItems = slaveList.getItems();
+
+        List<Pod> slaveListItems = client.pods().inNamespace(template.getNamespace()).withLabels(POD_LABEL).list()
+                                  .getItems().stream().filter(pod -> !Lists.newArrayList("Failed", "Succeeded").contains(pod.getStatus().getPhase()))
+                                  .collect(Collectors.toList());
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
         PodList namedList = client.pods().inNamespace(template.getNamespace()).withLabels(labelsMap).list();
