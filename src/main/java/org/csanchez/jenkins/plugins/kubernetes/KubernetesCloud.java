@@ -1,11 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.nio.charset.StandardCharsets.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -28,13 +28,10 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import hudson.model.labels.LabelAtom;
-import io.fabric8.kubernetes.api.model.*;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -73,10 +70,13 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Probe;
+import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
@@ -923,7 +923,7 @@ public class KubernetesCloud extends Cloud {
 
     private Object readResolve() {
         if ((serverCertificate != null) && !serverCertificate.startsWith("-----BEGIN CERTIFICATE-----")) {
-            serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes()));
+            serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
                     serverCertificate.substring(0, 80));
         }

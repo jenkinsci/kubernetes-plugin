@@ -1,5 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.nio.charset.StandardCharsets.*;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -115,7 +117,7 @@ public class KubernetesFactoryAdapter {
 
         if (caCertData != null) {
             // JENKINS-38829 CaCertData expects a Base64 encoded certificate
-            builder.withCaCertData(new String(Base64.encodeBase64String(caCertData.getBytes())));
+            builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
         }
         LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
         return new DefaultKubernetesClient(builder.build());
