@@ -865,29 +865,37 @@ public class KubernetesCloud extends Cloud {
             return "Kubernetes";
         }
 
-        public FormValidation doTestConnection(@QueryParameter URL serverUrl, @QueryParameter String credentialsId,
+        public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
 
+            if (StringUtils.isBlank(serverUrl))
+                return FormValidation.error("URL is required");
+            if (StringUtils.isBlank(name))
+                return FormValidation.error("name is required");
+
             try {
-                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl.toExternalForm(), namespace,
+                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
                         connectionTimeout, readTimeout).createClient();
 
                 client.pods().list();
                 return FormValidation.ok("Connection successful");
             } catch (KubernetesClientException e) {
-                return FormValidation.error("Error connecting to %s: %s", serverUrl,
-                        e.getCause() == null ? e.getMessage() : e.getCause().getMessage());
+                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
+                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getCause() == null
+                        ? e.getMessage()
+                        : String.format("%s: %s", e.getCause().getClass().getName(), e.getCause().getMessage()));
             } catch (Exception e) {
+                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
                 return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getMessage());
             }
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter URL serverUrl) {
+        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
@@ -899,7 +907,7 @@ public class KubernetesCloud extends Cloud {
                             CredentialsProvider.lookupCredentials(StandardCredentials.class,
                                     Jenkins.getInstance(),
                                     ACL.SYSTEM,
-                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl.toExternalForm()).build()
+                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
                                                       : Collections.EMPTY_LIST
                             ));
 
