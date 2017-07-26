@@ -922,7 +922,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     private Object readResolve() {
-        if ((serverCertificate != null) && !serverCertificate.startsWith("-----BEGIN CERTIFICATE-----")) {
+        if ((serverCertificate != null) && !serverCertificate.trim().startsWith("-----BEGIN CERTIFICATE-----")) {
             serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
                     serverCertificate.substring(0, 80));
