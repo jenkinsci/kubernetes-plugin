@@ -642,6 +642,7 @@ public class KubernetesCloud extends Cloud {
     @VisibleForTesting
     public class SimpleProvisioningCallback implements Callable<Node> {
 
+        @VisibleForTesting
         static final String NODE_WAS_DELETED_COMPUTER_IS_NULL_MSG = "Node was deleted, computer is null";
 
         @Nonnull
@@ -697,26 +698,11 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.FINER, "Adding Jenkins node: {0}", slave.getNodeName());
                 jenkins().addNode(slave);
 
-                KubernetesClient client = connect();
                 SlaveComputer slaveComputer = slave.getComputer();
                 SlaveInfo slaveInfo =
                         new SlaveInfo(slave.getNodeName(), slaveComputer.getName(), slaveComputer.getUrl(), slaveComputer.getJnlpMac());
-                Pod podTemplate = getPodTemplate(slaveInfo, label);
 
-                String podId = getPodId(podTemplate);
-                String namespace = getNamespace(client);
-
-                createPod(client, podTemplate, namespace);
-                LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
-
-                // We need the pod to be running and connected before returning
-                // otherwise this method keeps being called multiple times
-                ImmutableList<String> validStates = ImmutableList.of("Running");
-
-                waitForPodStatus(podId, namespace, podId, validStates);
-
-                // now wait for slave to be online
-                return waitForSlaveToComeOnline(podId, namespace).getSlave();
+                return spinUpSlaveFromPod(slaveInfo);
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
                 if (slave != null) {
@@ -725,6 +711,28 @@ public class KubernetesCloud extends Cloud {
                 }
                 throw Throwables.propagate(ex);
             }
+        }
+
+        protected Node spinUpSlaveFromPod(SlaveInfo slaveInfo) throws Exception {
+            KubernetesClient client = connect();
+            Pod podTemplate = getPodTemplate(slaveInfo, label);
+            LOGGER.log(Level.FINE, "Pod template for pod creation: {0}", podTemplate);
+
+            String namespace = getNamespace(client);
+            Pod pod = createPod(client, podTemplate, namespace);
+            String podId = getPodId(pod);
+            LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
+
+            // We need the pod to be running and connected before returning
+            // otherwise this method keeps being called multiple times
+            ImmutableList<String> validStates = ImmutableList.of("Running");
+
+            LOGGER.log(Level.FINER, "Starting to wait for Pod {0} to be in status {1}", new Object[] { podId, validStates });
+            waitForPodStatus(podId, namespace, podId, validStates);
+            LOGGER.log(Level.INFO, "Pod {0} is ready, waiting for slave to come online", new Object[] { podId });
+
+            // now wait for slave to be online
+            return waitForSlaveToComeOnline(pod, namespace);
         }
 
         protected Pod createPod(KubernetesClient client, Pod podTemplate, String namespace) {
@@ -746,25 +754,26 @@ public class KubernetesCloud extends Cloud {
         }
 
         @VisibleForTesting
-        SlaveOperationDetails waitForSlaveToComeOnline(String podId, String namespace) throws Exception {
+        Slave waitForSlaveToComeOnline(Pod pod, String namespace) throws Exception {
             int attemptsToMake = slaveOperationMaxAttempts(t.getSlaveConnectTimeout());
+            String podId = getPodId(pod);
             Slave slave = (Slave) jenkins().getNode(podId);
 
             try {
-                return SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
+                SlaveOperationDetails slaveOperationDetails = SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
                     if (slave == null || slave.getComputer() == null) {
                         throw new IllegalStateException(NODE_WAS_DELETED_COMPUTER_IS_NULL_MSG);
                     }
                     if (slave.getComputer().isOnline()) {
-                        LOGGER.log(Level.INFO, "Slave {0} is online", new Object[]{podId});
+                        LOGGER.log(Level.INFO, "Slave from pod {0} is online", new Object[]{podId});
                         return Optional.of(new SlaveOperationDetails(slave, null));
                     }
                     LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}",
                             new Object[]{podId, attemptNumber, attemptsToMake});
                     return Optional.empty();
                 }, attemptsToMake);
+                return slaveOperationDetails.getSlave();
             } catch (SlaveOperationTimeoutException e) {
-                Pod pod = getPodByNamespaceAndPodId(namespace, podId);
                 logLastSlaveContainerLines(pod, podId);
                 throw failureToConnectOnlineSlave(pod, attemptsToMake);
             }
@@ -883,6 +892,8 @@ public class KubernetesCloud extends Cloud {
     @VisibleForTesting
     class SelfRegisteringSlaveCallback extends SimpleProvisioningCallback {
 
+        private static final String SELF_REG_SLAVE_LABEL = "k8s_self_registered_slave";
+
         public SelfRegisteringSlaveCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t, @CheckForNull Label label) {
             super(cloud, t, label);
         }
@@ -892,25 +903,7 @@ public class KubernetesCloud extends Cloud {
             String slaveName = KubernetesSlave.getSlaveName(t);
             SlaveInfo slaveInfo = new SlaveInfo(slaveName);
             try {
-                KubernetesClient client = connect();
-                Pod podTemplate = getPodTemplate(slaveInfo, label);
-
-                String podId = getPodId(podTemplate);
-                String namespace = getNamespace(client);
-
-                Pod pod = createPod(client, podTemplate, namespace);
-                LOGGER.log(Level.FINEST, "Created Pod with ID {0}: {1}", new Object[] { podId, pod });
-
-                // We need the pod to be running and connected before returning
-                // otherwise this method keeps being called multiple times
-                ImmutableList<String> validStates = ImmutableList.of("Running");
-
-                LOGGER.log(Level.FINER, "Starting to wait for Pod {0} to be in status {1}", new Object[] { podId, validStates });
-                waitForPodStatus(podId, namespace, slaveInfo.getNodeName(), validStates);
-                LOGGER.log(Level.INFO, "Pod {0} is ready", new Object[] { podId });
-
-                // now wait for slave to connect to Jenkins
-                return waitForOnlineSlave(pod, namespace);
+                return spinUpSlaveFromPod(slaveInfo);
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slaveName={0}, template={1}",
                         new Object[] { slaveInfo.getNodeName(), t });
@@ -918,29 +911,29 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        private Slave waitForOnlineSlave(Pod pod, String namespace) throws InterruptedException, IOException {
+        @VisibleForTesting
+        @Override
+        Slave waitForSlaveToComeOnline(Pod pod, String namespace) throws Exception {
             String podId = getPodId(pod);
-            LOGGER.log(Level.FINE, "Waiting for slave from pod {0} (namespace {1}) to connect", new Object[] { podId, namespace });
+            LOGGER.log(Level.INFO, "Waiting for slave from pod {0} (namespace {1}) to connect", new Object[] { podId, namespace });
 
             // wait for slave to be connected
             SlaveOperationDetails slaveConnectDetails = waitForSlaveToConnect(podId, namespace);
+            Slave foundSlaveNode = slaveConnectDetails.getSlave();
             String slaveName = slaveConnectDetails.getSlaveName();
 
             // now wait for slave to be online
-            LOGGER.log(Level.FINE, "Waiting for slave from pod {0} (namespace {1}) to come online", new Object[] { podId, namespace });
+            LOGGER.log(Level.INFO, "Waiting for slave from pod {0} (namespace {1}) to come online", new Object[] { podId, namespace });
             int onlineWaitTimeoutInSeconds = slaveOperationMaxAttempts(t.getSlaveConnectTimeout() - slaveConnectDetails.getSecondsSpent());
 
-            Jenkins jenkins = jenkins();
             SlaveOperationDetails slaveOperationDetails;
             try {
                 slaveOperationDetails = SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
-                    Node slaveNode = jenkins.getNode(slaveName);
-                    Slave foundSlaveNode = (Slave) slaveNode;
                     if (isSlaveComputerOnline(foundSlaveNode)) {
                         LOGGER.log(Level.INFO, "slave computer is online", foundSlaveNode);
-                        addTemplateLabel(foundSlaveNode, t.getLabel());
+                        addTemplateLabels(foundSlaveNode, t.getLabel(), SELF_REG_SLAVE_LABEL);
                         // Slave is self-registering here, but we want our retention strategy to apply
-                        applyTemplateRetentionStrategy(foundSlaveNode, namespace);
+                        applyTemplateRetentionStrategy(foundSlaveNode, namespace, podId);
                         return Optional.of(new SlaveOperationDetails(foundSlaveNode, slaveName));
                     }
                     LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}",
@@ -955,19 +948,21 @@ public class KubernetesCloud extends Cloud {
             return slaveOperationDetails.getSlave();
         }
 
-        private void applyTemplateRetentionStrategy(Slave slave, String namespace) {
-            slave.setRetentionStrategy(new SelfRegisteredSlaveRetentionStrategy(cloud.name, namespace, t.getIdleMinutes()));
-            // Needed to make retention strategy effective
+        private void applyTemplateRetentionStrategy(Slave slave, String namespace, String podId) {
+            slave.setRetentionStrategy(new SelfRegisteredSlaveRetentionStrategy(cloud.name, namespace, podId, t.getIdleMinutes()));
             try {
+                // Needed to make retention strategy effective
                 jenkins().updateNode(slave);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
         }
 
-        private void addTemplateLabel(Slave slave, String label) {
+        private void addTemplateLabels(Slave slave, String... labels) {
             try {
-                slave.setLabelString(slave.getLabelString() + " " + label);
+                for (String label : labels) {
+                    slave.setLabelString(slave.getLabelString() + " " + label);
+                }
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
@@ -975,17 +970,18 @@ public class KubernetesCloud extends Cloud {
             slave.getAssignedLabels();
         }
 
-        private SlaveOperationDetails waitForSlaveToConnect(String podId, String namespace) throws InterruptedException {
+        @VisibleForTesting
+        SlaveOperationDetails waitForSlaveToConnect(String podId, String namespace) throws InterruptedException {
             int slaveConnectTimeoutInSeconds = slaveOperationMaxAttempts(t.getSlaveConnectTimeout());
             try {
                 return SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
-                    Optional<Node> kubeSlave = findSelfStartedSlaveByPodId(podId);
-                    if (kubeSlave.isPresent()) {
-                        String slaveDisplayName = kubeSlave.get().getDisplayName();
-                        return Optional.of(new SlaveOperationDetails(null, slaveDisplayName));
-                    }
-                    LOGGER.log(Level.INFO, "pod {0} is not online yet", podId);
-                    return Optional.empty();
+                    Optional<Node> optionalKubeSlave = findSelfRegisteredSlaveByPodId(podId);
+                    return optionalKubeSlave
+                            .map(kubeSlave -> Optional.of(new SlaveOperationDetails((Slave)kubeSlave, kubeSlave.getDisplayName())))
+                            .orElseGet(() -> {
+                                LOGGER.log(Level.INFO, "pod {0} is not online yet", podId);
+                                return Optional.empty();
+                            });
                 }, slaveConnectTimeoutInSeconds);
             } catch (SlaveOperationTimeoutException e) {
                 // Slave still not connected? Let's fail here
@@ -995,16 +991,11 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        private Optional<Node> findSelfStartedSlaveByPodId(String podId) {
-            LOGGER.log(Level.INFO, "Trying to find slave with name starting with podId {0}", new Object[] { podId });
-            Jenkins jenkins = jenkins();
-
-            List<Node> allNodes = jenkins.getNodes();
-            // TODO: self-registered slaves should also have the name == pod name
-            // Self-registering slave can have an arbitrary name, but due to the contract, should start with Pod ID
-            return allNodes.stream()
-                    .filter(node -> node != null && node.getDisplayName().startsWith(podId))
-                    .findFirst();
+        @VisibleForTesting
+        Optional<Node> findSelfRegisteredSlaveByPodId(String podId) {
+            LOGGER.log(Level.INFO, "Trying to find slave with name equal to pod ID \"{0}\"", new Object[] { podId });
+            // Self-registering slave should be equal to Pod ID
+            return Optional.ofNullable(jenkins().getNode(podId));
         }
     }
 
