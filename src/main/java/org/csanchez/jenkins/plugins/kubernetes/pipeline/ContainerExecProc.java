@@ -72,6 +72,9 @@ public class ContainerExecProc extends Proc {
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
             return -1;
+        } finally {
+            //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            watch.close();
         }
     }
 
