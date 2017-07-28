@@ -359,8 +359,7 @@ A local testing cluster with one node can be created with [minikube](https://git
 You may need to set the correct permissions for host mounted volumes
 
     minikube ssh
-    sudo mkdir -p /data/kubernetes-plugin-jenkins
-    sudo chown 1000:1000 /data/kubernetes-plugin-jenkins
+    sudo chown 1000:1000 /tmp/hostpath-provisioner/pvc-*
 
 Then create the Jenkins ReplicationController and Service with
 
