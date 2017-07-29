@@ -29,6 +29,8 @@ CHANGELOG
 * Fix workingDir inheritance error [#136](https://github.com/jenkinsci/kubernetes-plugin/pull/136)
 * Use name instead of label for the nesting stack [#137](https://github.com/jenkinsci/kubernetes-plugin/pull/137)
 * Exception in configure page when 'Kubernetes URL' isn't filled [JENKINS-45282](https://issues.jenkins-ci.org/browse/JENKINS-45282) [#174](https://github.com/jenkinsci/kubernetes-plugin/pull/174)
+* kubectl temporary config file should work where Jenkins project contains spaces [#178](https://github.com/jenkinsci/kubernetes-plugin/pull/178)
+* Thread/connection leak [#177](https://github.com/jenkinsci/kubernetes-plugin/pull/177)
 
 
 0.11
