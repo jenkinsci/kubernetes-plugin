@@ -61,7 +61,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
-                .withCallback(new ContainerExecCallback())
+                .withCallback(new ContainerExecCallback(decorator))
                 .start();
         return false;
     }
@@ -73,33 +73,46 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     }
 
     private void closeQuietly(Closeable... closeables) {
-        for (Closeable c : closeables) {
-            if (c != null) {
-                try {
-                    c.close();
-                } catch (IOException e) {
-                    try {
-                        getContext().get(TaskListener.class).error("Error while closing: [" + c + "]");
-                    } catch (IOException | InterruptedException e1) {
-                        LOGGER.log(Level.WARNING, "Error writing to task listener", e);
-                    }
-                }
-            }
-        }
+        closeQuietly(getContext(), closeables);
     }
 
     private static class ContainerExecCallback extends BodyExecutionCallback {
 
         private static final long serialVersionUID = 6385838254761750483L;
 
+        private final Closeable[] closeables;
+
+        private ContainerExecCallback(Closeable... closeables) {
+            this.closeables = closeables;
+        }
+
         @Override
         public void onSuccess(StepContext context, Object result) {
             context.onSuccess(result);
+            closeQuietly(context, closeables);
+
         }
 
         @Override
         public void onFailure(StepContext context, Throwable t) {
             context.onFailure(t);
+            closeQuietly(context, closeables);
+        }
+    }
+
+    private static void closeQuietly(StepContext context, Closeable... closeables) {
+        for (Closeable c : closeables) {
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (IOException e) {
+                    try {
+                        context.get(TaskListener.class).error("Error while closing: [" + c + "]");
+                    } catch (IOException | InterruptedException e1) {
+                        LOGGER.log(Level.WARNING, "Error writing to task listener", e);
+                    }
+                }
+            }
         }
     }
 }
