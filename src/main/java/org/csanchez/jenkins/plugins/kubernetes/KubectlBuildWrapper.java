@@ -101,8 +101,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         int status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote()
-                        + " set-cluster k8s --server=" + serverUrl + tlsConfig)
+                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote()
+                        + "\" set-cluster k8s --server=" + serverUrl + tlsConfig)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
@@ -150,18 +150,18 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote() + " set-credentials cluster-admin " + login)
+                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
                 .masks(false, false, false, false, false, false, true)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
         status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote() + " set-context k8s --cluster=k8s --user=cluster-admin")
+                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-context k8s --cluster=k8s --user=cluster-admin")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
         status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=" + configFile.getRemote() + " use-context k8s")
+                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" use-context k8s")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
