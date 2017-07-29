@@ -248,9 +248,9 @@ annotations: [
 
 ## Declarative Pipeline
 
-Declarative Pipeline support is ALPHA and requires Jenkins 2.66+
+Declarative Pipeline support requires Jenkins 2.66+
 
-Example at (examples/declarative.groovy)[examples/declarative.groovy]
+Example at [examples/declarative.groovy](examples/declarative.groovy)
 
 
 
