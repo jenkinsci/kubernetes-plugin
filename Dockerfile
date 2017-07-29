@@ -1,6 +1,6 @@
 FROM jenkins/jenkins:lts
 
-RUN /usr/local/bin/install-plugins.sh kubernetes:0.11
+RUN /usr/local/bin/install-plugins.sh kubernetes:0.12
 
 # ARG VERSION=0.12-SNAPSHOT
 # COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi
