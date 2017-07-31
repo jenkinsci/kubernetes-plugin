@@ -7,7 +7,6 @@ import hudson.model.Slave;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudSlaveRetentionStrategy;
 import hudson.util.TimeUnit2;
-import jenkins.model.Jenkins;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -49,6 +48,14 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
         return 1;
     }
 
+    public String getCloudName() {
+        return cloudName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
     @Override
     public void kill(Node node) throws IOException {
         LOGGER.info(format("Node %s will be killed now", node.getNodeDescription()));
@@ -82,16 +89,16 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
     @VisibleForTesting
     void checkCloudExistence() {
         Cloud cloud = getCloud();
-        KubernetesCloudVerifier.checkCloudExistence(cloud, cloudName);
+        KubernetesCloudUtils.checkCloudExistence(cloud, cloudName);
     }
 
-    private void terminate(Slave node) throws IOException {
-        new SlaveTerminator(getCloud()).terminatePodSlave(node, namespace);
+    private void terminate(Slave slave) throws IOException {
+        new SlaveTerminator(getCloud()).terminatePodSlave(slave, namespace);
     }
 
     @VisibleForTesting
     KubernetesCloud getCloud() {
-        return (KubernetesCloud) Jenkins.getInstance().getCloud(cloudName);
+        return KubernetesCloudUtils.getCloud(cloudName);
     }
 
 }

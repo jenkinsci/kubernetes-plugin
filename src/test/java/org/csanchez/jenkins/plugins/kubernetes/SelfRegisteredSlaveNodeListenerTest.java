@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.model.Node;
+import hudson.model.Slave;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.CloudRetentionStrategy;
 import org.junit.Before;
@@ -31,29 +32,29 @@ public class SelfRegisteredSlaveNodeListenerTest {
     private Node simpleNode;
 
     @Mock
-    private AbstractCloudSlave cloudSlave;
+    private AbstractCloudSlave differentSlave;
 
     @Before
     public void setUp() throws IOException {
-        doNothing().when(unit).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Node.class));
+        doNothing().when(unit).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Slave.class));
     }
 
     @Test
     public void shouldKillOnlySelfRegisteredSlaves() throws Exception {
         unit.onDeleted(simpleNode);
-        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Node.class));
+        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Slave.class));
 
-        unit.onDeleted(cloudSlave);
-        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Node.class));
+        unit.onDeleted(differentSlave);
+        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Slave.class));
 
-        when(cloudSlave.getRetentionStrategy()).thenReturn(new CloudRetentionStrategy(0));
-        unit.onDeleted(cloudSlave);
-        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Node.class));
+        when(differentSlave.getRetentionStrategy()).thenReturn(new CloudRetentionStrategy(0));
+        unit.onDeleted(differentSlave);
+        verify(unit, never()).kill(any(SelfRegisteredSlaveRetentionStrategy.class), any(Slave.class));
 
         SelfRegisteredSlaveRetentionStrategy strategy = new SelfRegisteredSlaveRetentionStrategy("strategy", null, null, 0);
-        when(cloudSlave.getRetentionStrategy()).thenReturn(strategy);
-        unit.onDeleted(cloudSlave);
-        verify(unit).kill(strategy, cloudSlave);
+        when(differentSlave.getRetentionStrategy()).thenReturn(strategy);
+        unit.onDeleted(differentSlave);
+        verify(unit).kill(strategy, differentSlave);
     }
 
 }

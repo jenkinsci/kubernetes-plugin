@@ -112,10 +112,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
             KubernetesSlaveUtils.checkSlaveCloudName(this);
 
             Cloud cloud = getCloud();
-            KubernetesCloudVerifier.checkCloudExistence(cloud, getCloudName());
+            KubernetesCloudUtils.checkCloudExistence(cloud, getCloudName());
 
-            if (new SlaveTerminator((KubernetesCloud) cloud).terminatePodSlave(this, namespace)) {
-                listener.getLogger().println(format("Terminated Kubernetes instance for slave %s", name));
+            SlaveTerminator slaveTerminator = new SlaveTerminator((KubernetesCloud) cloud);
+            if (slaveTerminator.terminatePodSlave(this, namespace)) {
+                listener.getLogger().println(format("Terminated Kubernetes pod for slave %s", name));
             } else {
                 listener.fatalError(format("Failed to terminate pod for slave %s", name));
             }

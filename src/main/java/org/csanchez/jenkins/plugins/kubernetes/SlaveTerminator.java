@@ -45,7 +45,7 @@ public class SlaveTerminator {
                     computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
                     LOGGER.log(Level.INFO, "Disconnected computer {0}", slaveName);
                 }
-                LOGGER.log(Level.INFO, format("Terminated Kubernetes instance for slave %s", slaveName));
+                LOGGER.log(Level.INFO, format("Terminated Kubernetes pod for slave %s", slaveName));
             }
             return deleted;
         } catch (Exception e) {
