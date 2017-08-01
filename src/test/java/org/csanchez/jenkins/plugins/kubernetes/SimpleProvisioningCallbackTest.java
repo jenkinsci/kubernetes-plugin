@@ -29,6 +29,7 @@ import static org.mockito.Mockito.spy;
 public class SimpleProvisioningCallbackTest {
 
     private static final String POD_ID = "podId";
+
     private static final String NAMESPACE = "namespace";
 
     @Mock
@@ -53,6 +54,7 @@ public class SimpleProvisioningCallbackTest {
     private PodTemplate podTemplate;
 
     private KubernetesCloud.SimpleProvisioningCallback unit;
+
     private int slaveConnectTimeout = 5;
 
     @Before
@@ -64,6 +66,7 @@ public class SimpleProvisioningCallbackTest {
         unit = new KubernetesCloud("cloudName").new SimpleProvisioningCallback(cloud, podTemplate, mock(Label.class));
         unit = spy(unit);
         doReturn(jenkins).when(unit).jenkins();
+        doReturn(POD_ID).when(unit).getPodId(pod);
         doReturn(pod).when(unit).getPodByNamespaceAndPodId(eq(NAMESPACE), eq(POD_ID));
         doNothing().when(unit).logLastSlaveContainerLines(eq(pod), eq(POD_ID));
     }
@@ -72,7 +75,7 @@ public class SimpleProvisioningCallbackTest {
     public void waitForSlaveToComeOnline_nodeDeleted() throws Exception {
         doReturn(null).when(jenkins).getNode(POD_ID);
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> unit.waitForSlaveToComeOnline(POD_ID, NAMESPACE))
+                .isThrownBy(() -> unit.waitForSlaveToComeOnline(pod, NAMESPACE))
                 .withMessage(NODE_WAS_DELETED_COMPUTER_IS_NULL_MSG);
     }
 
@@ -81,7 +84,7 @@ public class SimpleProvisioningCallbackTest {
         doReturn(slave).when(jenkins).getNode(POD_ID);
         doReturn(true).when(computer).isOffline();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> unit.waitForSlaveToComeOnline(POD_ID, NAMESPACE))
+                .isThrownBy(() -> unit.waitForSlaveToComeOnline(pod, NAMESPACE))
                 .withMessageStartingWith(format("Slave is not connected and online after %d seconds", slaveConnectTimeout));
     }
 
@@ -89,8 +92,8 @@ public class SimpleProvisioningCallbackTest {
     public void waitForSlaveToComeOnline_happyPath() throws Exception {
         doReturn(slave).when(jenkins).getNode(POD_ID);
         doReturn(true).doReturn(true).doReturn(false).when(computer).isOffline();
-        SlaveOperationDetails result = unit.waitForSlaveToComeOnline(POD_ID, NAMESPACE);
-        assertEquals(slave, result.getSlave());
+        Slave onlineSlave = unit.waitForSlaveToComeOnline(pod, NAMESPACE);
+        assertEquals(slave, onlineSlave);
     }
 
 }

@@ -2,25 +2,17 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.model.Slave;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudSlaveRetentionStrategy;
-import hudson.slaves.OfflineCause;
 import hudson.util.TimeUnit2;
-import io.fabric8.kubernetes.api.model.DoneablePod;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.PodResource;
-import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
-import org.jvnet.localizer.Localizable;
-import org.jvnet.localizer.ResourceBundleHolder;
 
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
@@ -30,19 +22,19 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
 
     private static final Logger LOGGER = Logger.getLogger(SelfRegisteredSlaveRetentionStrategy.class.getName());
 
-    /**
-     * The resource bundle reference
-     */
-    private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
-
     private final String cloudName;
+
     private final String namespace;
+
+    private final String podId;
+
     private final int maxMinutesIdle;
 
-    public SelfRegisteredSlaveRetentionStrategy(String cloudName, String namespace, int maxMinutesIdle) {
+    public SelfRegisteredSlaveRetentionStrategy(String cloudName, String namespace, String podId, int maxMinutesIdle) {
         Preconditions.checkArgument(isNotBlank(cloudName), "Cloud name needs to be defined");
         this.cloudName = cloudName;
         this.namespace = namespace;
+        this.podId = podId;
         this.maxMinutesIdle = maxMinutesIdle;
     }
 
@@ -56,81 +48,57 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
         return 1;
     }
 
+    public String getCloudName() {
+        return cloudName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
     @Override
-    protected void kill(Node node) throws IOException {
-        LOGGER.info("Node " + node.getNodeDescription() + " will be killed now");
-        if (canTerminate(node)) {
-            terminate(node);
+    public void kill(Node node) throws IOException {
+        LOGGER.info(format("Node %s will be killed now", node.getNodeDescription()));
+        Slave slave = (Slave) node;
+        if (canTerminate(slave)) {
+            terminate(slave);
         }
     }
 
     @VisibleForTesting
-    boolean canTerminate(Node node) {
-        String name = node.getNodeName();
-        LOGGER.log(Level.FINE, "Checking if can terminate Kubernetes instance for slave {0}", name);
-
-        Computer computer = getNodeComputer(node);
-        if (computer == null) {
-            LOGGER.log(Level.SEVERE, "Computer for slave is null: {0}", name);
-            return false;
-        }
-
-        Cloud cloud = getCloud();
-        if (!(cloud instanceof KubernetesCloud)) {
-            LOGGER.log(Level.SEVERE, "Slave cloud is not a KubernetesCloud, something is very wrong: {0}", name);
-            return false;
-        }
-        return true;
-    }
-
-    @VisibleForTesting
-    void terminate(Node node) throws IOException {
-        String name = node.getNodeName();
+    boolean canTerminate(Slave slave) {
+        String slaveNodeName = slave.getNodeName();
         try {
-            Cloud cloud = getCloud();
-            KubernetesClient client = ((KubernetesCloud) cloud).connect();
-            deletePod(name, client);
-            Computer computer = getNodeComputer(node);
-            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
-            LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to terminate pod for slave " + name, e);
-        }
-    }
+            // Double-checking if it's the same slave - otherwise the retention strategy shouldn't apply
+            KubernetesSlaveUtils.checkSlaveName(slaveNodeName, podId);
 
-    // Have to have it in a separate method for tests, as toComputer() is final and can't be mocked
-    @VisibleForTesting
-    Computer getNodeComputer(Node node) {
-        return node.toComputer();
-    }
-
-    @VisibleForTesting
-    Cloud getCloud() {
-        return Jenkins.getInstance().getCloud(cloudName);
-    }
-
-    @VisibleForTesting
-    void deletePod(String name, KubernetesClient client) {
-        String podName = getPodName(name);
-        PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(podName);
-        Boolean deletionResult = pods.delete();
-        if (deletionResult == null) {
-            LOGGER.log(Level.SEVERE, "Pod {0} was not found in namespace {1}", new Object[] {podName, namespace});
-        } else if (!deletionResult) {
-            LOGGER.log(Level.SEVERE, "Failed to delete pod {0} from namespace {1}", new Object[] {podName, namespace});
-        } else {
-            LOGGER.log(Level.INFO, "Terminated Kubernetes instance for slave {0}", name);
+            LOGGER.log(Level.FINE, "Checking if can terminate Kubernetes instance for slave {0}", slaveNodeName);
+            checkSlaveComputer(slave);
+            checkCloudExistence();
+            return true;
+        } catch (CloudEntityVerificationException e) {
+            return false;
         }
     }
 
     @VisibleForTesting
-    static String getPodName(String nodeName) {
-        if (StringUtils.countMatches(nodeName, "-") <=1 ) {
-            return nodeName;
-        }
-        // TODO: self-registered slaves should also have the name == pod name
-        // As per contract for self-registered slaves, names should at least begin with pod name
-        return nodeName.substring(0, nodeName.lastIndexOf('-'));
+    void checkSlaveComputer(Slave slave) {
+        KubernetesSlaveUtils.checkSlaveComputer(slave);
+    }
+
+    @VisibleForTesting
+    void checkCloudExistence() {
+        Cloud cloud = getCloud();
+        KubernetesCloudUtils.checkCloudExistence(cloud, cloudName);
+    }
+
+    private void terminate(Slave slave) throws IOException {
+        new SlaveTerminator(getCloud()).terminatePodSlave(slave, namespace);
+    }
+
+    @VisibleForTesting
+    KubernetesCloud getCloud() {
+        return KubernetesCloudUtils.getCloud(cloudName);
     }
 
 }
