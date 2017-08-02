@@ -64,17 +64,21 @@ public class ContainerExecProc extends Proc {
 
     @Override
     public int join() throws IOException, InterruptedException {
-        LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
-        finished.await();
-        LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
         try {
+            LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
+            finished.await();
+            LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
             return exitCode.call();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
             return -1;
         } finally {
             //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
-            watch.close();
+            try {
+                watch.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.INFO, "failed to close watch", e);
+            }
         }
     }
 

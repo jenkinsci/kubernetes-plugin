@@ -18,9 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -31,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,7 +58,7 @@ import okhttp3.Response;
  * the Jenkins slave to execute commands.
  *
  */
-public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
+public class ContainerExecDecorator extends LauncherDecorator implements Serializable {
 
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
@@ -74,9 +71,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final String podName;
     private final String namespace;
     private final String containerName;
-
-    private transient ExecWatch watch;
-    private transient ContainerExecProc proc;
 
     public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, String namespace) {
         this.client = client;
@@ -122,7 +116,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     stream = new NullOutputStream();
                     printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
-                
+
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
                 // so we use a buffer
                 ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
@@ -133,7 +127,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
-                watch = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
+                ExecWatch watch = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
                         .redirectingInput().writingOutput(stream).writingError(stream).withTTY()
                         .usingListener(new ExecListener() {
                             @Override
@@ -168,22 +162,27 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             }
                         }).exec();
 
-                waitQuietly(started);
-
-                if (starter.pwd() != null) {
-                    // We need to get into the project workspace.
-                    // The workspace is not known in advance, so we have to execute a cd command.
-                    watch.getInput().write(
-                            String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                try {
+                    started.await();
+                } catch (InterruptedException e) {
+                    closeWatch(watch);
+                    throw new IOException("interrupted while waiting for websocket connection");
                 }
-                doExec(watch, printStream, getCommands(starter));
-                proc = new ContainerExecProc(watch, alive, finished, new Callable<Integer>() {
-                    @Override
-                    public Integer call() {
-                        return exitCodeOutputStream.getExitCode();
+
+                try {
+                    if (starter.pwd() != null) {
+                        // We need to get into the project workspace.
+                        // The workspace is not known in advance, so we have to execute a cd command.
+                        watch.getInput().write(
+                                String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
                     }
-                });
-                return proc;
+                    doExec(watch, printStream, getCommands(starter));
+
+                    return new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                } catch (Exception e) {
+                    closeWatch(watch);
+                    throw e;
+                }
             }
 
             @Override
@@ -191,7 +190,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // String cookie = modelEnvVars.get(COOKIE_VAR);
                 // TODO we need to use the cookie for something
                 getListener().getLogger().println("Killing process.");
-                ContainerExecDecorator.this.close();
             }
 
 
@@ -217,12 +215,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     launcher.getListener().getLogger().println("Waiting for pod [" + podName + "] to exist.");
                     // wait for Pod to be running.
                     for (; i < j; i++) {
-                        LOGGER.log(Level.INFO, "Getting pod ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        LOGGER.log(Level.INFO, "Getting pod ({1}/{2}): {0}", new Object[]{podName, i, j});
                         pod = client.pods().inNamespace(namespace).withName(podName).get();
                         if (pod != null) {
                             break;
                         }
-                        LOGGER.log(Level.INFO, "Waiting 6 seconds before checking if pod exists ({1}/{2}): {0}", new Object[] {podName, i, j});
+                        LOGGER.log(Level.INFO, "Waiting 6 seconds before checking if pod exists ({1}/{2}): {0}", new Object[]{podName, i, j});
                         try {
                             Thread.sleep(6000);
                         } catch (InterruptedException e) {
@@ -273,29 +271,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         };
     }
 
-    @Override
-    public void close() throws IOException {
-        if (watch != null) {
-            try {
-                watch.close();
-            } catch (IllegalStateException e) {
-                LOGGER.log(Level.INFO, "Watch was already closed: {0}", e.getMessage());
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Error closing watch", e);
-            } finally {
-                watch = null;
-            }
-        }
-
-        if (proc != null) {
-            try {
-                proc.kill();
-            } catch (InterruptedException e) {
-                throw new InterruptedIOException();
-            }
-        }
-    }
-
     private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
         try {
             out.print("Executing command: ");
@@ -335,20 +310,20 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return allCommands.toArray(new String[allCommands.size()]);
     }
 
-    private static void waitQuietly(CountDownLatch latch) {
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            //ignore
-        }
-    }
-
     private static Long containerReadyTimeout() {
         String timeout = System.getProperty(CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY, String.valueOf(DEFAULT_CONTAINER_READY_TIMEOUT));
         try {
             return Long.parseLong(timeout);
         } catch (NumberFormatException e) {
             return DEFAULT_CONTAINER_READY_TIMEOUT;
+        }
+    }
+
+    private static void closeWatch(ExecWatch watch) {
+        try {
+            watch.close();
+        } catch (Exception e) {
+            LOGGER.log(Level.INFO, "failed to close watch", e);
         }
     }
 
