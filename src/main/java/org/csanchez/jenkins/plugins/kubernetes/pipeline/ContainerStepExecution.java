@@ -61,7 +61,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
-                .withCallback(new ContainerExecCallback(decorator))
+                .withCallback(new ContainerExecCallback())
                 .start();
         return false;
     }
@@ -69,7 +69,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void stop(Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
-        closeQuietly(client, decorator);
+        closeQuietly(client);
     }
 
     private void closeQuietly(Closeable... closeables) {
