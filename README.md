@@ -322,11 +322,24 @@ at `DEBUG` level.
 
 # Building and Testing
 
+## manual testing
+
 Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
+## integration tests with minikube
 For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
 Tests will detect it and run a set of integration tests in a new namespace.
 
+Some integration tests run a local jenkins, so the host that runs them needs
+to be accessible from the kubernetes cluster.
+
+If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
+does not have a public hostname for the VM to access, you can set the `jenkins.host.address`
+system property to the (host-only or NAT) IP of your host:
+
+    mvn clean install -Djenkins.host.address=192.168.99.1
+
+## integration tests in a different cluster
 To run the tests in a different kubernetes cluster, get the context with `kubectl config get-contexts` and pass it to Maven with `-Dkubernetes.context`
 
     mvn clean install -Dkubernetes.context=_your-kubernetes-context_
@@ -334,6 +347,10 @@ To run the tests in a different kubernetes cluster, get the context with `kubect
 ie. for a [minishift](https://github.com/minishift/minishift) context
 
     mvn clean install -Dkubernetes.context=myproject/192-168-64-2:8443/developer
+
+Please note that the system you run `mvn` on needs to be reachable from the cluster.
+If you see the slaves happen to connect to the wrong host, see you can use
+`jenkins.host.address` as mentioned above.
 
 # Docker image
 

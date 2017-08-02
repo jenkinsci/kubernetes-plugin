@@ -98,7 +98,12 @@ public class KubernetesPipelineTest {
     public void addCloudToJenkins() throws Exception {
         // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
-        URL nonLocalhostUrl = new URL(url.getProtocol(), InetAddress.getLocalHost().getHostAddress(), url.getPort(),
+
+        String hostAddress = System.getProperty("jenkins.host.address");
+        if (hostAddress == null) {
+            hostAddress = InetAddress.getLocalHost().getHostAddress();
+        }
+        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
                 url.getFile());
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
 
