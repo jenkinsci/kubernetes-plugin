@@ -789,11 +789,18 @@ public class KubernetesCloud extends Cloud {
         }
 
         KubernetesClient client = connect();
-        PodList slaveList = client.pods().inNamespace(template.getNamespace()).withLabels(POD_LABEL).list();
+        String templateNamespace = template.getNamespace();
+        // If template's namespace is not defined, take the
+        // Kubernetes Namespace.
+        if (Strings.isNullOrEmpty(templateNamespace)) {
+            templateNamespace = client.getNamespace();
+        }
+
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(POD_LABEL).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
-        PodList namedList = client.pods().inNamespace(template.getNamespace()).withLabels(labelsMap).list();
+        PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
