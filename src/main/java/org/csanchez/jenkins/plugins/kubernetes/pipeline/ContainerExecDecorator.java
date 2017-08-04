@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -175,7 +176,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     started.await();
                 } catch (InterruptedException e) {
                     closeWatch(watch);
-                    throw new IOException("interrupted while waiting for websocket connection");
+                    throw new InterruptedIOException("interrupted while waiting for websocket connection");
                 }
 
                 try {
