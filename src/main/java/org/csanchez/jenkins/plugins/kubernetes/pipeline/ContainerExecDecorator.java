@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.FilePath;
 import org.apache.commons.io.output.TeeOutputStream;
 
 import com.google.common.io.NullOutputStream;
@@ -99,6 +100,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
+                boolean quiet = starter.quiet();
+                FilePath pwd = starter.pwd();
+                String[] commands = getCommands(starter);
+
+                return doLaunch(quiet, pwd, commands);
+            }
+
+            private Proc doLaunch(boolean quiet, FilePath pwd, String... commands) throws IOException {
                 if (!waitUntilContainerIsReady()) {
                     throw new IOException("Failed to execute shell script inside container " +
                             "[" + containerName + "] of pod [" + podName + "]." +
@@ -112,7 +121,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 PrintStream printStream = launcher.getListener().getLogger();
                 OutputStream stream = printStream;
                 // Do not send this command to the output when in quiet mode
-                if (starter.quiet()) {
+                if (quiet) {
                     stream = new NullOutputStream();
                     printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
@@ -170,13 +179,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 try {
-                    if (starter.pwd() != null) {
+                    if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
                         watch.getInput().write(
-                                String.format("cd \"%s\"%s", starter.pwd(), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                                String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
                     }
-                    doExec(watch, printStream, getCommands(starter));
+                    doExec(watch, printStream, commands);
 
                     return new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
                 } catch (Exception e) {
@@ -187,9 +196,16 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             @Override
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
-                // String cookie = modelEnvVars.get(COOKIE_VAR);
-                // TODO we need to use the cookie for something
-                getListener().getLogger().println("Killing process.");
+                getListener().getLogger().println("Killing processes");
+
+                String cookie = modelEnvVars.get(COOKIE_VAR);
+
+                int exitCode = doLaunch(
+                        true, null,
+                        "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
+                ).join();
+
+                getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
 
