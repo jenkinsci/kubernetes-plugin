@@ -1,33 +1,30 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+import static java.util.stream.Collectors.*;
+import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
-
-import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 public class PodTemplateUtils {
 
@@ -55,23 +52,11 @@ public class PodTemplateUtils {
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
         String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
-        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);;
+        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
         String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-
-        List<ContainerEnvVar> combinedEnvVars = new ArrayList<ContainerEnvVar>();
-        Map<String, String> envVars = new HashMap<>();
-        parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
-                e -> envVars.put(e.getKey(), e.getValue())
-        );
-
-        template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).forEach(
-                e -> envVars.put(e.getKey(), e.getValue())
-        );
-
-        envVars.entrySet().forEach(e -> combinedEnvVars.add(new ContainerEnvVar(e.getKey(), e.getValue())));
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -86,7 +71,7 @@ public class PodTemplateUtils {
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
-        combined.setEnvVars(combinedEnvVars);
+        combined.setEnvVars(combineEnvVars(parent, template));
         return combined;
     }
 
@@ -115,20 +100,15 @@ public class PodTemplateUtils {
         Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
 
-        //Env Vars
-        Map<String, String> combinedEnvVars = new HashMap<>();
-        combinedEnvVars.putAll(parent.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(),e -> e.getValue())));
-        combinedEnvVars.putAll(template.getEnvVars().stream().filter(e -> !Strings.isNullOrEmpty(e.getKey())).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
-
         //Containers
-        Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> c));
+        Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
         combinedContainers.putAll(parentContainers);
-        combinedContainers.putAll(template.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+        combinedContainers.putAll(template.getContainers().stream().collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
 
         //Volumes
-        Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(Collectors.toMap(v -> v.getMountPath(), v -> v));
+        Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
         combinedVolumes.putAll(parentVolumes);
-        combinedVolumes.putAll(template.getVolumes().stream().collect(Collectors.toMap(v -> v.getMountPath(), v -> v)));
+        combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
 
         WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
@@ -143,7 +123,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
-        podTemplate.setEnvVars(combinedEnvVars.entrySet().stream().map(e -> new PodEnvVar(e.getKey(), e.getValue())).collect(Collectors.toList()));
+        podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
@@ -287,4 +267,21 @@ public class PodTemplateUtils {
         }
         return s;
     }
+
+    private static List<ContainerEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
+        List<ContainerEnvVar> combinedEnvVars = new ArrayList<>();
+        combinedEnvVars.addAll(parent.getEnvVars());
+        combinedEnvVars.addAll(template.getEnvVars());
+        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
+                .collect(toList());
+    }
+
+    private static List<PodEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
+        List<PodEnvVar> combinedEnvVars = new ArrayList<>();
+        combinedEnvVars.addAll(parent.getEnvVars());
+        combinedEnvVars.addAll(template.getEnvVars());
+        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
+                .collect(toList());
+    }
+
 }
