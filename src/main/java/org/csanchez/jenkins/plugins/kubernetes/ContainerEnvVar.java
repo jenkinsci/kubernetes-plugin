@@ -1,17 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Extension;
-import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import org.jenkinsci.Symbol;
-
-import java.io.Serializable;
-
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> implements Serializable {
+public class ContainerEnvVar extends AbstractContainerEnvVar {
 
-    private String key;
     private String value;
 
     @DataBoundConstructor
@@ -20,12 +17,12 @@ public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> im
         this.value = value;
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
+    @Override
+    public EnvVar buildEnvVar() {
+        return new EnvVarBuilder()
+                .withName(key)
+                .withValue(value)
+                .build();
     }
 
     public String getValue() {
@@ -73,10 +70,10 @@ public class ContainerEnvVar extends AbstractDescribableImpl<ContainerEnvVar> im
 
     @Extension
     @Symbol("containerEnvVar")
-    public static class DescriptorImpl extends Descriptor<ContainerEnvVar> {
+    public static class DescriptorImpl extends Descriptor<AbstractContainerEnvVar> {
         @Override
         public String getDisplayName() {
-            return "Container Environment Variable";
+            return "Container Simple Environment Variable";
         }
     }
 }

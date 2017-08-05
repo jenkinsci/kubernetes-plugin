@@ -1,0 +1,20 @@
+<!--
+  Config page
+-->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+  <f:entry field="key" title="${%Key}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="secretName" title="${%SecretName}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="secretKey" title="${%SecretKey}">
+    <f:textbox/>
+  </f:entry>
+
+</j:jelly>
