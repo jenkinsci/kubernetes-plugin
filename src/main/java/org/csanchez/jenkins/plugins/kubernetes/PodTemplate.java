@@ -373,7 +373,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return envVars;
     }
 
-    @DataBoundSetter
     public void addEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.addAll(envVars);
@@ -395,7 +394,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return annotations;
     }
 
-    @DataBoundSetter
     public void addAnnotations(List<PodAnnotation> annotations) {
         this.annotations.addAll(annotations);
     }
@@ -417,12 +415,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return imagePullSecrets;
     }
 
-    @DataBoundSetter
     public void addImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
         this.imagePullSecrets.addAll(imagePullSecrets);
     }
 
-        @DataBoundSetter
+    @DataBoundSetter
     public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
         if(imagePullSecrets != null) {
             this.imagePullSecrets.clear();
