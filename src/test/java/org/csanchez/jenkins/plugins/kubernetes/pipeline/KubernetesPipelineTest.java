@@ -31,7 +31,6 @@ import static org.junit.Assert.*;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.apache.commons.compress.utils.IOUtils;
@@ -64,8 +63,8 @@ import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
 
@@ -74,8 +73,11 @@ import jenkins.model.JenkinsLocationConfiguration;
  */
 public class KubernetesPipelineTest {
 
-    private static final String SECRET_VALUE = "pa55w0rd";
-    private static final String ENV_VAR_VALUE = "env-var-value";
+    private static final String SECRET_KEY = "password";
+    private static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
+    private static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
+    private static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
+    private static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -95,19 +97,29 @@ public class KubernetesPipelineTest {
     @BeforeClass
     public static void configureCloud() throws Exception {
         cloud = setupCloud();
-
         createSecret(cloud.connect());
+    }
 
+    @Before
+    public void configureTemplates() throws Exception {
+        cloud.getTemplates().clear();
+        cloud.addTemplate(buildBusyboxTemplate("busybox"));
+    }
+
+    /**
+     * Create a busybox template
+     */
+    private PodTemplate buildBusyboxTemplate(String label) {
         // Create a busybox template
         PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setLabel("busybox");
-        setPodEnvVariables(podTemplate);
+        podTemplate.setLabel(label);
+        setEnvVariables(podTemplate);
 
         ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
-        setContainerEnvVariables(containerTemplate);
+        setEnvVariables(containerTemplate);
         containerTemplate.setTtyEnabled(true);
         podTemplate.getContainers().add(containerTemplate);
-        cloud.addTemplate(podTemplate);
+        return podTemplate;
     }
 
     @Before
@@ -161,25 +173,31 @@ public class KubernetesPipelineTest {
     }
 
     @Test
-    public void runInPodWithExistingContainerSimpleEnvVariable() throws Exception {
+    public void runWithEnvVariables() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingContainerEnvVariable.groovy")
-                , true));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithEnvVars.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains(ENV_VAR_VALUE, b);
+        assertEnvVars(r, b);
     }
 
     @Test
-    public void runInPodWithExistingPodSimpleEnvVariable() throws Exception {
+    public void runWithExistingEnvVariables() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingPodSimpleEnvVariable.groovy")
-                , true));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingTemplate.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains(ENV_VAR_VALUE, b);
+        assertEnvVars(r, b);
+    }
+
+    private void assertEnvVars(JenkinsRuleNonLocalhost r2, WorkflowRun b) throws Exception {
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
+
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
+        r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
     }
 
     @Test
@@ -312,21 +330,22 @@ public class KubernetesPipelineTest {
     }
 
     private static void createSecret(KubernetesClient client) {
-        Map<String, String> data = ImmutableMap.of("password", SECRET_VALUE);
-        ObjectMeta metadata = new ObjectMeta();
-        metadata.setName("secret");
-        metadata.setNamespace(TESTING_NAMESPACE);
-        Secret secret = new Secret("v1", data, "Secret", metadata, data, "Opaque");
+        Secret secret = new SecretBuilder()
+                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
+                .withName("container-secret").endMetadata().build();
+        client.secrets().createOrReplace(secret);
+        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
+                .withNewMetadata().withName("pod-secret").endMetadata().build();
         client.secrets().createOrReplace(secret);
     }
 
-    private static void setPodEnvVariables(PodTemplate podTemplate) {
-        PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_SIMPLE_ENV_VAR", ENV_VAR_VALUE);
+    private static void setEnvVariables(PodTemplate podTemplate) {
+        PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSimpleEnvVar));
     }
 
-    private static void setContainerEnvVariables(ContainerTemplate containerTemplate) {
-        ContainerEnvVar containerEnvVariable = new ContainerEnvVar("ENV_VAR", ENV_VAR_VALUE);
+    private static void setEnvVariables(ContainerTemplate containerTemplate) {
+        ContainerEnvVar containerEnvVariable = new ContainerEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
         containerTemplate.setEnvVars(asList(containerEnvVariable));
     }
 }
