@@ -97,7 +97,8 @@ Either way it provides access to the following fields:
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
-* **envVars*** Environment variables that are applied to **ALL** containers.
+* **envVars** Environment variables that are applied to **ALL** containers.
+* **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
@@ -237,6 +238,7 @@ volumes: [
     nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
     persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
 ],
+imagePullSecrets: [ 'pull-secret' ],
 annotations: [
     podAnnotation(key: "my-key", value: "my-value")
     ...

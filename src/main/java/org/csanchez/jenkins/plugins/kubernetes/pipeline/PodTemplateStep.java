@@ -2,11 +2,13 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -40,6 +42,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
+    private List<String> imagePullSecrets = new ArrayList<>();
 
     private int instanceCap;
     private int idleMinutes;
@@ -188,6 +191,18 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setAnnotations(List<PodAnnotation> annotations) {
         this.annotations = annotations;
+    }
+
+    public List<String> getImagePullSecrets() {
+        return imagePullSecrets == null ? Collections.emptyList() : imagePullSecrets;
+    }
+
+    @DataBoundSetter
+    public void setImagePullSecrets(List<String> imagePullSecrets) {
+        if (imagePullSecrets != null) {
+            this.imagePullSecrets.clear();
+            this.imagePullSecrets.addAll(imagePullSecrets);
+        }
     }
 
     @Extension
