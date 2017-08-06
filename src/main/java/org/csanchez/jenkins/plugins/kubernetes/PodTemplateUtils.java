@@ -1,10 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+import static java.util.stream.Collectors.*;
+import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,11 +17,15 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
-
-import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 public class PodTemplateUtils {
 
@@ -101,14 +102,14 @@ public class PodTemplateUtils {
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
 
         //Containers
-        Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> c));
+        Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
         combinedContainers.putAll(parentContainers);
-        combinedContainers.putAll(template.getContainers().stream().collect(Collectors.toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+        combinedContainers.putAll(template.getContainers().stream().collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
 
         //Volumes
-        Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(Collectors.toMap(v -> v.getMountPath(), v -> v));
+        Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
         combinedVolumes.putAll(parentVolumes);
-        combinedVolumes.putAll(template.getVolumes().stream().collect(Collectors.toMap(v -> v.getMountPath(), v -> v)));
+        combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
 
         WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 

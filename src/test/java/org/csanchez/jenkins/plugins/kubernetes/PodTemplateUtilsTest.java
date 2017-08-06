@@ -1,6 +1,36 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016, Carlos Sanchez and others
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
+import static java.util.Arrays.*;
+import static java.util.Collections.*;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -11,17 +41,11 @@ import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import com.google.common.base.Preconditions;
+
 import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
 import jenkins.model.Jenkins;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-import static org.mockito.Matchers.anyString;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({Jenkins.class})
@@ -36,9 +60,6 @@ public class PodTemplateUtilsTest {
 
     private static final ContainerTemplate MAVEN_1 = new ContainerTemplate("maven", "maven:1", "sh -c", "cat");
     private static final ContainerTemplate MAVEN_2 = new ContainerTemplate("maven", "maven:2");
-    private static final ContainerTemplate GOLANG_1 = new ContainerTemplate("golang", "golang:1");
-
-    private static final PodTemplate TEMPLATE_1 = new PodTemplate();
 
     @Mock
     private Jenkins jenkins;
@@ -276,7 +297,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllSimpleEnvVars() {
+    public void shouldCombineAllEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
         ContainerEnvVar containerEnvVar1 = new ContainerEnvVar("key-1", "value-1");
         template1.setEnvVars(singletonList(containerEnvVar1));
@@ -292,7 +313,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptySimpleEnvVars() {
+    public void shouldFilterOutNullOrEmptyEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
         ContainerEnvVar containerEnvVar1 = new ContainerEnvVar("", "value-1");
         template1.setEnvVars(singletonList(containerEnvVar1));

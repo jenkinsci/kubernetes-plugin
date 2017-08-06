@@ -806,14 +806,15 @@ public class KubernetesCloud extends Cloud {
         List<Pod> namedListItems = namedList.getItems();
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
-            LOGGER.log(Level.INFO, "Total container cap of {0} reached, not provisioning: {1} running in namespace {2}",
+            LOGGER.log(Level.INFO,
+                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2}",
                     new Object[] { containerCap, slaveListItems.size(), client.getNamespace() });
             return false;
         }
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running in namespace '{3}' with label '{4}'",
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace '{3}' with label '{4}'",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
                             client.getNamespace(), label == null ? "" : label.toString() });
             return false; // maxed out

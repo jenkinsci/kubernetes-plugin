@@ -161,7 +161,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 started.countDown();
                                 LOGGER.log(Level.FINEST, "onClose : {0}", finished);
                                 if (finished.getCount() == 0) {
-                                    LOGGER.log(Level.SEVERE,
+                                    LOGGER.log(Level.WARNING,
                                             "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
                                 }
                                 finished.countDown();

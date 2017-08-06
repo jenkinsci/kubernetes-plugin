@@ -24,7 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.Arrays.asList;
+import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
@@ -34,11 +34,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Level;
 
-import com.google.common.collect.ImmutableMap;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Secret;
 import org.apache.commons.compress.utils.IOUtils;
-import org.csanchez.jenkins.plugins.kubernetes.*;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerSecretEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.PodSecretEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -56,11 +59,15 @@ import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
+import com.google.common.collect.ImmutableMap;
+
 import hudson.model.Node;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
 

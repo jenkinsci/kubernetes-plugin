@@ -25,6 +25,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static io.fabric8.kubernetes.client.Config.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assume.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.Optional;
 
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import org.junit.Assume;
 
 import io.fabric8.kubernetes.api.model.Cluster;
@@ -57,27 +59,31 @@ public class KubernetesTestUtil {
 
         File kubeConfigFile = new File(Utils.getSystemPropertyOrEnvVar(KUBERNETES_KUBECONFIG_FILE,
                 new File(System.getProperty("user.home"), ".kube" + File.separator + "config").toString()));
-        Assume.assumeThat("Kubernetes config file exists: " + kubeConfigFile.getAbsolutePath(), kubeConfigFile.exists(),
+        assumeThat("Kubernetes config file exists: " + kubeConfigFile.getAbsolutePath(), kubeConfigFile.exists(),
                 is(true));
 
         Config config = KubeConfigUtils.parseConfig(kubeConfigFile);
         Optional<NamedContext> context = config.getContexts().stream()
                 .filter((c) -> c.getName().equals(KUBERNETES_CONTEXT)).findFirst();
-        Assume.assumeThat("Kubernetes context is configured: " + KUBERNETES_CONTEXT, context.isPresent(), is(true));
+        assumeThat("Kubernetes context is configured: " + KUBERNETES_CONTEXT, context.isPresent(), is(true));
 
         String clusterName = context.get().getContext().getCluster();
         Optional<NamedCluster> clusterOptional = config.getClusters().stream()
                 .filter((c) -> c.getName().equals(clusterName)).findFirst();
-        Assume.assumeThat("Kubernetes cluster is configured: " + clusterName, clusterOptional.isPresent(), is(true));
+        assumeThat("Kubernetes cluster is configured: " + clusterName, clusterOptional.isPresent(), is(true));
 
         Cluster cluster = clusterOptional.get().getCluster();
         cloud.setServerUrl(cluster.getServer());
 
         cloud.setNamespace(TESTING_NAMESPACE);
         KubernetesClient client = cloud.connect();
-        // Run in our own testing namespace
-        client.namespaces().createOrReplace(
-                new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        try {
+            // Run in our own testing namespace
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        } catch (KubernetesClientException e){
+            assumeNoException("Kubernetes cluster is not accessible", e);
+        }
         return cloud;
     }
 }
