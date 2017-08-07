@@ -54,6 +54,7 @@ public class KubernetesFactoryAdapter {
     private final boolean skipTlsVerify;
     private final int connectTimeout;
     private final int readTimeout;
+    private final int maxRequestsPerHost;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
@@ -67,6 +68,11 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) {
+        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
+    }
+
+    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+                                    @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
@@ -74,6 +80,7 @@ public class KubernetesFactoryAdapter {
         this.skipTlsVerify = skipTlsVerify;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
+        this.maxRequestsPerHost = maxRequestsPerHost;
     }
 
     private StandardCredentials getCredentials(String credentials) {
@@ -120,7 +127,11 @@ public class KubernetesFactoryAdapter {
             builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
         }
         LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
-        return new DefaultKubernetesClient(builder.build());
+        DefaultKubernetesClient client = new DefaultKubernetesClient(builder.build());
+
+        // TODO when Config gets a maxRequestsPerHost setting, use that instead
+        client.getHttpClient().dispatcher().setMaxRequestsPerHost(maxRequestsPerHost);
+        return client;
     }
 
     private static String pemEncodeKey(Key key) {
