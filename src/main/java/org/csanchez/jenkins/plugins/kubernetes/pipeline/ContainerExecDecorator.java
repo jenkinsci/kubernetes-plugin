@@ -49,8 +49,7 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.Execable;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
@@ -109,11 +108,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private Proc doLaunch(boolean quiet, FilePath pwd, String... commands) throws IOException {
-                if (!waitUntilContainerIsReady()) {
-                    throw new IOException("Failed to execute shell script inside container " +
-                            "[" + containerName + "] of pod [" + podName + "]." +
-                            " Timed out waiting for container to become ready!");
-                }
+                waitUntilContainerIsReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
@@ -137,7 +132,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
-                ExecWatch watch = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
+                Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
                         .redirectingInput().writingOutput(stream).writingError(stream).withTTY()
                         .usingListener(new ExecListener() {
                             @Override
@@ -170,13 +165,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 }
                                 finished.countDown();
                             }
-                        }).exec();
+                        });
+
+                ExecWatch watch;
+                try {
+                    watch = execable.exec();
+                } catch (KubernetesClientException e) {
+                    if (e.getCause() instanceof InterruptedException) {
+                        throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
+                    } else {
+                        throw e;
+                    }
+                }
 
                 try {
                     started.await();
                 } catch (InterruptedException e) {
                     closeWatch(watch);
-                    throw new InterruptedIOException("interrupted while waiting for websocket connection");
+                    throw new IOException("JENKINS-40825: interrupted while waiting for websocket connection", e);
                 }
 
                 try {
@@ -223,67 +229,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 return false;
             }
 
-            private boolean waitUntilContainerIsReady() {
-                int i = 0;
-                int j = 10; // wait 60 seconds
-                Pod pod = client.pods().inNamespace(namespace).withName(podName).get();
-
-                if (pod == null) {
-                    launcher.getListener().getLogger().println("Waiting for pod [" + podName + "] to exist.");
-                    // wait for Pod to be running.
-                    for (; i < j; i++) {
-                        LOGGER.log(Level.INFO, "Getting pod ({1}/{2}): {0}", new Object[]{podName, i, j});
-                        pod = client.pods().inNamespace(namespace).withName(podName).get();
-                        if (pod != null) {
-                            break;
-                        }
-                        LOGGER.log(Level.INFO, "Waiting 6 seconds before checking if pod exists ({1}/{2}): {0}", new Object[]{podName, i, j});
-                        try {
-                            Thread.sleep(6000);
-                        } catch (InterruptedException e) {
-                            return false;
-                        }
-                    }
-                }
-
-                if (pod == null) {
-                    throw new IllegalArgumentException("Container with name:[" + containerName + "] not found in pod:[" + podName + "], pod doesn't exist");
-                }
-
-                if (isContainerReady(pod, containerName)) {
-                    return true;
-                }
-
-                launcher.getListener().getLogger().println("Waiting for container container [" + containerName + "] of pod [" + podName + "] to become ready.");
-                final CountDownLatch latch = new CountDownLatch(1);
-                Watcher<Pod> podWatcher = new Watcher<Pod>() {
-                    @Override
-                    public void eventReceived(Action action, Pod resource) {
-                        switch (action) {
-                            case MODIFIED:
-                                if (isContainerReady(resource, containerName)) {
-                                    latch.countDown();
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
-                    @Override
-                    public void onClose(KubernetesClientException cause) {
-
-                    }
-                };
-
-                try (Watch watch = client.pods().inNamespace(namespace).withName(podName).watch(podWatcher)) {
-                    if (latch.await(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES)) {
-                        return true;
-                    }
+            private void waitUntilContainerIsReady() throws IOException {
+                try {
+                    client.pods().inNamespace(namespace).withName(podName)
+                            .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
                 } catch (InterruptedException e) {
-                    return false;
+                    throw new InterruptedIOException("Failed to execute shell script inside container " +
+                            "[" + containerName + "] of pod [" + podName + "]." +
+                            " Timed out waiting for container to become ready!");
                 }
-                return false;
             }
         };
     }
