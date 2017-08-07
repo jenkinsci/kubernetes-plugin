@@ -6,6 +6,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -605,7 +606,7 @@ public class KubernetesCloud extends Cloud {
             return r;
         } catch (KubernetesClientException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof SocketTimeoutException || cause instanceof ConnectException) {
+            if (cause instanceof SocketTimeoutException || cause instanceof ConnectException || cause instanceof UnknownHostException) {
                 LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}: {1}",
                         new String[] { serverUrl, cause.getMessage() });
             } else {
