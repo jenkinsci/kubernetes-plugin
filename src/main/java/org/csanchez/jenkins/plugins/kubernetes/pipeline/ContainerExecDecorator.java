@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.FilePath;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
 
 import com.google.common.io.NullOutputStream;
@@ -233,10 +234,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 try {
                     client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
-                } catch (InterruptedException e) {
-                    throw new InterruptedIOException("Failed to execute shell script inside container " +
+                } catch (InterruptedException | KubernetesClientTimeoutException e) {
+                    throw new IOException("Failed to execute shell script inside container " +
                             "[" + containerName + "] of pod [" + podName + "]." +
-                            " Timed out waiting for container to become ready!");
+                            " Timed out waiting for container to become ready!", e);
                 }
             }
         };

@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -97,6 +98,7 @@ import jenkins.model.JenkinsLocationConfiguration;
  * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesCloud extends Cloud {
+    public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
@@ -140,6 +142,7 @@ public class KubernetesCloud extends Cloud {
     private int readTimeout;
 
     private transient KubernetesClient client;
+    private int maxRequestsPerHost;
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -291,6 +294,19 @@ public class KubernetesCloud extends Cloud {
         return connectTimeout;
     }
 
+    @DataBoundSetter
+    public void setMaxRequestsPerHostStr(String maxRequestsPerHostStr) {
+        try  {
+            this.maxRequestsPerHost = Integer.parseInt(maxRequestsPerHostStr);
+        } catch (NumberFormatException e) {
+            maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
+        }
+    }
+
+    public String getMaxRequestsPerHostStr() {
+        return String.valueOf(maxRequestsPerHost);
+    }
+
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }
@@ -307,7 +323,7 @@ public class KubernetesCloud extends Cloud {
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}" + serverUrl,
                 new String[] { getDisplayName(), serverUrl });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
-                connectTimeout, readTimeout).createClient();
+                connectTimeout, readTimeout, maxRequestsPerHost).createClient();
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}" + serverUrl,
                 new String[] { getDisplayName(), serverUrl });
         return client;
@@ -919,6 +935,14 @@ public class KubernetesCloud extends Cloud {
 
         }
 
+        public FormValidation doCheckMaxRequestsPerHostStr(@QueryParameter String value) throws IOException, ServletException {
+            try {
+                Integer.parseInt(value);
+                return FormValidation.ok();
+            } catch (NumberFormatException e) {
+                return FormValidation.error("Please supply an integer");
+            }
+        }
     }
 
     @Override
@@ -931,6 +955,10 @@ public class KubernetesCloud extends Cloud {
             serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
                     serverCertificate.substring(0, 80));
+        }
+
+        if (maxRequestsPerHost == 0) {
+            maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
         }
         return this;
     }
