@@ -304,18 +304,13 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes host " + getDisplayName() + " URL " + serverUrl);
-
-        if (client == null) {
-            synchronized (this) {
-                if (client == null) {
-                    client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify, connectTimeout, readTimeout)
-                            .createClient();
-                }
-            }
-        }
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}" + serverUrl,
+                new String[] { getDisplayName(), serverUrl });
+        client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
+                connectTimeout, readTimeout).createClient();
+        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}" + serverUrl,
+                new String[] { getDisplayName(), serverUrl });
         return client;
-
     }
 
     private String getIdForLabel(Label label) {
@@ -685,8 +680,9 @@ public class KubernetesCloud extends Cloud {
                         ? client.getNamespace()
                         : t.getNamespace();
 
+                LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[] { podId, namespace });
                 pod = client.pods().inNamespace(namespace).create(pod);
-                LOGGER.log(Level.INFO, "Created Pod: {0}", podId);
+                LOGGER.log(Level.INFO, "Created Pod: {0} in namespace {1}", new Object[] { podId, namespace });
 
                 // We need the pod to be running and connected before returning
                 // otherwise this method keeps being called multiple times
