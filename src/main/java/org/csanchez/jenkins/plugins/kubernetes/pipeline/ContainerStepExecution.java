@@ -61,7 +61,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
-                .withCallback(new ContainerExecCallback())
+                .withCallback(new ContainerExecCallback(decorator))
                 .start();
         return false;
     }
@@ -69,14 +69,14 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void stop(Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
-        closeQuietly(client);
+        closeQuietly(client, decorator);
     }
 
     private void closeQuietly(Closeable... closeables) {
         closeQuietly(getContext(), closeables);
     }
 
-    private static class ContainerExecCallback extends BodyExecutionCallback {
+    private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 6385838254761750483L;
 
@@ -85,17 +85,8 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         private ContainerExecCallback(Closeable... closeables) {
             this.closeables = closeables;
         }
-
         @Override
-        public void onSuccess(StepContext context, Object result) {
-            context.onSuccess(result);
-            closeQuietly(context, closeables);
-
-        }
-
-        @Override
-        public void onFailure(StepContext context, Throwable t) {
-            context.onFailure(t);
+        public void finished(StepContext context) {
             closeQuietly(context, closeables);
         }
     }

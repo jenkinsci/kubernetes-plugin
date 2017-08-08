@@ -18,8 +18,8 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -60,7 +60,7 @@ import okhttp3.Response;
  * the Jenkins slave to execute commands.
  *
  */
-public class ContainerExecDecorator extends LauncherDecorator implements Serializable {
+public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
 
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
@@ -70,6 +70,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
+    private final transient List<Closeable> closables = new ArrayList<>();
     private final String podName;
     private final String namespace;
     private final String containerName;
@@ -195,7 +196,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                     doExec(watch, printStream, commands);
 
-                    return new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    closables.add(proc);
+                    return proc;
                 } catch (Exception e) {
                     closeWatch(watch);
                     throw e;
@@ -241,6 +244,17 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
             }
         };
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (Closeable closable : closables) {
+            try {
+                closable.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "failed to close {0}");
+            }
+        }
     }
 
     private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
