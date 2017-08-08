@@ -261,7 +261,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             // We need to exit so that we know when the command has finished.
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
             out.print(ExitCodeOutputStream.EXIT_COMMAND);
-            LOGGER.log(Level.FINEST, "Executing command: {0}", sb.toString());
+            LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
 
             out.flush();
