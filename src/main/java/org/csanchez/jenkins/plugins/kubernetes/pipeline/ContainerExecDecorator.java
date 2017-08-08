@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.FilePath;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
 
@@ -70,6 +71,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
+
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient List<Closeable> closables = new ArrayList<>();
     private final String podName;
     private final String namespace;
