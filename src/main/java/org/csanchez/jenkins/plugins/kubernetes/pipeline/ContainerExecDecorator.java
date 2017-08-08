@@ -257,7 +257,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             out.println();
             watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
-            // get the command exit code and print it padded so it is easier to parse in ConatinerExecProc
+            // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
             out.print(ExitCodeOutputStream.EXIT_COMMAND);
