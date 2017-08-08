@@ -65,8 +65,6 @@
     <jenkins-declarative.version>1.1.2</jenkins-declarative.version>
     <jenkins-script-security.version>1.26</jenkins-script-security.version>
 
-    <!-- testing tools versions -->
-    <powermock.version>1.6.5</powermock.version>
   </properties>
 
   <dependencies>
@@ -139,18 +137,6 @@
 
 
     <!-- for testing -->
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-api-mockito</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-module-junit4</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
