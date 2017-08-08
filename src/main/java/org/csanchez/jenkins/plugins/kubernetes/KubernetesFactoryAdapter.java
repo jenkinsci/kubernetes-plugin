@@ -126,12 +126,10 @@ public class KubernetesFactoryAdapter {
             // JENKINS-38829 CaCertData expects a Base64 encoded certificate
             builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
         }
-        LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
-        DefaultKubernetesClient client = new DefaultKubernetesClient(builder.build());
+        builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
 
-        // TODO when Config gets a maxRequestsPerHost setting, use that instead
-        client.getHttpClient().dispatcher().setMaxRequestsPerHost(maxRequestsPerHost);
-        return client;
+        LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
+        return new DefaultKubernetesClient(builder.build());
     }
 
     private static String pemEncodeKey(Key key) {
