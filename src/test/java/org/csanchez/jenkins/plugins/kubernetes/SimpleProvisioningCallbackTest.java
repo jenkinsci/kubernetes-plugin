@@ -67,8 +67,9 @@ public class SimpleProvisioningCallbackTest {
         unit = spy(unit);
         doReturn(jenkins).when(unit).jenkins();
         doReturn(POD_ID).when(unit).getPodId(pod);
+        doReturn(NAMESPACE).when(unit).getPodNameSpace(pod);
         doReturn(pod).when(unit).getPodByNamespaceAndPodId(eq(NAMESPACE), eq(POD_ID));
-        doNothing().when(unit).logLastSlaveContainerLines(eq(pod), eq(POD_ID));
+        doNothing().when(unit).logLastSlaveContainerLines(eq(pod));
     }
 
     @Test

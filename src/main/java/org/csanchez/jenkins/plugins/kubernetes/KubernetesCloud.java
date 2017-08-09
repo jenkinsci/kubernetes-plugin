@@ -663,12 +663,11 @@ public class KubernetesCloud extends Cloud {
         /**
          * Log the last lines of containers logs
          */
-        private void logLastLines(List<ContainerStatus> containers, Pod pod, String slaveName, Map<String, Integer> errors) {
-            logLastLines(containers, getPodId(pod), getPodNameSpace(pod), slaveName, errors);
+        private void logLastLines(List<ContainerStatus> containers, Pod pod, Map<String, Integer> errors) {
+            logLastLines(containers, getPodId(pod), getPodNameSpace(pod), errors);
         }
 
-        private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, String slaveName,
-                                  Map<String, Integer> errors) {
+        private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, Map<String, Integer> errors) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
 
@@ -681,7 +680,7 @@ public class KubernetesCloud extends Cloud {
                                 : "";
                         LOGGER.log(Level.SEVERE,
                                 "Error in provisioning; slave={0}, template={1}. Container {2}{3}. Logs: {4}",
-                                new Object[] { slaveName, t, containerName, msg, tailingLines.getLog() });
+                                new Object[] { podId, t, containerName, msg, tailingLines.getLog() });
                     }
                 } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
                         | KeyStoreException | IOException e) {
@@ -701,7 +700,6 @@ public class KubernetesCloud extends Cloud {
                 SlaveComputer slaveComputer = slave.getComputer();
                 SlaveInfo slaveInfo =
                         new SlaveInfo(slave.getNodeName(), slaveComputer.getName(), slaveComputer.getUrl(), slaveComputer.getJnlpMac());
-
                 return spinUpSlaveFromPod(slaveInfo);
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
@@ -728,7 +726,7 @@ public class KubernetesCloud extends Cloud {
             ImmutableList<String> validStates = ImmutableList.of("Running");
 
             LOGGER.log(Level.FINER, "Starting to wait for Pod {0} to be in status {1}", new Object[] { podId, validStates });
-            waitForPodStatus(podId, namespace, podId, validStates);
+            waitForPodStatus(podId, namespace, validStates);
             LOGGER.log(Level.INFO, "Pod {0} is ready, waiting for slave to come online", new Object[] { podId });
 
             // now wait for slave to be online
@@ -774,7 +772,7 @@ public class KubernetesCloud extends Cloud {
                 }, attemptsToMake);
                 return slaveOperationDetails.getSlave();
             } catch (SlaveOperationTimeoutException e) {
-                logLastSlaveContainerLines(pod, podId);
+                logLastSlaveContainerLines(pod);
                 throw failureToConnectOnlineSlave(pod, attemptsToMake);
             }
         }
@@ -786,13 +784,14 @@ public class KubernetesCloud extends Cloud {
          * @return exception to throw
          */
         protected IllegalStateException failureToConnectOnlineSlave(Pod pod, int slaveConnectTimeoutInSeconds) {
-            return new IllegalStateException(format("Slave is not connected and online after %d seconds, status: %s", slaveConnectTimeoutInSeconds, getPodStatus(pod)));
+            return new IllegalStateException(format("Slave is not connected and online after %d seconds, status: %s",
+                    slaveConnectTimeoutInSeconds, getPodStatus(pod, true)));
         }
 
-        protected void logLastSlaveContainerLines(Pod pod, String slaveName) {
+        protected void logLastSlaveContainerLines(Pod pod) {
             List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
             if (containerStatuses != null) {
-                logLastLines(containerStatuses, pod, isNotBlank(slaveName) ? slaveName : getPodId(pod), null);
+                logLastLines(containerStatuses, pod, null);
             }
         }
 
@@ -804,7 +803,7 @@ public class KubernetesCloud extends Cloud {
             return Jenkins.getInstance();
         }
 
-        protected void waitForPodStatus(String podId, String namespace, String slaveName, ImmutableList<String> validStates) throws Exception {
+        protected void waitForPodStatus(String podId, String namespace, ImmutableList<String> validStates) throws Exception {
             int startChecks = 0;
             Pod pod = null;
             boolean inValidState = false;
@@ -841,7 +840,7 @@ public class KubernetesCloud extends Cloud {
                     Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors.toMap(
                             ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
                     // Print the last lines of failed containers
-                    logLastLines(terminatedContainers, podId, namespace, slaveName, errors);
+                    logLastLines(terminatedContainers, podId, namespace, errors);
                     throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
                 }
 
@@ -849,7 +848,7 @@ public class KubernetesCloud extends Cloud {
                     continue;
                 }
 
-                String podStatus = getPodStatus(pod);
+                String podStatus = getPodStatus(pod, false);
                 LOGGER.log(Level.INFO, "Pod status is {0}", podStatus);
                 if (validStates.contains(podStatus)) {
                     inValidState = true;
@@ -857,11 +856,15 @@ public class KubernetesCloud extends Cloud {
                 }
             }
             if (!inValidState) {
-                throw new IllegalStateException(format("Container is not running after %d attempts, status: %s", startChecks, getPodStatus(pod)));
+                throw new IllegalStateException(format("Container is not running after %d attempts, status: %s",
+                        startChecks, getPodStatus(pod, false)));
             }
         }
 
-        protected String getPodStatus(Pod pod) {
+        protected String getPodStatus(Pod pod, boolean refresh) {
+            if (refresh) {
+                pod = getPodByNamespaceAndPodId(getPodNameSpace(pod), getPodId(pod));
+            }
             return pod.getStatus().getPhase();
         }
 
@@ -930,7 +933,6 @@ public class KubernetesCloud extends Cloud {
             try {
                 slaveOperationDetails = SlaveTimeLimitedTaskRunner.performUntilTimeout(attemptNumber -> {
                     if (isSlaveComputerOnline(foundSlaveNode)) {
-                        LOGGER.log(Level.INFO, "slave computer is online", foundSlaveNode);
                         addTemplateLabels(foundSlaveNode, t.getLabel(), SELF_REG_SLAVE_LABEL);
                         // Slave is self-registering here, but we want our retention strategy to apply
                         applyTemplateRetentionStrategy(foundSlaveNode, namespace, podId);
@@ -941,7 +943,7 @@ public class KubernetesCloud extends Cloud {
                     return Optional.empty();
                 }, onlineWaitTimeoutInSeconds);
             } catch (SlaveOperationTimeoutException e) {
-                logLastSlaveContainerLines(pod, slaveName);
+                logLastSlaveContainerLines(pod);
                 throw failureToConnectOnlineSlave(pod, onlineWaitTimeoutInSeconds);
             }
 
@@ -986,7 +988,7 @@ public class KubernetesCloud extends Cloud {
             } catch (SlaveOperationTimeoutException e) {
                 // Slave still not connected? Let's fail here
                 Pod pod = getPodByNamespaceAndPodId(namespace, podId);
-                logLastSlaveContainerLines(pod, null);
+                logLastSlaveContainerLines(pod);
                 throw failureToConnectOnlineSlave(pod, slaveConnectTimeoutInSeconds);
             }
         }
@@ -994,7 +996,7 @@ public class KubernetesCloud extends Cloud {
         @VisibleForTesting
         Optional<Node> findSelfRegisteredSlaveByPodId(String podId) {
             LOGGER.log(Level.INFO, "Trying to find slave with name equal to pod ID \"{0}\"", new Object[] { podId });
-            // Self-registering slave should be equal to Pod ID
+            // Self-registering slave name should be equal to Pod ID
             return Optional.ofNullable(jenkins().getNode(podId));
         }
     }

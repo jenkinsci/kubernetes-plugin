@@ -12,6 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * <p>Deletes the pod with self-registering slave from Kubernetes.</p>
+ * <p>Actioned by retention strategy or manual slave deletion.</p>
+ *
  * @author <a href="mailto:kirill.shepitko@gmail.com">Kirill Shepitko</a>
  */
 @Extension
@@ -21,7 +24,6 @@ public class SelfRegisteredSlaveNodeListener extends NodeListener {
 
     @Override
     protected void onDeleted(@Nonnull Node node) {
-        LOGGER.log(Level.INFO, "Node {0} (labels - {1}) was deleted", new Object[] {node, node.getLabelString()});
         if (node instanceof Slave) {
             Slave slave = (Slave) node;
             RetentionStrategy retentionStrategy = slave.getRetentionStrategy();
@@ -34,7 +36,7 @@ public class SelfRegisteredSlaveNodeListener extends NodeListener {
     @VisibleForTesting
     void kill(SelfRegisteredSlaveRetentionStrategy retentionStrategy, @Nonnull Slave slave) {
         String podName = slave.getNodeName();
-        LOGGER.log(Level.INFO, "Going to delete pod {0}", podName);
+        LOGGER.log(Level.FINE, "Going to delete pod {0}", podName);
 
         String cloudName = retentionStrategy.getCloudName();
         String namespace = retentionStrategy.getNamespace();

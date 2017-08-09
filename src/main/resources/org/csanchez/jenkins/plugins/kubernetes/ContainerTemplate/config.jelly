@@ -22,8 +22,8 @@
     <f:textbox default="/home/jenkins"/>
   </f:entry>
 
-  <f:optionalBlock name="slaveImage" inline="true" title="A Jenkins slave image" checked="${instance.slaveImage}">
-    <f:entry field="selfRegisteringSlave" title="${%Self-registering slave}">
+  <f:optionalBlock name="slaveImage" inline="true" title="A Jenkins agent image" checked="${instance.slaveImage}">
+    <f:entry field="selfRegisteringSlave" title="${%Self-registering agent}">
       <f:checkbox/>
     </f:entry>
   </f:optionalBlock>

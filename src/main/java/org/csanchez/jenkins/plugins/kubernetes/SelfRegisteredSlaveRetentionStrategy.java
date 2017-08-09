@@ -16,6 +16,8 @@ import static java.lang.String.format;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
+ * Custom retention strategy for self-registered slaves.
+ *
  * @author <a href="mailto:kirill.shepitko@gmail.com">Kirill Shepitko</a>
  */
 public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStrategy {
@@ -61,7 +63,8 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
         LOGGER.info(format("Node %s will be killed now", node.getNodeDescription()));
         Slave slave = (Slave) node;
         if (canTerminate(slave)) {
-            terminate(slave);
+            // Actual pod termination will happen in SelfRegisteredSlaveNodeListener after this
+            super.kill(slave);
         }
     }
 
@@ -72,7 +75,7 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
             // Double-checking if it's the same slave - otherwise the retention strategy shouldn't apply
             KubernetesSlaveUtils.checkSlaveName(slaveNodeName, podId);
 
-            LOGGER.log(Level.FINE, "Checking if can terminate Kubernetes instance for slave {0}", slaveNodeName);
+            LOGGER.log(Level.FINE, "Checking if can terminate Kubernetes slave {0}", slaveNodeName);
             checkSlaveComputer(slave);
             checkCloudExistence();
             return true;
@@ -90,10 +93,6 @@ public class SelfRegisteredSlaveRetentionStrategy extends CloudSlaveRetentionStr
     void checkCloudExistence() {
         Cloud cloud = getCloud();
         KubernetesCloudUtils.checkCloudExistence(cloud, cloudName);
-    }
-
-    private void terminate(Slave slave) throws IOException {
-        new SlaveTerminator(getCloud()).terminatePodSlave(slave, namespace);
     }
 
     @VisibleForTesting
