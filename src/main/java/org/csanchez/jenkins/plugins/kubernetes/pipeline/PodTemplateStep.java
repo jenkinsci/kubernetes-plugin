@@ -9,6 +9,7 @@ import java.util.Set;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
+import org.csanchez.jenkins.plugins.kubernetes.PodEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -39,6 +40,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
+    private List<PodEnvVar> envVars = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
@@ -100,6 +102,18 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setContainers(List<ContainerTemplate> containers) {
         this.containers = containers;
+    }
+
+    public List<PodEnvVar> getEnvVars() {
+        return envVars == null ? Collections.emptyList() : envVars;
+    }
+
+    @DataBoundSetter
+    public void setEnvVars(List<PodEnvVar> envVars) {
+        if (envVars != null) {
+            this.envVars.clear();
+            this.envVars.addAll(envVars);
+        }
     }
 
     public List<PodVolume> getVolumes() {
