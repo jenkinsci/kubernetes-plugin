@@ -117,18 +117,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
-        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
+        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for agent {0}", name);
 
         Computer computer = toComputer();
         if (computer == null) {
-            String msg = String.format("Computer for slave is null: %s", name);
+            String msg = String.format("Computer for agent is null: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
             return;
         }
 
         if (getCloudName() == null) {
-            String msg = String.format("Cloud name is not set for slave, can't terminate: %s", name);
+            String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
             return;
