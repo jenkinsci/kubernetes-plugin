@@ -354,7 +354,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             );
         }
 
-        EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
+        EnvVar[] envVars = envVarsMap.values().stream()
+                .map(entry -> new EnvVar(entry.getName(), substituteEnv(entry.getValue()), entry.getValueFrom()))
+                .toArray(EnvVar[]::new);
 
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(containerTemplate.getArgs() //
