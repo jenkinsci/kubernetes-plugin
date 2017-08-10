@@ -1,6 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,10 +26,8 @@ import hudson.slaves.Cloud;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
-import io.fabric8.kubernetes.api.model.DoneablePod;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.PodResource;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 
 /**
@@ -131,35 +133,52 @@ public class KubernetesSlave extends AbstractCloudSlave {
             String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
+            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+            return;
+        }
+
+        Cloud cloud = getCloud();
+        if (cloud == null) {
+            String msg = String.format("Agent cloud no longer exists: %s", getCloudName());
+            LOGGER.log(Level.WARNING, msg);
+            listener.fatalError(msg);
+            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+            return;
+        }
+        if (!(cloud instanceof KubernetesCloud)) {
+            String msg = String.format("Agent cloud is not a KubernetesCloud, something is very wrong: %s",
+                    getCloudName());
+            LOGGER.log(Level.SEVERE, msg);
+            listener.fatalError(msg);
+            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+            return;
+        }
+        KubernetesClient client;
+        try {
+            client = ((KubernetesCloud) cloud).connect();
+        } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
+                | KeyStoreException e) {
+            String msg = String.format("Failed to connect to cloud %s", getCloudName());
+            listener.fatalError(msg);
+            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             return;
         }
 
         try {
-            Cloud cloud = getCloud();
-            if (cloud == null) {
-                String msg = String.format("Slave cloud no longer exists: %s", getCloudName());
-                LOGGER.log(Level.WARNING, msg);
-                listener.fatalError(msg);
-                return;
-            }
-            if (!(cloud instanceof KubernetesCloud)) {
-                String msg = String.format("Slave cloud is not a KubernetesCloud, something is very wrong: %s",
-                        getCloudName());
-                LOGGER.log(Level.SEVERE, msg);
-                listener.fatalError(msg);
-                return;
-            }
-            KubernetesClient client = ((KubernetesCloud) cloud).connect();
-            PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(name);
-            pods.delete();
-            String msg = String.format("Terminated Kubernetes instance for slave %s", name);
-            LOGGER.log(Level.INFO, msg);
-            listener.getLogger().println(msg);
+            client.pods().inNamespace(namespace).withName(name).delete();
+        } catch (KubernetesClientException e) {
+            String msg = String.format("Failed to delete pod for agent %s: %s", name, e.getMessage());
+            LOGGER.log(Level.WARNING, msg, e);
+            listener.error(msg);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
-            LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to terminate pod for slave " + name, e);
+            return;
         }
+
+        String msg = String.format("Terminated Kubernetes instance for agent %s", name);
+        LOGGER.log(Level.INFO, msg);
+        listener.getLogger().println(msg);
+        computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
+        LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
     }
 
     @Override
