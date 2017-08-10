@@ -711,7 +711,7 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        protected Node spinUpSlaveFromPod(SlaveInfo slaveInfo) throws Exception {
+        Node spinUpSlaveFromPod(SlaveInfo slaveInfo) throws Exception {
             KubernetesClient client = connect();
             Pod podTemplate = getPodTemplate(slaveInfo, label);
             LOGGER.log(Level.FINE, "Pod template for pod creation: {0}", podTemplate);
@@ -733,21 +733,21 @@ public class KubernetesCloud extends Cloud {
             return waitForSlaveToComeOnline(pod, namespace);
         }
 
-        protected Pod createPod(KubernetesClient client, Pod podTemplate, String namespace) {
+        Pod createPod(KubernetesClient client, Pod podTemplate, String namespace) {
             return client.pods().inNamespace(namespace).create(podTemplate);
         }
 
-        protected String getNamespace(KubernetesClient client) {
+        String getNamespace(KubernetesClient client) {
             return Strings.isNullOrEmpty(t.getNamespace())
                     ? client.getNamespace()
                     : t.getNamespace();
         }
 
-        protected String getPodId(Pod pod) {
+        String getPodId(Pod pod) {
             return pod.getMetadata().getName();
         }
 
-        protected String getPodNameSpace(Pod pod) {
+        String getPodNameSpace(Pod pod) {
             return pod.getMetadata().getNamespace();
         }
 
@@ -783,19 +783,21 @@ public class KubernetesCloud extends Cloud {
          * @param slaveConnectTimeoutInSeconds
          * @return exception to throw
          */
-        protected IllegalStateException failureToConnectOnlineSlave(Pod pod, int slaveConnectTimeoutInSeconds) {
+        IllegalStateException failureToConnectOnlineSlave(Pod pod, int slaveConnectTimeoutInSeconds) {
+            // Refresh the pod before reporting its state (may be stale)
+            pod = getPodByNamespaceAndPodId(getPodNameSpace(pod), getPodId(pod));
             return new IllegalStateException(format("Slave is not connected and online after %d seconds, status: %s",
-                    slaveConnectTimeoutInSeconds, getPodStatus(pod, true)));
+                    slaveConnectTimeoutInSeconds, getPodStatus(pod)));
         }
 
-        protected void logLastSlaveContainerLines(Pod pod) {
+        void logLastSlaveContainerLines(Pod pod) {
             List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
             if (containerStatuses != null) {
                 logLastLines(containerStatuses, pod, null);
             }
         }
 
-        protected boolean isSlaveComputerOnline(Slave slave) {
+        boolean isSlaveComputerOnline(Slave slave) {
             return slave != null && slave.getComputer() != null && slave.getComputer().isOnline();
         }
 
@@ -803,7 +805,7 @@ public class KubernetesCloud extends Cloud {
             return Jenkins.getInstance();
         }
 
-        protected void waitForPodStatus(String podId, String namespace, ImmutableList<String> validStates) throws Exception {
+        void waitForPodStatus(String podId, String namespace, ImmutableList<String> validStates) throws Exception {
             int startChecks = 0;
             Pod pod = null;
             boolean inValidState = false;
@@ -848,7 +850,7 @@ public class KubernetesCloud extends Cloud {
                     continue;
                 }
 
-                String podStatus = getPodStatus(pod, false);
+                String podStatus = getPodStatus(pod);
                 LOGGER.log(Level.INFO, "Pod status is {0}", podStatus);
                 if (validStates.contains(podStatus)) {
                     inValidState = true;
@@ -857,18 +859,15 @@ public class KubernetesCloud extends Cloud {
             }
             if (!inValidState) {
                 throw new IllegalStateException(format("Container is not running after %d attempts, status: %s",
-                        startChecks, getPodStatus(pod, false)));
+                        startChecks, getPodStatus(pod)));
             }
         }
 
-        protected String getPodStatus(Pod pod, boolean refresh) {
-            if (refresh) {
-                pod = getPodByNamespaceAndPodId(getPodNameSpace(pod), getPodId(pod));
-            }
+        String getPodStatus(Pod pod) {
             return pod.getStatus().getPhase();
         }
 
-        protected Pod getPodByNamespaceAndPodId(String namespace, String podId) {
+        Pod getPodByNamespaceAndPodId(String namespace, String podId) {
             try {
                 return connect().pods().inNamespace(namespace).withName(podId).get();
             } catch (Exception e) {
@@ -876,7 +875,7 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        protected RetentionStrategy getRetentionStrategy() {
+        RetentionStrategy getRetentionStrategy() {
             RetentionStrategy retentionStrategy;
             if (t.getIdleMinutes() == 0) {
                 retentionStrategy = new OnceRetentionStrategy(cloud.getRetentionTimeout());
