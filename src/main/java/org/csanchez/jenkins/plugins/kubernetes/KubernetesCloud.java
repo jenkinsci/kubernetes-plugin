@@ -154,8 +154,6 @@ public class KubernetesCloud extends Cloud {
             String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         this(name);
 
-        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
-
         setServerUrl(serverUrl);
         setNamespace(namespace);
         setJenkinsUrl(jenkinsUrl);
@@ -224,14 +222,15 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = skipTlsVerify;
     }
 
-    @CheckForNull
+    @Nonnull
     public String getNamespace() {
         return namespace;
     }
 
     @DataBoundSetter
-    public void setNamespace(String namespace) {
-        this.namespace = Util.fixEmpty(namespace);
+    public void setNamespace(@Nonnull String namespace) {
+        Preconditions.checkArgument(!StringUtils.isBlank(namespace));
+        this.namespace = namespace;
     }
 
     public String getJenkinsUrl() {
@@ -324,8 +323,7 @@ public class KubernetesCloud extends Cloud {
                 new String[] { getDisplayName(), serverUrl });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
-        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}" + serverUrl,
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
 
@@ -898,6 +896,8 @@ public class KubernetesCloud extends Cloud {
                 return FormValidation.error("URL is required");
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
+            if (StringUtils.isBlank(namespace))
+                return FormValidation.error("namespace is required");
 
             try {
                 KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
