@@ -166,8 +166,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
         try {
-            Boolean delete = client.pods().inNamespace(actualNamespace).withName(name).delete();
-            if (delete == null) {
+            Boolean deleted = client.pods().inNamespace(actualNamespace).withName(name).delete();
+            if (!Boolean.TRUE.equals(deleted)) {
                 String msg = String.format("Failed to delete pod for agent %s/%s: not found", actualNamespace, name);
                 LOGGER.log(Level.WARNING, msg);
                 listener.error(msg);
