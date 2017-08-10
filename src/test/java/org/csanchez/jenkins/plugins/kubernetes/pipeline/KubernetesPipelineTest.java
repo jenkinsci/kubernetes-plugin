@@ -246,6 +246,9 @@ public class KubernetesPipelineTest {
     }
 
     @Test
+    /**
+     * Step namespace should have priority over anything else.
+     */
     public void runWithOverriddenNamespace2() throws Exception {
         String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
         KubernetesClient client = cloud.connect();

@@ -16,6 +16,7 @@ import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -82,9 +83,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 rs,
                 template.getNodeProperties());
 
-        // this.pod = pod;
         this.cloudName = cloudName;
-        this.namespace = template.getNamespace();
+        this.namespace = Util.fixEmpty(template.getNamespace());
     }
 
     public String getCloudName() {
@@ -164,17 +164,25 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
+        String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
         try {
-            client.pods().inNamespace(namespace).withName(name).delete();
+            Boolean delete = client.pods().inNamespace(actualNamespace).withName(name).delete();
+            if (delete == null) {
+                String msg = String.format("Failed to delete pod for agent %s/%s: not found", actualNamespace, name);
+                LOGGER.log(Level.WARNING, msg);
+                listener.error(msg);
+                return;
+            }
         } catch (KubernetesClientException e) {
-            String msg = String.format("Failed to delete pod for agent %s: %s", name, e.getMessage());
+            String msg = String.format("Failed to delete pod for agent %s/%s: %s", actualNamespace, name,
+                    e.getMessage());
             LOGGER.log(Level.WARNING, msg, e);
             listener.error(msg);
             computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
             return;
         }
 
-        String msg = String.format("Terminated Kubernetes instance for agent %s", name);
+        String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
         computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
