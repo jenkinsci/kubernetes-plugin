@@ -84,6 +84,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 
 * **name** The name of the container.
 * **image** The image of the container.
+* **slaveImage** Flag to mark whether the current image represents a Jenkins slave.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
 * **command** The command the container will execute.
 * **args** The arugments passed to the command.
@@ -109,7 +110,7 @@ podTemplate(label: 'anotherpod', inheritFrom: 'mypod'  containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-7-alpine')    
   ]) {
       
-      //Let's not repeat ourselves and ommit this part
+      //Let's not repeat ourselves and omit this part
 }
 ```
 
@@ -222,11 +223,23 @@ annotations: [
 
 Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent. It can ve overridden by defining a container with the same name.
+and will be the container acting as Jenkins agent. It can be overridden by defining a container with the same name. 
+Alternatively, if you have a custom agent image, just check `A Jenkins agent image` check box. 
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
 
+Please note that you are allowed to have only one agent container per pod template.
+
+# Self-registering agents
+
+If your slave container is capable of self-registering itself in Jenkins as a slave when the pod starts (for instance, if you use a 
+[Jenkins Swarm plugin](https://github.com/jenkinsci/swarm-plugin) along with the Kubernetes plugin, 
+and your slave is based on a client for it), this is supported - just put a tick in `Self-registering agent`
+check box that appears in `Container template` below `A Jenkins agent image` check box if you check it. 
+This is needed to prevent the creation of the "default" node in Jenkins along with yours.
+
+In order for plugin to find your self-registering agent, you need to make sure its name is equal to the pod ID.
 
 # Over provisioning flags
 
