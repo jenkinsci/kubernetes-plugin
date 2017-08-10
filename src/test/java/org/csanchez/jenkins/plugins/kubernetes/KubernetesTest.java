@@ -24,12 +24,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -55,6 +53,16 @@ public class KubernetesTest {
         KubernetesCloud cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_0_12() {
+        KubernetesCloud cloud = r.jenkins.clouds.get(KubernetesCloud.class);
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
+                new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
     }
 
     private void assertPodTemplates(List<PodTemplate> templates) {
