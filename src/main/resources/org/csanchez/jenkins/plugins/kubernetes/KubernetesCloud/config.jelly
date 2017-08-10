@@ -47,6 +47,10 @@
         <f:textbox default="10"/>
     </f:entry>
 
+    <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
+        <f:textbox default="32"/>
+    </f:entry>
+
     <f:advanced>
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
         <f:textbox default="5"/>

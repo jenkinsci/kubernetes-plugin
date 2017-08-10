@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,7 +20,7 @@ import io.fabric8.kubernetes.client.dsl.ExecWatch;
  * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.
  *
  */
-public class ContainerExecProc extends Proc {
+public class ContainerExecProc extends Proc implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
 
@@ -59,22 +60,23 @@ public class ContainerExecProc extends Proc {
             watch.getInput().flush();
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Proc kill failed, ignoring", e);
+        } finally {
+            close();
         }
     }
 
     @Override
     public int join() throws IOException, InterruptedException {
-        LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
-        finished.await();
-        LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
         try {
+            LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
+            finished.await();
+            LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
             return exitCode.call();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
             return -1;
         } finally {
-            //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
-            watch.close();
+            close();
         }
     }
 
@@ -93,4 +95,13 @@ public class ContainerExecProc extends Proc {
         return watch.getInput();
     }
 
+    @Override
+    public void close() throws IOException {
+        try {
+            //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            watch.close();
+        } catch (Exception e) {
+            LOGGER.log(Level.INFO, "failed to close watch", e);
+        }
+    }
 }

@@ -28,29 +28,12 @@ import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.*;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-import com.google.common.base.Preconditions;
-
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
-import jenkins.model.Jenkins;
-
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Jenkins.class})
 public class PodTemplateUtilsTest {
 
     private static final PodImagePullSecret SECRET_1 = new PodImagePullSecret("secret1");
@@ -62,22 +45,6 @@ public class PodTemplateUtilsTest {
 
     private static final ContainerTemplate MAVEN_1 = new ContainerTemplate("maven", "maven:1", "sh -c", "cat");
     private static final ContainerTemplate MAVEN_2 = new ContainerTemplate("maven", "maven:2");
-
-    @Mock
-    private Jenkins jenkins;
-
-    @Before
-    public void setUp() {
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
-        Answer<Label> labeler = invocation -> {
-            Preconditions.checkArgument(invocation != null && invocation.getArguments().length == 1 && invocation.getArguments()[0] instanceof String);
-            return new LabelAtom((String)invocation.getArguments()[0]);
-        };
-
-        PowerMockito.doAnswer(labeler).when(jenkins).getLabel(anyString());
-        PowerMockito.doAnswer(labeler).when(jenkins).getLabelAtom(anyString());
-    }
 
     @Test
     public void shouldReturnContainerTemplateWhenParentIsNull() {
