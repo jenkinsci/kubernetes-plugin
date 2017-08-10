@@ -24,11 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
@@ -61,7 +64,7 @@ public class KubernetesTest {
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkinsci/jnlp-slave", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
-        assertEquals(Arrays.asList(new ContainerEnvVar("a", "b"), new ContainerEnvVar("c", "d")),
+        assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());
         assertEquals(2, podTemplate.getVolumes().size());
 

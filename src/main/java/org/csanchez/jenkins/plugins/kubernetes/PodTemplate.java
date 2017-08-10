@@ -1,7 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.tools.ToolLocationNodeProperty;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,6 +12,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -28,8 +27,9 @@ import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
 import hudson.model.Node;
+import hudson.model.labels.LabelAtom;
+import hudson.tools.ToolLocationNodeProperty;
 
 /**
  * Kubernetes Pod Template
@@ -93,7 +93,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private List<AbstractPodEnvVar> envVars = new ArrayList<>();
+    private List<TemplateEnvVar> envVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
@@ -366,21 +366,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<AbstractPodEnvVar> getEnvVars() {
+    public List<TemplateEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
         }
         return envVars;
     }
 
-    public void addEnvVars(List<AbstractPodEnvVar> envVars) {
+    public void addEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.addAll(envVars);
         }
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<AbstractPodEnvVar> envVars) {
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.clear();
             this.addEnvVars(envVars);
@@ -544,7 +544,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
-            containerTemplate.setEnvVars(PodEnvVar.asContainerEnvVar(envVars));
+            containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);

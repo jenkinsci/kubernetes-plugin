@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
@@ -325,7 +326,7 @@ public class KubernetesCloud extends Cloud {
     }
 
 
-    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<AbstractPodEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
@@ -359,12 +360,12 @@ public class KubernetesCloud extends Cloud {
 
         if (globalEnvVars != null) {
             envVarsList.addAll(globalEnvVars.stream()
-                    .map(AbstractPodEnvVar::buildEnvVar)
+                    .map(TemplateEnvVar::buildEnvVar)
                     .collect(Collectors.toList()));
         }
         if (containerTemplate.getEnvVars() != null) {
             envVarsList.addAll(containerTemplate.getEnvVars().stream()
-                    .map(AbstractContainerEnvVar::buildEnvVar)
+                    .map(TemplateEnvVar::buildEnvVar)
                     .collect(Collectors.toList()));
         }
 

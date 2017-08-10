@@ -22,18 +22,18 @@
  * THE SOFTWARE.
  */
 
-package org.csanchez.jenkins.plugins.kubernetes;
+package org.csanchez.jenkins.plugins.kubernetes.model;
 
-import static org.junit.Assert.*;
+import io.fabric8.kubernetes.api.model.EnvVar;
 
-import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
-import org.junit.Test;
+/**
+ * @author Carlos Sanchez
+ * @since 0.13
+ */
+public interface TemplateEnvVar {
 
-public class PodEnvVarTest {
+    String getKey();
 
-    @Test
-    public void testEquals() {
-        assertEquals(new PodEnvVar("a", "b"), new KeyValueEnvVar("a", "b"));
-    }
+    EnvVar buildEnvVar();
 
 }

@@ -35,15 +35,13 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.Optional;
 
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import org.junit.Assume;
-
 import io.fabric8.kubernetes.api.model.Cluster;
 import io.fabric8.kubernetes.api.model.Config;
 import io.fabric8.kubernetes.api.model.NamedCluster;
 import io.fabric8.kubernetes.api.model.NamedContext;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.internal.KubeConfigUtils;
 import io.fabric8.kubernetes.client.utils.Utils;
 

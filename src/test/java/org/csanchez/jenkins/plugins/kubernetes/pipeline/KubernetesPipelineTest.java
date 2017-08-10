@@ -35,12 +35,12 @@ import java.util.logging.Level;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.ContainerSecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.PodEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.PodSecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -195,11 +195,13 @@ public class KubernetesPipelineTest {
 
     private void assertEnvVars(JenkinsRuleNonLocalhost r2, WorkflowRun b) throws Exception {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_LEGACY = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_LEGACY =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET =\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
@@ -345,12 +347,15 @@ public class KubernetesPipelineTest {
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
-        PodSecretEnvVar podSecretEnvVar = new PodSecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
-        PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
+        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
+        TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
-        ContainerEnvVar containerEnvVariable = new ContainerEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        ContainerSecretEnvVar containerSecretEnvVariable = new ContainerSecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
+        TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
+        TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
+                CONTAINER_ENV_VAR_VALUE);
+        TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
                 "container-secret", SECRET_KEY);
-        podTemplate.getContainers().get(0).setEnvVars(asList(containerEnvVariable, containerSecretEnvVariable));
+        podTemplate.getContainers().get(0)
+                .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
     }
 }
