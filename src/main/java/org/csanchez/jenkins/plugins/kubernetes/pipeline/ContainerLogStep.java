@@ -20,6 +20,9 @@ public class ContainerLogStep extends Step implements Serializable {
 
     private final String name;
     private boolean returnLog = false;
+    private int tailingLines = 0;
+    private int sinceSeconds = 0;
+    private int limitBytes = 0;
 
     @DataBoundConstructor
     public ContainerLogStep(String name) {
@@ -42,6 +45,33 @@ public class ContainerLogStep extends Step implements Serializable {
     @Override
     public StepExecution start(StepContext context) throws Exception {
         return new ContainerLogStepExecution(this, context);
+    }
+
+    public int getTailingLines() {
+        return tailingLines;
+    }
+
+    @DataBoundSetter
+    public void setTailingLines(int tailingLines) {
+        this.tailingLines = tailingLines;
+    }
+
+    public int getSinceSeconds() {
+        return sinceSeconds;
+    }
+
+    @DataBoundSetter
+    public void setSinceSeconds(int sinceSeconds) {
+        this.sinceSeconds = sinceSeconds;
+    }
+
+    public int getLimitBytes() {
+        return limitBytes;
+    }
+
+    @DataBoundSetter
+    public void setLimitBytes(int limitBytes) {
+        this.limitBytes = limitBytes;
     }
 
     @Extension

@@ -2,10 +2,25 @@
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry field="name" title="${%Name of the container}">
-        <f:textbox/>
+    <f:block>
+        <p>
+            Gets the log of a container running in the current pod, and prints it to the build log or returns it.
+            Only works inside a <code>node</code> that requests a Kubernetes slave.
+        </p>
+    </f:block>
+    <f:entry field="name" title="Name of the container">
+        <f:textbox clazz="required"/>
     </f:entry>
-    <f:entry field="returnLog" title="${%Return the container log}">
+    <f:entry field="returnLog" title="Return the container log">
         <f:checkbox/>
+    </f:entry>
+    <f:entry field="tailingLines" title="Number of tailing lines">
+        <f:number/>
+    </f:entry>
+    <f:entry field="sinceSeconds" title="Only return logs newer than (in seconds)">
+        <f:number/>
+    </f:entry>
+    <f:entry field="limitBytes" title="Limit output from the beginning, in bytes">
+        <f:number/>
     </f:entry>
 </j:jelly>

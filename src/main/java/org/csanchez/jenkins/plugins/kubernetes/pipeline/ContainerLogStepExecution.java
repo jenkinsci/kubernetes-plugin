@@ -3,10 +3,11 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.*;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
-import java.io.PrintStream;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +43,9 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
     protected String run() throws Exception {
         boolean returnLog = step.isReturnLog();
         String containerName = step.getName();
+        int tailingLines = step.getTailingLines();
+        int sinceSeconds = step.getSinceSeconds();
+        int limitBytes = step.getLimitBytes();
 
         try {
             LOGGER.log(Level.FINE, "Starting containerLog step.");
@@ -50,28 +54,29 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             client = nodeContext.connectToCloud();
 
             String podName = nodeContext.getPodName();
-            String log = client.pods()
+            ContainerResource<String, LogWatch, InputStream, PipedOutputStream, OutputStream, PipedInputStream,
+                    String, ExecWatch> container = client.pods()
                     .inNamespace(nodeContext.getNamespace())
                     .withName(podName)
-                    .inContainer(containerName)
-                    .getLog();
+                    .inContainer(containerName);
+
+            TimeTailPrettyLoggable<String, LogWatch> limited = limitBytes > 0 ? container.limitBytes(limitBytes) : container;
+
+            TailPrettyLoggable<String, LogWatch> since = sinceSeconds > 0 ? limited.sinceSeconds(sinceSeconds) : limited;
+
+            PrettyLoggable<String, LogWatch> tailed = tailingLines > 0 ? since.tailingLines(tailingLines) : since;
+            String log = tailed.getLog();
+
             if (returnLog) {
                 return log;
             } else {
                 logger().println("> start log of container '" + containerName + "' in pod '" + podName + "'");
                 logger().print(log);
-                if (log.charAt(log.length() - 1) != '\n') {
+                if (log.length() > 0 && log.charAt(log.length() - 1) != '\n') {
                     logger().println();
                 }
                 logger().println("> end log of container '" + containerName + "' in pod '" + podName + "'");
             }
-
-//        TODO
-//        withTerminatedStatus
-//        sinceSeconds
-//        sinceTimestamp
-//        withTailingLines
-//        limitBytes
 
             return "";
         } catch (InterruptedException e) {
