@@ -15,6 +15,7 @@ import com.google.common.base.Strings;
 import hudson.AbortException;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
@@ -124,14 +125,25 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         protected void finished(StepContext context) throws Exception {
             Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
             if (cloud == null) {
-                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
+                LOGGER.log(Level.WARNING, "Cloud {0} no longer exists, cannot delete pod template {1}",
                         new Object[] { step.getCloud(), podTemplate.getName() });
                 return;
             }
             if (cloud instanceof KubernetesCloud) {
+                LOGGER.log(Level.INFO, "Removing pod template and deleting pod {1} from cloud {0}",
+                        new Object[] { cloud.name, podTemplate.getName() });
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeTemplate(podTemplate);
-                kubernetesCloud.connect().pods().withName(podTemplate.getName()).delete();
+                KubernetesClient client = kubernetesCloud.connect();
+                Boolean deleted = client.pods().withName(podTemplate.getName()).delete();
+                if (!Boolean.TRUE.equals(deleted)) {
+                    LOGGER.log(Level.WARNING, "Failed to delete pod for agent {0}/{1}: not found",
+                            new String[] { client.getNamespace(), podTemplate.getName() });
+                    return;
+                }
+            } else {
+                LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
+                        new String[] { cloud.name, cloud.getClass().getName() });
             }
         }
     }

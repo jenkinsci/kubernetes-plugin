@@ -35,6 +35,8 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -113,7 +115,7 @@ public class KubernetesCloud extends Cloud {
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkinsci/jnlp-slave:alpine");
 
     /** label for all pods started by the plugin */
-    private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
+    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -324,8 +326,7 @@ public class KubernetesCloud extends Cloud {
                 new String[] { getDisplayName(), serverUrl });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
-        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}" + serverUrl,
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
 
@@ -497,7 +498,7 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(POD_LABEL);
+        builder.putAll(DEFAULT_POD_LABELS);
         if (!labelSet.isEmpty()) {
             for (LabelAtom label: labelSet) {
                 builder.put(getIdForLabel(label), "true");
@@ -809,7 +810,7 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(POD_LABEL).list();
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(DEFAULT_POD_LABELS).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
