@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.Messages;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;

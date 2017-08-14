@@ -9,7 +9,11 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="value" title="${%Value}">
+  <f:entry field="secretName" title="${%SecretName}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="secretKey" title="${%SecretKey}">
     <f:textbox/>
   </f:entry>
 

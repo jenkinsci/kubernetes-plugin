@@ -1,18 +1,21 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
-import hudson.Extension;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+
+import com.google.common.base.Preconditions;
+
+import hudson.Extension;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -44,7 +47,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceLimitMemory;
 
-    private final List<ContainerEnvVar> envVars = new ArrayList<ContainerEnvVar>();
+    private final List<TemplateEnvVar> envVars = new ArrayList<>();
     private List<PortMapping> ports = new ArrayList<PortMapping>();
 
     private ContainerLivenessProbe livenessProbe;
@@ -145,12 +148,12 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return alwaysPullImage;
     }
 
-    public List<ContainerEnvVar> getEnvVars() {
+    public List<TemplateEnvVar> getEnvVars() {
         return envVars != null ? envVars : Collections.emptyList();
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<ContainerEnvVar> envVars) {
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
         this.envVars.addAll(envVars);
     }
 
