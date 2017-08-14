@@ -30,6 +30,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -150,6 +151,28 @@ public class KubernetesCloud extends Cloud {
     @DataBoundConstructor
     public KubernetesCloud(String name) {
         super(name);
+    }
+
+    /**
+     * Copy constructor.
+     * Allows to create copies of the original kubernetes cloud. Since it's a singleton
+     * by design, this method also allows specifying a new name.
+     * @param name Name of the cloud to be created
+     * @param source Source Kubernetes cloud implementation
+     * @since 0.13
+     */
+    public KubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
+        super(name);
+        this.defaultsProviderTemplate = source.defaultsProviderTemplate;
+        this.templates.addAll(source.templates);
+        this.serverUrl = source.serverUrl;
+        this.skipTlsVerify = source.skipTlsVerify;
+        this.namespace = source.namespace;
+        this.jenkinsUrl = source.jenkinsUrl;
+        this.credentialsId = source.credentialsId;
+        this.containerCap = source.containerCap;
+        this.retentionTimeout = source.retentionTimeout;
+        this.connectTimeout = source.connectTimeout;
     }
 
     @Deprecated
