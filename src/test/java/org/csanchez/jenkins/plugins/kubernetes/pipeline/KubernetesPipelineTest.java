@@ -45,6 +45,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -106,6 +107,13 @@ public class KubernetesPipelineTest {
     public void configureTemplates() throws Exception {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
+        deletePods(cloud.connect(), Collections.emptyMap(), false);
+    }
+
+    @After
+    public void cleanup() throws Exception {
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
 
     /**
@@ -253,6 +261,9 @@ public class KubernetesPipelineTest {
     }
 
     @Test
+    /**
+     * Step namespace should have priority over anything else.
+     */
     public void runWithOverriddenNamespace2() throws Exception {
         String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
         KubernetesClient client = cloud.connect();

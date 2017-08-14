@@ -36,6 +36,8 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -114,7 +116,7 @@ public class KubernetesCloud extends Cloud {
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkinsci/jnlp-slave:alpine");
 
     /** label for all pods started by the plugin */
-    private static final Map<String, String> POD_LABEL = ImmutableMap.of("jenkins", "slave");
+    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -154,8 +156,6 @@ public class KubernetesCloud extends Cloud {
     public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
             String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         this(name);
-
-        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
 
         setServerUrl(serverUrl);
         setNamespace(namespace);
@@ -225,14 +225,15 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = skipTlsVerify;
     }
 
-    @CheckForNull
+    @Nonnull
     public String getNamespace() {
         return namespace;
     }
 
     @DataBoundSetter
-    public void setNamespace(String namespace) {
-        this.namespace = Util.fixEmpty(namespace);
+    public void setNamespace(@Nonnull String namespace) {
+        Preconditions.checkArgument(!StringUtils.isBlank(namespace));
+        this.namespace = namespace;
     }
 
     public String getJenkinsUrl() {
@@ -321,12 +322,11 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}" + serverUrl,
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}",
                 new String[] { getDisplayName(), serverUrl });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
-        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}" + serverUrl,
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
 
@@ -500,7 +500,7 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(POD_LABEL);
+        builder.putAll(DEFAULT_POD_LABELS);
         if (!labelSet.isEmpty()) {
             for (LabelAtom label: labelSet) {
                 builder.put(getIdForLabel(label), "true");
@@ -812,7 +812,7 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(POD_LABEL).list();
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(DEFAULT_POD_LABELS).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
@@ -901,6 +901,8 @@ public class KubernetesCloud extends Cloud {
                 return FormValidation.error("URL is required");
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
+            if (StringUtils.isBlank(namespace))
+                return FormValidation.error("namespace is required");
 
             try {
                 KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
