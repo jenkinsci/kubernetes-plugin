@@ -92,18 +92,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             namespace = step.getNamespace();
         } else if (!Strings.isNullOrEmpty(namespaceAction.getNamespace())) {
             namespace = namespaceAction.getNamespace();
-        } else if (!Strings.isNullOrEmpty(kubernetesCloud.getNamespace())) {
-            namespace = kubernetesCloud.getNamespace();
         } else {
-            try {
-                namespace = kubernetesCloud.connect().getNamespace();
-            } catch (Throwable t) {
-                //We can just ignore...
-            }
-        }
-
-        if (Strings.isNullOrEmpty(namespace)) {
-            throw new IllegalStateException("No target namespace has been found.");
+            namespace = kubernetesCloud.getNamespace();
         }
         return namespace;
     }
