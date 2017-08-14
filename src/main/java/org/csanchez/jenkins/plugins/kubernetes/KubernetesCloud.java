@@ -511,8 +511,8 @@ public class KubernetesCloud extends Cloud {
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity> builder();
-        String actualMemory = substituteEnv(memory, null);
-        String actualCpu = substituteEnv(cpu, null);
+        String actualMemory = substituteEnv(memory);
+        String actualCpu = substituteEnv(cpu);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
