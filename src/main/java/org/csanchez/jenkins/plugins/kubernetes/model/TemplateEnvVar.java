@@ -36,4 +36,18 @@ public interface TemplateEnvVar {
 
     EnvVar buildEnvVar();
 
+    class EnvironmentVariableNames {
+
+        public static final String JENKINS_URL = "JENKINS_URL";
+        public static final String JENKINS_LOCATION_URL = "JENKINS_LOCATION_URL";
+        public static final String JENKINS_TUNNEL = "JENKINS_TUNNEL";
+        public static final String JENKINS_SECRET = "JENKINS_SECRET";
+        public static final String JENKINS_NAME = "JENKINS_NAME";
+        public static final String JENKINS_JNLP_URL = "JENKINS_JNLP_URL";
+        public static final String HOME = "HOME";
+
+        private EnvironmentVariableNames() {}
+
+    }
+
 }

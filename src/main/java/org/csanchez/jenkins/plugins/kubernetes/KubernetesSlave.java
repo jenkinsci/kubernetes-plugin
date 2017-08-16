@@ -1,24 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.Messages;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.jvnet.localizer.Localizable;
-import org.jvnet.localizer.ResourceBundleHolder;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
@@ -26,11 +9,18 @@ import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
 import hudson.slaves.JNLPLauncher;
-import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.lang.String.format;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -40,14 +30,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
     private static final long serialVersionUID = -8642936855413034232L;
+
     private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
 
-    /**
-     * The resource bundle reference
-     */
-    private final static ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
-
     private final String cloudName;
+
     private final String namespace;
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
@@ -104,13 +91,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
         if (StringUtils.isEmpty(name)) {
-            return String.format("%s-%s", DEFAULT_AGENT_PREFIX,  randString);
+            return format("%s-%s", DEFAULT_AGENT_PREFIX,  randString);
         }
         // no spaces
         name = name.replaceAll("[ _]", "-").toLowerCase();
         // keep it under 63 chars (62 is used to account for the '-')
         name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
-        return String.format("%s-%s", name, randString);
+        return format("%s-%s", name, randString);
     }
 
     @Override
@@ -131,9 +118,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
             SlaveTerminator slaveTerminator = new SlaveTerminator((KubernetesCloud) cloud);
             if (slaveTerminator.terminatePodSlave(this, namespace)) {
-                listener.getLogger().println(format("Terminated Kubernetes pod for slave %s", name));
+                listener.getLogger().println(format("Terminated Kubernetes pod for agent %s", name));
             } else {
-                listener.fatalError(format("Failed to terminate pod for slave %s", name));
+                listener.fatalError(format("Failed to terminate pod for agent %s", name));
             }
         } catch(CloudEntityVerificationException e) {
             listener.fatalError(e.getMessage());
@@ -142,7 +129,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public String toString() {
-        return String.format("KubernetesSlave name: %s", name);
+        return format("KubernetesSlave name: %s", name);
     }
 
     @Extension

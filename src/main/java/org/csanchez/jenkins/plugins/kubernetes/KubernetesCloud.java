@@ -1,48 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.nio.charset.StandardCharsets.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
-import java.nio.file.Paths;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
@@ -56,6 +13,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -95,6 +53,9 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
@@ -104,9 +65,11 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.net.URL;
+import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -128,17 +91,18 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.HOME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_JNLP_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_LOCATION_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_SECRET;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_TUNNEL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_URL;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 import static org.csanchez.jenkins.plugins.kubernetes.SlaveTimeLimitedTaskRunner.slaveOperationMaxAttempts;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.HOME;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_JNLP_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_LOCATION_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_SECRET;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_TUNNEL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_URL;
 
 /**
  * Kubernetes cloud provider.
@@ -532,7 +496,7 @@ public class KubernetesCloud extends Cloud {
 
         // Build volumes and volume mounts.
         List<Volume> volumes = new ArrayList<>();
-        Map<String, VolumeMount> volumeMounts = new HashMap();
+        Map<String, VolumeMount> volumeMounts = new HashMap<>();
 
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
@@ -580,7 +544,7 @@ public class KubernetesCloud extends Cloud {
 
         // Does one of the containers represent a Jenkins agent?
         int agentContainerCount = 0;
-        List<PodEnvVar> envVars = template.getEnvVars();
+        List<TemplateEnvVar> envVars = template.getEnvVars();
         for (ContainerTemplate containerTemplate : template.getContainers()) {
             containers.put(containerTemplate.getName(), createContainer(slaveInfo, containerTemplate, envVars, volumeMounts.values()));
             if (isJenkinsAgentTemplate(containerTemplate)) {
@@ -810,17 +774,15 @@ public class KubernetesCloud extends Cloud {
             Slave slave = null;
             try {
                 RetentionStrategy retentionStrategy = getRetentionStrategy();
-                final PodTemplate unwrappedTemplate = PodTemplateUtils.unwrap(getTemplate(label), defaultsProviderTemplate, templates);
+                final PodTemplate unwrappedTemplate = unwrapTemplateFromLabel(label);
                 slave = new KubernetesSlave(unwrappedTemplate, unwrappedTemplate.getName(), cloud.name, unwrappedTemplate.getLabel(), retentionStrategy);
                 LOGGER.log(Level.FINER, "Adding Jenkins node: {0}", slave.getNodeName());
                 jenkins().addNode(slave);
 
-                KubernetesClient client = connect();
-                Pod pod = getPodTemplate(slave, unwrappedTemplate);
                 SlaveComputer slaveComputer = slave.getComputer();
                 SlaveInfo slaveInfo =
                         new SlaveInfo(slave.getNodeName(), slaveComputer.getName(), slaveComputer.getUrl(), slaveComputer.getJnlpMac());
-                return spinUpSlaveFromPod(slaveInfo);
+                return spinUpSlaveFromPod(slaveInfo, unwrappedTemplate);
             } catch (Throwable ex) {
                 LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}", new Object[] { slave, t });
                 if (slave != null) {
@@ -831,13 +793,13 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        Node spinUpSlaveFromPod(SlaveInfo slaveInfo) throws Exception {
+        Node spinUpSlaveFromPod(SlaveInfo slaveInfo, PodTemplate unwrappedTemplate) throws Exception {
             KubernetesClient client = connect();
-            Pod podTemplate = getPodTemplate(slaveInfo, label);
+            Pod podTemplate = getPodTemplate(slaveInfo, unwrappedTemplate);
             LOGGER.log(Level.FINE, "Pod template for pod creation: {0}", podTemplate);
 
             String namespace = getNamespace(client);
-            LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[] { podId, namespace });
+            LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[] { getPodId(podTemplate), namespace });
             Pod pod = createPod(client, podTemplate, namespace);
             String podId = getPodId(pod);
             LOGGER.log(Level.INFO, "Created Pod: {0} in namespace {1}", new Object[] { podId, namespace });
@@ -1025,10 +987,11 @@ public class KubernetesCloud extends Cloud {
         public Node call() throws Exception {
             String slaveName = KubernetesSlave.getSlaveName(t);
             SlaveInfo slaveInfo = new SlaveInfo(slaveName);
+            PodTemplate unwrappedTemplate = unwrapTemplateFromLabel(label);
             try {
-                return spinUpSlaveFromPod(slaveInfo);
+                return spinUpSlaveFromPod(slaveInfo, unwrappedTemplate);
             } catch (Throwable ex) {
-                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}: {2}", new Object[] { slave, t, ex.getMessage() });
+                LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}: {2}", new Object[] { slaveName, unwrappedTemplate, ex.getMessage() });
                 throw Throwables.propagate(ex);
             }
         }
