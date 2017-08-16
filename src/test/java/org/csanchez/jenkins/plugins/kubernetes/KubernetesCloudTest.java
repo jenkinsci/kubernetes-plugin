@@ -244,4 +244,14 @@ public class KubernetesCloudTest {
         return podTemplate;
     }
 
+    @Test
+    public void testParseLivenessProbe() {
+        assertNull(cloud.parseLivenessProbe(""));
+        assertNull(cloud.parseLivenessProbe(null));
+        assertEquals(ImmutableList.of("docker","info"), cloud.parseLivenessProbe("docker info"));
+        assertEquals(ImmutableList.of("echo","I said: 'I am alive'"), cloud.parseLivenessProbe("echo \"I said: 'I am alive'\""));
+        assertEquals(ImmutableList.of("docker","--version"), cloud.parseLivenessProbe("docker --version"));
+        assertEquals(ImmutableList.of("curl","-k","--silent","--output=/dev/null","https://localhost:8080"), cloud.parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
+    }
+
 }

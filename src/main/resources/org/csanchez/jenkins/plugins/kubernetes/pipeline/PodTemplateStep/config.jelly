@@ -37,7 +37,10 @@
         <f:entry field="instanceCap" title="${%Max number of instances}">
           <f:textbox default="0"/>
         </f:entry>
-		<f:entry field="serviceAccount" title="The service account">
+        <f:entry field="idleMinutes" title="${%Time in minutes to retain slave when idle}">
+          <f:textbox default="0"/>
+        </f:entry>
+        <f:entry field="serviceAccount" title="The service account">
           <f:textbox/>
         </f:entry>
         <f:entry field="nodeSelector" title="The node selector">

@@ -1,32 +1,42 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016, Carlos Sanchez and others
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Preconditions;
+import static java.util.Arrays.*;
+import static java.util.Collections.*;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
-import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
+import org.junit.Test;
 
-import static org.junit.Assert.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-import static org.mockito.Matchers.anyString;
-
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Jenkins.class})
 public class PodTemplateUtilsTest {
 
     private static final PodImagePullSecret SECRET_1 = new PodImagePullSecret("secret1");
@@ -38,25 +48,6 @@ public class PodTemplateUtilsTest {
 
     private static final ContainerTemplate MAVEN_1 = new ContainerTemplate("maven", "maven:1", "sh -c", "cat");
     private static final ContainerTemplate MAVEN_2 = new ContainerTemplate("maven", "maven:2");
-    private static final ContainerTemplate GOLANG_1 = new ContainerTemplate("golang", "golang:1");
-
-    private static final PodTemplate TEMPLATE_1 = new PodTemplate();
-
-    @Mock
-    private Jenkins jenkins;
-
-    @Before
-    public void setUp() {
-        PowerMockito.mockStatic(Jenkins.class);
-        PowerMockito.when(Jenkins.getInstance()).thenReturn(jenkins);
-        Answer<Label> labeler = invocation -> {
-            Preconditions.checkArgument(invocation != null && invocation.getArguments().length == 1 && invocation.getArguments()[0] instanceof String);
-            return new LabelAtom((String)invocation.getArguments()[0]);
-        };
-
-        PowerMockito.doAnswer(labeler).when(jenkins).getLabel(anyString());
-        PowerMockito.doAnswer(labeler).when(jenkins).getLabelAtom(anyString());
-    }
 
     @Test
     public void shouldReturnContainerTemplateWhenParentIsNull() {
@@ -129,15 +120,15 @@ public class PodTemplateUtilsTest {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
-        parent.setImagePullSecrets(Arrays.asList(SECRET_1));
+        parent.setImagePullSecrets(asList(SECRET_1));
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
-        template1.setImagePullSecrets(Arrays.asList(SECRET_1, SECRET_2, SECRET_3));
+        template1.setImagePullSecrets(asList(SECRET_1, SECRET_2, SECRET_3));
 
         PodTemplate template2 = new PodTemplate();
         template2.setName("template2");
-        template2.setImagePullSecrets(Arrays.asList(SECRET_2, SECRET_3));
+        template2.setImagePullSecrets(asList(SECRET_2, SECRET_3));
 
         PodTemplate template3 = new PodTemplate();
         template3.setName("template3");
@@ -160,16 +151,16 @@ public class PodTemplateUtilsTest {
         parent.setLabel("parent");
         parent.setServiceAccount("sa");
         parent.setNodeSelector("key:value");
-        parent.setImagePullSecrets(Arrays.asList(SECRET_1));
+        parent.setImagePullSecrets(asList(SECRET_1));
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
         template1.setInheritFrom("parent");
         template1.setServiceAccount("sa1");
-        template1.setImagePullSecrets(Arrays.asList(SECRET_2, SECRET_3));
+        template1.setImagePullSecrets(asList(SECRET_2, SECRET_3));
 
 
-        PodTemplate result = unwrap(template1, Arrays.asList(parent, template1));
+        PodTemplate result = unwrap(template1, asList(parent, template1));
         assertEquals(3, result.getImagePullSecrets().size());
         assertEquals("sa1", result.getServiceAccount());
         assertEquals("key:value", result.getNodeSelector());
@@ -182,29 +173,29 @@ public class PodTemplateUtilsTest {
         parent.setLabel("parent");
         parent.setServiceAccount("sa");
         parent.setNodeSelector("key:value");
-        parent.setImagePullSecrets(Arrays.asList(SECRET_1));
-        parent.setContainers(Arrays.asList(JNLP_1, MAVEN_2));
+        parent.setImagePullSecrets(asList(SECRET_1));
+        parent.setContainers(asList(JNLP_1, MAVEN_2));
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
         template1.setLabel("template1");
         template1.setInheritFrom("parent");
         template1.setServiceAccount("sa1");
-        template1.setImagePullSecrets(Arrays.asList(SECRET_2));
-        template1.setContainers(Arrays.asList(JNLP_2));
+        template1.setImagePullSecrets(asList(SECRET_2));
+        template1.setContainers(asList(JNLP_2));
 
         PodTemplate template2 = new PodTemplate();
         template2.setName("template2");
         template2.setLabel("template2");
-        template2.setImagePullSecrets(Arrays.asList(SECRET_3));
-        template2.setContainers(Arrays.asList(MAVEN_2));
+        template2.setImagePullSecrets(asList(SECRET_3));
+        template2.setContainers(asList(MAVEN_2));
 
         PodTemplate toUnwrap = new PodTemplate();
         toUnwrap.setName("toUnwrap");
         toUnwrap.setInheritFrom("template1 template2");
 
 
-        PodTemplate result = unwrap(toUnwrap, Arrays.asList(parent, template1, template2));
+        PodTemplate result = unwrap(toUnwrap, asList(parent, template1, template2));
         assertEquals(3, result.getImagePullSecrets().size());
         assertEquals("sa1", result.getServiceAccount());
         assertEquals("key:value", result.getNodeSelector());
@@ -213,5 +204,169 @@ public class PodTemplateUtilsTest {
         ContainerTemplate mavenTemplate = result.getContainers().stream().filter(c -> c.getName().equals("maven")).findFirst().orElse(null);
         assertNotNull(mavenTemplate);
         assertEquals("maven:2", mavenTemplate.getImage());
+    }
+
+    @Test
+    public void shouldCombineAllPodKeyValueEnvVars() {
+        PodTemplate template1 = new PodTemplate();
+        KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
+        template1.setEnvVars(singletonList(podEnvVar1));
+
+        PodTemplate template2 = new PodTemplate();
+        KeyValueEnvVar podEnvVar2 = new KeyValueEnvVar("key-2", "value-2");
+        KeyValueEnvVar podEnvVar3 = new KeyValueEnvVar("key-3", "value-3");
+        template2.setEnvVars(asList(podEnvVar2, podEnvVar3));
+
+        PodTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), contains(podEnvVar1, podEnvVar2, podEnvVar3));
+    }
+
+    @Test
+    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
+        PodTemplate template1 = new PodTemplate();
+        KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
+        template1.setEnvVars(singletonList(podEnvVar1));
+
+        PodTemplate template2 = new PodTemplate();
+        KeyValueEnvVar podEnvVar2 = new KeyValueEnvVar(null, "value-2");
+        template2.setEnvVars(singletonList(podEnvVar2));
+
+        PodTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), empty());
+    }
+
+    @Test
+    public void shouldCombineAllPodSecretEnvVars() {
+        PodTemplate template1 = new PodTemplate();
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        template1.setEnvVars(singletonList(podSecretEnvVar1));
+
+        PodTemplate template2 = new PodTemplate();
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
+        SecretEnvVar podSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        template2.setEnvVars(asList(podSecretEnvVar2, podSecretEnvVar3));
+
+        PodTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), contains(podSecretEnvVar1, podSecretEnvVar2, podSecretEnvVar3));
+    }
+
+    @Test
+    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
+        PodTemplate template1 = new PodTemplate();
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        template1.setEnvVars(singletonList(podSecretEnvVar1));
+
+        PodTemplate template2 = new PodTemplate();
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        template2.setEnvVars(singletonList(podSecretEnvVar2));
+
+        PodTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), empty());
+    }
+
+    @Test
+    public void shouldCombineAllEnvVars() {
+        ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
+        KeyValueEnvVar containerEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
+        template1.setEnvVars(singletonList(containerEnvVar1));
+
+        ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
+        KeyValueEnvVar containerEnvVar2 = new KeyValueEnvVar("key-2", "value-2");
+        KeyValueEnvVar containerEnvVar3 = new KeyValueEnvVar("key-3", "value-3");
+        template2.setEnvVars(asList(containerEnvVar2, containerEnvVar3));
+
+        ContainerTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), contains(containerEnvVar1, containerEnvVar2, containerEnvVar3));
+    }
+
+    @Test
+    public void shouldFilterOutNullOrEmptyEnvVars() {
+        ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
+        KeyValueEnvVar containerEnvVar1 = new KeyValueEnvVar("", "value-1");
+        template1.setEnvVars(singletonList(containerEnvVar1));
+
+        ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
+        KeyValueEnvVar containerEnvVar2 = new KeyValueEnvVar(null, "value-2");
+        template2.setEnvVars(singletonList(containerEnvVar2));
+
+        ContainerTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), empty());
+    }
+
+    @Test
+    public void shouldCombineAllSecretEnvVars() {
+        ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        template1.setEnvVars(singletonList(containerSecretEnvVar1));
+
+        ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
+        SecretEnvVar containerSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        template2.setEnvVars(asList(containerSecretEnvVar2, containerSecretEnvVar3));
+
+        ContainerTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), contains(containerSecretEnvVar1, containerSecretEnvVar2, containerSecretEnvVar3));
+    }
+
+    @Test
+    public void shouldFilterOutNullOrEmptySecretEnvVars() {
+        ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        template1.setEnvVars(singletonList(containerSecretEnvVar1));
+
+        ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        template2.setEnvVars(singletonList(containerSecretEnvVar2));
+
+        ContainerTemplate result = combine(template1, template2);
+
+        assertThat(result.getEnvVars(), empty());
+    }
+
+    // Substitute tests
+
+    @Test
+    public void shouldIgnoreMissingProperties() {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("key1", "value1");
+        assertEquals("${key2}", substitute("${key2}", properties));
+    }
+
+    @Test
+    public void shouldSubstituteSingleEnvVar() {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("key1", "value1");
+        assertEquals("value1", substitute("${key1}", properties));
+    }
+
+    @Test
+    public void shouldSubstituteMultipleEnvVars() {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("key1", "value1");
+        properties.put("key2", "value2");
+        assertEquals("value1 or value2", substitute("${key1} or ${key2}", properties));
+    }
+
+    @Test
+    public void shouldSubstituteMultipleEnvVarsAndIgnoreMissing() {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("key1", "value1");
+        properties.put("key2", "value2");
+        assertEquals("value1 or value2 or ${key3}", substitute("${key1} or ${key2} or ${key3}", properties));
+    }
+
+    @Test
+    public void shouldSubstituteMultipleEnvVarsAndUseDefaultsForMissing() {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("key1", "value1");
+        properties.put("key2", "value2");
+        assertEquals("value1 or value2 or defaultValue", substitute("${key1} or ${key2} or ${key3}", properties, "defaultValue"));
     }
 }

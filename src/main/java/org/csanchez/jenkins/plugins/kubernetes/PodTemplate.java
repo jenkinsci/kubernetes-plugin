@@ -1,22 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.base.Strings;
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.Label;
-import hudson.model.labels.LabelAtom;
-import hudson.tools.ToolLocationNodeProperty;
-import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-
-import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,9 +9,31 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.Nonnull;
+
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+
+import com.google.common.base.Strings;
+
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.labels.LabelAtom;
+import hudson.tools.ToolLocationNodeProperty;
+
 /**
  * Kubernetes Pod Template
- * 
+ *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
@@ -71,6 +76,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String nodeSelector;
 
+    private Node.Mode nodeUsageMode;
+
     private String resourceRequestCpu;
 
     private String resourceRequestMemory;
@@ -87,11 +94,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private List<TemplateEnvVar> envVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
-    private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+    private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
@@ -106,8 +113,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setInstanceCap(from.getInstanceCap());
         this.setLabel(from.getLabel());
         this.setName(from.getName());
+        this.setNamespace(from.getNamespace());
         this.setInheritFrom(from.getInheritFrom());
         this.setNodeSelector(from.getNodeSelector());
+        this.setNodeUsageMode(from.getNodeUsageMode());
         this.setServiceAccount(from.getServiceAccount());
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
         this.setVolumes(from.getVolumes());
@@ -127,7 +136,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
-    @Restricted(DoNotUse.class) // testing only
+    @Restricted(NoExternalUse.class) // testing only
     PodTemplate(String name, List<? extends PodVolume> volumes, List<? extends ContainerTemplate> containers) {
         this.name = name;
         this.volumes.addAll(volumes);
@@ -313,6 +322,20 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return nodeSelector;
     }
 
+    @DataBoundSetter
+    public void setNodeUsageMode(Node.Mode nodeUsageMode) {
+        this.nodeUsageMode = nodeUsageMode;
+    }
+
+    @DataBoundSetter
+    public void setNodeUsageMode(String nodeUsageMode) {
+        this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
+    }
+
+    public Node.Mode getNodeUsageMode() {
+        return nodeUsageMode;
+    }
+
     @Deprecated
     @DataBoundSetter
     public void setPrivileged(boolean privileged) {
@@ -344,17 +367,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<PodEnvVar> getEnvVars() {
+    public List<TemplateEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
         }
         return envVars;
     }
 
-    @DataBoundSetter
-    public void setEnvVars(List<PodEnvVar> envVars) {
+    public void addEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.addAll(envVars);
+        }
+    }
+
+    @DataBoundSetter
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
+        if (envVars != null) {
+            this.envVars.clear();
+            this.addEnvVars(envVars);
         }
     }
 
@@ -365,10 +395,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return annotations;
     }
 
-    @DataBoundSetter
-    public void setAnnotations(List<PodAnnotation> annotations) {
+    public void addAnnotations(List<PodAnnotation> annotations) {
         this.annotations.addAll(annotations);
     }
+
+
+    @DataBoundSetter
+    public void setAnnotations(List<PodAnnotation> annotations) {
+        if (annotations != null) {
+            this.annotations = new ArrayList<PodAnnotation>();
+            this.addAnnotations(annotations);
+        }
+    }
+
 
     public List<PodImagePullSecret> getImagePullSecrets() {
         if (imagePullSecrets == null) {
@@ -377,9 +416,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return imagePullSecrets;
     }
 
+    public void addImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
+        this.imagePullSecrets.addAll(imagePullSecrets);
+    }
+
     @DataBoundSetter
     public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
-        this.imagePullSecrets.addAll(imagePullSecrets);
+        if(imagePullSecrets != null) {
+            this.imagePullSecrets.clear();
+            this.addImagePullSecrets(imagePullSecrets);
+        }
     }
 
     @DataBoundSetter
@@ -497,13 +543,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
-            containers = new ArrayList<ContainerTemplate>();
+            containers = new ArrayList<>();
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
-            containerTemplate.setEnvVars(PodEnvVar.asContainerEnvVar(envVars));
+            containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);

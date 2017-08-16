@@ -1,6 +1,38 @@
 CHANGELOG
 =========
 
+0.12
+-----
+
+* Add an experimental Declarative Agent extension for Kubernetes [JENKINS-41758](https://issues.jenkins-ci.org/browse/JENKINS-41758) [#127](https://github.com/jenkinsci/kubernetes-plugin/pull/127)
+* Implement Port mapping [#165](https://github.com/jenkinsci/kubernetes-plugin/pull/165)
+* Support idleMinutes field in pipeline [#154](https://github.com/jenkinsci/kubernetes-plugin/pull/154)
+* Add command liveness probe support [#158](https://github.com/jenkinsci/kubernetes-plugin/pull/158)
+* Add toggle for node usage mode [#158](https://github.com/jenkinsci/kubernetes-plugin/pull/158)
+* Add namespace support on PodTemplate.
+* Make PodTemplate optional within pipeline [JENKINS-42315](https://issues.jenkins-ci.org/browse/JENKINS-42315)
+* Make Slave Jenkins connection timeout configurable [#141](https://github.com/jenkinsci/kubernetes-plugin/pull/141)
+* Fix durable pipeline PID NumberFormatException [JENKINS-42048](https://issues.jenkins-ci.org/browse/JENKINS-42048) [#157](https://github.com/jenkinsci/kubernetes-plugin/pull/157)
+* Don't provision nodes if there are no PodTemplates set to usage mode Normal [#171](https://github.com/jenkinsci/kubernetes-plugin/pull/171)
+* Refactoring add/set methods in PodTemplate [#173](https://github.com/jenkinsci/kubernetes-plugin/pull/173)
+* Delete the build pod after we have finished with the template block [#172](https://github.com/jenkinsci/kubernetes-plugin/pull/172)
+* Default to use the kubernetes.default.svc.cluster.local endpoint
+* Do not print stack trace on ConnectException
+* Upgrade kubernetes client to 2.3.1 [JENKINS-44189](https://issues.jenkins-ci.org/browse/JENKINS-42048)
+* Step namespace should have priority over anything else [#161](https://github.com/jenkinsci/kubernetes-plugin/pull/161)
+* Wait for pod to exist up to 60 seconds before erroring [#155](https://github.com/jenkinsci/kubernetes-plugin/pull/155)
+* Catch IOException on ContainerExecProc#kill
+* Do not print stack trace on connection exception
+* Restore random naming for pipeline managed pod templates.
+* Dir context is not honored by shell step [JENKINS-40925](https://issues.jenkins-ci.org/browse/JENKINS-40925) [#146](https://github.com/jenkinsci/kubernetes-plugin/pull/146)
+* Limit pod name to 63 characters, and change the randomly generated string [#143](https://github.com/jenkinsci/kubernetes-plugin/pull/143)
+* Fix workingDir inheritance error [#136](https://github.com/jenkinsci/kubernetes-plugin/pull/136)
+* Use name instead of label for the nesting stack [#137](https://github.com/jenkinsci/kubernetes-plugin/pull/137)
+* Exception in configure page when 'Kubernetes URL' isn't filled [JENKINS-45282](https://issues.jenkins-ci.org/browse/JENKINS-45282) [#174](https://github.com/jenkinsci/kubernetes-plugin/pull/174)
+* kubectl temporary config file should work where Jenkins project contains spaces [#178](https://github.com/jenkinsci/kubernetes-plugin/pull/178)
+* Thread/connection leak [#177](https://github.com/jenkinsci/kubernetes-plugin/pull/177)
+
+
 0.11
 -----
 
@@ -22,7 +54,7 @@ CHANGELOG
 0.10
 -----
 
-* **NOTE if you have defined a JNLP container in your Pod definition**, you need to remove it or rename it to `jnlp`, otherwise a new container called `jnlp` will be created.
+* **NOTE if you have defined a JNLP container in your Pod definition**, you need to remove it or rename it to `jnlp`, otherwise a new container called `jnlp` will be created. Set "Arguments to pass to the command" to `${computer.jnlpmac} ${computer.name}`
 * Fixing checkbox serialization by jelly views [#110](https://github.com/jenkinsci/kubernetes-plugin/pull/110)
 * Do not throw exceptions in the test configuration page [#107](https://github.com/jenkinsci/kubernetes-plugin/pull/107)
 * Upgrade to the latest kubernetes-client version. [#106](https://github.com/jenkinsci/kubernetes-plugin/pull/106)
