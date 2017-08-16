@@ -216,7 +216,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public void setInstanceCap(int instanceCap) {
-        if (instanceCap <= 0) {
+        if (instanceCap < 0) {
             this.instanceCap = Integer.MAX_VALUE;
         } else {
             this.instanceCap = instanceCap;

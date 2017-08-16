@@ -44,7 +44,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
 
-    private int instanceCap;
+    private int instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
 
     private String serviceAccount;

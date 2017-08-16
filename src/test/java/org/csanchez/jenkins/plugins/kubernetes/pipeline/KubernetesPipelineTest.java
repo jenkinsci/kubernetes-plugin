@@ -31,7 +31,9 @@ import static org.junit.Assert.*;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
@@ -75,6 +77,8 @@ import jenkins.model.JenkinsLocationConfiguration;
  * @author Carlos Sanchez
  */
 public class KubernetesPipelineTest {
+
+    private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
 
     private static final String SECRET_KEY = "password";
     private static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -153,6 +157,15 @@ public class KubernetesPipelineTest {
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
+        List<PodTemplate> templates = cloud.getTemplates();
+        while (templates.isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+        PodTemplate template = templates.get(0);
+        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("PID file contents: ", b);
     }
