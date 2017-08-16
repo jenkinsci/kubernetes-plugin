@@ -20,7 +20,7 @@ public class KubernetesSlaveUtils {
 
     public static void checkSlaveName(String actualSlaveName, String expectedName) {
         if (!StringUtils.equals(actualSlaveName, expectedName)) {
-            String msg = format("Slave name was expected to be %s, but is %s", expectedName, actualSlaveName);
+            String msg = format("Agent name was expected to be %s, but is %s", expectedName, actualSlaveName);
             handleCheckFailure(msg);
         }
     }
@@ -28,14 +28,14 @@ public class KubernetesSlaveUtils {
     public static void checkSlaveComputer(Slave slave) {
         Computer computer = slave.toComputer();
         if (computer == null) {
-            String msg = format("Computer for slave %s is null", slave.getNodeName());
+            String msg = format("Computer for agent %s is null", slave.getNodeName());
             handleCheckFailure(msg);
         }
     }
 
     public static void checkSlaveCloudName(KubernetesSlave slave) {
         if (slave.getCloudName() == null) {
-            String msg = format("Cloud name is not set for slave %s, can't terminate", slave.getNodeName());
+            String msg = format("Cloud name is not set for agent %s, can't terminate", slave.getNodeName());
             handleCheckFailure(msg);
         }
     }

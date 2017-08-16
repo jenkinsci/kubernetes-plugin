@@ -2,11 +2,13 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -19,6 +21,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import com.google.common.collect.ImmutableSet;
 
 import hudson.Extension;
+import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 
@@ -36,13 +39,17 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
+    private List<TemplateEnvVar> envVars = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
 
     private int instanceCap;
+    private int idleMinutes;
+
     private String serviceAccount;
     private String nodeSelector;
+    private Node.Mode nodeUsageMode;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     @DataBoundConstructor
@@ -95,6 +102,18 @@ public class PodTemplateStep extends Step implements Serializable {
         this.containers = containers;
     }
 
+    public List<TemplateEnvVar> getEnvVars() {
+        return envVars == null ? Collections.emptyList() : envVars;
+    }
+
+    @DataBoundSetter
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
+        if (envVars != null) {
+            this.envVars.clear();
+            this.envVars.addAll(envVars);
+        }
+    }
+
     public List<PodVolume> getVolumes() {
         return volumes;
     }
@@ -122,6 +141,15 @@ public class PodTemplateStep extends Step implements Serializable {
         this.instanceCap = instanceCap;
     }
 
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutes(int idleMinutes) {
+        this.idleMinutes = idleMinutes;
+    }
+
     public String getServiceAccount() {
         return serviceAccount;
     }
@@ -140,6 +168,20 @@ public class PodTemplateStep extends Step implements Serializable {
         this.nodeSelector = nodeSelector;
     }
 
+    public Node.Mode getNodeUsageMode() {
+        return nodeUsageMode;
+    }
+
+    @DataBoundSetter
+    public void setNodeUsageMode(Node.Mode nodeUsageMode) {
+        this.nodeUsageMode = nodeUsageMode;
+    }
+
+    @DataBoundSetter
+    public void setNodeUsageMode(String nodeUsageMode) {
+        this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
+    }
+    
     public String getWorkingDir() {
         return workingDir;
     }

@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
@@ -29,9 +30,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
     private static final long serialVersionUID = -8642936855413034232L;
+
     private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
 
     private final String cloudName;
+
     private final String namespace;
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
@@ -62,15 +65,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 nodeDescription,
                 template.getRemoteFs(),
                 1,
-                Node.Mode.NORMAL,
+                template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
                 labelStr == null ? null : labelStr,
                 new JNLPLauncher(),
                 rs,
                 template.getNodeProperties());
 
-        // this.pod = pod;
         this.cloudName = cloudName;
-        this.namespace = template.getNamespace();
+        this.namespace = Util.fixEmpty(template.getNamespace());
     }
 
     public String getCloudName() {
@@ -105,7 +107,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
-        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for slave {0}", name);
+        LOGGER.log(Level.INFO, "Terminating Kubernetes instance for agent {0}", name);
 
         try {
             KubernetesSlaveUtils.checkSlaveComputer(this);
@@ -116,9 +118,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
             SlaveTerminator slaveTerminator = new SlaveTerminator((KubernetesCloud) cloud);
             if (slaveTerminator.terminatePodSlave(this, namespace)) {
-                listener.getLogger().println(format("Terminated Kubernetes pod for slave %s", name));
+                listener.getLogger().println(format("Terminated Kubernetes pod for agent %s", name));
             } else {
-                listener.fatalError(format("Failed to terminate pod for slave %s", name));
+                listener.fatalError(format("Failed to terminate pod for agent %s", name));
             }
         } catch(CloudEntityVerificationException e) {
             listener.fatalError(e.getMessage());
@@ -136,7 +138,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         @Override
         public String getDisplayName() {
             return "Kubernetes Slave";
-        }
+        };
 
         @Override
         public boolean isInstantiable() {

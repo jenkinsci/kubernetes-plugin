@@ -23,78 +23,145 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static io.fabric8.kubernetes.client.Config.*;
+import static java.util.logging.Level.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.Assume.*;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.logging.Level;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import org.junit.Assume;
-
-import hudson.EnvVars;
-import hudson.Launcher;
-import hudson.util.StreamTaskListener;
+import io.fabric8.kubernetes.api.model.Cluster;
+import io.fabric8.kubernetes.api.model.Config;
+import io.fabric8.kubernetes.api.model.NamedCluster;
+import io.fabric8.kubernetes.api.model.NamedContext;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import io.fabric8.kubernetes.client.internal.KubeConfigUtils;
+import io.fabric8.kubernetes.client.utils.Utils;
 
 public class KubernetesTestUtil {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesTestUtil.class.getName());
 
-    private static final String[] MINIKUBE_COMMANDS = new String[] { "minikube", "/usr/local/bin/minikube" };
-    private static String ip = null;
+    public static final String TESTING_NAMESPACE = "kubernetes-plugin-test";
+    public static final String KUBERNETES_CONTEXT = System.getProperty("kubernetes.context", "minikube");
 
-    public static URL miniKubeUrl() {
+    public static KubernetesCloud setupCloud() throws UnrecoverableKeyException, CertificateEncodingException,
+            NoSuchAlgorithmException, KeyStoreException, IOException {
+
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes-plugin-test");
+
+        File kubeConfigFile = new File(Utils.getSystemPropertyOrEnvVar(KUBERNETES_KUBECONFIG_FILE,
+                new File(System.getProperty("user.home"), ".kube" + File.separator + "config").toString()));
+        assumeThat("Kubernetes config file exists: " + kubeConfigFile.getAbsolutePath(), kubeConfigFile.exists(),
+                is(true));
+
+        Config config = KubeConfigUtils.parseConfig(kubeConfigFile);
+        Optional<NamedContext> context = config.getContexts().stream()
+                .filter((c) -> c.getName().equals(KUBERNETES_CONTEXT)).findFirst();
+        assumeThat("Kubernetes context is configured: " + KUBERNETES_CONTEXT, context.isPresent(), is(true));
+
+        String clusterName = context.get().getContext().getCluster();
+        Optional<NamedCluster> clusterOptional = config.getClusters().stream()
+                .filter((c) -> c.getName().equals(clusterName)).findFirst();
+        assumeThat("Kubernetes cluster is configured: " + clusterName, clusterOptional.isPresent(), is(true));
+
+        Cluster cluster = clusterOptional.get().getCluster();
+        cloud.setServerUrl(cluster.getServer());
+
+        cloud.setNamespace(TESTING_NAMESPACE);
+        KubernetesClient client = cloud.connect();
         try {
-            return new URL("https", miniKubeIp(), 8443, "");
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
+            // Run in our own testing namespace
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        } catch (KubernetesClientException e) {
+            assumeNoException("Kubernetes cluster is not accessible", e);
         }
+        return cloud;
     }
 
-    public static String miniKubeIp() {
-        if (ip == null) {
-            for (String cmd : MINIKUBE_COMMANDS) {
-                String s = miniKubeIp(new Launcher.LocalLauncher(StreamTaskListener.NULL), cmd);
-                if (s != null) {
-                    ip = s.trim();
-                    LOGGER.log(Level.INFO, "Using minikube at {0}", ip);
-                    return ip;
+    /**
+     * Delete pods with matching labels
+     * 
+     * @param client
+     * @param labels
+     * @param wait
+     *            wait some time for pods to finish
+     * @return whether any pod was deleted
+     * @throws Exception
+     */
+    public static boolean deletePods(KubernetesClient client, Map<String, String> labels, boolean wait)
+            throws Exception {
+
+        if (client != null) {
+
+            // wait for 30 seconds for all pods to be terminated
+            if (wait) {
+                LOGGER.log(INFO, "Waiting for pods to terminate");
+                ForkJoinPool forkJoinPool = new ForkJoinPool(1);
+                try {
+                    forkJoinPool.submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
+                        try {
+                            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
+                                    .withLabels(labels);
+                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
+                            boolean allTerminated = pods.list().getItems().isEmpty();
+                            if (allTerminated) {
+                                LOGGER.log(INFO, "All pods are terminated: {0}", print(pods));
+                            } else {
+                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
+                                Thread.sleep(5000);
+                            }
+                            return allTerminated;
+                        } catch (InterruptedException e) {
+                            LOGGER.log(INFO, "Waiting for pods to terminate - interrupted");
+                            return true;
+                        }
+                    })).get(60, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    LOGGER.log(INFO, "Waiting for pods to terminate - timed out");
+                    // job not done in interval
                 }
             }
-            LOGGER.warning("Minikube was not found or is stopped");
-            ip = "";
-        }
-        return ip;
-    }
 
-    private static String miniKubeIp(Launcher.LocalLauncher localLauncher, String cmd) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            localLauncher.decorateByEnv(new EnvVars("PATH", System.getenv("PATH") + ":/usr/local/bin")).launch()
-                    .cmds(cmd, "ip").stdout(baos).join();
-            String stdout = baos.toString().trim();
+            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
+                    .withLabels(labels);
+            if (!pods.list().getItems().isEmpty()) {
+                LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(pods));
+                if (Boolean.TRUE.equals(pods.delete())) {
+                    return true;
+                }
 
-            // leave last line only, ie. when a new version is available it will print some info message
-            int i = stdout.lastIndexOf("\n");
-            String s;
-            if (i > 0) {
-                s = stdout.substring(i);
-            } else {
-                s = stdout;
             }
-            // check that we got an ip and is valid
-            new URL("http://" + s);
-            return s;
-
-        } catch (InterruptedException | IOException x) {
-            return null;
         }
+        return false;
     }
 
-    public static void assumeMiniKube() throws Exception {
-        Assume.assumeThat("MiniKube working", miniKubeIp(), not(isEmptyOrNullString()));
+    private static List<String> print(FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods) {
+        return pods.list().getItems().stream()
+                .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
+                .collect(Collectors.toList());
     }
 
 }

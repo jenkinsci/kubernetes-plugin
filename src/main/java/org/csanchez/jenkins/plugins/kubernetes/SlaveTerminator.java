@@ -34,7 +34,7 @@ public class SlaveTerminator {
         this.cloud = cloud;
     }
 
-    public boolean terminatePodSlave(Slave slave, String namespace) {
+    boolean terminatePodSlave(Slave slave, String namespace) {
         String slaveName = slave.getNodeName();
         try {
             KubernetesClient client = cloud.connect();
@@ -45,18 +45,18 @@ public class SlaveTerminator {
                     computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
                     LOGGER.log(Level.INFO, "Disconnected computer {0}", slaveName);
                 }
-                LOGGER.log(Level.INFO, "Terminated Kubernetes pod for slave {0}", slaveName);
+                LOGGER.log(Level.INFO, "Terminated Kubernetes pod for agent {0}", slaveName);
             }
             return deleted;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, format("Failed to terminate pod for slave %s", slaveName), e);
+            LOGGER.log(Level.SEVERE, format("Failed to terminate pod for agent %s", slaveName), e);
             return false;
         }
     }
 
     @VisibleForTesting
     boolean deletePod(KubernetesClient client, String namespace, String podId) {
-        LOGGER.log(Level.INFO, "Will try to delete pod {0} in namespace {1} to remove slave", new Object[] { podId, namespace });
+        LOGGER.log(Level.INFO, "Will try to delete pod {0} in namespace {1} to remove agent", new Object[] { podId, namespace });
         PodResource<Pod, DoneablePod> pods = client.pods().inNamespace(namespace).withName(podId);
         Boolean deletionResult = pods.delete();
         if (deletionResult == null) {

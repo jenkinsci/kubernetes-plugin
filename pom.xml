@@ -3,12 +3,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.21</version>
+    <version>2.32</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>0.12-SNAPSHOT</version>
+  <version>0.13-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment</description>
   <packaging>hpi</packaging>
@@ -30,6 +30,8 @@
   </developers>
 
   <properties>
+    <kubernetes.context>minikube</kubernetes.context>
+
     <java.level>8</java.level>
 
     <!-- dependency versions -->
@@ -37,28 +39,28 @@
     <jackson.version>2.5.0</jackson.version>
     <jenkins.version>2.32.1</jenkins.version>
 
-    <kubernetes-client.version>2.2.0</kubernetes-client.version>
-    <spring.version>3.2.14.RELEASE</spring.version>
-    <slf4j.version>1.7.7</slf4j.version>
+    <kubernetes-client.version>2.6.1</kubernetes-client.version>
+    <slf4j.version>1.7.13</slf4j.version>
+    <assertj.version>3.8.0</assertj.version>
+    <mockito.version>1.9.5</mockito.version>
+    <hamcrest.version>1.3</hamcrest.version>
 
     <!-- jenkins plugins versions -->
-    <jenkins-basic-steps.version>2.1</jenkins-basic-steps.version>
-    <jenkins-credentials.version>1.24</jenkins-credentials.version>
-    <jenkins-durable-task.version>1.12</jenkins-durable-task.version>
-    <jenkins-durable-task-step.version>2.7</jenkins-durable-task-step.version>
-    <jenkins-git.version>2.4.1</jenkins-git.version>
-    <jenkins-mailer.version>1.16</jenkins-mailer.version>
-    <jenkins-pipeline-stage-step.version>2.2</jenkins-pipeline-stage-step.version>
-    <jenkins-ssh-credentials.version>1.11</jenkins-ssh-credentials.version>
-    <jenkins-structs.version>1.5</jenkins-structs.version>
-    <jenkins-workflow-cps.version>2.17</jenkins-workflow-cps.version>
-    <jenkins-workflow-job.version>2.6</jenkins-workflow-job.version>
-    <jenkins-workflow-step-api.version>2.7</jenkins-workflow-step-api.version>
-    <jenkins-workflow-support.version>2.12</jenkins-workflow-support.version>
-    <jenkins-subversion.version>2.5</jenkins-subversion.version>
+    <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
+    <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
+    <jenkins-durable-task.version>1.13</jenkins-durable-task.version>
+    <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
+    <jenkins-structs.version>1.6</jenkins-structs.version>
+    <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
+    <jenkins-workflow-job.version>2.9</jenkins-workflow-job.version>
+    <jenkins-workflow-step-api.version>2.9</jenkins-workflow-step-api.version>
+    <jenkins-workflow-support.version>2.14</jenkins-workflow-support.version>
+    <jenkins-workflow-api.version>2.11</jenkins-workflow-api.version>
+    <jenkins-workflow-scm-step.version>2.4</jenkins-workflow-scm-step.version>
+    <jenkins-scm-api.version>2.0.7</jenkins-scm-api.version>
+    <jenkins-declarative.version>1.1.2</jenkins-declarative.version>
+    <jenkins-script-security.version>1.26</jenkins-script-security.version>
 
-    <!-- testing tools versions -->
-    <powermock.version>1.6.5</powermock.version>
   </properties>
 
   <dependencies>
@@ -108,27 +110,29 @@
       <artifactId>workflow-cps</artifactId>
       <version>${jenkins-workflow-cps.version}</version>
     </dependency>
-    <!-- This transitive isn't packaged in plugin if not put as a dependency here -->
     <dependency>
-      <groupId>com.squareup.okio</groupId>
-      <artifactId>okio</artifactId>
-      <version>1.9.0</version>
-      <scope>compile</scope>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-extensions</artifactId>
+      <version>${jenkins-declarative.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-api</artifactId>
+      <version>${jenkins-declarative.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>script-security</artifactId>
+      <version>${jenkins-script-security.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <version>${jenkins-workflow-support.version}</version>
     </dependency>
 
+
     <!-- for testing -->
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-api-mockito</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-module-junit4</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
@@ -156,43 +160,42 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>subversion</artifactId>
-      <version>${jenkins-subversion.version}</version>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-scm-step</artifactId>
+      <version>${jenkins-workflow-scm-step.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>junit</artifactId>
-      <version>1.6</version>
+      <artifactId>scm-api</artifactId>
+      <version>${jenkins-scm-api.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-definition</artifactId>
+      <version>${jenkins-declarative.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-api</artifactId>
+      <version>${jenkins-workflow-api.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>3.8.0</version>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
 
-    <!-- for hpi:run -->
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>git</artifactId>
-      <version>${jenkins-git.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>ssh-credentials</artifactId>
-      <version>${jenkins-ssh-credentials.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>pipeline-stage-step</artifactId>
-      <version>${jenkins-pipeline-stage-step.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <dependencyManagement>
@@ -202,11 +205,11 @@
         <artifactId>structs</artifactId>
         <version>${jenkins-structs.version}</version>
       </dependency>
-      <!-- for hpi:run -->
       <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>mailer</artifactId>
-        <version>${jenkins-mailer.version}</version>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest-core</artifactId>
+        <version>${hamcrest.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -221,6 +224,7 @@
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <!-- listen in all interfaces from connections from kubernetes pods -->
             <connectorHost>0.0.0.0</connectorHost>
+            <kubernetes.context>${kubernetes.context}</kubernetes.context>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -228,11 +232,13 @@
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
+          <!-- with the default setting seems that an older version of jackson from core is used
+            java.lang.NoSuchMethodError: com.fasterxml.jackson.core.JsonFactory.requiresPropertyOrdering()Z
+            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:549)
+            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:460)
+            at io.fabric8.kubernetes.client.utils.Serialization.<clinit>(Serialization.java:37)
+          -->
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
-          <systemProperties>
-            <!-- Uncomment to skip a setup wizard (useful for fast configuration tests) -->
-            <!--<jenkins.install.runSetupWizard>false</jenkins.install.runSetupWizard>-->
-          </systemProperties>
         </configuration>
       </plugin>
     </plugins>

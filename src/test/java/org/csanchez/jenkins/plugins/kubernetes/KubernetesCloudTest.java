@@ -9,6 +9,8 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import jenkins.model.JenkinsLocationConfiguration;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.junit.Before;
@@ -30,11 +32,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplateTestUtils.containerTemplate;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_JNLP_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_LOCATION_URL;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_SECRET;
-import static org.csanchez.jenkins.plugins.kubernetes.PodEnvVar.EnvironmentVariableNames.JENKINS_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_JNLP_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_LOCATION_URL;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_SECRET;
+import static org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar.EnvironmentVariableNames.JENKINS_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -112,8 +114,8 @@ public class KubernetesCloudTest {
         final String computerJnlpMac = "computerJnlpMac";
 
         SlaveInfo slaveInfo = new SlaveInfo(nodeName, computerName, computerUrl, computerJnlpMac);
-        ArrayList<PodEnvVar> globalEnvVars = Lists.newArrayList();
-        globalEnvVars.add(new PodEnvVar("globalEnvVar1", "globalEnvVar1Value"));
+        ArrayList<TemplateEnvVar> globalEnvVars = Lists.newArrayList();
+        globalEnvVars.add(new KeyValueEnvVar("globalEnvVar1", "globalEnvVar1Value"));
 
         Container container = cloud.createContainer(slaveInfo, containerTemplate("containerTemplate", false, false),
                 globalEnvVars, Lists.newArrayList());
@@ -132,8 +134,8 @@ public class KubernetesCloudTest {
         final String nodeName = "nodeName";
 
         SlaveInfo slaveInfo = new SlaveInfo(nodeName);
-        ArrayList<PodEnvVar> globalEnvVars = Lists.newArrayList();
-        globalEnvVars.add(new PodEnvVar("globalEnvVar1", "globalEnvVar1Value"));
+        ArrayList<TemplateEnvVar> globalEnvVars = Lists.newArrayList();
+        globalEnvVars.add(new KeyValueEnvVar("globalEnvVar1", "globalEnvVar1Value"));
 
         Container container = cloud.createContainer(slaveInfo, containerTemplate("containerTemplate", false, false),
                 globalEnvVars, Lists.newArrayList());
@@ -220,7 +222,7 @@ public class KubernetesCloudTest {
     private void mockContainerCreation() {
         doReturn(mock(Container.class))
                 .when(cloud).createContainer(any(SlaveInfo.class), any(ContainerTemplate.class),
-                anyCollectionOf(PodEnvVar.class), anyCollectionOf(VolumeMount.class));
+                anyCollectionOf(TemplateEnvVar.class), anyCollectionOf(VolumeMount.class));
     }
 
     private void assertHavingEnvVar(List<EnvVar> envVars, String name, String value) {
@@ -242,6 +244,16 @@ public class KubernetesCloudTest {
         doReturn(envVars).when(podTemplate).getEnvVars();
         doReturn(containerTemplates).when(podTemplate).getContainers();
         return podTemplate;
+    }
+
+    @Test
+    public void testParseLivenessProbe() {
+        assertNull(cloud.parseLivenessProbe(""));
+        assertNull(cloud.parseLivenessProbe(null));
+        assertEquals(ImmutableList.of("docker","info"), cloud.parseLivenessProbe("docker info"));
+        assertEquals(ImmutableList.of("echo","I said: 'I am alive'"), cloud.parseLivenessProbe("echo \"I said: 'I am alive'\""));
+        assertEquals(ImmutableList.of("docker","--version"), cloud.parseLivenessProbe("docker --version"));
+        assertEquals(ImmutableList.of("curl","-k","--silent","--output=/dev/null","https://localhost:8080"), cloud.parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 
 }
