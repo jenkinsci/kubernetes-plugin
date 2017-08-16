@@ -30,6 +30,7 @@ import java.util.logging.Logger;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.closeQuietly;
 
 public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecution<String> {
+    private static final long serialVersionUID = 5588861066775717487L;
     private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
 
     private final ContainerLogStep step;

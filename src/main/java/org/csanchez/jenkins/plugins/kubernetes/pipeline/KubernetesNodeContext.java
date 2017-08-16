@@ -25,26 +25,20 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-
 /**
  * helper class for steps running in a kubernetes `node` context
  */
 class KubernetesNodeContext {
-    static final transient String HOSTNAME_FILE = "/etc/hostname";
+    private static final transient String HOSTNAME_FILE = "/etc/hostname";
     private StepContext context;
     private FilePath workspace;
 
-    public KubernetesNodeContext(StepContext context) throws Exception {
+    KubernetesNodeContext(StepContext context) throws Exception {
         this.context = context;
         workspace = context.get(FilePath.class);
     }
 
-    public String getPodName() throws Exception {
+    String getPodName() throws Exception {
         return workspace.child(HOSTNAME_FILE).readToString().trim();
     }
 
@@ -52,10 +46,10 @@ class KubernetesNodeContext {
         return workspace.child(Config.KUBERNETES_NAMESPACE_PATH).readToString().trim();
     }
 
-    public KubernetesClient connectToCloud() throws Exception {
+    KubernetesClient connectToCloud() throws Exception {
         Node node = context.get(Node.class);
         if (! (node instanceof KubernetesSlave)) {
-            throw new AbortException(String.format("Node is not a Kubernetes node: %s", node.getNodeName()));
+            throw new AbortException(String.format("Node is not a Kubernetes node: %s", node != null ? node.getNodeName() : null));
         }
         KubernetesSlave slave = (KubernetesSlave) node;
         KubernetesCloud cloud = (KubernetesCloud) slave.getCloud();
