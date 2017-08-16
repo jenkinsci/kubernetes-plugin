@@ -851,7 +851,7 @@ public class KubernetesCloud extends Cloud {
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace '{3}' with label '{4}'",
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label {4}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
                             client.getNamespace(), label == null ? "" : label.toString() });
             return false; // maxed out
