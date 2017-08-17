@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -92,11 +93,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private final List<PodEnvVar> envVars = new ArrayList<PodEnvVar>();
+    private List<TemplateEnvVar> envVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
-    private final List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+    private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
@@ -365,21 +366,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<PodEnvVar> getEnvVars() {
+    public List<TemplateEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
         }
         return envVars;
     }
 
-    public void addEnvVars(List<PodEnvVar> envVars) {
+    public void addEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.addAll(envVars);
         }
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<PodEnvVar> envVars) {
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.clear();
             this.addEnvVars(envVars);
@@ -533,13 +534,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
-            containers = new ArrayList<ContainerTemplate>();
+            containers = new ArrayList<>();
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
-            containerTemplate.setEnvVars(PodEnvVar.asContainerEnvVar(envVars));
+            containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);

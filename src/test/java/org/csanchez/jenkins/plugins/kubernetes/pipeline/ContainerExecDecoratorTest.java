@@ -67,14 +67,12 @@ public class ContainerExecDecoratorTest {
     @BeforeClass
     public static void configureCloud() throws Exception {
         client = setupCloud().connect();
-        deletePods();
+        deletePods(client, labels, false);
     }
 
     @AfterClass
-    public static void deletePods() throws Exception {
-        if (client != null) {
-            client.pods().withLabel("class", labels.get("class")).delete();
-        }
+    public static void after() throws Exception {
+        deletePods(client, labels, false);
     }
 
     @Before
