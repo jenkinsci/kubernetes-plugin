@@ -239,14 +239,4 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         });
     }
 
-    @Issue("JENKINS-41758")
-    @Test
-    public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Apache Maven 3.3.9", b);
-    }
 }
