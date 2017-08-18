@@ -257,7 +257,28 @@ Declarative Pipeline support requires Jenkins 2.66+
 
 Example at [examples/declarative.groovy](examples/declarative.groovy)
 
+## Accessing container logs from the pipeline
 
+If you use the `containerTemplate` to run some service in the background
+(e.g. a database for your integration tests), you might want to access its log from the pipeline.
+This can be done with the `containerLog` step, which prints the log of the
+requested container to the build log.
+
+#### Required Parameters
+* **name** the name of the container to get logs from, as defined in `podTemplate`. Parameter name
+can be ommited in simple usage:
+
+```groovy
+containerLog 'mongodb'
+```
+
+#### Optional Parameters
+* **returnLog** return the log instead of printing it to the build log (default: `false`)
+* **tailingLines** only return the last n lines of the log (optional)
+* **sinceSeconds** only return the last n seconds of the log (optional)
+* **limitBytes** limit output to n bytes (from the beginning of the log, not exact).
+
+Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
 
 # Constraints
 
