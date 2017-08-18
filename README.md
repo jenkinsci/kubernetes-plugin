@@ -404,11 +404,12 @@ You may need to set the correct permissions for host mounted volumes
     minikube ssh
     sudo chown 1000:1000 /tmp/hostpath-provisioner/pvc-*
 
-Then create the Jenkins ReplicationController and Service with
+Then create the Jenkins namespace, controller and Service with
 
+    kubectl create namespace kubernetes-plugin
+    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
     kubectl create -f src/main/kubernetes/service-account.yml
     kubectl create -f src/main/kubernetes/jenkins.yml
-    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 Get the url to connect to with
 
@@ -420,9 +421,10 @@ Assuming you created a Kubernetes cluster named `jenkins` this is how to run bot
 
 Creating all the elements and setting the default namespace
 
-    kubectl create -f src/main/kubernetes/service-account.yml
-    kubectl create -f src/main/kubernetes/gke.yml
+    kubectl create namespace kubernetes-plugin
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
+    kubectl create -f src/main/kubernetes/service-account.yml
+    kubectl create -f src/main/kubernetes/jenkins.yml
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
 Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenkins`
@@ -480,7 +482,7 @@ Tearing it down
 
 ### Modify CPUa and memory request/limits (Kubernetes Resource API)
 
-Modify file `./src/main/kubernetes/gke.yml` with desired limits
+Modify file `./src/main/kubernetes/jenkins.yml` with desired limits
 
 ```yaml
 resources:
