@@ -9,6 +9,7 @@ import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
+import hudson.EnvVars;
 import hudson.LauncherDecorator;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -40,7 +41,8 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
         client = nodeContext.connectToCloud();
 
-        decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace());
+        EnvVars env = getContext().get(EnvVars.class);
+        decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace(), env);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
