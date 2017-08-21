@@ -100,6 +100,7 @@ Either way it provides access to the following fields:
 * **envVars** Environment variables that are applied to **ALL** containers.
     * **envVar** An environment variable whose value is defined inline. 
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
+* **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
@@ -242,6 +243,7 @@ volumes: [
     nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
     persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
 ],
+imagePullSecrets: [ 'pull-secret' ],
 annotations: [
     podAnnotation(key: "my-key", value: "my-value")
     ...

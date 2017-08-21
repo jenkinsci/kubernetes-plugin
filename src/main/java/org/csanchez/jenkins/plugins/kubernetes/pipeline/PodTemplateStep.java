@@ -43,6 +43,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
+    private List<String> imagePullSecrets = new ArrayList<>();
 
     private int instanceCap;
     private int idleMinutes;
@@ -203,6 +204,18 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setAnnotations(List<PodAnnotation> annotations) {
         this.annotations = annotations;
+    }
+
+    public List<String> getImagePullSecrets() {
+        return imagePullSecrets == null ? Collections.emptyList() : imagePullSecrets;
+    }
+
+    @DataBoundSetter
+    public void setImagePullSecrets(List<String> imagePullSecrets) {
+        if (imagePullSecrets != null) {
+            this.imagePullSecrets.clear();
+            this.imagePullSecrets.addAll(imagePullSecrets);
+        }
     }
 
     @Extension
