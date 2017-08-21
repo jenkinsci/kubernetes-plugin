@@ -29,8 +29,10 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.List;
 
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -46,10 +48,26 @@ public class KubernetesTest {
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
+    private KubernetesCloud cloud;
+
+    @Before
+    public void before() throws Exception {
+        cloud = r.jenkins.clouds.get(KubernetesCloud.class);
+        r.configRoundtrip();
+    }
+
     @Test
     @LocalData()
-    public void upgradeFrom_0_8() {
-        KubernetesCloud cloud = r.jenkins.clouds.get(KubernetesCloud.class);
+    public void upgradeFrom_0_12() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
+                new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_0_8() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
     }
@@ -61,7 +79,7 @@ public class KubernetesTest {
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkinsci/jnlp-slave", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
-        assertEquals(Arrays.asList(new ContainerEnvVar("a", "b"), new ContainerEnvVar("c", "d")),
+        assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());
         assertEquals(2, podTemplate.getVolumes().size());
 

@@ -42,6 +42,7 @@ import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
 
 import com.google.common.io.NullOutputStream;
+import hudson.EnvVars;
 
 import hudson.Launcher;
 import hudson.LauncherDecorator;
@@ -77,27 +78,33 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final String podName;
     private final String namespace;
     private final String containerName;
+    private final EnvVars env;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, String namespace) {
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvVars env) {
         this.client = client;
         this.podName = podName;
         this.namespace = namespace;
         this.containerName = containerName;
+        this.env = env;
+    }
+
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace) {
+        this(client, podName, containerName, namespace, null);
     }
 
     @Deprecated
-    public ContainerExecDecorator(KubernetesClient client, String podName,  String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
-        this(client, podName, containerName, namespace);
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
+        this(client, podName, containerName, namespace, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null);
+        this(client, podName, containerName, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null);
+        this(client, podName, containerName, null, null);
     }
 
     @Override
@@ -197,6 +204,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         watch.getInput().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
                     }
+
+                    if (env != null) {
+                        for (Map.Entry<String, String> entry : env.entrySet()) {
+                            watch.getInput().write(
+                                    String.format("export %s=\"%s\"%s", entry.getKey(), entry.getValue(), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                        }
+                    }
+
                     doExec(watch, printStream, commands);
 
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
@@ -327,7 +342,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         private EvictingQueue<Integer> queue = EvictingQueue.create(20);
 
         public ExitCodeOutputStream() {
-            
         }
 
         @Override

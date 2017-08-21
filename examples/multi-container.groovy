@@ -16,12 +16,12 @@ podTemplate(label: 'maven-golang', containers: [
     }
 
     stage('Build a Golang project') {
-      git url: 'https://github.com/hashicorp/terraform.git'
+      git url: 'https://github.com/terraform-providers/terraform-provider-aws.git'
       container('golang') {
         sh """
-        mkdir -p /go/src/github.com/hashicorp
-        ln -s `pwd` /go/src/github.com/hashicorp/terraform
-        cd /go/src/github.com/hashicorp/terraform && make core-dev
+        mkdir -p /go/src/github.com/terraform-providers
+        ln -s `pwd` /go/src/github.com/terraform-providers/terraform-provider-aws
+        cd /go/src/github.com/terraform-providers/terraform-provider-aws && make build
         """
       }
     }

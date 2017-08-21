@@ -24,119 +24,39 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.Arrays.*;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
-import java.net.InetAddress;
-import java.net.URL;
 import java.util.Collections;
-import java.util.logging.Level;
 
-import org.apache.commons.compress.utils.IOUtils;
-import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.PodEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
-import org.jvnet.hudson.test.LoggerRule;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
-
-import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.JenkinsLocationConfiguration;
+import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 /**
  * @author Carlos Sanchez
  */
-public class KubernetesPipelineTest {
-
-    private static final String SECRET_KEY = "password";
-    private static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
-    private static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
-    private static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
-    private static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
-
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Rule
     public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule
-    public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
-    @Rule
-    public LoggerRule logs = new LoggerRule().record(KubernetesCloud.class, Level.ALL);
-
-    @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
-
-    private static KubernetesCloud cloud;
-
-    @BeforeClass
-    public static void configureCloud() throws Exception {
-        cloud = setupCloud();
-        createSecret(cloud.connect());
-    }
-
-    @Before
-    public void configureTemplates() throws Exception {
-        cloud.getTemplates().clear();
-        cloud.addTemplate(buildBusyboxTemplate("busybox"));
-    }
-
-    /**
-     * Create a busybox template
-     */
-    private PodTemplate buildBusyboxTemplate(String label) {
-        // Create a busybox template
-        PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setLabel(label);
-        setEnvVariables(podTemplate);
-
-        ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
-        setEnvVariables(containerTemplate);
-        containerTemplate.setTtyEnabled(true);
-        podTemplate.getContainers().add(containerTemplate);
-        return podTemplate;
-    }
-
-    @Before
-    public void addCloudToJenkins() throws Exception {
-        // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
-        URL url = r.getURL();
-
-        String hostAddress = System.getProperty("jenkins.host.address");
-        if (hostAddress == null) {
-            hostAddress = InetAddress.getLocalHost().getHostAddress();
-        }
-        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
-                url.getFile());
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
-
-        r.jenkins.clouds.add(cloud);
-    }
 
     @Test
     public void runInPod() throws Exception {
@@ -183,6 +103,17 @@ public class KubernetesPipelineTest {
     }
 
     @Test
+    public void runWithEnvVariablesInContext() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithEnvVarsFromContext.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
+        r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
+    }
+
+    @Test
     public void runWithExistingEnvVariables() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithExistingTemplate.groovy"), true));
@@ -194,10 +125,16 @@ public class KubernetesPipelineTest {
 
     private void assertEnvVars(JenkinsRuleNonLocalhost r2, WorkflowRun b) throws Exception {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_LEGACY = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_LEGACY =\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET =\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
     }
 
     @Test
@@ -246,6 +183,9 @@ public class KubernetesPipelineTest {
     }
 
     @Test
+    /**
+     * Step namespace should have priority over anything else.
+     */
     public void runWithOverriddenNamespace2() throws Exception {
         String overriddenNamespace = "kubernetes-plugin-overridden-namespace";
         KubernetesClient client = cloud.connect();
@@ -310,42 +250,4 @@ public class KubernetesPipelineTest {
         });
     }
 
-    @Issue("JENKINS-41758")
-    @Test
-    public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Apache Maven 3.3.9", b);
-    }
-
-    private String loadPipelineScript(String name) {
-        try {
-            return new String(IOUtils.toByteArray(getClass().getResourceAsStream(name)));
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not read resource:[" + name + "].");
-        }
-    }
-
-    private static void createSecret(KubernetesClient client) {
-        Secret secret = new SecretBuilder()
-                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
-                .withName("container-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
-                .withNewMetadata().withName("pod-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
-    }
-
-    private static void setEnvVariables(PodTemplate podTemplate) {
-        PodEnvVar podSimpleEnvVar = new PodEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
-        podTemplate.setEnvVars(asList(podSimpleEnvVar));
-    }
-
-    private static void setEnvVariables(ContainerTemplate containerTemplate) {
-        ContainerEnvVar containerEnvVariable = new ContainerEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        containerTemplate.setEnvVars(asList(containerEnvVariable));
-    }
 }

@@ -1,31 +1,27 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import hudson.AbortException;
-import hudson.FilePath;
+import hudson.EnvVars;
 import hudson.LauncherDecorator;
-import hudson.model.Node;
-import hudson.model.TaskListener;
-import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
+
+import javax.annotation.Nonnull;
+
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.closeQuietly;
 
 public class ContainerStepExecution extends AbstractStepExecutionImpl {
 
     private static final long serialVersionUID = 7634132798345235774L;
 
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
-    private static final transient String HOSTNAME_FILE = "/etc/hostname";
 
     private final ContainerStep step;
 
@@ -40,24 +36,13 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     @Override
     public boolean start() throws Exception {
         LOGGER.log(Level.FINE, "Starting container step.");
-        FilePath workspace = getContext().get(FilePath.class);
-        String podName = workspace.child(HOSTNAME_FILE).readToString().trim();
-        String namespace = workspace.child(Config.KUBERNETES_NAMESPACE_PATH).readToString().trim();
-
         String containerName = step.getName();
 
-        Node node = getContext().get(Node.class);
-        if (! (node instanceof KubernetesSlave)) {
-            throw new AbortException(String.format("Node is not a Kubernetes node: %s", node.getNodeName()));
-        }
-        KubernetesSlave slave = (KubernetesSlave) node;
-        KubernetesCloud cloud = (KubernetesCloud) slave.getCloud();
-        if (cloud == null) {
-            throw new AbortException(String.format("Cloud does not exist: %s", slave.getCloudName()));
-        }
-        client = cloud.connect();
+        KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
+        client = nodeContext.connectToCloud();
 
-        decorator = new ContainerExecDecorator(client, podName,  containerName, namespace);
+        EnvVars env = getContext().get(EnvVars.class);
+        decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace(), env);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
@@ -67,13 +52,9 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     }
 
     @Override
-    public void stop(Throwable cause) throws Exception {
+    public void stop(@Nonnull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
-        closeQuietly(client, decorator);
-    }
-
-    private void closeQuietly(Closeable... closeables) {
-        closeQuietly(getContext(), closeables);
+        closeQuietly(getContext(), client, decorator);
     }
 
     private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
@@ -91,19 +72,4 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
-    private static void closeQuietly(StepContext context, Closeable... closeables) {
-        for (Closeable c : closeables) {
-            if (c != null) {
-                try {
-                    c.close();
-                } catch (IOException e) {
-                    try {
-                        context.get(TaskListener.class).error("Error while closing: [" + c + "]");
-                    } catch (IOException | InterruptedException e1) {
-                        LOGGER.log(Level.WARNING, "Error writing to task listener", e);
-                    }
-                }
-            }
-        }
-    }
 }
