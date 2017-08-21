@@ -194,7 +194,7 @@ Then consumers of the library could just express the need for a maven pod with d
 
     dockerTemplate {
         mavenTemplate {
-            ssh """
+            sh """
                mvn clean install
                docker build -t  myimage ./target/docker/
             """
