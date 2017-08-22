@@ -1,13 +1,13 @@
 podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod',
     envVars: [
-        envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
+        envVar(key: 'POD_ENV_VAR', value: 'pod-environmentExpander-var-value'),
         secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password')
     ],
     containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
             envVars: [
-                containerEnvVar(key: 'CONTAINER_ENV_VAR_LEGACY', value: 'container-env-var-value'),
-                envVar(key: 'CONTAINER_ENV_VAR', value: 'container-env-var-value'),
+                containerEnvVar(key: 'CONTAINER_ENV_VAR_LEGACY', value: 'container-environmentExpander-var-value'),
+                envVar(key: 'CONTAINER_ENV_VAR', value: 'container-environmentExpander-var-value'),
                 secretEnvVar(key: 'CONTAINER_ENV_VAR_FROM_SECRET', secretName: 'container-secret', secretKey: 'password')
             ],
         ),
