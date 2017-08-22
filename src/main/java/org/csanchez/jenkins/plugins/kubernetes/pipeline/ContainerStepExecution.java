@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import hudson.EnvVars;
@@ -41,7 +42,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
         client = nodeContext.connectToCloud();
 
-        EnvVars env = getContext().get(EnvVars.class);
+        EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
         decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace(), env);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker

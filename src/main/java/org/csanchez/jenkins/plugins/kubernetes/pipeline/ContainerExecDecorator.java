@@ -20,6 +20,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
@@ -36,13 +37,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.EnvVars;
 import hudson.FilePath;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
 
 import com.google.common.io.NullOutputStream;
-import hudson.EnvVars;
 
 import hudson.Launcher;
 import hudson.LauncherDecorator;
@@ -56,6 +57,7 @@ import io.fabric8.kubernetes.client.dsl.Execable;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -78,14 +80,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final String podName;
     private final String namespace;
     private final String containerName;
-    private final EnvVars env;
+    private final EnvironmentExpander environmentExpander;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvVars env) {
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander) {
         this.client = client;
         this.podName = podName;
         this.namespace = namespace;
         this.containerName = containerName;
-        this.env = env;
+        this.environmentExpander = environmentExpander;
     }
 
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace) {
@@ -205,8 +207,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
                     }
 
-                    if (env != null) {
-                        for (Map.Entry<String, String> entry : env.entrySet()) {
+                    if (environmentExpander != null) {
+                        EnvVars envVars = new EnvVars();
+                        environmentExpander.expand(envVars);
+                        for (Map.Entry<String, String> entry : envVars.entrySet()) {
                             watch.getInput().write(
                                     String.format("export %s=\"%s\"%s", entry.getKey(), entry.getValue(), NEWLINE).getBytes(StandardCharsets.UTF_8));
                         }
@@ -217,6 +221,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
                     closables.add(proc);
                     return proc;
+                }  catch (InterruptedException ie) {
+                    throw new InterruptedIOException(ie.getMessage());
                 } catch (Exception e) {
                     closeWatch(watch);
                     throw e;
