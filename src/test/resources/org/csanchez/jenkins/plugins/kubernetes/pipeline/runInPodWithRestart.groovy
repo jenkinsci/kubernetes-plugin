@@ -1,6 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
-podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod', containers: [
+podTemplate(label: 'mypod', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
 

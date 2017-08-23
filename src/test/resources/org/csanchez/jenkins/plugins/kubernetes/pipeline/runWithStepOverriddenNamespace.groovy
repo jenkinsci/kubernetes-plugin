@@ -1,5 +1,5 @@
 // Step namespace should have priority over anything else.
-podTemplate(cloud: 'kubernetes-plugin-test',
+podTemplate(
     namespace: 'kubernetes-plugin-test-overridden-namespace2', label: 'mypod',
     volumes: [emptyDirVolume(mountPath: '/my-mount')], 
     containers: [

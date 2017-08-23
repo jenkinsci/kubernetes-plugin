@@ -1,4 +1,4 @@
-podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod',
+podTemplate(label: 'mypod',
     envVars: [
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
         secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password')

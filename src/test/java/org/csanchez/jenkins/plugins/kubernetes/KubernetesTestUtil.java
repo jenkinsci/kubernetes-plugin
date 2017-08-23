@@ -23,12 +23,8 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static io.fabric8.kubernetes.client.Config.*;
 import static java.util.logging.Level.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assume.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -36,7 +32,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -44,60 +39,31 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.fabric8.kubernetes.api.model.Cluster;
-import io.fabric8.kubernetes.api.model.Config;
-import io.fabric8.kubernetes.api.model.NamedCluster;
-import io.fabric8.kubernetes.api.model.NamedContext;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
-import io.fabric8.kubernetes.client.internal.KubeConfigUtils;
-import io.fabric8.kubernetes.client.utils.Utils;
 
 public class KubernetesTestUtil {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesTestUtil.class.getName());
 
     public static final String TESTING_NAMESPACE = "kubernetes-plugin-test";
-    public static final String KUBERNETES_CONTEXT = System.getProperty("kubernetes.context", "minikube");
 
     public static KubernetesCloud setupCloud() throws UnrecoverableKeyException, CertificateEncodingException,
             NoSuchAlgorithmException, KeyStoreException, IOException {
-
-        KubernetesCloud cloud = new KubernetesCloud("kubernetes-plugin-test");
-
-        File kubeConfigFile = new File(Utils.getSystemPropertyOrEnvVar(KUBERNETES_KUBECONFIG_FILE,
-                new File(System.getProperty("user.home"), ".kube" + File.separator + "config").toString()));
-        assumeThat("Kubernetes config file exists: " + kubeConfigFile.getAbsolutePath(), kubeConfigFile.exists(),
-                is(true));
-
-        Config config = KubeConfigUtils.parseConfig(kubeConfigFile);
-        Optional<NamedContext> context = config.getContexts().stream()
-                .filter((c) -> c.getName().equals(KUBERNETES_CONTEXT)).findFirst();
-        assumeThat("Kubernetes context is configured: " + KUBERNETES_CONTEXT, context.isPresent(), is(true));
-
-        String clusterName = context.get().getContext().getCluster();
-        Optional<NamedCluster> clusterOptional = config.getClusters().stream()
-                .filter((c) -> c.getName().equals(clusterName)).findFirst();
-        assumeThat("Kubernetes cluster is configured: " + clusterName, clusterOptional.isPresent(), is(true));
-
-        Cluster cluster = clusterOptional.get().getCluster();
-        cloud.setServerUrl(cluster.getServer());
-
-        cloud.setNamespace(TESTING_NAMESPACE);
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         KubernetesClient client = cloud.connect();
-        try {
-            // Run in our own testing namespace
-            client.namespaces().createOrReplace(
-                    new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
-        } catch (KubernetesClientException e) {
-            assumeNoException("Kubernetes cluster is not accessible", e);
-        }
+
+        // Run in our own testing namespace
+        client.namespaces().createOrReplace(
+                new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        cloud.setNamespace(TESTING_NAMESPACE);
+        client = cloud.connect();
+
         return cloud;
     }
 

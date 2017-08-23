@@ -37,9 +37,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import hudson.Launcher;
@@ -64,19 +63,11 @@ public class ContainerExecDecoratorTest {
 
     private ContainerExecDecorator decorator;
 
-    @BeforeClass
-    public static void configureCloud() throws Exception {
+    @Before
+    public void configureCloud() throws Exception {
         client = setupCloud().connect();
         deletePods(client, labels, false);
-    }
 
-    @AfterClass
-    public static void after() throws Exception {
-        deletePods(client, labels, false);
-    }
-
-    @Before
-    public void containerExecDecorator() throws Exception {
         String image = "busybox";
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
@@ -87,6 +78,11 @@ public class ContainerExecDecoratorTest {
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
         decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image, client.getNamespace());
+    }
+
+    @After
+    public void after() throws Exception {
+        deletePods(client, labels, false);
     }
 
     @Test(timeout = 10000)
