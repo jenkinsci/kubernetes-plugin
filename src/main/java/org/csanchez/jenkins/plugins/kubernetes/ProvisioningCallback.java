@@ -230,7 +230,7 @@ class ProvisioningCallback implements Callable<Node> {
 
             return slave;
         } catch (Throwable ex) {
-            LOGGER.log(Level.SEVERE, "Error in provisioning; slave={0}, template={1}: {2}",
+            LOGGER.log(Level.WARNING, "Error in provisioning; slave={0}, template={1}: {2}",
                     new Object[] { slave, t, ex.getMessage() });
             if (slave != null) {
                 LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
