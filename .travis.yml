@@ -1,10 +1,9 @@
 language: java
-#dist: precise
 dist: trusty
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk6
+#  - oraclejdk7
+#  - openjdk6
 cache:
   directories:
   - .autoconf
@@ -13,13 +12,14 @@ script:
 - mvn -Dmaven.javadoc.skip=true package
 #- mvn test -B # default
 #before_deploy: "echo 'ready?'"
-#deploy:
-#  provider: releases
+deploy:
+  provider: releases
 #  api_key: "GITHUB OAUTH TOKEN"
-#  file: "FILE TO UPLOAD"
-#  api_key: ...
-#  skip_cleanup: true
-#  overwrite: true
+  file: "/home/travis/build/ReSearchITEng/kubernetes-plugin/target/kubernetes.hpi"
+#  file_glob: true
+#  file: directory/*
+  skip_cleanup: true
+  overwrite: true
 #  on:
 #    tags: true
 #  on:
@@ -28,5 +28,4 @@ script:
 #    branch: master
 #after_deploy:
 #  - ./after_deploy_1.sh
-#
 #
