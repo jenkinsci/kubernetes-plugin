@@ -2,8 +2,8 @@ language: java
 dist: trusty
 jdk:
   - oraclejdk8
-  - oraclejdk7
-  - openjdk6
+#  - oraclejdk7
+#  - openjdk6
 cache:
   directories:
   - .autoconf
@@ -14,6 +14,7 @@ script:
 #before_deploy: "echo 'ready?'"
 deploy:
   provider: releases
+  prerelease: true
   api_key:
     secure: MOZgBA6s8YN5Lod4v4OEJmKl6w7w+H9VUQw8kdBIJ2nPcW8j7hrzQSnqeS4cX9EhQWIkqnuDEwWCs8SKIBg93O4NkGSjS/uvUZqFa9Cq4bU3LeiekSJFLjNpHTxm4nqcjyUw8uFzjQpMXDdGC8a8+wusu9X78ENnGYW6NqEly+Au4UyIXFs9l/Drab6nb7Q372p6cjW3S0EZSsaBqvgI4JUdKX2FiWfK6sAbf55kKlxGRtN7muOJVU5KeDfv1r7M0Uywc8MekO5CWrjHPomhlqb3g4I3JW59jgIwo6pGiBsePecyTkJRc5jcYw4xLfPd4hZcY4O30+pCyJhdVnB0sIS4vMjQL4Cv7tyq2yucEjHVPLqjNeD5I+2eEiD+6SC+NT68qITiIxOnJtPkEJEKBCZFUBJYnY70qIuAOh52AZmTwKFMlunFxlcD9mY1T7w+nqQTIYR73d27KgK4dtaPWKONwphGlcN+mkwE04t1S1zgfmjYCky096K2GmSoJWsikHvv5mJKaj8luoj/gX6uMY+1OsoZdmQ/YDswIv0t1iOYNg+t1wRA3U+wK+7sQI2V3FwXCM2zreWUNEBlsk72ODLpdzZ6EtC6jyOvwUPl1zYtsq2M9Kx2v5fULd6zUX8phcZAG1iUBys0gWpOBMY2YnZxKXyQf3Eeddx3EwsX5yQ=
 #  api_key: "GITHUB OAUTH TOKEN"
