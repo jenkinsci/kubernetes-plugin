@@ -24,8 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.junit.Assert.*;
 
 import java.util.Collections;
 
@@ -38,8 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runners.model.Statement;
-import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 import hudson.model.Node;
 import hudson.slaves.DumbSlave;
@@ -47,7 +47,6 @@ import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 /**
  * @author Carlos Sanchez
@@ -61,12 +60,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
+        deletePods(cloud.connect(), Collections.emptyMap(), false);
+
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("PID file contents: ", b);
+
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
 
     @Test

@@ -24,31 +24,35 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.junit.Assert.*;
 
-import com.google.common.collect.ImmutableMap;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.JenkinsLocationConfiguration;
+import java.net.InetAddress;
+import java.net.URL;
+import java.util.logging.Level;
+
 import org.apache.commons.compress.utils.IOUtils;
-import org.csanchez.jenkins.plugins.kubernetes.*;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.util.Collections;
-import java.util.logging.Level;
+import com.google.common.collect.ImmutableMap;
 
-import static java.util.Arrays.asList;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.JenkinsLocationConfiguration;
 
 public class AbstractKubernetesPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-environmentExpander-var-value";
@@ -76,13 +80,6 @@ public class AbstractKubernetesPipelineTest {
     public void configureTemplates() throws Exception {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
-        deletePods(cloud.connect(), Collections.emptyMap(), false);
-    }
-
-    @After
-    public void cleanup() throws Exception {
-        assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
 
     @Before
