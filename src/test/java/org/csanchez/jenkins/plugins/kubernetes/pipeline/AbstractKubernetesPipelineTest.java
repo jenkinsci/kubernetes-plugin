@@ -51,8 +51,8 @@ import static java.util.Arrays.asList;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
 
 public class AbstractKubernetesPipelineTest {
-    protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
-    protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
+    protected static final String CONTAINER_ENV_VAR_VALUE = "container-environmentExpander-var-value";
+    protected static final String POD_ENV_VAR_VALUE = "pod-environmentExpander-var-value";
     protected static final String SECRET_KEY = "password";
     protected static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     protected static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
