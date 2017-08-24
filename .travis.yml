@@ -1,0 +1,21 @@
+language: java
+#dist: trusty
+#script:
+#- mvn test -B # default
+#- mvn -Dmaven.javadoc.skip=true package
+#before_deploy: "echo 'ready?'"
+#deploy:
+#  provider: releases
+#  api_key: "GITHUB OAUTH TOKEN"
+#  file: "FILE TO UPLOAD"
+#  api_key: ...
+#  skip_cleanup: true
+#  overwrite: true
+#  on:
+#    tags: true
+#  on:
+#    all_branches: false
+#  on:
+#    branch: master
+#after_deploy:
+#  - ./after_deploy_1.sh
