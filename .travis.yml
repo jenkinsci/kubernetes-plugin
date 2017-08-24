@@ -1,8 +1,12 @@
 language: java
-#dist: trusty
-#script:
+dist: precise
+cache:
+  directories:
+  - .autoconf
+  - $HOME/.m2
+script:
+- mvn -Dmaven.javadoc.skip=true package
 #- mvn test -B # default
-#- mvn -Dmaven.javadoc.skip=true package
 #before_deploy: "echo 'ready?'"
 #deploy:
 #  provider: releases
