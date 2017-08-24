@@ -9,7 +9,7 @@ cache:
   - .autoconf
   - $HOME/.m2
 script:
-- mvn -Dmaven.javadoc.skip=true package
+- mvn -B -Dmaven.javadoc.skip=true -DskipTests package
 #- mvn test -B # default
 #before_deploy: "echo 'ready?'"
 deploy:
