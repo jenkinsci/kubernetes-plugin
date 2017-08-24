@@ -1,5 +1,10 @@
 language: java
-dist: precise
+#dist: precise
+dist: trusty
+jdk:
+  - oraclejdk8
+  - oraclejdk7
+  - openjdk6
 cache:
   directories:
   - .autoconf
