@@ -26,7 +26,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.junit.Assert.*;
 
 import java.net.InetAddress;
 import java.net.URL;
@@ -41,8 +40,8 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -72,6 +71,11 @@ public class AbstractKubernetesPipelineTest {
     @Rule
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
+
+    @BeforeClass
+    public static void isKubernetesConfigured() throws Exception {
+        assumeKubernetes();
+    }
 
     @Before
     public void configureCloud() throws Exception {

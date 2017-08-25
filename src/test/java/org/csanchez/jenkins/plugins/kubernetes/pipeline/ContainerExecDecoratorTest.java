@@ -39,6 +39,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import hudson.Launcher;
@@ -62,6 +63,11 @@ public class ContainerExecDecoratorTest {
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
     private ContainerExecDecorator decorator;
+
+    @BeforeClass
+    public static void isKubernetesConfigured() throws Exception {
+        assumeKubernetes();
+    }
 
     @Before
     public void configureCloud() throws Exception {

@@ -24,6 +24,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.logging.Level.*;
+import static org.junit.Assume.*;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -42,6 +43,9 @@ import java.util.stream.IntStream;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
@@ -65,6 +69,15 @@ public class KubernetesTestUtil {
         client = cloud.connect();
 
         return cloud;
+    }
+
+    public static void assumeKubernetes() throws Exception {
+        try (DefaultKubernetesClient client = new DefaultKubernetesClient(
+                new ConfigBuilder(Config.autoConfigure()).build())) {
+            client.pods().list();
+        } catch (Exception e) {
+            assumeNoException(e);
+        }
     }
 
     /**
