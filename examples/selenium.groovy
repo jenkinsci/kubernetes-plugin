@@ -43,5 +43,10 @@ podTemplate(label: 'maven-selenium', containers: [
         }
       )
     }
+
+    stage('Logs') {
+      containerLog('selenium-chrome')
+      containerLog('selenium-firefox')
+    }
   }
 }

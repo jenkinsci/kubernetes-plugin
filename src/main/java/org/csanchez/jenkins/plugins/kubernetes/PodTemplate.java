@@ -216,7 +216,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public void setInstanceCap(int instanceCap) {
-        if (instanceCap <= 0) {
+        if (instanceCap < 0) {
             this.instanceCap = Integer.MAX_VALUE;
         } else {
             this.instanceCap = instanceCap;
@@ -407,12 +407,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
-
     public List<PodImagePullSecret> getImagePullSecrets() {
-        if (imagePullSecrets == null) {
-            return Collections.emptyList();
-        }
-        return imagePullSecrets;
+        return imagePullSecrets == null ? Collections.emptyList() : imagePullSecrets;
     }
 
     public void addImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
@@ -421,7 +417,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setImagePullSecrets(List<PodImagePullSecret> imagePullSecrets) {
-        if(imagePullSecrets != null) {
+        if (imagePullSecrets != null) {
             this.imagePullSecrets.clear();
             this.addImagePullSecrets(imagePullSecrets);
         }

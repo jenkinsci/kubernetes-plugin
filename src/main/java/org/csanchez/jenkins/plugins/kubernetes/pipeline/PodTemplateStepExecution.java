@@ -1,10 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static java.util.stream.Collectors.*;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
@@ -71,6 +74,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
         newTemplate.setAnnotations(step.getAnnotations());
+        newTemplate.setImagePullSecrets(
+                step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
 
         kubernetesCloud.addTemplate(newTemplate);
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();

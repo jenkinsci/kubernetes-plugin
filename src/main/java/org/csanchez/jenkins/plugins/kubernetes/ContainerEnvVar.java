@@ -23,12 +23,16 @@ public class ContainerEnvVar extends KeyValueEnvVar {
         return "ContainerEnvVar [getValue()=" + getValue() + ", getKey()=" + getKey() + "]";
     }
 
+    public Descriptor<KeyValueEnvVar> getDescriptor() {
+        return new DescriptorImpl();
+    }
+
     @Extension
     @Symbol("containerEnvVar")
     /**
      * deprecated, use envVar
      */
-    public static class DescriptorImplContainer extends Descriptor<KeyValueEnvVar> {
+    public static class DescriptorImpl extends Descriptor<KeyValueEnvVar> {
         @Override
         public String getDisplayName() {
             return "Environment Variable";

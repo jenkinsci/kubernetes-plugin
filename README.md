@@ -100,6 +100,7 @@ Either way it provides access to the following fields:
 * **envVars** Environment variables that are applied to **ALL** containers.
     * **envVar** An environment variable whose value is defined inline. 
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
+* **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 
@@ -194,7 +195,7 @@ Then consumers of the library could just express the need for a maven pod with d
 
     dockerTemplate {
         mavenTemplate {
-            ssh """
+            sh """
                mvn clean install
                docker build -t  myimage ./target/docker/
             """
@@ -242,6 +243,7 @@ volumes: [
     nfsVolume(mountPath: '/etc/mount5', serverAddress: '127.0.0.1', serverPath: '/', readOnly: true),
     persistentVolumeClaim(mountPath: '/etc/mount6', claimName: 'myClaim', readOnly: true)
 ],
+imagePullSecrets: [ 'pull-secret' ],
 annotations: [
     podAnnotation(key: "my-key", value: "my-value")
     ...
@@ -257,7 +259,28 @@ Declarative Pipeline support requires Jenkins 2.66+
 
 Example at [examples/declarative.groovy](examples/declarative.groovy)
 
+## Accessing container logs from the pipeline
 
+If you use the `containerTemplate` to run some service in the background
+(e.g. a database for your integration tests), you might want to access its log from the pipeline.
+This can be done with the `containerLog` step, which prints the log of the
+requested container to the build log.
+
+#### Required Parameters
+* **name** the name of the container to get logs from, as defined in `podTemplate`. Parameter name
+can be ommited in simple usage:
+
+```groovy
+containerLog 'mongodb'
+```
+
+#### Optional Parameters
+* **returnLog** return the log instead of printing it to the build log (default: `false`)
+* **tailingLines** only return the last n lines of the log (optional)
+* **sinceSeconds** only return the last n seconds of the log (optional)
+* **limitBytes** limit output to n bytes (from the beginning of the log, not exact).
+
+Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
 
 # Constraints
 
@@ -383,11 +406,12 @@ You may need to set the correct permissions for host mounted volumes
     minikube ssh
     sudo chown 1000:1000 /tmp/hostpath-provisioner/pvc-*
 
-Then create the Jenkins ReplicationController and Service with
+Then create the Jenkins namespace, controller and Service with
 
+    kubectl create namespace kubernetes-plugin
+    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
     kubectl create -f src/main/kubernetes/service-account.yml
     kubectl create -f src/main/kubernetes/jenkins.yml
-    kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
 
 Get the url to connect to with
 
@@ -399,9 +423,10 @@ Assuming you created a Kubernetes cluster named `jenkins` this is how to run bot
 
 Creating all the elements and setting the default namespace
 
-    kubectl create -f src/main/kubernetes/service-account.yml
-    kubectl create -f src/main/kubernetes/gke.yml
+    kubectl create namespace kubernetes-plugin
     kubectl config set-context $(kubectl config current-context) --namespace=kubernetes-plugin
+    kubectl create -f src/main/kubernetes/service-account.yml
+    kubectl create -f src/main/kubernetes/jenkins.yml
 
 Connect to the ip of the network load balancer created by Kubernetes, port 80.
 Get the ip (in this case `104.197.19.100`) with `kubectl describe services/jenkins`
@@ -459,7 +484,7 @@ Tearing it down
 
 ### Modify CPUa and memory request/limits (Kubernetes Resource API)
 
-Modify file `./src/main/kubernetes/gke.yml` with desired limits
+Modify file `./src/main/kubernetes/jenkins.yml` with desired limits
 
 ```yaml
 resources:
