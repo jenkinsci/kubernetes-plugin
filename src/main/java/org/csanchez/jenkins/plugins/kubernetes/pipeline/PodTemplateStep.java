@@ -45,7 +45,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodAnnotation> annotations = new ArrayList<>();
     private List<String> imagePullSecrets = new ArrayList<>();
 
-    private int instanceCap;
+    private int instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
 
     private String serviceAccount;
