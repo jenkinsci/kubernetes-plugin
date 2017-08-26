@@ -19,6 +19,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
@@ -88,7 +89,11 @@ public class PodTemplateUtils {
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
-
+        
+        Set<PodAnnotation> podAnnotaions = new LinkedHashSet<>();
+        podAnnotations.addAll(parent.getAnnotations());
+        podAnnotations.addAll(template.getAnnotations());
+        
         Set<PodImagePullSecret> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getImagePullSecrets());
         imagePullSecrets.addAll(template.getImagePullSecrets());
@@ -124,6 +129,7 @@ public class PodTemplateUtils {
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
+        podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
 
