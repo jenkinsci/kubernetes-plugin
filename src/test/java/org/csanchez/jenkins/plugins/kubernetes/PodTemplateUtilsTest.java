@@ -363,10 +363,10 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldSubstituteMultipleEnvVarsAndUseDefaultsForMissing() {
+    public void shouldSubstituteMultipleEnvVarsAndNotUseDefaultsForMissing() {
         Map<String, String> properties = new HashMap<>();
         properties.put("key1", "value1");
         properties.put("key2", "value2");
-        assertEquals("value1 or value2 or defaultValue", substitute("${key1} or ${key2} or ${key3}", properties, "defaultValue"));
+        assertEquals("value1 or value2 or ${key3}", substitute("${key1} or ${key2} or ${key3}", properties, "defaultValue"));
     }
 }
