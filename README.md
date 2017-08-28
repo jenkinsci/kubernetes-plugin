@@ -162,8 +162,8 @@ This is made possible via nesting. You can nest multiple pod templates together 
 
 The example below composes two different podTemplates in order to create one with maven and docker capabilities.
 
-    podTemplate(label: 'docker', containers: [containerTemplate(image: 'docker)]) {
-        podTemplate(label: 'maven', containers: [containerTemplate(image: 'maven)]) {
+    podTemplate(label: 'docker', containers: [containerTemplate(image: 'docker', name: 'docker', command: 'cat', ttyEnabled: true)]) {
+        podTemplate(label: 'maven', containers: [containerTemplate(image: 'maven', name: 'maven', command: 'cat', ttyEnabled: true)]) {
             // do stuff
         }
     }
