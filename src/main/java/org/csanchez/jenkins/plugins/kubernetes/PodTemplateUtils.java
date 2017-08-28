@@ -90,7 +90,7 @@ public class PodTemplateUtils {
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
         
-        Set<PodAnnotation> podAnnotaions = new LinkedHashSet<>();
+        Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
         podAnnotations.addAll(parent.getAnnotations());
         podAnnotations.addAll(template.getAnnotations());
         
