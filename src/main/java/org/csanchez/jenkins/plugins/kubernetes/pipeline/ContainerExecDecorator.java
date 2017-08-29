@@ -147,7 +147,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 printStream.println(msg);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream).withTTY()
+                        .redirectingInput().writingOutput(stream).writingError(stream)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
