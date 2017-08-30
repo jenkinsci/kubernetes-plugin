@@ -64,6 +64,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setInheritFrom(!Strings.isNullOrEmpty( podTemplateAction.getParentTemplates()) ? podTemplateAction.getParentTemplates() : step.getInheritFrom());
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setIdleMinutes(step.getIdleMinutes());
+        newTemplate.setSlaveConnectTimeout(step.getSlaveConnectTimeout());
         newTemplate.setLabel(step.getLabel());
         newTemplate.setEnvVars(step.getEnvVars());
         newTemplate.setVolumes(step.getVolumes());
