@@ -98,7 +98,7 @@ Either way it provides access to the following fields:
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars** Environment variables that are applied to **ALL** containers.
-    * **envVar** An environment variable whose value is defined inline. 
+    * **podEnvVar** An environment variable whose value is defined inline. 
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
@@ -227,7 +227,7 @@ podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
         resourceRequestMemory: '100Mi',
         resourceLimitMemory: '200Mi',
         envVars: [
-            envVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
+            containerEnvVar(key: 'MYSQL_ALLOW_EMPTY_PASSWORD', value: 'true'),
             secretEnvVar(key: 'MYSQL_PASSWORD', secretName: 'mysql-secret', secretKey: 'password'),
             ...
         ],
