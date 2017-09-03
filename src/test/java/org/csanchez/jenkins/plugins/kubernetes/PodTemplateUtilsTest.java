@@ -43,6 +43,9 @@ public class PodTemplateUtilsTest {
     private static final PodImagePullSecret SECRET_2 = new PodImagePullSecret("secret2");
     private static final PodImagePullSecret SECRET_3 = new PodImagePullSecret("secret3");
 
+    private static final PodAnnotation ANNOTATION_1 = new PodAnnotation("key1", "value1");
+    private static final PodAnnotation ANNOTATION_2 = new PodAnnotation("key2", "value2");
+
     private static final ContainerTemplate JNLP_1 = new ContainerTemplate("jnlp", "jnlp:1");
     private static final ContainerTemplate JNLP_2 = new ContainerTemplate("jnlp", "jnlp:2");
 
@@ -141,6 +144,22 @@ public class PodTemplateUtilsTest {
 
         result = combine(parent, template3);
         assertEquals(1, result.getImagePullSecrets().size());
+    }
+
+
+    @Test
+    public void shouldCombineAllAnnotations() {
+        PodTemplate parent = new PodTemplate();
+        parent.setName("parent");
+        parent.setNodeSelector("key:value");
+        parent.setAnnotations(asList(ANNOTATION_1));
+
+        PodTemplate template1 = new PodTemplate();
+        template1.setName("template");
+        template1.setAnnotations(asList(ANNOTATION_2));
+        
+        PodTemplate result = combine(parent, template1);
+        assertEquals(2, result.getAnnotations().size());
     }
 
 
@@ -363,10 +382,10 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldSubstituteMultipleEnvVarsAndUseDefaultsForMissing() {
+    public void shouldSubstituteMultipleEnvVarsAndNotUseDefaultsForMissing() {
         Map<String, String> properties = new HashMap<>();
         properties.put("key1", "value1");
         properties.put("key2", "value2");
-        assertEquals("value1 or value2 or defaultValue", substitute("${key1} or ${key2} or ${key3}", properties, "defaultValue"));
+        assertEquals("value1 or value2 or ${key3}", substitute("${key1} or ${key2} or ${key3}", properties, "defaultValue"));
     }
 }

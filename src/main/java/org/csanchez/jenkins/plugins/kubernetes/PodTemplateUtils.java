@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static hudson.Util.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
@@ -10,8 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -20,19 +19,16 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 
 public class PodTemplateUtils {
-
-    private static final String PLACEHOLDER_KEY = "key";
-    private static final String PLACEHOLDER_FORMAT = "\\$\\{%s\\}";
-    private static final String PLACEHOLDER_REGEX = String.format(PLACEHOLDER_FORMAT, "(?<" + PLACEHOLDER_KEY + ">[a-zA-Z0-9_]+)");
-    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
@@ -93,7 +89,11 @@ public class PodTemplateUtils {
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
-
+        
+        Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
+        podAnnotations.addAll(parent.getAnnotations());
+        podAnnotations.addAll(template.getAnnotations());
+        
         Set<PodImagePullSecret> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getImagePullSecrets());
         imagePullSecrets.addAll(template.getImagePullSecrets());
@@ -129,6 +129,7 @@ public class PodTemplateUtils {
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
+        podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
 
@@ -221,52 +222,44 @@ public class PodTemplateUtils {
      * @return      The substituted value if found, or the input value otherwise.
      */
     public static String substituteEnv(String s) {
-        return substitute(s, System.getenv());
+        return replaceMacro(s, System.getenv());
     }
 
     /**
      * Substitutes a placeholder with a value found in the environment.
+     * @deprecated check if it is null or empty in the caller method, then use {@link #substituteEnv(String)}
      * @param s             The placeholder. Should be use the format: ${placeholder}.
      * @param defaultValue  The default value to return if no match is found.
      * @return              The substituted value if found, or the default value otherwise.
      */
+    @Deprecated
     public static String substituteEnv(String s, String defaultValue) {
         return substitute(s, System.getenv(), defaultValue);
     }
 
     /**
      * Substitutes a placeholder with a value found in the specified map.
+     * @deprecated use {@link Util#replaceMacro(String, Map)}
      * @param s             The placeholder. Should be use the format: ${placeholder}.
      * @param properties    The map with the key value pairs to use for substitution.
      * @return              The substituted value if found, or the input value otherwise.
      */
+    @Deprecated
     public static String substitute(String s, Map<String, String> properties) {
-        return substitute(s, properties, null);
+        return replaceMacro(s, properties);
     }
 
     /**
      * Substitutes a placeholder with a value found in the specified map.
+     * @deprecated check if it is null or empty in the caller method, then use {@link #substitute(String,Map)}
      * @param s             The placeholder. Should be use the format: ${placeholder}.
      * @param properties    The map with the key value pairs to use for substitution.
      * @param defaultValue  The default value to return if no match is found.
      * @return              The substituted value if found, or the default value otherwise.
      */
+    @Deprecated
     public static String substitute(String s, Map<String, String> properties, String defaultValue) {
-        if (Strings.isNullOrEmpty(s)) {
-            return defaultValue;
-        }
-
-        Matcher m = PLACEHOLDER_PATTERN.matcher(s);
-        while (m.find()) {
-            String key = m.group(PLACEHOLDER_KEY);
-            String val = properties.get(key);
-            if (val != null) {
-                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), Matcher.quoteReplacement(val));
-            } else if (defaultValue != null) {
-                s = s.replaceAll(String.format(PLACEHOLDER_FORMAT, key), defaultValue);
-            }
-        }
-        return s;
+        return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
     private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
