@@ -6,7 +6,7 @@
     </f:entry>
 
     <f:entry title="${%Kubernetes URL}" field="serverUrl">
-      <f:textbox default="https://kubernetes.default.svc.cluster.local" clazz="required"/>
+      <f:textbox/>
     </f:entry>
 
     <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
@@ -18,7 +18,7 @@
     </f:entry>
 
     <f:entry title="${%Kubernetes Namespace}" field="namespace">
-      <f:textbox default="default" clazz="required"/>
+      <f:textbox/>
     </f:entry>
 
     <f:entry title="${%Credentials}" field="credentialsId">
