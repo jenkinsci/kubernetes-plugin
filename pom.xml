@@ -87,47 +87,27 @@
       <version>${jenkins-credentials.version}</version>
     </dependency>
 
-    <dependency>
+    <dependency> <!-- OnceRetentionStrategy -->
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
       <version>${jenkins-durable-task.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
-      <version>${jenkins-durable-task-step.version}</version>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>variant</artifactId>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
       <version>${jenkins-workflow-step-api.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
-      <version>${jenkins-workflow-cps.version}</version>
-    </dependency>
-    <dependency>
+    <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
       <version>${jenkins-declarative.version}</version>
+      <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>pipeline-model-api</artifactId>
-      <version>${jenkins-declarative.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>script-security</artifactId>
-      <version>${jenkins-script-security.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-support</artifactId>
-      <version>${jenkins-workflow-support.version}</version>
-    </dependency>
-
 
     <!-- for testing -->
     <dependency>
@@ -147,6 +127,18 @@
       <artifactId>workflow-step-api</artifactId>
       <version>${jenkins-workflow-step-api.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <version>${jenkins-workflow-support.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>${jenkins-durable-task-step.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -178,6 +170,12 @@
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
       <version>${jenkins-workflow-api.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <version>${jenkins-workflow-cps.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
