@@ -186,9 +186,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
-        client.namespaces().createOrReplace(
-                new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata()
-                        .build());
+        if (client.namespaces().withName(overriddenNamespace).get() == null) {
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata().build());
+        }
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace.groovy"), true));
@@ -211,8 +212,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         String stepNamespace = TESTING_NAMESPACE + "-overridden-namespace2";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
-        client.namespaces().createOrReplace(
-                new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
+        if (client.namespaces().withName(stepNamespace).get() == null) {
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
+        }
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy"), true));
