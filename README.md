@@ -351,11 +351,14 @@ at `DEBUG` level.
 
 # Building and Testing
 
-## manual testing
+Integration tests will use the currently configured context autodetected from kube config file or service account.
+
+## Manual Testing
 
 Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
-## integration tests with minikube
+## Integration Tests with Minikube
+
 For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
 Tests will detect it and run a set of integration tests in a new namespace.
 
@@ -368,14 +371,23 @@ system property to the (host-only or NAT) IP of your host:
 
     mvn clean install -Djenkins.host.address=192.168.99.1
 
-## integration tests in a different cluster
-To run the tests in a different kubernetes cluster, get the context with `kubectl config get-contexts` and pass it to Maven with `-Dkubernetes.context`
+## Integration Tests in a Different Cluster
 
-    mvn clean install -Dkubernetes.context=_your-kubernetes-context_
+Ensure you create the namespaces and roles with the following commands, then run the tests
+in namespace `kubernetes-plugin` with the service account `jenkins`
+(edit `src/test/kubernetes/service-account.yml` to use a different service account)
 
-ie. for a [minishift](https://github.com/minishift/minishift) context
-
-    mvn clean install -Dkubernetes.context=myproject/192-168-64-2:8443/developer
+```
+kubectl create namespace kubernetes-plugin-test
+kubectl create namespace kubernetes-plugin-test-overridden-namespace
+kubectl create namespace kubernetes-plugin-test-overridden-namespace2
+kubectl apply -n kubernetes-plugin-test -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test -f src/test/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
+```
 
 Please note that the system you run `mvn` on needs to be reachable from the cluster.
 If you see the slaves happen to connect to the wrong host, see you can use
