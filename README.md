@@ -21,6 +21,14 @@ Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-sla
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
 
+# Kubernetes Cloud Configuration
+
+In Jenkins settings click on add cloud, select `Kubernetes` and fill the information, like
+_Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
+
+If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
+
+
 # Pipeline support
 
 Nodes can be defined in a pipeline and then used
