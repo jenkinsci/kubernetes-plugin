@@ -94,7 +94,7 @@ public class ContainerExecDecoratorTest {
     @Test(timeout = 10000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
-        List<ProcReturn> results = new ArrayList<>(t.length);
+        List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
         for (int i = 0; i < t.length; i++) {
             t[i] = newThread(i, results);
         }
@@ -159,8 +159,8 @@ public class ContainerExecDecoratorTest {
 
     @Test
     public void testCommandExecutionWithNohup() throws Exception {
-        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
@@ -185,7 +185,6 @@ public class ContainerExecDecoratorTest {
     @Test
     public void testCommandExecutionWithNohupAndError() throws Exception {
         ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
-        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(127, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
