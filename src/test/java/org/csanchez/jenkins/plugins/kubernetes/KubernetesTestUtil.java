@@ -47,6 +47,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
@@ -63,8 +64,12 @@ public class KubernetesTestUtil {
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
-        client.namespaces().createOrReplace(
-                new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        try {
+            client.namespaces()
+                    .create(new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+        } catch (KubernetesClientException e) {
+            LOGGER.warning(e.getMessage());
+        }
         cloud.setNamespace(TESTING_NAMESPACE);
         client = cloud.connect();
 
