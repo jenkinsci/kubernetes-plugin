@@ -274,15 +274,8 @@ class ProvisioningCallback implements Callable<Node> {
         env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
         env.put("JENKINS_NAME", slave.getComputer().getName());
 
-        JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
-        String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
-        String url = StringUtils.isBlank(cloud.getJenkinsUrl()) ? locationConfigurationUrl : cloud.getJenkinsUrl();
+        String url = cloud.getJenkinsUrlOrDie();
 
-        if (url == null) {
-            throw new IllegalStateException("Jenkins URL is null while computing JNLP url");
-        }
-
-        env.put("JENKINS_LOCATION_URL", locationConfigurationUrl);
         env.put("JENKINS_URL", url);
         if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
             env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
