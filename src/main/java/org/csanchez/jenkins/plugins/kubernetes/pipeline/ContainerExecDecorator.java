@@ -183,7 +183,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec();
+                    watch = execable.exec("/bin/sh");
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
