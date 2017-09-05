@@ -1,21 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.Messages;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.jvnet.localizer.Localizable;
-import org.jvnet.localizer.ResourceBundleHolder;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Computer;
@@ -25,12 +9,26 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
-import hudson.slaves.JNLPLauncher;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.Messages;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.jvnet.localizer.Localizable;
+import org.jvnet.localizer.ResourceBundleHolder;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -49,17 +47,22 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private final String cloudName;
     private final String namespace;
+    private final PodTemplate template;
+
+    public PodTemplate getTemplate() {
+        return template;
+    }
 
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
             throws Descriptor.FormException, IOException {
 
-        this(template, nodeDescription, cloud, labelStr, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
+        this(template, nodeDescription, cloud.name, labelStr, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
     }
 
     @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
             throws Descriptor.FormException, IOException {
-        this(template, nodeDescription, cloud, label.toString(), new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
+        this(template, nodeDescription, cloud.name, label.toString(), new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
     }
 
     @Deprecated
@@ -80,12 +83,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 1,
                 template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
                 labelStr == null ? null : labelStr,
-                new JNLPLauncher(),
+                new KubernetesLauncher(),
                 rs,
                 template.getNodeProperties());
 
         this.cloudName = cloudName;
         this.namespace = Util.fixEmpty(template.getNamespace());
+        this.template = template;
     }
 
     public String getCloudName() {
@@ -96,8 +100,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return namespace;
     }
 
-    public Cloud getCloud() {
-        return Jenkins.getInstance().getCloud(getCloudName());
+    public KubernetesCloud getCloud() {
+        Cloud cloud = Jenkins.getInstance().getCloud(getCloudName());
+        if (cloud instanceof KubernetesCloud) {
+            return (KubernetesCloud) cloud;
+        } else {
+            throw new IllegalStateException(getClass().getName() + " can be launched only by instances of " + KubernetesCloud.class.getName());
+        }
     }
 
     static String getSlaveName(PodTemplate template) {
