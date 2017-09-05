@@ -212,6 +212,9 @@
             at io.fabric8.kubernetes.client.utils.Serialization.<clinit>(Serialization.java:37)
           -->
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
+          <systemProperties>
+            <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
+          </systemProperties>
         </configuration>
       </plugin>
     </plugins>
