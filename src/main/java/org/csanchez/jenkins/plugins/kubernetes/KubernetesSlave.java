@@ -22,6 +22,7 @@ import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -100,6 +101,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return namespace;
     }
 
+    @Nonnull
     public KubernetesCloud getCloud() {
         Cloud cloud = Jenkins.getInstance().getCloud(getCloudName());
         if (cloud instanceof KubernetesCloud) {
@@ -147,25 +149,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
-        Cloud cloud = getCloud();
-        if (cloud == null) {
-            String msg = String.format("Agent cloud no longer exists: %s", getCloudName());
-            LOGGER.log(Level.WARNING, msg);
-            listener.fatalError(msg);
-            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
-            return;
-        }
-        if (!(cloud instanceof KubernetesCloud)) {
-            String msg = String.format("Agent cloud is not a KubernetesCloud, something is very wrong: %s",
-                    getCloudName());
-            LOGGER.log(Level.SEVERE, msg);
-            listener.fatalError(msg);
-            computer.disconnect(OfflineCause.create(new Localizable(HOLDER, "offline")));
-            return;
-        }
+        KubernetesCloud cloud = getCloud();
         KubernetesClient client;
         try {
-            client = ((KubernetesCloud) cloud).connect();
+            client = cloud.connect();
         } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
                 | KeyStoreException e) {
             String msg = String.format("Failed to connect to cloud %s", getCloudName());

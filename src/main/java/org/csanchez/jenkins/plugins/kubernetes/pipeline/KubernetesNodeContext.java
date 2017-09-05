@@ -52,10 +52,7 @@ class KubernetesNodeContext {
             throw new AbortException(String.format("Node is not a Kubernetes node: %s", node != null ? node.getNodeName() : null));
         }
         KubernetesSlave slave = (KubernetesSlave) node;
-        KubernetesCloud cloud = (KubernetesCloud) slave.getCloud();
-        if (cloud == null) {
-            throw new AbortException(String.format("Cloud does not exist: %s", slave.getCloudName()));
-        }
+        KubernetesCloud cloud = slave.getCloud();
         return cloud.connect();
     }
 }
