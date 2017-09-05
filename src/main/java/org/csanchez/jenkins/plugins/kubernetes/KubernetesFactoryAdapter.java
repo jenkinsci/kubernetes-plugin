@@ -12,7 +12,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
-import java.util.logging.Level;
+import static java.util.logging.Level.*;
 import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
@@ -29,6 +29,7 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 
 import hudson.security.ACL;
 import hudson.util.Secret;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -93,9 +94,21 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesClient createClient() throws NoSuchAlgorithmException, UnrecoverableKeyException,
             KeyStoreException, IOException, CertificateEncodingException {
-        ConfigBuilder builder = new ConfigBuilder().withMasterUrl(serviceAddress)
-                .withRequestTimeout(readTimeout * 1000)
-                .withConnectionTimeout(connectTimeout * 1000);
+
+        ConfigBuilder builder;
+        // autoconfigure if url is not set
+        if (StringUtils.isBlank(serviceAddress)) {
+            LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
+            builder = new ConfigBuilder(Config.autoConfigure());
+        } else {
+            // although this will still autoconfigure based on Config constructor notes
+            // In future releases (2.4.x) the public constructor will be empty.
+            // The current functionality will be provided by autoConfigure().
+            // This is a necessary change to allow us distinguish between auto configured values and builder values.
+            builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+        }
+
+        builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
@@ -128,7 +141,7 @@ public class KubernetesFactoryAdapter {
         }
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
 
-        LOGGER.log(Level.FINE, "Creating Kubernetes client: {0}", this.toString());
+        LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         return new DefaultKubernetesClient(builder.build());
     }
 

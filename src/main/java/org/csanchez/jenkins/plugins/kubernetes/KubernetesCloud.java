@@ -504,12 +504,8 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
 
-            if (StringUtils.isBlank(serverUrl))
-                return FormValidation.error("URL is required");
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
-            if (StringUtils.isBlank(namespace))
-                return FormValidation.error("namespace is required");
 
             try {
                 KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,

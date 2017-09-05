@@ -1,4 +1,4 @@
-podTemplate(cloud: 'kubernetes-plugin-test', label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [
+podTemplate(label: 'mypod', volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [
         containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}')
 ]) {
 

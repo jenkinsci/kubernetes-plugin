@@ -5,6 +5,7 @@ CHANGELOG
 -----
 
 * `containerLog` step to get the logs of a container running in the agent pod [JENKINS-46085](https://issues.jenkins-ci.org/browse/JENKINS-46085) [#195](https://github.com/jenkinsci/kubernetes-plugin/pull/195)
+* Autoconfigure cloud if kubernetes url is not set [#208](https://github.com/jenkinsci/kubernetes-plugin/pull/208)
 * Change containerCap and instanceCap 0 to mean do not use [JENKINS-45845](https://issues.jenkins-ci.org/browse/JENKINS-45845) [#199](https://github.com/jenkinsci/kubernetes-plugin/pull/199)
 * Add environment variables to container from a secret [JENKINS-39867](https://issues.jenkins-ci.org/browse/JENKINS-39867) [#162](https://github.com/jenkinsci/kubernetes-plugin/pull/162)
  * Deprecate `containerEnvVar` for `envVar` and added `secretEnvVar`
@@ -18,7 +19,6 @@ CHANGELOG
 * Do not cache kubernetes connection to reflect config changes and credential expiration [JENKINS-39867](https://issues.jenkins-ci.org/browse/JENKINS-39867) [#189](https://github.com/jenkinsci/kubernetes-plugin/pull/189)
 * Inherit podAnnotations when inheriting pod templates [#209](https://github.com/jenkinsci/kubernetes-plugin/pull/209)
 * Remove unneeded plugin dependencies, make pipeline-model-extensions optional [#214](https://github.com/jenkinsci/kubernetes-plugin/pull/214)
-
 
 0.12
 -----
