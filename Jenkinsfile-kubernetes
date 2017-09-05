@@ -21,7 +21,7 @@ podTemplate(serviceAccount: 'jenkins', label: label, containers: [
     stage('Build a Maven project') {
       checkout scm
       container('maven') {
-          sh 'mvn -B clean package'
+          sh 'mvn -B clean install'
       }
       junit '**/target/surefire-reports/**/*.xml'
     }
