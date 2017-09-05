@@ -9,6 +9,7 @@ CHANGELOG
 * Add environment variables to container from a secret [JENKINS-39867](https://issues.jenkins-ci.org/browse/JENKINS-39867) [#162](https://github.com/jenkinsci/kubernetes-plugin/pull/162)
  * Deprecate `containerEnvVar` for `envVar` and added `secretEnvVar`
 * Enable setting slaveConnectTimeout in podTemplate defined in pipeline [#213](https://github.com/jenkinsci/kubernetes-plugin/pull/213)
+* Read Jenkins URL from cloud configuration or `KUBERNETES_JENKINS_URL` env var [#216](https://github.com/jenkinsci/kubernetes-plugin/pull/216)
 * Make `withEnv` work inside a container [JENKINS-46278](https://issues.jenkins-ci.org/browse/JENKINS-46278) [#204](https://github.com/jenkinsci/kubernetes-plugin/pull/204)
 * Close resource leak, fix broken pipe error. Make number of concurrent requests to Kubernetes configurable [JENKINS-40825](https://issues.jenkins-ci.org/browse/JENKINS-40825) [#182](https://github.com/jenkinsci/kubernetes-plugin/pull/182)
 * Delete pods in the cloud namespace when pod namespace is not defined [JENKINS-45910](https://issues.jenkins-ci.org/browse/JENKINS-45910) [#192](https://github.com/jenkinsci/kubernetes-plugin/pull/192)
@@ -16,6 +17,7 @@ CHANGELOG
 * Allow to create non-configurable instances programmatically [#191](https://github.com/jenkinsci/kubernetes-plugin/pull/191)
 * Do not cache kubernetes connection to reflect config changes and credential expiration [JENKINS-39867](https://issues.jenkins-ci.org/browse/JENKINS-39867) [#189](https://github.com/jenkinsci/kubernetes-plugin/pull/189)
 * Inherit podAnnotations when inheriting pod templates [#209](https://github.com/jenkinsci/kubernetes-plugin/pull/209)
+* Remove unneeded plugin dependencies, make pipeline-model-extensions optional [#214](https://github.com/jenkinsci/kubernetes-plugin/pull/214)
 
 
 0.12
