@@ -48,7 +48,7 @@
     <jenkins-structs.version>1.6</jenkins-structs.version>
     <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
     <jenkins-workflow-job.version>2.9</jenkins-workflow-job.version>
-    <jenkins-workflow-step-api.version>2.9</jenkins-workflow-step-api.version>
+    <jenkins-workflow-step-api.version>2.11</jenkins-workflow-step-api.version>
     <jenkins-workflow-support.version>2.14</jenkins-workflow-support.version>
     <jenkins-workflow-api.version>2.11</jenkins-workflow-api.version>
     <jenkins-workflow-scm-step.version>2.4</jenkins-workflow-scm-step.version>
