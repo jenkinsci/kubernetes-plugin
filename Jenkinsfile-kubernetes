@@ -19,7 +19,7 @@ podTemplate(serviceAccount: 'jenkins', label: label, containers: [
 
   node(label) {
     stage('Build a Maven project') {
-      git url: 'https://github.com/jenkinsci/kubernetes-plugin.git', branch: 'autoconfigure'
+      checkout scm
       container('maven') {
           sh 'mvn -B clean package'
       }
