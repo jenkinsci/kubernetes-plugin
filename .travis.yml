@@ -1,0 +1,29 @@
+language: java
+dist: trusty
+jdk:
+  - oraclejdk8
+cache:
+  directories:
+  - .autoconf
+  - $HOME/.m2
+script:
+- mvn -B -Dmaven.javadoc.skip=true -DskipTests package
+#- mvn test -B # default
+#before_deploy: "echo 'ready?'"
+deploy:
+  provider: releases
+  prerelease: true
+  api_key:
+    secure: "make one using cli: travis setup  --force releases -r <yourrepo>/kubernetes-plugin
+#  file: "/home/travis/build/ReSearchITEng/kubernetes-plugin/target/kubernetes.hpi"
+  file_glob: true
+  file: /home/travis/.m2/repository/org/csanchez/jenkins/plugins/kubernetes/*.*-SNAPSHOT/kubernetes-*.*-SNAPSHOT.hpi
+  skip_cleanup: true
+  overwrite: true
+#  on:
+#    repo: <yourrepo>/kubernetes-plugin
+#    tags: true
+#    all_branches: false
+#    branch: master
+#after_deploy:
+#  - ./after_deploy_1.sh
