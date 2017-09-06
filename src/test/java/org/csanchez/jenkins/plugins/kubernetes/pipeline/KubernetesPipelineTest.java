@@ -131,6 +131,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogNotContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
+        r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
+        r.assertLogContains("The value of AFTER_QUOTE is AFTER_QUOTE\"", b);
+        r.assertLogContains("The value of ESCAPED_QUOTE is \\\"ESCAPED_QUOTE", b);
+        r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
     }
 
     @Test
