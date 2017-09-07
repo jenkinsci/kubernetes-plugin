@@ -101,8 +101,21 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return namespace;
     }
 
+    /**
+
+     * @deprecated Please use the strongly typed getKubernetesCloud() instead.
+     */
+    @Deprecated
+    public Cloud getCloud() {
+        return Jenkins.getInstance().getCloud(getCloudName());
+    }
+
+    /**
+     * Returns the cloud instance which created this slave.
+     * @return the cloud instance which created this slave.
+     */
     @Nonnull
-    public KubernetesCloud getCloud() {
+    public KubernetesCloud getKubernetesCloud() {
         Cloud cloud = Jenkins.getInstance().getCloud(getCloudName());
         if (cloud instanceof KubernetesCloud) {
             return (KubernetesCloud) cloud;
@@ -149,7 +162,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
-        KubernetesCloud cloud = getCloud();
+        KubernetesCloud cloud = getKubernetesCloud();
         KubernetesClient client;
         try {
             client = cloud.connect();
