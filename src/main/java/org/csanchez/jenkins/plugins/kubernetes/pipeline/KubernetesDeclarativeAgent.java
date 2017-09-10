@@ -1,11 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.Extension;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgent;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentDescriptor;
+import org.jenkinsci.plugins.variant.OptionalExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -123,7 +123,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         return argMap;
     }
 
-    @Extension @Symbol("kubernetes")
+    @OptionalExtension(requirePlugins = "pipeline-model-extensions") @Symbol("kubernetes")
     public static class DescriptorImpl extends DeclarativeAgentDescriptor<KubernetesDeclarativeAgent> {
     }
 }

@@ -23,6 +23,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import hudson.model.Environment;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -215,13 +217,43 @@ public class KubernetesCloud extends Cloud {
         this.namespace = namespace;
     }
 
+    @CheckForNull
     public String getJenkinsUrl() {
         return jenkinsUrl;
     }
 
+    /**
+     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     *
+     * Uses in order:
+     * * cloud configuration
+     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
+     * * Jenkins Location URL
+     *
+     * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     * @throws IllegalStateException if no Jenkins URL could be computed.
+     */
+    @Nonnull
+    public String getJenkinsUrlOrDie() {
+        JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
+        String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
+        String url = StringUtils.defaultIfBlank(
+                getJenkinsUrl(),
+                StringUtils.defaultIfBlank(
+                        System.getProperty("KUBERNETES_JENKINS_URL",System.getenv("KUBERNETES_JENKINS_URL")),
+                        locationConfigurationUrl
+                )
+        );
+        if (url == null) {
+            throw new IllegalStateException("Jenkins URL for Kubernetes is null");
+        }
+        url = url.endsWith("/") ? url : url + "/";
+        return url;
+    }
+
     @DataBoundSetter
     public void setJenkinsUrl(String jenkinsUrl) {
-        this.jenkinsUrl = jenkinsUrl;
+        this.jenkinsUrl = Util.fixEmptyAndTrim(jenkinsUrl);
     }
 
     public String getJenkinsTunnel() {
@@ -472,12 +504,8 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
 
-            if (StringUtils.isBlank(serverUrl))
-                return FormValidation.error("URL is required");
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
-            if (StringUtils.isBlank(namespace))
-                return FormValidation.error("namespace is required");
 
             try {
                 KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,

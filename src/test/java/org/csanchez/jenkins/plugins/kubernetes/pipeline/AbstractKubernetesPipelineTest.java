@@ -30,6 +30,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
@@ -63,27 +64,26 @@ public class AbstractKubernetesPipelineTest {
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
-    protected static KubernetesCloud cloud;
+    protected KubernetesCloud cloud;
 
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
     @Rule
-    public LoggerRule logs = new LoggerRule().record(KubernetesCloud.class, Level.ALL);
+    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
+            Level.ALL);
 
     @BeforeClass
-    public static void configureCloud() throws Exception {
+    public static void isKubernetesConfigured() throws Exception {
+        assumeKubernetes();
+    }
+
+    @Before
+    public void configureCloud() throws Exception {
         cloud = setupCloud();
         createSecret(cloud.connect());
-    }
-
-    @Before
-    public void configureTemplates() throws Exception {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
-    }
 
-    @Before
-    public void addCloudToJenkins() throws Exception {
         // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
 

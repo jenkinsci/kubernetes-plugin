@@ -21,6 +21,14 @@ Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-sla
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
 
+# Kubernetes Cloud Configuration
+
+In Jenkins settings click on add cloud, select `Kubernetes` and fill the information, like
+_Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
+
+If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
+
+
 # Pipeline support
 
 Nodes can be defined in a pipeline and then used
@@ -103,6 +111,7 @@ Either way it provides access to the following fields:
 * **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
+* **slaveConnectTimeout** Timeout in seconds for a slave to be online.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -162,8 +171,8 @@ This is made possible via nesting. You can nest multiple pod templates together 
 
 The example below composes two different podTemplates in order to create one with maven and docker capabilities.
 
-    podTemplate(label: 'docker', containers: [containerTemplate(image: 'docker)]) {
-        podTemplate(label: 'maven', containers: [containerTemplate(image: 'maven)]) {
+    podTemplate(label: 'docker', containers: [containerTemplate(image: 'docker', name: 'docker', command: 'cat', ttyEnabled: true)]) {
+        podTemplate(label: 'maven', containers: [containerTemplate(image: 'maven', name: 'maven', command: 'cat', ttyEnabled: true)]) {
             // do stuff
         }
     }
@@ -217,11 +226,9 @@ podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
         name: 'mariadb',
         image: 'mariadb:10.1',
         ttyEnabled: true,
-        command: 'cat',
         privileged: false,
         alwaysPullImage: false,
         workingDir: '/home/jenkins',
-        args: '',
         resourceRequestCpu: '50m',
         resourceLimitCpu: '100m',
         resourceRequestMemory: '100Mi',
@@ -350,11 +357,14 @@ at `DEBUG` level.
 
 # Building and Testing
 
-## manual testing
+Integration tests will use the currently configured context autodetected from kube config file or service account.
+
+## Manual Testing
 
 Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
-## integration tests with minikube
+## Integration Tests with Minikube
+
 For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
 Tests will detect it and run a set of integration tests in a new namespace.
 
@@ -367,14 +377,23 @@ system property to the (host-only or NAT) IP of your host:
 
     mvn clean install -Djenkins.host.address=192.168.99.1
 
-## integration tests in a different cluster
-To run the tests in a different kubernetes cluster, get the context with `kubectl config get-contexts` and pass it to Maven with `-Dkubernetes.context`
+## Integration Tests in a Different Cluster
 
-    mvn clean install -Dkubernetes.context=_your-kubernetes-context_
+Ensure you create the namespaces and roles with the following commands, then run the tests
+in namespace `kubernetes-plugin` with the service account `jenkins`
+(edit `src/test/kubernetes/service-account.yml` to use a different service account)
 
-ie. for a [minishift](https://github.com/minishift/minishift) context
-
-    mvn clean install -Dkubernetes.context=myproject/192-168-64-2:8443/developer
+```
+kubectl create namespace kubernetes-plugin-test
+kubectl create namespace kubernetes-plugin-test-overridden-namespace
+kubectl create namespace kubernetes-plugin-test-overridden-namespace2
+kubectl apply -n kubernetes-plugin-test -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/main/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test -f src/test/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kubernetes/service-account.yml
+kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
+```
 
 Please note that the system you run `mvn` on needs to be reachable from the cluster.
 If you see the slaves happen to connect to the wrong host, see you can use

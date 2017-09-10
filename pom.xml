@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>0.13-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment</description>
   <packaging>hpi</packaging>
@@ -30,8 +30,6 @@
   </developers>
 
   <properties>
-    <kubernetes.context>minikube</kubernetes.context>
-
     <java.level>8</java.level>
 
     <!-- dependency versions -->
@@ -87,47 +85,27 @@
       <version>${jenkins-credentials.version}</version>
     </dependency>
 
-    <dependency>
+    <dependency> <!-- OnceRetentionStrategy -->
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
       <version>${jenkins-durable-task.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
-      <version>${jenkins-durable-task-step.version}</version>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>variant</artifactId>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
       <version>${jenkins-workflow-step-api.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
-      <version>${jenkins-workflow-cps.version}</version>
-    </dependency>
-    <dependency>
+    <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
       <version>${jenkins-declarative.version}</version>
+      <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>pipeline-model-api</artifactId>
-      <version>${jenkins-declarative.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>script-security</artifactId>
-      <version>${jenkins-script-security.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-support</artifactId>
-      <version>${jenkins-workflow-support.version}</version>
-    </dependency>
-
 
     <!-- for testing -->
     <dependency>
@@ -147,6 +125,18 @@
       <artifactId>workflow-step-api</artifactId>
       <version>${jenkins-workflow-step-api.version}</version>
       <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <version>${jenkins-workflow-support.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>${jenkins-durable-task-step.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -180,6 +170,12 @@
       <version>${jenkins-workflow-api.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <version>${jenkins-workflow-cps.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
@@ -202,7 +198,6 @@
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <!-- listen in all interfaces from connections from kubernetes pods -->
             <connectorHost>0.0.0.0</connectorHost>
-            <kubernetes.context>${kubernetes.context}</kubernetes.context>
           </systemPropertyVariables>
         </configuration>
       </plugin>
