@@ -29,7 +29,6 @@ import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 
 public class PodTemplateUtils {
-
     /**
      * Combines a {@link ContainerTemplate} with its parent.
      * @param parent        The parent container template (nullable).
@@ -89,11 +88,11 @@ public class PodTemplateUtils {
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
-        
+
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
-        podAnnotations.addAll(parent.getAnnotations());
         podAnnotations.addAll(template.getAnnotations());
-        
+        podAnnotations.addAll(parent.getAnnotations());
+
         Set<PodImagePullSecret> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getImagePullSecrets());
         imagePullSecrets.addAll(template.getImagePullSecrets());
