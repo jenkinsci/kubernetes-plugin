@@ -281,9 +281,6 @@ class ProvisioningCallback implements Callable<Node> {
             env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
         }
 
-        url = url.endsWith("/") ? url : url + "/";
-        env.put("JENKINS_JNLP_URL", url + slave.getComputer().getUrl() + "slave-agent.jnlp");
-
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
         // As a result, container is running without a home set for user, resulting into using `/` for some tools,
         // and `?` for java build tools. So we force HOME to a safe location.
