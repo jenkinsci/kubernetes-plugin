@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -59,7 +61,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Label;
@@ -82,6 +83,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import jenkins.model.Jenkins;
@@ -145,73 +147,44 @@ class ProvisioningCallback implements Callable<Node> {
             String podId = pod.getMetadata().getName();
             String namespace = Strings.isNullOrEmpty(t.getNamespace()) ? client.getNamespace() : t.getNamespace();
 
-            LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[] { podId, namespace });
+            String[] logArgs = new String[] { namespace, podId };
+            LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", logArgs);
             pod = client.pods().inNamespace(namespace).create(pod);
-            LOGGER.log(Level.INFO, "Created Pod: {0} in namespace {1}", new Object[] { podId, namespace });
 
-            // We need the pod to be running and connected before returning
-            // otherwise this method keeps being called multiple times
-            ImmutableList<String> validStates = ImmutableList.of("Running");
-
-            int i = 0;
-            int j = 100; // wait 600 seconds
-
-            List<ContainerStatus> containerStatuses = null;
-
-            // wait for Pod to be running
-            for (; i < j; i++) {
-                LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[] { podId, i, j });
-                Thread.sleep(6000);
-                pod = cloud.connect().pods().inNamespace(namespace).withName(podId).get();
-                if (pod == null) {
-                    throw new IllegalStateException("Pod no longer exists: " + podId);
-                }
-
-                containerStatuses = pod.getStatus().getContainerStatuses();
-                List<ContainerStatus> terminatedContainers = new ArrayList<>();
-                Boolean allContainersAreReady = true;
-                for (ContainerStatus info : containerStatuses) {
-                    if (info != null) {
-                        if (info.getState().getWaiting() != null) {
-                            // Pod is waiting for some reason
-                            LOGGER.log(Level.INFO, "Container is waiting {0} [{2}]: {1}",
-                                    new Object[] { podId, info.getState().getWaiting(), info.getName() });
-                            // break;
-                        }
-                        if (info.getState().getTerminated() != null) {
-                            terminatedContainers.add(info);
-                        } else if (!info.getReady()) {
-                            allContainersAreReady = false;
+            LOGGER.log(Level.INFO, "Waiting for pod to be ready: {0}/{1}", logArgs);
+            try {
+                client.pods().inNamespace(namespace).withName(podId).waitUntilReady(10, TimeUnit.MINUTES);
+            } catch (KubernetesClientTimeoutException e) {
+                pod = client.pods().inNamespace(namespace).withName(podId).get();
+                if (pod != null) {
+                    List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+                    List<ContainerStatus> terminatedContainers = new ArrayList<>();
+                    for (ContainerStatus info : containerStatuses) {
+                        if (info != null) {
+                            if (info.getState().getWaiting() != null) {
+                                // Pod is waiting for some reason
+                                LOGGER.log(Level.INFO, "Container is waiting {0} [{2}]: {1}",
+                                        new Object[] { podId, info.getState().getWaiting(), info.getName() });
+                            }
+                            if (info.getState().getTerminated() != null) {
+                                terminatedContainers.add(info);
+                            }
                         }
                     }
-                }
+                    if (!terminatedContainers.isEmpty()) {
+                        Map<String, Integer> errors = terminatedContainers.stream().collect(toMap(
+                                ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
 
-                if (!terminatedContainers.isEmpty()) {
-                    Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors
-                            .toMap(ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
-
-                    // Print the last lines of failed containers
-                    logLastLines(terminatedContainers, podId, namespace, slave, errors);
-                    throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
+                        // Print the last lines of failed containers
+                        logLastLines(terminatedContainers, podId, namespace, slave, errors);
+                    }
                 }
-
-                if (!allContainersAreReady) {
-                    continue;
-                }
-
-                if (validStates.contains(pod.getStatus().getPhase())) {
-                    break;
-                }
+                throw e;
             }
-            String status = pod.getStatus().getPhase();
-            if (!validStates.contains(status)) {
-                throw new IllegalStateException("Container is not running after " + j + " attempts, status: " + status);
-            }
-
-            j = t.getSlaveConnectTimeout();
 
             // now wait for slave to be online
-            for (; i < j; i++) {
+            int j = t.getSlaveConnectTimeout();
+            for (int i = 0; i < j; i++) {
                 if (slave.getComputer() == null) {
                     throw new IllegalStateException("Node was deleted, computer is null");
                 }
@@ -222,10 +195,13 @@ class ProvisioningCallback implements Callable<Node> {
                 Thread.sleep(1000);
             }
             if (!slave.getComputer().isOnline()) {
+                pod = client.pods().inNamespace(namespace).withName(podId).get();
+                List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
                 if (containerStatuses != null) {
                     logLastLines(containerStatuses, podId, namespace, slave, null);
                 }
-                throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
+                throw new IllegalStateException(
+                        "Slave is not connected after " + j + " attempts, status: " + pod.getStatus().getPhase());
             }
 
             return slave;
