@@ -28,14 +28,11 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.RetentionStrategy;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.concurrent.Callable;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  * Callback for Kubernetes cloud provision
