@@ -114,6 +114,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     /**
      * Returns the cloud instance which created this slave.
      * @return the cloud instance which created this slave.
+     * @throws IllegalStateException if the cloud doesn't exist anymore, or is not a {@link KubernetesCloud}.
      */
     @Nonnull
     public KubernetesCloud getKubernetesCloud() {
