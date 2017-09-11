@@ -83,7 +83,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("PID file contents: ", b);
-
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
