@@ -37,6 +37,22 @@ public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> implem
         this.value = value;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PodAnnotation that = (PodAnnotation) o;
+
+        return key != null ? key.equals(that.key) : that.key == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return key != null ? key.hashCode() : 0;
+    }
+
     @Extension
     @Symbol("podAnnotation")
     public static class DescriptorImpl extends Descriptor<PodAnnotation> {
