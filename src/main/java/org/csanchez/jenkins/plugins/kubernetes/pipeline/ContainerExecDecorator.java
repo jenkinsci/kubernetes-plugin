@@ -244,23 +244,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
 
-            private boolean isContainerReady(Pod pod, String container) {
-                if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
-                    return false;
-                }
-
-                for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
-                    if (info.getName().equals(container) && info.getReady()) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
             private void waitUntilContainerIsReady() throws IOException {
                 try {
-                    client.pods().inNamespace(namespace).withName(podName)
+                    Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
+
+                    for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
+                        if (info.getName().equals(containerName)) {
+                            if (info.getReady()) {
+                                return;
+                            } else {
+                                // container died in the meantime
+                                throw new IOException("container [" + containerName + "] of pod [" + podName + "] is not ready, state is " + info.getState());
+                            }
+                        }
+                    }
+                    throw new IOException("container [" + containerName + "] does not exist in pod [" + podName + "]");
                 } catch (InterruptedException | KubernetesClientTimeoutException e) {
                     throw new IOException("Failed to execute shell script inside container " +
                             "[" + containerName + "] of pod [" + podName + "]." +
