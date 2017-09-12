@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -77,6 +78,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
+
+        if(step.getDeadlineSeconds() != 0) {
+            newTemplate.setDeadlineSeconds(step.getDeadlineSeconds());
+        }
 
         kubernetesCloud.addTemplate(newTemplate);
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();

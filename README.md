@@ -111,6 +111,7 @@ Either way it provides access to the following fields:
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for a slave to be online.
+* **activeDeadlineSeconds** Pod is deleted after this deadline is passed.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 

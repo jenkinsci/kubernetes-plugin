@@ -144,5 +144,4 @@ public class KubernetesTestUtil {
                 .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());
     }
-
 }

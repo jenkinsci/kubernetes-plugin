@@ -281,11 +281,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.idleMinutes = i;
     }
 
-    public int getIdleMinutes() { return idleMinutes; }
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
 
-    public void setDeadlineSeconds(int i) { this.deadlineSeconds = i; }
+    public void setDeadlineSeconds(int i) {
+        this.deadlineSeconds = i;
+    }
 
-    public int getDeadlineSeconds() { return deadlineSeconds; }
+    public int getDeadlineSeconds() {
+        return deadlineSeconds;
+    }
 
     @DataBoundSetter
     public void setIdleMinutesStr(String idleMinutes) {
