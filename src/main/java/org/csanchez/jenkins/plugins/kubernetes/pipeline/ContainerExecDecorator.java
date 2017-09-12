@@ -249,6 +249,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
 
+                    if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
+                        throw new IOException("Failed to execute shell script inside container " +
+                                "[" + containerName + "] of pod [" + podName + "]." +
+                                "Failed to get container status");
+                    }
+
                     for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
                         if (info.getName().equals(containerName)) {
                             if (info.getReady()) {
