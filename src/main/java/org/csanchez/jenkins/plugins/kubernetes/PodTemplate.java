@@ -70,6 +70,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private int idleMinutes;
 
+    private int deadlineSeconds;
+
     private String label;
 
     private String serviceAccount;
@@ -118,6 +120,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setNodeUsageMode(from.getNodeUsageMode());
         this.setServiceAccount(from.getServiceAccount());
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
+        this.setDeadlineSeconds(from.getDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
     }
@@ -278,9 +281,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.idleMinutes = i;
     }
 
-    public int getIdleMinutes() {
-        return idleMinutes;
-    }
+    public int getIdleMinutes() { return idleMinutes; }
+
+    public void setDeadlineSeconds(int i) { this.deadlineSeconds = i; }
+
+    public int getDeadlineSeconds() { return deadlineSeconds; }
 
     @DataBoundSetter
     public void setIdleMinutesStr(String idleMinutes) {
@@ -296,6 +301,23 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return "";
         } else {
             return String.valueOf(idleMinutes);
+        }
+    }
+
+    @DataBoundSetter
+    public void setDeadlineSecondsStr(String deadlineSeconds) {
+        if (StringUtils.isBlank(deadlineSeconds)) {
+            setDeadlineSeconds(0);
+        } else {
+            setDeadlineSeconds(Integer.parseInt(deadlineSeconds));
+        }
+    }
+
+    public String getDeadlineSecondsStr() {
+        if (getDeadlineSeconds() == 0) {
+            return "";
+        } else {
+            return String.valueOf(deadlineSeconds);
         }
     }
 

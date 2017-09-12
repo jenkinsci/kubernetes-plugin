@@ -40,6 +40,7 @@ import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodFluent;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -271,14 +272,20 @@ public class KubernetesLauncher extends JNLPLauncher {
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
                 .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
-        return new PodBuilder()
+
+        PodFluent.SpecNested<PodBuilder> builder = new PodBuilder()
                 .withNewMetadata()
                 .withName(substituteEnv(slave.getNodeName()))
                 .withLabels(slave.getKubernetesCloud().getLabelsMap(template.getLabelSet()))
                 .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
-                .withNewSpec()
-                .withVolumes(volumes)
+                .withNewSpec();
+
+        if(template.getDeadlineSeconds() > 0) {
+            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getDeadlineSeconds()));
+        }
+
+        Pod pod = builder.withVolumes(volumes)
                 .withServiceAccount(substituteEnv(template.getServiceAccount()))
                 .withImagePullSecrets(imagePullSecrets)
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
@@ -286,7 +293,11 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withRestartPolicy("Never")
                 .endSpec()
                 .build();
+
+        return pod;
+
     }
+
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values

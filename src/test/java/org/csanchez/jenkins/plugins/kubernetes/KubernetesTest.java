@@ -93,5 +93,8 @@ public class KubernetesTest {
         assertEquals("/host", hostPathVolume.getMountPath());
         assertEquals("/mnt/host", hostPathVolume.getHostPath());
         assertEquals(HostPathVolume.class.getName(), hostPathVolume.getClass().getName());
+
+        assertEquals(0, podTemplate.getDeadlineSeconds());
+
     }
 }
