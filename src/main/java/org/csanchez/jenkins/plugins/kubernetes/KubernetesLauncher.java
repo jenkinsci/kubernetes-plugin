@@ -310,24 +310,25 @@ public class KubernetesLauncher extends JNLPLauncher {
         // and `?` for java build tools. So we force HOME to a safe location.
         env.put("HOME", containerTemplate.getWorkingDir());
 
-        List<EnvVar> envVarsList = new ArrayList<>();
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
 
-        if (globalEnvVars != null) {
-            envVarsList.addAll(globalEnvVars.stream()
-                    .map(TemplateEnvVar::buildEnvVar)
-                    .collect(Collectors.toList()));
-        }
         if (containerTemplate.getEnvVars() != null) {
-            envVarsList.addAll(containerTemplate.getEnvVars().stream()
-                    .map(TemplateEnvVar::buildEnvVar)
-                    .collect(Collectors.toList()));
+            containerTemplate.getEnvVars().forEach(item ->
+                    envVarsMap.computeIfAbsent(item.getKey(), k -> item.buildEnvVar())
+            );
+        }
+        if (globalEnvVars != null) {
+            globalEnvVars.forEach( item ->
+                    envVarsMap.computeIfAbsent(item.getKey(), k -> item.buildEnvVar())
+            );
         }
 
         List<EnvVar> defaultEnvVars = env.entrySet().stream()
                 .map(entry -> new EnvVar(entry.getKey(), entry.getValue(), null))
                 .collect(Collectors.toList());
-        envVarsList.addAll(defaultEnvVars);
-        EnvVar[] envVars = envVarsList.stream().toArray(EnvVar[]::new);
+        defaultEnvVars.forEach( item -> envVarsMap.putIfAbsent(item.getName(), item));
+
+        EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(containerTemplate.getArgs() //
