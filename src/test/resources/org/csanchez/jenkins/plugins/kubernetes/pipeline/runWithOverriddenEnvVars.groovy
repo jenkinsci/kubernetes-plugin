@@ -12,17 +12,17 @@ podTemplate(label: 'mypod',
         ]) {
 
     node ('mypod') {
-        sh """
-        echo OUTSIDE_CONTAINER_HOME_ENV_VAR = \$HOME
-        echo OUTSIDE_CONTAINER_POD_ENV_VAR = \$POD_ENV_VAR
-        """
+        sh '''
+        echo OUTSIDE_CONTAINER_HOME_ENV_VAR = $HOME
+        echo OUTSIDE_CONTAINER_POD_ENV_VAR = $POD_ENV_VAR
+        '''
         stage('Run busybox') {
             container('busybox') {
-                sh 'echo inside container'
-                sh """
-                echo INSIDE_CONTAINER_HOME_ENV_VAR = \$HOME
-                echo INSIDE_CONTAINER_POD_ENV_VAR = \$POD_ENV_VAR
-                """
+                sh '''
+                echo inside container
+                echo INSIDE_CONTAINER_HOME_ENV_VAR = $HOME
+                echo INSIDE_CONTAINER_POD_ENV_VAR = $POD_ENV_VAR
+                '''
             }
         }
     }
