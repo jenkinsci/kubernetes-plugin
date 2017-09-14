@@ -166,11 +166,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
+        computer.disconnect(offlineCause);
+
         if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
-            computer.disconnect(offlineCause);
             return;
         }
         KubernetesCloud cloud;
@@ -179,7 +180,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
         } catch (IllegalStateException e) {
             e.printStackTrace(listener.fatalError("Unable to terminate slave. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster."));
             LOGGER.log(Level.SEVERE, String.format("Unable to terminate slave %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
-            computer.disconnect(offlineCause);
             return;
         }
         KubernetesClient client;
@@ -189,7 +189,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 | KeyStoreException e) {
             String msg = String.format("Failed to connect to cloud %s", getCloudName());
             e.printStackTrace(listener.fatalError(msg));
-            computer.disconnect(offlineCause);
             return;
         }
 
@@ -207,14 +206,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     e.getMessage());
             LOGGER.log(Level.WARNING, msg, e);
             listener.error(msg);
-            computer.disconnect(offlineCause);
             return;
         }
 
         String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
-        computer.disconnect(offlineCause);
         LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
     }
 
