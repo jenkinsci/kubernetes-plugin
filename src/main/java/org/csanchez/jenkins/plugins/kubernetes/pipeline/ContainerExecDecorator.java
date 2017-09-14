@@ -147,7 +147,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 printStream.println(msg);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream).withTTY()
+                        .redirectingInput().writingOutput(stream).writingError(stream)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -183,7 +183,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec();
+                    watch = execable.exec("/bin/sh");
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
