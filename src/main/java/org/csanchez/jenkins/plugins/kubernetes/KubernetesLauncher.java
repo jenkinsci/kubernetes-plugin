@@ -318,15 +318,14 @@ public class KubernetesLauncher extends JNLPLauncher {
             );
         }
         if (globalEnvVars != null) {
-            globalEnvVars.forEach( item ->
+            globalEnvVars.forEach(item ->
                     envVarsMap.computeIfAbsent(item.getKey(), k -> item.buildEnvVar())
             );
         }
 
-        List<EnvVar> defaultEnvVars = env.entrySet().stream()
-                .map(entry -> new EnvVar(entry.getKey(), entry.getValue(), null))
-                .collect(Collectors.toList());
-        defaultEnvVars.forEach( item -> envVarsMap.putIfAbsent(item.getName(), item));
+        env.entrySet().forEach(item ->
+                envVarsMap.computeIfAbsent(item.getKey(), k -> new EnvVar(item.getKey(), item.getValue(), null))
+        );
 
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
