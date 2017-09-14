@@ -312,20 +312,21 @@ public class KubernetesLauncher extends JNLPLauncher {
 
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
-        if (containerTemplate.getEnvVars() != null) {
-            containerTemplate.getEnvVars().forEach(item ->
-                    envVarsMap.computeIfAbsent(item.getKey(), k -> item.buildEnvVar())
-            );
-        }
+        env.entrySet().forEach(item ->
+                envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
+        );
+
         if (globalEnvVars != null) {
             globalEnvVars.forEach(item ->
-                    envVarsMap.computeIfAbsent(item.getKey(), k -> item.buildEnvVar())
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
             );
         }
 
-        env.entrySet().forEach(item ->
-                envVarsMap.computeIfAbsent(item.getKey(), k -> new EnvVar(item.getKey(), item.getValue(), null))
-        );
+        if (containerTemplate.getEnvVars() != null) {
+            containerTemplate.getEnvVars().forEach(item ->
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
+            );
+        }
 
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 

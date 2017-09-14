@@ -1,11 +1,13 @@
 podTemplate(label: 'mypod',
         envVars: [
+                envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value-first'),
                 envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value')
         ],
         containers: [
                 containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
                         envVars: [
                                 envVar(key: 'HOME', value: '/root'),
+                                envVar(key: 'POD_ENV_VAR', value: 'container-env-var-value-first'),
                                 envVar(key: 'POD_ENV_VAR', value: 'container-env-var-value')
                         ],
                 ),
