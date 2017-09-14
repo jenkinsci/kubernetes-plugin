@@ -500,7 +500,7 @@ Tearing it down
 
 ## Customizing the deployment
 
-### Modify CPUa and memory request/limits (Kubernetes Resource API)
+### Modify CPUs and memory request/limits (Kubernetes Resource API)
 
 Modify file `./src/main/kubernetes/jenkins.yml` with desired limits
 
@@ -519,3 +519,8 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 ## Building
 
     docker build -t csanchez/jenkins-kubernetes .
+
+# Related Projects
+
+* [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds
+* [Kubernetes Secrets Credentials plugin](https://github.com/hoshsadiq/jenkins-kubernetes-secrets-credentials): Credentials provider that reads Kubernetes secrets
