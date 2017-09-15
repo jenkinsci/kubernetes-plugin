@@ -5,12 +5,15 @@ import static java.util.stream.Collectors.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import com.google.common.base.Strings;
@@ -65,7 +68,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setIdleMinutes(step.getIdleMinutes());
         newTemplate.setSlaveConnectTimeout(step.getSlaveConnectTimeout());
-        newTemplate.setLabel(step.getLabel());
+        String label = step.getLabel();
+        if (StringUtils.isEmpty(label)) {
+            label = name;
+        }
+        newTemplate.setLabel(label);
         newTemplate.setEnvVars(step.getEnvVars());
         newTemplate.setVolumes(step.getVolumes());
         newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
@@ -79,7 +86,12 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
 
         kubernetesCloud.addTemplate(newTemplate);
-        getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
+
+        EnvironmentExpander expander = EnvironmentExpander.constant(ImmutableMap.of("current_pod_label", label));
+
+        getContext().newBodyInvoker()
+                .withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), expander))
+                .withCallback(new PodTemplateCallback(newTemplate)).start();
 
         podTemplateAction.push(name);
         namespaceAction.push(namespace);
