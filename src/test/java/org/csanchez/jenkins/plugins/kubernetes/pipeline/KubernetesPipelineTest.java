@@ -283,15 +283,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         r.waitForMessage("podTemplate", b);
 
-        PodTemplate deadlineTemplate = null;
-        for (Iterator<PodTemplate> iterator = cloud.getTemplates().iterator(); iterator.hasNext(); ) {
-            PodTemplate template = iterator.next();
-            if (template.getLabel() == "deadline") {
-                deadlineTemplate = template;
-            }
-        }
+        PodTemplate deadlineTemplate = cloud.getTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().get();
+
+        assertEquals(10, deadlineTemplate.getDeadlineSeconds());
         assertNotNull(deadlineTemplate);
-        assertEquals(3600, deadlineTemplate.getDeadlineSeconds());
+        r.assertLogNotContains("Hello from container!", b);
     }
 
 }

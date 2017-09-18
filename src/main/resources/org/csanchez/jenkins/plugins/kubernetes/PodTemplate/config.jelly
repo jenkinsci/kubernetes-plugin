@@ -53,7 +53,7 @@
   </f:entry>
 
   <f:entry field="deadlineSecondsStr" title="${%Time in seconds for Pod deadline}">
-    <f:textbox/>
+    <f:number/>
   </f:entry>
 
   <f:entry field="slaveConnectTimeoutStr" title="${%Timeout in seconds for Jenkins connection}">
