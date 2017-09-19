@@ -99,7 +99,8 @@ Either way it provides access to the following fields:
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod.
-* **container** The container templates that are use to create the containers of the pod *(see below)*.
+* **initContainers** The init container templates that are use to create the init containers of the pod.
+* **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
@@ -125,6 +126,8 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 * **ports** Expose ports on the container.
+
+The containerTemplate can be used to define templates for both plain and init containers.
 
 #### Liveness Probe Usage
 ```groovy
