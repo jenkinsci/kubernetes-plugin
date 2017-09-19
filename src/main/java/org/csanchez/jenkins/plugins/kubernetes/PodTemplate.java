@@ -93,6 +93,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
+    private List<ContainerTemplate> initContainers = new ArrayList<ContainerTemplate>();
+
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
     private List<TemplateEnvVar> envVars = new ArrayList<>();
@@ -109,6 +111,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public PodTemplate(PodTemplate from) {
         this.setAnnotations(from.getAnnotations());
+        this.setInitContainers(from.getInitContainers());
         this.setContainers(from.getContainers());
         this.setImagePullSecrets(from.getImagePullSecrets());
         this.setInstanceCap(from.getInstanceCap());
@@ -542,6 +545,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.workspaceVolume = workspaceVolume;
     }
 
+    @Nonnull
+    public List<ContainerTemplate> getContainers() {
+        if (containers == null) {
+            return Collections.emptyList();
+        }
+        return containers;
+    }
+
     @DataBoundSetter
     public void setContainers(@Nonnull List<ContainerTemplate> items) {
         synchronized (this.containers) {
@@ -551,11 +562,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Nonnull
-    public List<ContainerTemplate> getContainers() {
-        if (containers == null) {
+    public List<ContainerTemplate> getInitContainers() {
+        if (initContainers == null) {
             return Collections.emptyList();
         }
-        return containers;
+        return initContainers;
+    }
+
+    @DataBoundSetter
+    public void setInitContainers(@Nonnull List<ContainerTemplate> items) {
+        synchronized (this.initContainers) {
+            this.initContainers.clear();
+            this.initContainers.addAll(items);
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -579,6 +598,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
         if (annotations == null) {
             annotations = new ArrayList<>();
+        }
+
+        if (initContainers == null) {
+            initContainers = new ArrayList<>();
         }
 
         return this;
