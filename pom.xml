@@ -45,20 +45,30 @@
     <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
     <jenkins-durable-task.version>1.13</jenkins-durable-task.version>
     <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
-    <jenkins-structs.version>1.6</jenkins-structs.version>
-    <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
-    <jenkins-workflow-job.version>2.9</jenkins-workflow-job.version>
+    <jenkins-structs.version>1.10</jenkins-structs.version>
+    <jenkins-workflow-cps.version>2.36.1</jenkins-workflow-cps.version>
+    <jenkins-workflow-job.version>2.11</jenkins-workflow-job.version>
     <jenkins-workflow-step-api.version>2.11</jenkins-workflow-step-api.version>
     <jenkins-workflow-support.version>2.14</jenkins-workflow-support.version>
-    <jenkins-workflow-api.version>2.11</jenkins-workflow-api.version>
+    <jenkins-workflow-api.version>2.20</jenkins-workflow-api.version>
     <jenkins-workflow-scm-step.version>2.4</jenkins-workflow-scm-step.version>
-    <jenkins-scm-api.version>2.0.7</jenkins-scm-api.version>
-    <jenkins-declarative.version>1.1.2</jenkins-declarative.version>
-    <jenkins-script-security.version>1.26</jenkins-script-security.version>
+    <jenkins-scm-api.version>2.2.2</jenkins-scm-api.version>
+    <jenkins-declarative.version>1.2-beta-5</jenkins-declarative.version>
+    <jenkins-script-security.version>1.34</jenkins-script-security.version>
 
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>script-security</artifactId>
+      <version>1.34</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>mailer</artifactId>
+      <version>1.17</version>
+    </dependency>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
