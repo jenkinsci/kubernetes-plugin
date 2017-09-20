@@ -114,6 +114,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
         }
         KubernetesComputer kubernetesComputer = (KubernetesComputer) computer;
+        computer.setAcceptingTasks(false);
         KubernetesSlave slave = kubernetesComputer.getNode();
         if (slave == null) {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
@@ -215,6 +216,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 }
                 throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
             }
+            computer.setAcceptingTasks(true);
         } catch (Throwable ex) {
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; slave=%s, template=%s", slave, unwrappedTemplate), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
