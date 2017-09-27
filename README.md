@@ -16,7 +16,7 @@ For that some environment variables are automatically injected:
 * `JENKINS_SECRET`: the secret key for authentication
 * `JENKINS_NAME`: the name of the Jenkins agent
 
-Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-slave),
+Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
 
@@ -47,7 +47,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 ### Container Group Support
@@ -486,7 +486,7 @@ Set `Container Cap` to a reasonable number for tests, i.e. 3.
 
 Add an image with
 
-* Docker image: `jenkinsci/jnlp-slave`
+* Docker image: `jenkins/jnlp-slave`
 * Jenkins slave root directory: `/home/jenkins`
 
 ![image](configuration.png)
