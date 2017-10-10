@@ -212,10 +212,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (environmentExpander != null) {
                         EnvVars envVars = new EnvVars();
                         environmentExpander.expand(envVars);
-                        for (Map.Entry<String, String> entry : envVars.entrySet()) {
-                            watch.getInput().write(
-                                    String.format("export %s=\"%s\"%s", entry.getKey(),  StringEscapeUtils.escapeJavaScript(entry.getValue()), NEWLINE).getBytes(StandardCharsets.UTF_8));
-                        }
+                        this.setupEnvironmentVariable(envVars, watch);
                     }
 
                     doExec(watch, printStream, commands);
@@ -244,6 +241,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
+
+            private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException
+            {
+                for (Map.Entry<String, String> entry : vars.entrySet()) {
+                         watch.getInput().write(
+                                 String.format("export %s=\"%s\"%s", entry.getKey(), StringEscapeUtils.escapeJava(entry.getValue()), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                     }
+            }
+
 
 
             private boolean isContainerReady(Pod pod, String container) {
