@@ -40,7 +40,7 @@
         <f:entry field="idleMinutes" title="${%Time in minutes to retain slave when idle}">
           <f:textbox default="0"/>
        </f:entry>
-        <f:entry field="deadlineSeconds" title="${%Time in seconds for Pod deadline}">
+        <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
           <f:number/>
         </f:entry>
         <f:entry field="serviceAccount" title="The service account">

@@ -23,7 +23,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String serviceAccount;
     private String nodeSelector;
     private String workingDir;
-    private int deadlineSeconds;
+    private int activeDeadlineSeconds;
 
     private ContainerTemplate containerTemplate;
 
@@ -95,14 +95,12 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         return containerTemplate;
     }
 
-    public int getDeadlineSeconds() {
-        return deadlineSeconds;
+    public int getActiveDeadlineSeconds() {
+        return activeDeadlineSeconds;
     }
 
     @DataBoundSetter
-    public void setDeadlineSeconds(int deadlineSeconds) {
-        this.deadlineSeconds = deadlineSeconds;
-    }
+    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) { this.activeDeadlineSeconds = activeDeadlineSeconds; }
 
     public Map<String,Object> getAsArgs() {
         Map<String,Object> argMap = new TreeMap<>();
@@ -126,8 +124,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (!StringUtils.isEmpty(workingDir)) {
             argMap.put("workingDir", workingDir);
         }
-        if (deadlineSeconds != 0) {
-            argMap.put("deadlineSeconds", deadlineSeconds);
+        if (activeDeadlineSeconds != 0) {
+            argMap.put("activeDeadlineSeconds", activeDeadlineSeconds);
         }
 
         if (instanceCap > 0) {

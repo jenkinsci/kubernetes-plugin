@@ -52,7 +52,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="deadlineSecondsStr" title="${%Time in seconds for Pod deadline}">
+  <f:entry field="activeDeadlineSecondsStr" title="${%Time in seconds for Pod deadline}">
     <f:number/>
   </f:entry>
 

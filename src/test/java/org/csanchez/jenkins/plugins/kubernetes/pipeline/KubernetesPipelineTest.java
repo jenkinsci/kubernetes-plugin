@@ -274,9 +274,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void runWithDeadlineSeconds() throws Exception {
+    public void runWithActiveDeadlineSeconds() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "Deadline");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithDeadlineSeconds.groovy")
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithActiveDeadlineSeconds.groovy")
                 , true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
@@ -285,7 +285,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         PodTemplate deadlineTemplate = cloud.getTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().get();
 
-        assertEquals(10, deadlineTemplate.getDeadlineSeconds());
+        assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
         assertNotNull(deadlineTemplate);
         r.assertLogNotContains("Hello from container!", b);
     }

@@ -281,8 +281,8 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .endMetadata()
                 .withNewSpec();
 
-        if(template.getDeadlineSeconds() > 0) {
-            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getDeadlineSeconds()));
+        if(template.getActiveDeadlineSeconds() > 0) {
+            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
         }
 
         Pod pod = builder.withVolumes(volumes)

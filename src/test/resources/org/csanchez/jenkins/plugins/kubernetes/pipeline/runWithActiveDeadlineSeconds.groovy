@@ -1,4 +1,4 @@
-podTemplate(label: 'deadline', deadlineSeconds: 10, containers: [
+podTemplate(label: 'deadline', activeDeadlineSeconds: 10, containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
 

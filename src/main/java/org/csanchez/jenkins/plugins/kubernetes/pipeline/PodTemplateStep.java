@@ -48,7 +48,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private int instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
     private int slaveConnectTimeout;
-    private int deadlineSeconds;
+    private int activeDeadlineSeconds;
 
     private String serviceAccount;
     private String nodeSelector;
@@ -162,18 +162,16 @@ public class PodTemplateStep extends Step implements Serializable {
         this.slaveConnectTimeout = slaveConnectTimeout;
     }
 
-    public int getDeadlineSeconds() {
-        return deadlineSeconds;
+    public int getActiveDeadlineSeconds() {
+        return activeDeadlineSeconds;
     }
 
     @DataBoundSetter
-    public void setDeadlineSeconds(int deadlineSeconds) {
-        this.deadlineSeconds = deadlineSeconds;
+    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) {
+        this.activeDeadlineSeconds = activeDeadlineSeconds;
     }
 
-    public String getServiceAccount() {
-        return serviceAccount;
-    }
+    public String getServiceAccount() { return serviceAccount; }
 
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {

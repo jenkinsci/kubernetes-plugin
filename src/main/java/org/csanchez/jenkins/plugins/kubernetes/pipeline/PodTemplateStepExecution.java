@@ -79,8 +79,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
 
-        if(step.getDeadlineSeconds() != 0) {
-            newTemplate.setDeadlineSeconds(step.getDeadlineSeconds());
+        if(step.getActiveDeadlineSeconds() != 0) {
+            newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
         }
 
         kubernetesCloud.addTemplate(newTemplate);

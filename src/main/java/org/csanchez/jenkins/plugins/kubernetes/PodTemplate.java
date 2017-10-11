@@ -70,7 +70,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private int idleMinutes;
 
-    private int deadlineSeconds;
+    private int activeDeadlineSeconds;
 
     private String label;
 
@@ -120,7 +120,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setNodeUsageMode(from.getNodeUsageMode());
         this.setServiceAccount(from.getServiceAccount());
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
-        this.setDeadlineSeconds(from.getDeadlineSeconds());
+        this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
     }
@@ -285,12 +285,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return idleMinutes;
     }
 
-    public void setDeadlineSeconds(int i) {
-        this.deadlineSeconds = i;
+    public void setActiveDeadlineSeconds(int i) {
+        this.activeDeadlineSeconds = i;
     }
 
-    public int getDeadlineSeconds() {
-        return deadlineSeconds;
+    public int getActiveDeadlineSeconds() {
+        return activeDeadlineSeconds;
     }
 
     @DataBoundSetter
@@ -311,19 +311,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setDeadlineSecondsStr(String deadlineSeconds) {
-        if (StringUtils.isBlank(deadlineSeconds)) {
-            setDeadlineSeconds(0);
+    public void setActiveDeadlineSecondsStr(String activeDeadlineSeconds) {
+        if (StringUtils.isBlank(activeDeadlineSeconds)) {
+            setActiveDeadlineSeconds(0);
         } else {
-            setDeadlineSeconds(Integer.parseInt(deadlineSeconds));
+            setActiveDeadlineSeconds(Integer.parseInt(activeDeadlineSeconds));
         }
     }
 
-    public String getDeadlineSecondsStr() {
-        if (getDeadlineSeconds() == 0) {
+    public String getActiveDeadlineSecondsStr() {
+        if (getActiveDeadlineSeconds() == 0) {
             return "";
         } else {
-            return String.valueOf(deadlineSeconds);
+            return String.valueOf(activeDeadlineSeconds);
         }
     }
 
