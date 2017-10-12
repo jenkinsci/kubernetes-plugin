@@ -38,7 +38,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         PrivateKeySource source = new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(
                 new String(IOUtils.toByteArray(getClass().getResourceAsStream("id_rsa"))));
         BasicSSHUserPrivateKey credentials = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL,
-                "ContainerExecDecoratorPipelineTest-sshagent", "bob", source, "", "test credentials");
+                "ContainerExecDecoratorPipelineTest-sshagent", "bob", source, "secret_passphrase", "test credentials");
         SystemCredentialsProvider.getInstance().getCredentials().add(credentials);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "sshagent");
@@ -47,5 +47,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         assertNotNull(b);
         r.waitForCompletion(b);
         r.assertLogContains("Identity added:", b);
+        //check that we don't accidentally start exporting sensitive info to the log
+        r.assertLogNotContains("secret_passphrase", b);
     }
 }
