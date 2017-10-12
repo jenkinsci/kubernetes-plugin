@@ -45,12 +45,14 @@ public class PodTemplateUtilsTest {
 
     private static final PodAnnotation ANNOTATION_1 = new PodAnnotation("key1", "value1");
     private static final PodAnnotation ANNOTATION_2 = new PodAnnotation("key2", "value2");
+    private static final PodAnnotation ANNOTATION_3 = new PodAnnotation("key1", "value3");
 
     private static final ContainerTemplate JNLP_1 = new ContainerTemplate("jnlp", "jnlp:1");
     private static final ContainerTemplate JNLP_2 = new ContainerTemplate("jnlp", "jnlp:2");
 
     private static final ContainerTemplate MAVEN_1 = new ContainerTemplate("maven", "maven:1", "sh -c", "cat");
     private static final ContainerTemplate MAVEN_2 = new ContainerTemplate("maven", "maven:2");
+
 
     @Test
     public void shouldReturnContainerTemplateWhenParentIsNull() {
@@ -152,14 +154,15 @@ public class PodTemplateUtilsTest {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
-        parent.setAnnotations(asList(ANNOTATION_1));
+        parent.setAnnotations(asList(ANNOTATION_1, ANNOTATION_2));
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template");
-        template1.setAnnotations(asList(ANNOTATION_2));
-        
+        template1.setAnnotations(asList(ANNOTATION_3));
+
         PodTemplate result = combine(parent, template1);
         assertEquals(2, result.getAnnotations().size());
+        assertEquals("value3", result.getAnnotations().get(0).getValue().toString());
     }
 
 

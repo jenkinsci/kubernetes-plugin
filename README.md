@@ -13,11 +13,10 @@ Slaves are launched using JNLP, so it is expected that the image connects automa
 For that some environment variables are automatically injected:
 
 * `JENKINS_URL`: Jenkins web interface url
-* `JENKINS_JNLP_URL`: url for the jnlp definition of the specific slave
 * `JENKINS_SECRET`: the secret key for authentication
 * `JENKINS_NAME`: the name of the Jenkins agent
 
-Tested with [`jenkinsci/jnlp-slave`](https://hub.docker.com/r/jenkinsci/jnlp-slave),
+Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/carlossg/jenkins-slave-docker).
 
 
@@ -48,7 +47,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 ### Container Group Support
@@ -487,7 +486,7 @@ Set `Container Cap` to a reasonable number for tests, i.e. 3.
 
 Add an image with
 
-* Docker image: `jenkinsci/jnlp-slave`
+* Docker image: `jenkins/jnlp-slave`
 * Jenkins slave root directory: `/home/jenkins`
 
 ![image](configuration.png)
@@ -501,7 +500,7 @@ Tearing it down
 
 ## Customizing the deployment
 
-### Modify CPUa and memory request/limits (Kubernetes Resource API)
+### Modify CPUs and memory request/limits (Kubernetes Resource API)
 
 Modify file `./src/main/kubernetes/jenkins.yml` with desired limits
 
@@ -520,3 +519,8 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 ## Building
 
     docker build -t csanchez/jenkins-kubernetes .
+
+# Related Projects
+
+* [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds
+* [Kubernetes Secrets Credentials plugin](https://github.com/hoshsadiq/jenkins-kubernetes-secrets-credentials): Credentials provider that reads Kubernetes secrets

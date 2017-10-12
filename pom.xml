@@ -48,7 +48,7 @@
     <jenkins-structs.version>1.6</jenkins-structs.version>
     <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
     <jenkins-workflow-job.version>2.9</jenkins-workflow-job.version>
-    <jenkins-workflow-step-api.version>2.9</jenkins-workflow-step-api.version>
+    <jenkins-workflow-step-api.version>2.11</jenkins-workflow-step-api.version>
     <jenkins-workflow-support.version>2.14</jenkins-workflow-support.version>
     <jenkins-workflow-api.version>2.11</jenkins-workflow-api.version>
     <jenkins-workflow-scm-step.version>2.4</jenkins-workflow-scm-step.version>
@@ -232,6 +232,11 @@
             at io.fabric8.kubernetes.client.utils.Serialization.<clinit>(Serialization.java:37)
           -->
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
+          <systemProperties>
+            <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
+            <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
+            <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
+          </systemProperties>
         </configuration>
       </plugin>
     </plugins>
