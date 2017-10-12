@@ -44,7 +44,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
-    private static final int DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = 100;
+    public static final int DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = 100;
 
     private String inheritFrom;
 
