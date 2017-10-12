@@ -11,26 +11,30 @@
 
 def label = UUID.randomUUID().toString()
 
-podTemplate(serviceAccount: 'jenkins', label: label, containers: [
-  containerTemplate(name: 'maven', image: 'maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat')
-  ], volumes: [
-  persistentVolumeClaim(mountPath: '/root/.m2/repository', claimName: 'maven-repo', readOnly: false)
-  ]) {
+timestamps {
 
-  node(label) {
-    stage('Checkout') {
-      checkout scm
-    }
-    stage('Package') {
-      container('maven') {
-          sh 'mvn -B clean package -Dmaven.test.skip=true'
+  podTemplate(serviceAccount: 'jenkins', label: label, containers: [
+    containerTemplate(name: 'maven', image: 'maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat')
+    ], volumes: [
+    persistentVolumeClaim(mountPath: '/root/.m2/repository', claimName: 'maven-repo', readOnly: false)
+    ]) {
+
+    node(label) {
+      stage('Checkout') {
+        checkout scm
       }
-    }
-    stage('Test') {
-      container('maven') {
-          sh 'mvn -B test'
+      stage('Package') {
+        container('maven') {
+            sh 'mvn -B clean package -Dmaven.test.skip=true'
+        }
       }
-      junit '**/target/surefire-reports/**/*.xml'
+      stage('Test') {
+        container('maven') {
+            sh 'mvn -B test'
+        }
+        junit '**/target/surefire-reports/**/*.xml'
+      }
     }
   }
+
 }
