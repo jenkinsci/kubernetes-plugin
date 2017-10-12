@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,8 +24,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
-import hudson.model.Environment;
-import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -56,11 +55,14 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Kubernetes cloud provider.
@@ -184,7 +186,6 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setServerUrl(@Nonnull String serverUrl) {
-        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
         this.serverUrl = serverUrl;
     }
 
@@ -512,16 +513,32 @@ public class KubernetesCloud extends Cloud {
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
                         connectionTimeout, readTimeout).createClient();
 
+                // test listing pods
                 client.pods().list();
-                return FormValidation.ok("Connection successful");
+
+                // test creating pods
+                Pod pod = client.pods().create(new PodBuilder() //
+                        .withNewMetadata().withGenerateName("kubernetes-plugin-").endMetadata() //
+                        .withNewSpec() //
+                        .withContainers( //
+                                new ContainerBuilder().withName("alpine").withImage("alpine").withCommand("cat")
+                                        .withTty(true).build()) //
+                        .endSpec().build());
+                String podName = pod.getMetadata().getName();
+                LOGGER.log(Level.FINE, "Created test pod: {0}/{1}",
+                        new String[] { pod.getMetadata().getNamespace(), podName });
+                client.pods().withName(podName).waitUntilReady(30, TimeUnit.SECONDS);
+                client.pods().withName(podName).delete();
+
+                return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
-                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
-                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getCause() == null
+                LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
+                return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getCause() == null
                         ? e.getMessage()
                         : String.format("%s: %s", e.getCause().getClass().getName(), e.getCause().getMessage()));
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
-                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getMessage());
+                LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
+                return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getMessage());
             }
         }
 
