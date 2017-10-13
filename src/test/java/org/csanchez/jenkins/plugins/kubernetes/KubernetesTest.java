@@ -78,7 +78,7 @@ public class KubernetesTest {
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
         assertEquals(1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
-        assertEquals("jenkinsci/jnlp-slave", containerTemplate.getImage());
+        assertEquals("jenkins/jnlp-slave", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
         assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());

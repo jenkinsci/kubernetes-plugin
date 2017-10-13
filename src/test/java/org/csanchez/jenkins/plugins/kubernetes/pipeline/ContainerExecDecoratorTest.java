@@ -25,9 +25,11 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,10 +39,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
@@ -51,11 +50,15 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.junit.rules.ExpectedException;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * @author Carlos Sanchez
  */
 public class ContainerExecDecoratorTest {
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     private static KubernetesClient client;
     private static Map<String, String> labels = Collections.singletonMap("class",
@@ -63,6 +66,7 @@ public class ContainerExecDecoratorTest {
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
     private ContainerExecDecorator decorator;
+    private Pod pod;
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
@@ -78,7 +82,7 @@ public class ContainerExecDecoratorTest {
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        Pod pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
+        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
                 .endMetadata().withNewSpec().withContainers(c).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
@@ -94,7 +98,7 @@ public class ContainerExecDecoratorTest {
     @Test(timeout = 10000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
-        List<ProcReturn> results = new ArrayList<>(t.length);
+        List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
         for (int i = 0; i < t.length; i++) {
             t[i] = newThread(i, results);
         }
@@ -159,8 +163,8 @@ public class ContainerExecDecoratorTest {
 
     @Test
     public void testCommandExecutionWithNohup() throws Exception {
-        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
@@ -185,9 +189,17 @@ public class ContainerExecDecoratorTest {
     @Test
     public void testCommandExecutionWithNohupAndError() throws Exception {
         ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
-        assertFalse("Output should not contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(127, r.exitCode);
         assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    @Issue("JENKINS-46719")
+    public void testContainerDoesNotExist() throws Exception {
+        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist", client.getNamespace());
+        exception.expect(IOException.class);
+        exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
+        execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
