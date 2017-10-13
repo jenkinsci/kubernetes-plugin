@@ -57,7 +57,6 @@ import io.fabric8.kubernetes.client.dsl.Execable;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -245,9 +244,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException
             {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
-                         watch.getInput().write(
-                                 String.format("export %s=\"%s\"%s", entry.getKey(), StringEscapeUtils.escapeJava(entry.getValue()), NEWLINE).getBytes(StandardCharsets.UTF_8));
-                     }
+                    watch.getInput().write(
+                            String.format(
+                                    "export %s='%s'\n",
+                                    entry.getKey(),
+                                    entry.getValue().replace("'", "'\\''")
+                            ).getBytes(StandardCharsets.UTF_8)
+                    );
+                }
             }
 
 

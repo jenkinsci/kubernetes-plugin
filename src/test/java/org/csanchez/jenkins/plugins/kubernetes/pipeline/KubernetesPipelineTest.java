@@ -135,6 +135,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_QUOTE is AFTER_QUOTE\"", b);
         r.assertLogContains("The value of ESCAPED_QUOTE is \\\"ESCAPED_QUOTE", b);
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
+        r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
+        r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
     }
 
     @Test
