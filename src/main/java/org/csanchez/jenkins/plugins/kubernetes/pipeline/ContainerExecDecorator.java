@@ -205,15 +205,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         // The workspace is not known in advance, so we have to execute a cd command.
                         watch.getInput().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
+
                     }
 
                     if (environmentExpander != null) {
                         EnvVars envVars = new EnvVars();
                         environmentExpander.expand(envVars);
-                        for (Map.Entry<String, String> entry : envVars.entrySet()) {
-                            watch.getInput().write(
-                                    String.format("export %s=\"%s\"%s", entry.getKey(), entry.getValue(), NEWLINE).getBytes(StandardCharsets.UTF_8));
-                        }
+                        this.setupEnvironmentVariable(envVars, watch);
                     }
 
                     doExec(watch, printStream, commands);
@@ -242,6 +240,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
+
+            private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException
+            {
+                for (Map.Entry<String, String> entry : vars.entrySet()) {
+                    watch.getInput().write(
+                            String.format(
+                                    "export %s='%s'%s",
+                                    entry.getKey(),
+                                    entry.getValue().replace("'", "'\\''"),
+                                    NEWLINE
+                            ).getBytes(StandardCharsets.UTF_8)
+                    );
+                }
+            }
+
 
 
             private void waitUntilContainerIsReady() throws IOException {
