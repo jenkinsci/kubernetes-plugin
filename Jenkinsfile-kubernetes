@@ -10,13 +10,18 @@
  */
 
 def label = UUID.randomUUID().toString()
+def jvmOptions = '-Xmx300M'
 
 timestamps {
 
   podTemplate(serviceAccount: 'jenkins', label: label, containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat')
+    containerTemplate(name: 'maven', image: 'maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat',
+        resourceRequestCpu: '100m',
+        resourceLimitMemory: '1200Mi')
+    ], envVars: [
+        envVar(key: '_JAVA_OPTIONS', value: jvmOptions)
     ], volumes: [
-    persistentVolumeClaim(mountPath: '/root/.m2/repository', claimName: 'maven-repo', readOnly: false)
+     // persistentVolumeClaim(mountPath: '/root/.m2/repository', claimName: 'maven-repo', readOnly: true)
     ]) {
 
     node(label) {
@@ -25,7 +30,7 @@ timestamps {
       }
       stage('Package') {
         container('maven') {
-            sh 'mvn -B clean package -Dmaven.test.skip=true'
+            sh 'mvn -B clean install -Dmaven.test.skip=true -Dfindbugs.fork=false'
         }
       }
       stage('Test') {
