@@ -21,7 +21,7 @@ timestamps {
     ], envVars: [
         envVar(key: '_JAVA_OPTIONS', value: jvmOptions)
     ], volumes: [
-     // persistentVolumeClaim(mountPath: '/root/.m2/repository', claimName: 'maven-repo', readOnly: true)
+      persistentVolumeClaim(mountPath: '/root/.m2/repository-read-only', claimName: 'maven-repo', readOnly: true)
     ]) {
 
     node(label) {
@@ -30,6 +30,7 @@ timestamps {
       }
       stage('Package') {
         container('maven') {
+            sh 'cp -a /root/.m2/repository-read-only /root/.m2/repository'
             sh 'mvn -B clean install -Dmaven.test.skip=true -Dfindbugs.fork=false'
         }
       }
