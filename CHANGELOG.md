@@ -1,6 +1,18 @@
 CHANGELOG
 =========
 
+1.1
+-----
+* Only allow tasks after all containers in pod are ready [#230](https://github.com/jenkinsci/kubernetes-plugin/pull/230)
+* Add activeDeadlineSeconds to Pod template [#221](https://github.com/jenkinsci/kubernetes-plugin/pull/221)
+* Default podTemplate slaveConnectTimeout to 100 [#235](https://github.com/jenkinsci/kubernetes-plugin/pull/235)
+* Allow overriding HOME env var and remove duplicated env vars [#224](https://github.com/jenkinsci/kubernetes-plugin/pull/224)
+* Rename jenkinsci/jnlp-slave -> jenkins/jnlp-slave and upgrade to 3.10-1 [#231](https://github.com/jenkinsci/kubernetes-plugin/pull/231)
+* Do not use a tty to prevent nohup.out from being created [JENKINS-46087](https://issues.jenkins-ci.org/browse/JENKINS-46085) [#212](https://github.com/jenkinsci/kubernetes-plugin/pull/222)
+* Pod annotations cannot contain duplicate keys when combining pod templates [#220](https://github.com/jenkinsci/kubernetes-plugin/pull/220)
+* Kubernetes agents not getting deleted in Jenkins after pods are deleted [JENKINS-35246](https://issues.jenkins-ci.org/browse/JENKINS-35246) [#217](https://github.com/jenkinsci/kubernetes-plugin/pull/217)
+* Remove unused JENKINS_JNLP_URL env var [#219](https://github.com/jenkinsci/kubernetes-plugin/pull/219)
+
 1.0
 -----
 

@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -47,7 +48,8 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private int instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
-    private int slaveConnectTimeout;
+    private int slaveConnectTimeout = PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
+    private int activeDeadlineSeconds;
 
     private String serviceAccount;
     private String nodeSelector;
@@ -161,9 +163,16 @@ public class PodTemplateStep extends Step implements Serializable {
         this.slaveConnectTimeout = slaveConnectTimeout;
     }
 
-    public String getServiceAccount() {
-        return serviceAccount;
+    public int getActiveDeadlineSeconds() {
+        return activeDeadlineSeconds;
     }
+
+    @DataBoundSetter
+    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) {
+        this.activeDeadlineSeconds = activeDeadlineSeconds;
+    }
+
+    public String getServiceAccount() { return serviceAccount; }
 
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
