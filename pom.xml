@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.1</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment</description>
   <packaging>hpi</packaging>
@@ -18,7 +18,7 @@
     <connection>scm:git:ssh://github.com/jenkinsci/kubernetes-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
-    <tag>HEAD</tag>
+    <tag>kubernetes-1.1</tag>
   </scm>
 
   <developers>
