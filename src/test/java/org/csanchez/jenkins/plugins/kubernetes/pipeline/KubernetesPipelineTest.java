@@ -28,6 +28,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -283,6 +284,23 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 r.assertLogContains("xxx", b);
             }
         });
+    }
+
+    @Test
+    public void runWithActiveDeadlineSeconds() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "Deadline");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithActiveDeadlineSeconds.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+
+        r.waitForMessage("podTemplate", b);
+
+        PodTemplate deadlineTemplate = cloud.getTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().get();
+
+        assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
+        assertNotNull(deadlineTemplate);
+        r.assertLogNotContains("Hello from container!", b);
     }
 
 }
