@@ -246,9 +246,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     watch.getInput().write(
                             String.format(
-                                    "export %s='%s'\n",
+                                    "export %s='%s'%s",
                                     entry.getKey(),
-                                    entry.getValue().replace("'", "'\\''")
+                                    entry.getValue().replace("'", "'\\''"),
+                                    NEWLINE
                             ).getBytes(StandardCharsets.UTF_8)
                     );
                 }
