@@ -40,6 +40,7 @@ import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodFluent;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -86,7 +87,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     private static final String DEFAULT_JNLP_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
     private static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkinsci/jnlp-slave:alpine");
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:alpine");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -114,6 +115,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
         }
         KubernetesComputer kubernetesComputer = (KubernetesComputer) computer;
+        computer.setAcceptingTasks(false);
         KubernetesSlave slave = kubernetesComputer.getNode();
         if (slave == null) {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
@@ -215,6 +217,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 }
                 throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
             }
+            computer.setAcceptingTasks(true);
         } catch (Throwable ex) {
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; slave=%s, template=%s", slave, unwrappedTemplate), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
@@ -271,14 +274,20 @@ public class KubernetesLauncher extends JNLPLauncher {
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
                 .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
-        return new PodBuilder()
+
+        PodFluent.SpecNested<PodBuilder> builder = new PodBuilder()
                 .withNewMetadata()
                 .withName(substituteEnv(slave.getNodeName()))
                 .withLabels(slave.getKubernetesCloud().getLabelsMap(template.getLabelSet()))
                 .withAnnotations(getAnnotationsMap(template.getAnnotations()))
                 .endMetadata()
-                .withNewSpec()
-                .withVolumes(volumes)
+                .withNewSpec();
+
+        if(template.getActiveDeadlineSeconds() > 0) {
+            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
+        }
+
+        Pod pod = builder.withVolumes(volumes)
                 .withServiceAccount(substituteEnv(template.getServiceAccount()))
                 .withImagePullSecrets(imagePullSecrets)
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
@@ -286,7 +295,11 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withRestartPolicy("Never")
                 .endSpec()
                 .build();
+
+        return pod;
+
     }
+
 
     private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values
@@ -310,24 +323,25 @@ public class KubernetesLauncher extends JNLPLauncher {
         // and `?` for java build tools. So we force HOME to a safe location.
         env.put("HOME", containerTemplate.getWorkingDir());
 
-        List<EnvVar> envVarsList = new ArrayList<>();
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
+
+        env.entrySet().forEach(item ->
+                envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
+        );
 
         if (globalEnvVars != null) {
-            envVarsList.addAll(globalEnvVars.stream()
-                    .map(TemplateEnvVar::buildEnvVar)
-                    .collect(Collectors.toList()));
-        }
-        if (containerTemplate.getEnvVars() != null) {
-            envVarsList.addAll(containerTemplate.getEnvVars().stream()
-                    .map(TemplateEnvVar::buildEnvVar)
-                    .collect(Collectors.toList()));
+            globalEnvVars.forEach(item ->
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
+            );
         }
 
-        List<EnvVar> defaultEnvVars = env.entrySet().stream()
-                .map(entry -> new EnvVar(entry.getKey(), entry.getValue(), null))
-                .collect(Collectors.toList());
-        envVarsList.addAll(defaultEnvVars);
-        EnvVar[] envVars = envVarsList.stream().toArray(EnvVar[]::new);
+        if (containerTemplate.getEnvVars() != null) {
+            containerTemplate.getEnvVars().forEach(item ->
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
+            );
+        }
+
+        EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(containerTemplate.getArgs() //

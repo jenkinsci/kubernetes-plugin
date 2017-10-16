@@ -85,6 +85,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
 
+        if(step.getActiveDeadlineSeconds() != 0) {
+            newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
+        }
+
         kubernetesCloud.addTemplate(newTemplate);
 
         EnvironmentExpander expander = EnvironmentExpander.constant(ImmutableMap.of("current_pod_label", label));
