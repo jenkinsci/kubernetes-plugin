@@ -57,6 +57,7 @@ import io.fabric8.kubernetes.client.dsl.Execable;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -71,6 +72,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
+    private static final String JENKINS_HOME = "JENKINS_HOME";
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private final transient KubernetesClient client;
@@ -116,17 +118,28 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             public Proc launch(ProcStarter starter) throws IOException {
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-                String[] commands = getCommands(starter);
 
-                return doLaunch(quiet, pwd, commands);
+                String [] cmdEnvs = starter.envs();
+
+                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs as we are getting other environment variables
+                for (String cmd : cmdEnvs) {
+                    if (cmd.contains(JENKINS_HOME)) {
+                        cmdEnvs = new String[0];
+                        LOGGER.info("Skipping injection of procstarter cmdenvs due to JENKINS_HOME present");
+                        break;
+                    }
+                }
+                String [] commands = getCommands(starter);
+                return doLaunch(quiet, cmdEnvs, starter.stdout(), pwd,  commands);
             }
 
-            private Proc doLaunch(boolean quiet, FilePath pwd, String... commands) throws IOException {
+            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
                 waitUntilContainerIsReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
                 final AtomicBoolean alive = new AtomicBoolean(false);
+
 
                 PrintStream printStream = launcher.getListener().getLogger();
                 OutputStream stream = printStream;
@@ -141,6 +154,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
                 // send container output both to the job output and our buffer
                 stream = new TeeOutputStream(exitCodeOutputStream, stream);
+                // Send to proc caller as well if they sent one
+                if (outputForCaller != null) {
+                    stream = new TeeOutputStream(outputForCaller, stream);
+                }
 
                 String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
                 LOGGER.log(Level.FINEST, msg);
@@ -205,6 +222,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         // The workspace is not known in advance, so we have to execute a cd command.
                         watch.getInput().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
+
                     }
 
                     if (environmentExpander != null) {
@@ -212,7 +230,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         environmentExpander.expand(envVars);
                         for (Map.Entry<String, String> entry : envVars.entrySet()) {
                             watch.getInput().write(
-                                    String.format("export %s=\"%s\"%s", entry.getKey(), entry.getValue(), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                                    String.format("export %s=\"%s\"%s", entry.getKey(), StringEscapeUtils.escapeJavaScript(entry.getValue()), NEWLINE).getBytes(StandardCharsets.UTF_8));
+                        }
+                    }
+
+                    //setup specific command envs passed into cmd
+                    if (cmdEnvs != null) {
+                        for (String cmdEnv : cmdEnvs) {
+                            watch.getInput().write(
+                                    String.format("export \"%s\"%s", StringEscapeUtils.escapeJava(cmdEnv), NEWLINE).getBytes(StandardCharsets.UTF_8));
                         }
                     }
 
@@ -236,7 +262,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
                 int exitCode = doLaunch(
-                        true, null,
+                        true, null, null, null,
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
