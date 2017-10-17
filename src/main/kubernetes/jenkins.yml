@@ -18,6 +18,8 @@ metadata:
 spec:
   serviceName: jenkins
   replicas: 1
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       name: jenkins
@@ -28,7 +30,8 @@ spec:
       serviceAccountName: jenkins
       containers:
         - name: jenkins
-          image: jenkinsci/jenkins:2.60.1
+          image: jenkins/jenkins:lts-alpine
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
             - containerPort: 50000
@@ -40,8 +43,14 @@ spec:
               cpu: 0.5
               memory: 500Mi
           env:
+            - name: LIMITS_MEMORY
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  divisor: 1Mi
             - name: JAVA_OPTS
-              value: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85"
+              # value: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+              value: -Xmx$(LIMITS_MEMORY)m -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home
