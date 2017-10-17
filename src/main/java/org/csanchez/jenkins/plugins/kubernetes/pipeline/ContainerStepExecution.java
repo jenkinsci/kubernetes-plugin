@@ -4,13 +4,14 @@ import java.io.Closeable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.inject.Inject;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import hudson.EnvVars;
 import hudson.LauncherDecorator;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -24,10 +25,26 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
 
-    private final ContainerStep step;
+    @Inject(optional=true)
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
+    private final transient ContainerStep step;
 
     private transient KubernetesClient client;
-    private transient ContainerExecDecorator decorator;
+    private ContainerExecDecorator decorator;
+
+    @Override
+    // TODO Revisit for JENKINS-40161
+    public void onResume() {
+        super.onResume();
+        LOGGER.log(Level.FINE, "ContainerStepExecution onResume");
+        try {
+            KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
+            client = nodeContext.connectToCloud();
+            decorator.setKubernetesClient(client);
+        } catch (Exception e) {
+            ContainerStepExecution.this.getContext().onFailure(e);
+        }
+    }
 
     ContainerStepExecution(ContainerStep step, StepContext context) {
         super(context);

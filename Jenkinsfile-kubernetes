@@ -35,10 +35,15 @@ timestamps {
         }
       }
       stage('Test') {
-        container('maven') {
-            sh 'mvn -B test'
+        try {
+            container('maven') {
+                sh 'mvn -B test'
+            }
+        } catch (e) {
+            throw e
+        } finally {
+            junit '**/target/surefire-reports/**/*.xml'
         }
-        junit '**/target/surefire-reports/**/*.xml'
       }
     }
   }
