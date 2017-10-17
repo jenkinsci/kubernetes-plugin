@@ -120,6 +120,12 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (slave == null) {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
         }
+        if (launched) {
+            LOGGER.info("Agent: " + slave.getNodeName() + " has already been launched. Activating...");
+            computer.setAcceptingTasks(true);
+            return;
+        }
+
         KubernetesCloud cloud = slave.getKubernetesCloud();
         final PodTemplate unwrappedTemplate = slave.getTemplate();
         try {
@@ -229,6 +235,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             throw Throwables.propagate(ex);
         }
         launched = true;
+        try {
+            // We need to persist the "launched" setting...
+            slave.save();
+        } catch (IOException e) {
+            LOGGER.warning("Could not save() agent: " + e.getMessage());
+        }
     }
 
     private Pod getPodTemplate(KubernetesSlave slave, PodTemplate template) {

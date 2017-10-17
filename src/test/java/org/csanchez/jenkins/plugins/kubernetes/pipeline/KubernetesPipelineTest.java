@@ -37,18 +37,11 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
 
-import hudson.model.Node;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -59,8 +52,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
 
-    @Rule
-    public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -82,7 +73,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate template = templates.get(0);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("PID file contents: ", b);
+        r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
@@ -257,39 +248,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Still alive", b);
-    }
-
-    // @Test
-    public void runInPodWithRestart() throws Exception {
-        story.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                story.j.jenkins.clouds.add(new KubernetesCloud("test"));
-
-                story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                        Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestart.groovy")
-                        , true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("withDisplayAfterRestart/1", b);
-            }
-        });
-        story.addStep(new Statement() {
-            @SuppressWarnings("SleepWhileInLoop")
-            @Override
-            public void evaluate() throws Throwable {
-                SemaphoreStep.success("withDisplayAfterRestart/1", null);
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
-                assertNotNull(p);
-                WorkflowRun b = p.getBuildByNumber(1);
-                assertNotNull(b);
-                story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
-                story.j.assertLogContains("DISPLAY=:", b);
-                r.assertLogContains("xxx", b);
-            }
-        });
     }
 
     @Test
