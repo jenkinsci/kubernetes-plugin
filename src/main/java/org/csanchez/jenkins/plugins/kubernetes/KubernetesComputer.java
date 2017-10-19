@@ -28,7 +28,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public void taskCompleted(Executor executor, Queue.Task task, long durationMS) {
-        cleanupPodAnnotation(task);
+        cleanupPodAnnotation();
         LOGGER.log(Level.FINE, " Computer " + this + " taskCompleted");
 
         // May take the slave offline and remove it, in which case getNode()
@@ -38,7 +38,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public void taskCompletedWithProblems(Executor executor, Queue.Task task, long durationMS, Throwable problems) {
-        cleanupPodAnnotation(task);
+        cleanupPodAnnotation();
         super.taskCompletedWithProblems(executor, task, durationMS, problems);
         LOGGER.log(Level.FINE, " Computer " + this + " taskCompletedWithProblems");
     }
@@ -52,13 +52,14 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         KubernetesClient k8sClient = null;
         try {
             KubernetesSlave slave = getNode();
-            k8sClient = slave.getKubernetesCloud().connect();
-            Pod done = k8sClient.pods().withName(slave.getNodeName()).edit().editMetadata()
-                    .addToAnnotations("jenkins.task.name", task.getName()).endMetadata().done();
+            if (slave != null) {
+                k8sClient = slave.getKubernetesCloud().connect();
+                Pod done = k8sClient.pods().withName(slave.getNodeName()).edit().editMetadata()
+                        .addToAnnotations("jenkins.task.name", task.getName()).endMetadata().done();
 
-            String nodeName = done.getSpec().getNodeName();
-            LOGGER.info("accepted task [" + task.getName() + "] in pod [" + slave.getNodeName() + "] on node [" + nodeName + "]");
-
+                String nodeName = done.getSpec().getNodeName();
+                LOGGER.info("accepted task [" + task.getName() + "] in pod [" + slave.getNodeName() + "] on node [" + nodeName + "]");
+            }
         }
         catch (Exception e) {
             LOGGER.log(Level.WARNING, "Cannot contact k8s server", e);
@@ -70,13 +71,15 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         }
     }
 
-    private void cleanupPodAnnotation(Queue.Task task) {
+    private void cleanupPodAnnotation() {
         KubernetesClient k8sClient = null;
         try {
             KubernetesSlave slave = getNode();
-            k8sClient = slave.getKubernetesCloud().connect();
-            k8sClient.pods().withName(slave.getNodeName()).edit().editMetadata()
-                    .removeFromAnnotations("jenkins.task.name").endMetadata().done();
+            if (slave != null) {
+                k8sClient = slave.getKubernetesCloud().connect();
+                k8sClient.pods().withName(slave.getNodeName()).edit().editMetadata()
+                        .removeFromAnnotations("jenkins.task.name").endMetadata().done();
+            }
         }
         catch (Exception e) {
             LOGGER.log(Level.WARNING, "Cannot contact k8s server", e);
