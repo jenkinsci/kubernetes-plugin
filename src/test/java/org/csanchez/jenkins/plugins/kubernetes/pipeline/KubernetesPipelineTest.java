@@ -28,7 +28,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -137,6 +136,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
         r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
         r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
+        r.assertLogContains("The value of WILL.NOT is ", b);
     }
 
     @Test

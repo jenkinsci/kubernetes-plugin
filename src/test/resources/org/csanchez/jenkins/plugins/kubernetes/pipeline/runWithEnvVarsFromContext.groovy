@@ -14,7 +14,8 @@ podTemplate(label: 'mypod',
                     'ESCAPED_QUOTE=\\"ESCAPED_QUOTE',
                     "SINGLE_QUOTE=BEFORE'AFTER",
                     'AFTER_ESCAPED_QUOTE=AFTER_ESCAPED_QUOTE\\"',
-                    'WITH_NEWLINE=before newline\nafter newline'
+                    'WITH_NEWLINE=before newline\nafter newline',
+                    'WILL.NOT=BEUSED'
             ]) {
                 container('busybox') {
                     sh 'echo inside container'
@@ -27,6 +28,7 @@ podTemplate(label: 'mypod',
                         echo "The value of AFTER_ESCAPED_QUOTE is $AFTER_ESCAPED_QUOTE"
                         echo "The value of SINGLE_QUOTE is $SINGLE_QUOTE"
                         echo "The value of WITH_NEWLINE is $WITH_NEWLINE"
+                        echo "The value of WILL.NOT is $WILL.NOT"
                     '''
                 }
             }

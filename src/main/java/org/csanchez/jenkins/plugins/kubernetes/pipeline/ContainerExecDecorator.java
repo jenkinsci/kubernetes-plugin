@@ -237,9 +237,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     this.setupEnvironmentVariable(envVars, watch);
-
                     doExec(watch, printStream, commands);
-
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
                     closables.add(proc);
                     return proc;
@@ -268,14 +266,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException
             {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
-                    watch.getInput().write(
-                            String.format(
-                                    "export %s='%s'%s",
-                                    entry.getKey(),
-                                    entry.getValue().replace("'", "'\\''"),
-                                    NEWLINE
-                            ).getBytes(StandardCharsets.UTF_8)
-                    );
+                    //Check that key is bash compliant.
+                    if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                        try{
+                            watch.getInput().write(
+                                    String.format(
+                                            "export %s='%s'%s",
+                                            entry.getKey(),
+                                            entry.getValue().replace("'", "'\\''"),
+                                            NEWLINE
+                                    ).getBytes(StandardCharsets.UTF_8)
+                            );
+                        }
+
+                        catch (IOException io)
+                        {
+                            LOGGER.info(String.format("Error: %s exporting %s - %s", io.getMessage() ,entry.getKey(), entry.getValue()));
+                        }
+                    }
                 }
             }
 
