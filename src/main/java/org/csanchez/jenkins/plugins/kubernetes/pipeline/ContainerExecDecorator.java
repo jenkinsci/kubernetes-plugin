@@ -268,7 +268,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                        try{
                             watch.getInput().write(
                                     String.format(
                                             "export %s='%s'%s",
@@ -278,13 +277,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                     ).getBytes(StandardCharsets.UTF_8)
                             );
                         }
-
-                        catch (IOException io)
-                        {
-                            LOGGER.info(String.format("Error: %s exporting %s - %s", io.getMessage() ,entry.getKey(), entry.getValue()));
-                        }
                     }
-                }
             }
 
             private void waitUntilContainerIsReady() throws IOException {
