@@ -105,7 +105,7 @@ Either way it provides access to the following fields:
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars** Environment variables that are applied to **ALL** containers.
-    * **envVar** An environment variable whose value is defined inline. 
+    * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
@@ -118,7 +118,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **name** The name of the container.
 * **image** The image of the container.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
-    * **envVar** An environment variable whose value is defined inline. 
+    * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **command** The command the container will execute.
 * **args** The arguments passed to the command.
@@ -477,6 +477,8 @@ Kubernetes URL to the container engine cluster endpoint or simply `https://kuber
 Under credentials, click `Add` and select `Kubernetes Service Account`,
 or alternatively use the Kubernetes API username and password. Select 'Certificate' as credentials type if the
 kubernetes cluster is configured to use client certificates for authentication.
+
+Using `Kubernetes Service Account` will cause the plugin to use the default token mounted inside the Jenkins pod. See [Configure Service Accounts for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) for more information.
 
 ![image](credentials.png)
 
