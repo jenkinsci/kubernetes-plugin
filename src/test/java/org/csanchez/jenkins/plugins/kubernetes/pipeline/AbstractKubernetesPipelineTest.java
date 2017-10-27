@@ -24,12 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
@@ -39,11 +35,11 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
+
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
@@ -55,9 +51,18 @@ import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
 
+import java.net.InetAddress;
+import java.net.URL;
+import static java.util.Arrays.asList;
+import java.util.logging.Level;
+
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
+
+
 public class AbstractKubernetesPipelineTest {
-    protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
-    protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
+    protected static final String CONTAINER_ENV_VAR_VALUE = "container-environmentExpander-var-value";
+    protected static final String POD_ENV_VAR_VALUE = "pod-environmentExpander-var-value";
     protected static final String SECRET_KEY = "password";
     protected static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     protected static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
@@ -129,15 +134,24 @@ public class AbstractKubernetesPipelineTest {
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
-        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
-        TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
-        podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
-        TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
+        AbstractTemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
+        AbstractTemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
+
+        podTemplate.setCombinedEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
+
+        AbstractTemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
+
+        ContainerEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
                 CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
+
+        AbstractTemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
                 "container-secret", SECRET_KEY);
+
         podTemplate.getContainers().get(0)
-                .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
+                .setEnvVars(asList(containerEnvVariableLegacy));
+
+        podTemplate.getContainers().get(0)
+                .setCombinedEnvVars(asList(containerEnvVariable, containerSecretEnvVariable));
+
     }
 }

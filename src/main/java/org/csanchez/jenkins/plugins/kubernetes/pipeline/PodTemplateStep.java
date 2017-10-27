@@ -9,7 +9,6 @@ import java.util.Set;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -25,6 +24,10 @@ import hudson.Extension;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import org.csanchez.jenkins.plugins.kubernetes.PodEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 
 public class PodTemplateStep extends Step implements Serializable {
 
@@ -40,7 +43,8 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
-    private List<TemplateEnvVar> envVars = new ArrayList<>();
+    private List<AbstractTemplateEnvVar> envVars = new ArrayList<>();
+
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
@@ -106,7 +110,7 @@ public class PodTemplateStep extends Step implements Serializable {
         this.containers = containers;
     }
 
-    public List<TemplateEnvVar> getEnvVars() {
+    public List<AbstractTemplateEnvVar> getEnvVars() {
         return envVars == null ? Collections.emptyList() : envVars;
     }
 
@@ -114,9 +118,19 @@ public class PodTemplateStep extends Step implements Serializable {
     public void setEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.clear();
-            this.envVars.addAll(envVars);
+            for(TemplateEnvVar envVar : envVars)
+            {
+                if(envVar instanceof PodEnvVar)
+                {
+                    this.envVars.add(new KeyValueEnvVar(envVar.getKey(), ((PodEnvVar) envVar).getValue()));
+                }
+                else{
+                    this.envVars.add((AbstractTemplateEnvVar)envVar);
+                }
+            }
         }
     }
+
 
     public List<PodVolume> getVolumes() {
         return volumes;
@@ -201,7 +215,7 @@ public class PodTemplateStep extends Step implements Serializable {
     public void setNodeUsageMode(String nodeUsageMode) {
         this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
     }
-    
+
     public String getWorkingDir() {
         return workingDir;
     }

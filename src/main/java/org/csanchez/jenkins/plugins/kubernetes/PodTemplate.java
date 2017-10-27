@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -30,6 +29,9 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import java.util.stream.Collectors;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 
 /**
  * Kubernetes Pod Template
@@ -95,7 +97,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private List<TemplateEnvVar> envVars = new ArrayList<>();
+    private List<PodEnvVar> envVars = new ArrayList<>();
+
+    private List<AbstractTemplateEnvVar> combinedEnvVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
@@ -394,26 +398,65 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<TemplateEnvVar> getEnvVars() {
+    public List<PodEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
         }
         return envVars;
     }
 
-    public void addEnvVars(List<TemplateEnvVar> envVars) {
+    public void addEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
-            this.envVars.addAll(envVars);
+            this.MigrateToCombined(envVars);
         }
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<TemplateEnvVar> envVars) {
+    public void setEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
-            this.envVars.clear();
-            this.addEnvVars(envVars);
+            this.MigrateToCombined(envVars);
         }
     }
+
+    @DataBoundSetter
+    public void setCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
+        if (envVars != null) {
+            this.combinedEnvVars.clear();
+            this.addCombinedEnvVars(envVars);
+        }
+    }
+
+    public void MigrateToCombined(List<PodEnvVar> envVars)
+    {
+        if (envVars != null)
+        {
+            combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
+            this.envVars.clear();
+        }
+    }
+
+
+    public List<AbstractTemplateEnvVar> getCombinedEnvVars() {
+        if (combinedEnvVars == null) {
+            combinedEnvVars = Collections.emptyList();
+        }
+        
+        if (envVars != null)
+        {
+            MigrateToCombined(this.envVars);
+        }
+        return combinedEnvVars;
+
+    }
+
+    public void addCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
+        if (envVars != null) {
+            this.combinedEnvVars.addAll(envVars);
+            //clear out legacy.
+            this.envVars.clear();
+        }
+    }
+
 
     public List<PodAnnotation> getAnnotations() {
         if (annotations == null) {
@@ -568,7 +611,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
-            containerTemplate.setEnvVars(envVars);
+            containerTemplate.setCombinedEnvVars(combinedEnvVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);

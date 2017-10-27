@@ -67,7 +67,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setIdleMinutes(step.getIdleMinutes());
         newTemplate.setSlaveConnectTimeout(step.getSlaveConnectTimeout());
         newTemplate.setLabel(step.getLabel());
-        newTemplate.setEnvVars(step.getEnvVars());
+        newTemplate.setCombinedEnvVars(step.getEnvVars());
         newTemplate.setVolumes(step.getVolumes());
         newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
         newTemplate.setWorkspaceVolume(step.getWorkspaceVolume());

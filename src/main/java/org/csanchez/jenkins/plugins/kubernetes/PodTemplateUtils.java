@@ -15,7 +15,6 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
@@ -27,6 +26,7 @@ import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
 
 public class PodTemplateUtils {
     /**
@@ -67,7 +67,7 @@ public class PodTemplateUtils {
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
-        combined.setEnvVars(combineEnvVars(parent, template));
+        combined.setCombinedEnvVars(combineEnvVars(parent, template));
         return combined;
     }
 
@@ -123,7 +123,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
-        podTemplate.setEnvVars(combineEnvVars(parent, template));
+        podTemplate.setCombinedEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
@@ -261,17 +261,17 @@ public class PodTemplateUtils {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
-    private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
+    private static List<AbstractTemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
+        List<AbstractTemplateEnvVar> combinedEnvVars = new ArrayList<>();
+        combinedEnvVars.addAll(parent.getCombinedEnvVars());
+        combinedEnvVars.addAll(template.getCombinedEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
     }
 
-    private static List<TemplateEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
+    private static List<AbstractTemplateEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
+        List<AbstractTemplateEnvVar> combinedEnvVars = new ArrayList<>();
+        combinedEnvVars.addAll(parent.getCombinedEnvVars());
+        combinedEnvVars.addAll(template.getCombinedEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
     }
 }

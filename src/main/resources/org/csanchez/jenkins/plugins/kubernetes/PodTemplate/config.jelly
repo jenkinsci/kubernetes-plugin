@@ -34,8 +34,13 @@
                                     deleteCaption="Delete Container" />
   </f:entry>
 
+  <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod -  DEPRECATED - saving config will migrate}">
+        <f:repeatableHeteroProperty field="envVars" hasHeader="true"
+                                    />
+  </f:entry>
+
   <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
-        <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="Add Environment Variable"
+        <f:repeatableHeteroProperty field="combinedEnvVars" hasHeader="true" addCaption="Add Environment Variable"
                                     deleteCaption="Delete Environment Variable" />
   </f:entry>
 

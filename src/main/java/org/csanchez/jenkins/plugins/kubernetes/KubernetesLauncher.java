@@ -52,7 +52,6 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.kohsuke.accmod.Restricted;
@@ -75,6 +74,7 @@ import java.util.stream.Collectors;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -262,14 +262,14 @@ public class KubernetesLauncher extends JNLPLauncher {
         Map<String, Container> containers = new HashMap<>();
 
         for (ContainerTemplate containerTemplate : template.getContainers()) {
-            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
+            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getCombinedEnvVars(), volumeMounts.values()));
         }
 
         if (!containers.containsKey(JNLP_NAME)) {
             ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
             containerTemplate.setName(JNLP_NAME);
             containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
-            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
+            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getCombinedEnvVars(), volumeMounts.values()));
         }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
@@ -301,7 +301,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
 
-    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<AbstractTemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
