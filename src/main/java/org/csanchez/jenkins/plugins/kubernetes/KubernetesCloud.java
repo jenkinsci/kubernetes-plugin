@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,9 +54,7 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -515,21 +512,6 @@ public class KubernetesCloud extends Cloud {
 
                 // test listing pods
                 client.pods().list();
-
-                // test creating pods
-                Pod pod = client.pods().create(new PodBuilder() //
-                        .withNewMetadata().withGenerateName("kubernetes-plugin-").endMetadata() //
-                        .withNewSpec() //
-                        .withContainers( //
-                                new ContainerBuilder().withName("alpine").withImage("alpine").withCommand("cat")
-                                        .withTty(true).build()) //
-                        .endSpec().build());
-                String podName = pod.getMetadata().getName();
-                LOGGER.log(Level.FINE, "Created test pod: {0}/{1}",
-                        new String[] { pod.getMetadata().getNamespace(), podName });
-                client.pods().withName(podName).waitUntilReady(30, TimeUnit.SECONDS);
-                client.pods().withName(podName).delete();
-
                 return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
