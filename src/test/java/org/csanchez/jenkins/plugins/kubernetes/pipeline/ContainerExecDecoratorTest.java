@@ -206,26 +206,54 @@ public class ContainerExecDecoratorTest {
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 
+    @Test
+    public void testCommandStandardOut() throws Exception {
+        String testString = "testString";
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; echo " + testString);
+        assertEquals(testString, r.stdOut);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    public void testCommandStandardOutQuiet() throws Exception {
+        String testString = "testString";
+        ProcReturn r = execCommand(true, "nohup", "sh", "-c", "sleep 5; echo " + testString);
+        assertEquals(testString, r.stdOut);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    public void testCommandStandardOutOnNonZeroExit() throws Exception {
+        String testString = "testString";
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; echo " + testString + "; return 127");
+        assertEquals(127, r.exitCode);
+        assertEquals(testString, r.stdOut);
+        assertFalse(r.proc.isAlive());
+    }
+
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
         Launcher launcher = decorator
                 .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
         ContainerExecProc proc = (ContainerExecProc) launcher
-                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
+                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet).stdout(stdOut));
         assertTrue(proc.isAlive());
         int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
-        return new ProcReturn(proc, exitCode, out.toString());
+        return new ProcReturn(proc, exitCode, out.toString(), stdOut.toString());
     }
 
     class ProcReturn {
         public int exitCode;
         public String output;
+        public String stdOut;
         public ContainerExecProc proc;
 
-        ProcReturn(ContainerExecProc proc, int exitCode, String output) {
+        ProcReturn(ContainerExecProc proc, int exitCode, String output, String stdOut) {
             this.proc = proc;
             this.exitCode = exitCode;
             this.output = output;
+            this.stdOut = stdOut;
         }
     }
 }
