@@ -31,27 +31,13 @@ import com.google.common.collect.ImmutableMap;
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.ExecAction;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent;
-import io.fabric8.kubernetes.api.model.Probe;
-import io.fabric8.kubernetes.api.model.ProbeBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.affinities.Affinity;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -265,11 +251,44 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
         }
 
+        // Build affinities
+        io.fabric8.kubernetes.api.model.Affinity kubernetesPodAffinity = new io.fabric8.kubernetes.api.model.Affinity();
+        for (final Affinity affinity: template.getAffinities()) {
+            if (affinity instanceof org.csanchez.jenkins.plugins.kubernetes.affinities.NodeAffinity) {
+                try {
+                    org.csanchez.jenkins.plugins.kubernetes.affinities.NodeAffinity nodeAffinity =
+                            (org.csanchez.jenkins.plugins.kubernetes.affinities.NodeAffinity) affinity;
+                    kubernetesPodAffinity.setNodeAffinity(nodeAffinity.buildAffinity());
+                    LOGGER.log(Level.INFO, "Loading node affinity for slave!");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (affinity instanceof org.csanchez.jenkins.plugins.kubernetes.affinities.PodAffinity) {
+                try {
+                    org.csanchez.jenkins.plugins.kubernetes.affinities.PodAffinity podAffinity =
+                            (org.csanchez.jenkins.plugins.kubernetes.affinities.PodAffinity) affinity;
+                    kubernetesPodAffinity.setPodAffinity(podAffinity.buildAffinity());
+                    LOGGER.log(Level.INFO, "Loading pod affinity for slave!");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if (affinity instanceof org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity) {
+                try {
+                    org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity podAntiAffinity =
+                            (org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity) affinity;
+                    kubernetesPodAffinity.setPodAntiAffinity(podAntiAffinity.buildAffinity());
+                    LOGGER.log(Level.INFO, "Loading pod anti affinity for slave!");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         if (template.getWorkspaceVolume() != null) {
             volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 
         Map<String, Container> containers = new HashMap<>();
@@ -306,6 +325,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
                 .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                 .withRestartPolicy("Never")
+                .withAffinity(kubernetesPodAffinity)
                 .endSpec()
                 .build();
 

@@ -81,6 +81,11 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry title="${%Affinities}" description="${%List of affinities to set in the slave pod}" field="affinity">
+      <f:repeatableHeteroProperty field="affinities" hasHeader="true" addCaption="Add Affinity"
+                                        deleteCaption="Delete affinity " />
+    </f:entry>
+
     <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
     <f:block>
       <table>

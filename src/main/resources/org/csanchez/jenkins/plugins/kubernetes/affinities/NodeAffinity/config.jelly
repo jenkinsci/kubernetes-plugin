@@ -1,0 +1,21 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+  <f:entry title="${%Is Required During Scheduling}" field="isRequiredDuringSchedulingIgnoredDuringExecution">
+    <f:checkbox/>
+  </f:entry>
+
+  <f:entry title="${%Node selector terms}" field="nodeSelectorTerms">
+    <f:textarea/>
+  </f:entry>
+
+  <f:entry title="${%Is preferred During Scheduling}" field="isPreferredDuringSchedulingIgnoredDuringExecution">
+      <f:checkbox/>
+  </f:entry>
+
+  <f:entry title="${%Preferred selector terms}" field="preferredTerms">
+    <f:textarea/>
+  </f:entry>
+
+</j:jelly>
