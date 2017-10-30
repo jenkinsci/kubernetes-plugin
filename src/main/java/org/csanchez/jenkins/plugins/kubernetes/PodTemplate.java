@@ -398,23 +398,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<PodEnvVar> getEnvVars() {
-        if (envVars == null) {
-            return Collections.emptyList();
-        }
-        return envVars;
-    }
-
-    public void addEnvVars(List<PodEnvVar> envVars) {
-        if (envVars != null) {
-            this.MigrateToCombined(envVars);
-        }
-    }
 
     @DataBoundSetter
     public void setEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
-            this.MigrateToCombined(envVars);
+            this.migrateToCombined(envVars);
         }
     }
 
@@ -422,41 +410,33 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public void setCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
         if (envVars != null) {
             this.combinedEnvVars.clear();
-            this.addCombinedEnvVars(envVars);
+            this.combinedEnvVars.addAll(envVars);
+            this.envVars.clear();
         }
     }
 
-    public void MigrateToCombined(List<PodEnvVar> envVars)
+    public void migrateToCombined()
     {
-        if (envVars != null)
-        {
+        this.migrateToCombined(this.envVars);
+    }
+
+    public void migrateToCombined(List<PodEnvVar> envVars) {
+        if (envVars != null) {
             combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
             this.envVars.clear();
         }
     }
 
-
     public List<AbstractTemplateEnvVar> getCombinedEnvVars() {
         if (combinedEnvVars == null) {
             combinedEnvVars = Collections.emptyList();
         }
-        
-        if (envVars != null)
-        {
-            MigrateToCombined(this.envVars);
+
+        if (envVars != null) {
+            migrateToCombined(this.envVars);
         }
         return combinedEnvVars;
-
     }
-
-    public void addCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
-        if (envVars != null) {
-            this.combinedEnvVars.addAll(envVars);
-            //clear out legacy.
-            this.envVars.clear();
-        }
-    }
-
 
     public List<PodAnnotation> getAnnotations() {
         if (annotations == null) {

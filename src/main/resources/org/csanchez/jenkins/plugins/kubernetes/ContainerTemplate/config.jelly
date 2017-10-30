@@ -34,13 +34,10 @@
     <f:checkbox default="true"/>
   </f:entry>
 
-    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in slave pod - DEPRECATED - saving config will migrate}">
-      <f:repeatableHeteroProperty field="envVars" hasHeader="true"/>
-    </f:entry>
 
-      <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
-        <f:repeatableHeteroProperty field="combinedEnvVars" hasHeader="true" addCaption="Add Environment Variable"
-                                    deleteCaption="Delete Environment Variable" />
+  <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
+    <f:repeatableHeteroProperty field="combinedEnvVars" hasHeader="true" addCaption="Add Environment Variable"
+                                deleteCaption="Delete Environment Variable" />
   </f:entry>
 
   <f:advanced>

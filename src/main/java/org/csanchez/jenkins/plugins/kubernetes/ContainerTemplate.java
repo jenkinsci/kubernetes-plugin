@@ -157,27 +157,18 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public List<ContainerEnvVar> getEnvVars() {
-        //intercept and add to combinedEnvs
-        combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
-        //clear out if existing is set.
-        this.envVars.clear();
-        return Collections.emptyList();
+        return Collections.EMPTY_LIST;
     }
 
     @DataBoundSetter
     public void setEnvVars(List<TemplateEnvVar> envVars) {
-        if (envVars != null)
-        {
-            //intercept and add to combinedEnvs
-            for(TemplateEnvVar envVar : envVars)
-            {
-               if(envVar instanceof ContainerEnvVar)
-               {
-                   this.envVars.add((ContainerEnvVar)envVar);
-                   //Add it to combinedEnVars for inline podtemplates to ensure we get legacy envvars
-                   this.combinedEnvVars.add(new KeyValueEnvVar(envVar.getKey(), ((ContainerEnvVar) envVar).getValue()));
+        if (envVars != null) {
+            for(TemplateEnvVar envVar : envVars) {
+               if(envVar instanceof ContainerEnvVar) {
+                       this.combinedEnvVars.add(new KeyValueEnvVar(envVar.getKey(), ((ContainerEnvVar) envVar).getValue()));
+                       this.envVars.add((ContainerEnvVar)envVar);
                }
-               else{
+               else {
                    combinedEnvVars.add((AbstractTemplateEnvVar)envVar);
                }
             }
@@ -185,15 +176,20 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         }
     }
 
-      @DataBoundSetter
+    @DataBoundSetter
     public void setCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
         if (envVars != null) {
             this.combinedEnvVars.clear();
-            this.addCombinedEnvVars(envVars);
+            this.combinedEnvVars.addAll(envVars);
         }
     }
 
-    private void MigratedToCombined(List<ContainerEnvVar> envVars)
+    public void migratedToCombined()
+    {
+        this.migratedToCombined(this.envVars);
+    }
+
+    public void migratedToCombined(List<ContainerEnvVar> envVars)
     {
         if (envVars != null)
         {
@@ -202,7 +198,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         }
     }
 
-
     public List<AbstractTemplateEnvVar> getCombinedEnvVars() {
         if (combinedEnvVars == null) {
             combinedEnvVars = Collections.emptyList();
@@ -210,21 +205,14 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         //handle legacy migration case...
         if (envVars != null)
         {
-            combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
+            migratedToCombined(envVars);
+
         }
         this.envVars.clear();
         return combinedEnvVars;
 
     }
 
-    public void addCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
-        if (envVars != null) {
-            this.combinedEnvVars.addAll(envVars);
-            this.MigratedToCombined(this.envVars);
-            //clear out legacy.
-            this.envVars.clear();
-        }
-    }
 
 
     public ContainerLivenessProbe getLivenessProbe() { return livenessProbe; }
@@ -277,6 +265,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         this.resourceRequestCpu = resourceRequestCpu;
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
     }
 
     @Extension

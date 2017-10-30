@@ -335,8 +335,8 @@ public class KubernetesLauncher extends JNLPLauncher {
             );
         }
 
-        if (containerTemplate.getEnvVars() != null) {
-            containerTemplate.getEnvVars().forEach(item ->
+        if (containerTemplate.getCombinedEnvVars()!= null) {
+            containerTemplate.getCombinedEnvVars().forEach(item ->
                     envVarsMap.put(item.getKey(), item.buildEnvVar())
             );
         }
