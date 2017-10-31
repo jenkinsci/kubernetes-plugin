@@ -13,12 +13,12 @@ import java.util.logging.Logger;
  * @author Carlos Sanchez carlos@apache.org
  */
 public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
-	private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());
 
-	private static final String TASK_NAME_POD_ANNOTATION = "jenkins.task.name";
-	private static final String TASK_STATUS_POD_ANNOTATION = "jenkins.task.status";
+    private static final String TASK_NAME_POD_ANNOTATION = "jenkins.task.name";
+    private static final String TASK_STATUS_POD_ANNOTATION = "jenkins.task.status";
 
-	public KubernetesComputer(KubernetesSlave slave) {
+    public KubernetesComputer(KubernetesSlave slave) {
         super(slave);
     }
 
