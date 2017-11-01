@@ -59,7 +59,7 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @Override
     public Volume buildVolume(String volumeName) {
-        return new VolumeBuilder().withName(volumeName).withNewEmptyDir().endEmptyDir().build();
+        return new VolumeBuilder().withName(volumeName).withNewEmptyDir().withMedium(getMedium()).endEmptyDir().build();
     }
 
     @Extension

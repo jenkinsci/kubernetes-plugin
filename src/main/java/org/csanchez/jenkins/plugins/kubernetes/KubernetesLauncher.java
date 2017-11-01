@@ -261,7 +261,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                     kubernetesPodAffinity.setNodeAffinity(nodeAffinity.buildAffinity());
                     LOGGER.log(Level.INFO, "Loading node affinity for slave!");
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.log(Level.WARNING, "Unable to load node affinity into slave template", e);
                 }
             } else if (affinity instanceof org.csanchez.jenkins.plugins.kubernetes.affinities.PodAffinity) {
                 try {
@@ -270,16 +270,16 @@ public class KubernetesLauncher extends JNLPLauncher {
                     kubernetesPodAffinity.setPodAffinity(podAffinity.buildAffinity());
                     LOGGER.log(Level.INFO, "Loading pod affinity for slave!");
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.log(Level.WARNING, "Unable to load pod affinity into slave template", e);
                 }
             } else if (affinity instanceof org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity) {
                 try {
                     org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity podAntiAffinity =
                             (org.csanchez.jenkins.plugins.kubernetes.affinities.PodAntiAffinity) affinity;
                     kubernetesPodAffinity.setPodAntiAffinity(podAntiAffinity.buildAffinity());
-                    LOGGER.log(Level.INFO, "Loading pod anti affinity for slave!");
+                    LOGGER.log(Level.INFO, "Loading pod anti-affinity for slave!");
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.log(Level.WARNING, "Unable to load pod anti-affinity into slave template", e);
                 }
             }
         }
@@ -288,7 +288,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().withMedium("").endEmptyDir().build());
         }
 
         Map<String, Container> containers = new HashMap<>();

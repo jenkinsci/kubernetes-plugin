@@ -9,6 +9,7 @@ import java.util.Set;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.affinities.Affinity;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -45,6 +46,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private WorkspaceVolume workspaceVolume;
     private List<PodAnnotation> annotations = new ArrayList<>();
     private List<String> imagePullSecrets = new ArrayList<>();
+    private List<Affinity> podAffinities = new ArrayList<>();
 
     private int instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
@@ -235,6 +237,15 @@ public class PodTemplateStep extends Step implements Serializable {
             this.imagePullSecrets.clear();
             this.imagePullSecrets.addAll(imagePullSecrets);
         }
+    }
+
+    public List<Affinity> getPodAffinities() {
+        return podAffinities;
+    }
+
+    @DataBoundSetter
+    public void setPodAffinities(List<Affinity> podAffinities) {
+        this.podAffinities = podAffinities;
     }
 
     @Extension

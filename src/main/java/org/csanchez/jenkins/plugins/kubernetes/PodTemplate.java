@@ -142,7 +142,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
-    @Restricted(NoExternalUse.class) // testing only
+    @Restricted(NoExternalUse.class)
+        // testing only
     PodTemplate(String name, List<? extends PodVolume> volumes, List<? extends ContainerTemplate> containers) {
         this.name = name;
         this.volumes.addAll(volumes);
@@ -456,12 +457,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
+    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties) {
         this.nodeProperties = nodeProperties;
     }
 
     @Nonnull
-    public List<ToolLocationNodeProperty> getNodeProperties(){
+    public List<ToolLocationNodeProperty> getNodeProperties() {
         if (nodeProperties == null) {
             return Collections.emptyList();
         }
@@ -590,7 +591,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Nonnull
     public List<Affinity> getAffinities() {
-        if(affinities ==  null) {
+        if (affinities == null) {
             return Collections.emptyList();
         }
         return affinities;
