@@ -24,25 +24,31 @@ public class ContainerExecProc extends Proc implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
 
+    private final int pid;
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
     private final Callable<Integer> exitCode;
 
     /**
-     * 
+     *
+     * @param pid
      * @param watch
      * @param alive
      * @param finished
      * @param exitCode
-     *            a way to get the exit code
      */
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-            Callable<Integer> exitCode) {
+    public ContainerExecProc(int pid, ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
+                             Callable<Integer> exitCode) {
+        this.pid = pid;
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
         this.exitCode = exitCode;
+    }
+
+    public int getPid() {
+        return pid;
     }
 
     @Override
