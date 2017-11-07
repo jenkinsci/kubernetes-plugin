@@ -30,7 +30,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final Callable<Integer> exitCode;
 
     /**
-     * 
+     *
      * @param watch
      * @param alive
      * @param finished

@@ -110,6 +110,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertEnvVars(r, b);
+        r.assertLogContains("OUTSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
     }
 
     @Test
@@ -146,12 +148,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_GLOBAL = " + GLOBAL + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_LEGACY =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET =\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
+        r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
+
     }
 
     @Test

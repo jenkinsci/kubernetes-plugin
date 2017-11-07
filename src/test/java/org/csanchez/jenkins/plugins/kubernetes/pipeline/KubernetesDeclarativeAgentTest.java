@@ -44,6 +44,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
     }
 
 }

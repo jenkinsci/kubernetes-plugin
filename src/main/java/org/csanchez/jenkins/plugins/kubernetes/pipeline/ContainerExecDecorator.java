@@ -73,6 +73,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
     private static final String JENKINS_HOME = "JENKINS_HOME=";
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
+    private final String [] builtInVars = new String[]{"BUILD_NUMBER","BUILD_ID","BUILD_URL","NODE_NAME","JOB_NAME","JENKINS_URL","BUILD_TAG","GIT_COMMIT","GIT_URL","GIT_BRANCH"};
 
     private transient KubernetesClient client;
 
@@ -82,34 +83,38 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private final String namespace;
     private final String containerName;
     private final EnvironmentExpander environmentExpander;
+    private final EnvVars globalVars;
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander) {
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, EnvVars globalVars) {
         this.client = client;
         this.podName = podName;
         this.namespace = namespace;
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
+        this.globalVars = globalVars;
+    }
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander) {
+        this(client, podName, containerName, namespace, environmentExpander, null);
     }
 
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace) {
-        this(client, podName, containerName, namespace, null);
+        this(client, podName, containerName, namespace, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
-        this(client, podName, containerName, namespace, null);
+        this(client, podName, containerName, namespace, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null, null);
+        this(client, podName, containerName, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null, null);
+        this(client, podName, containerName, null);
     }
-
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
         return new Launcher.DecoratedLauncher(launcher) {
@@ -118,18 +123,31 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
 
-                String [] cmdEnvs = starter.envs();
 
-                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs as we are getting other environment variables
-                for (String cmd : cmdEnvs) {
-                    if (cmd.startsWith(JENKINS_HOME)) {
-                        cmdEnvs = new String[0];
-                        LOGGER.info("Skipping injection of procstarter cmdenvs due to JENKINS_HOME present");
+                List<String> procStarter =  Arrays.asList(starter.envs());
+                List<String> cmdEnvs = new  ArrayList<String>();
+                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for built-in ones.
+                boolean javaHome_detected = false;
+                for(String env: procStarter)
+                {
+                    if(env.contains("JAVA_HOME"))
+                    {
+                        javaHome_detected = true;
                         break;
                     }
+                    for (String builtEnvVar : builtInVars) {
+                        if(env.contains(builtEnvVar))
+                        {
+                            cmdEnvs.add(env);
+                        }
+                    }
+                }
+                if(!javaHome_detected)
+                {
+                    cmdEnvs = procStarter;
                 }
                 String [] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs, starter.stdout(), pwd,  commands);
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd,  commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
@@ -222,6 +240,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         watch.getInput().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
+                    }
+                    //get global vars here, run the export first as they'll get overwritten.
+                    if (globalVars != null) {
+                            this.setupEnvironmentVariable(globalVars, watch);
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -432,3 +454,5 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 }
+
+
