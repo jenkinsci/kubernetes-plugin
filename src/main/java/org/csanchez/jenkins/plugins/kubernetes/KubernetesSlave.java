@@ -30,6 +30,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -166,7 +168,21 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
-        computer.disconnect(offlineCause);
+        Future disconnected = computer.disconnect(offlineCause);
+        try {
+            disconnected.get();
+        } catch(InterruptedException inte) {
+            String msg = String.format("Failed to disconnect with kubernetes pod %s, interrupted", name);
+            LOGGER.log(Level.WARNING, msg, inte);
+            throw inte;
+        } catch(ExecutionException ee) {
+            String msg = String.format("Failed to disconnect with kubernetes pod %s, execution aborted", name);
+            LOGGER.log(Level.WARNING, msg, ee);
+            listener.error(msg);
+            // Assuming pod template has some error itself
+            // Simply return might leave some kuberentes pod of ERROR state 
+            return;
+        }
 
         if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);
