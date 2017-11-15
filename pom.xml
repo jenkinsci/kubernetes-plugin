@@ -225,7 +225,7 @@
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <!-- listen in all interfaces from connections from kubernetes pods -->
-            <connectorHost>0.0.0.0</connectorHost>
+            <connectorHost>192.168.64.1</connectorHost>
           </systemPropertyVariables>
         </configuration>
       </plugin>
