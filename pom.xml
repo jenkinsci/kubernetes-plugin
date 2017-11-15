@@ -21,6 +21,14 @@
     <tag>HEAD</tag>
   </scm>
 
+  <licenses>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <developers>
     <developer>
       <id>carlos</id>
