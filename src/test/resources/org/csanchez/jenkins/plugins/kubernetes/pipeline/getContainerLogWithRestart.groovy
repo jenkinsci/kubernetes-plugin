@@ -1,5 +1,5 @@
 //noinspection GrPackage
-podTemplate(label: 'mypod', namespace: 'default')
+podTemplate(label: 'mypod')
 {
     node ('mypod') {
         stage('container log') {
