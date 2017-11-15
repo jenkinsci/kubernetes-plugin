@@ -16,6 +16,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import com.google.inject.Inject;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -33,9 +35,24 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
     private static final long serialVersionUID = 5588861066775717487L;
     private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
 
-    private final ContainerLogStep step;
+    @Inject(optional=true)
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
+    private transient final ContainerLogStep step;
+
     private transient KubernetesClient client;
 
+    @Override
+    // TODO Revisit for JENKINS-40161
+    public void onResume() {
+        super.onResume();
+        LOGGER.log(Level.FINE, "ContainerLogStepExecution onResume");
+        try {
+            KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
+            client = nodeContext.connectToCloud();
+        } catch (Exception e) {
+            ContainerLogStepExecution.this.getContext().onFailure(e);
+        }
+    }
     ContainerLogStepExecution(ContainerLogStep step, StepContext context) {
         super(context);
         this.step = step;
