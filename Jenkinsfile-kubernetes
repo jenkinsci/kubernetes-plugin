@@ -37,7 +37,7 @@ timestamps {
       stage('Test') {
         try {
           container('maven') {
-            sh 'mvn -B test'
+            sh 'mvn -B test -DconnectorHost=0.0.0.0'
           }
         } finally {
           junit '**/target/surefire-reports/**/*.xml'
