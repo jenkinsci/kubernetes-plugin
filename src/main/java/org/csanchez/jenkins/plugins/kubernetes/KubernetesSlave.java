@@ -31,6 +31,8 @@ import java.security.cert.CertificateEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -169,14 +171,19 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
         Future disconnected = computer.disconnect(offlineCause);
+        long timeout = 5;
         try {
-            disconnected.get();
+            disconnected.get(timeout, TimeUnit.SECONDS);
+        } catch(TimeoutException tme){
+            String msg = String.format("disconnection with kubernetes pod %s timeout after %ds", name, timeout);
+            LOGGER.log(Level.WARNING, msg, tme);
+            return; 
         } catch(InterruptedException inte) {
-            String msg = String.format("Failed to disconnect with kubernetes pod %s, interrupted", name);
+            String msg = String.format("disconnection with kubernetes pod %s interrupted", name);
             LOGGER.log(Level.WARNING, msg, inte);
             throw inte;
         } catch(ExecutionException ee) {
-            String msg = String.format("Failed to disconnect with kubernetes pod %s, execution aborted", name);
+            String msg = String.format("disconnection with kubernetes pod %s execution aborted", name);
             LOGGER.log(Level.WARNING, msg, ee);
             listener.error(msg);
             // Assuming pod template has some error itself
