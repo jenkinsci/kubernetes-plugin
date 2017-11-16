@@ -35,6 +35,7 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
     private static final long serialVersionUID = 5588861066775717487L;
     private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
 
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient final ContainerLogStep step;
     private transient KubernetesClient client;
 

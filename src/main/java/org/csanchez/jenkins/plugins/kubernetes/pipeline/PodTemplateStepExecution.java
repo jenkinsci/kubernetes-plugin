@@ -33,6 +33,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "%s-%s";
 
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient PodTemplateStep step;
     private final String cloudName;
 

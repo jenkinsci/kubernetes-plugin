@@ -26,6 +26,7 @@ public class ContainerStepExecution extends StepExecution {
 
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
 
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient ContainerStep step;
 
     private transient KubernetesClient client;
