@@ -35,17 +35,14 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
     private static final long serialVersionUID = 5588861066775717487L;
     private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
 
-    @Inject(optional=true)
-    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient final ContainerLogStep step;
-
     private transient KubernetesClient client;
 
     @Override
     // TODO Revisit for JENKINS-40161
     public void onResume() {
         super.onResume();
-        LOGGER.log(Level.FINE, "ContainerLogStepExecution onResume");
+        LOGGER.log(Level.FINE, "onResume");
         try {
             KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
             client = nodeContext.connectToCloud();

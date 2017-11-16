@@ -14,19 +14,18 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import hudson.LauncherDecorator;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
 import javax.annotation.Nonnull;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.closeQuietly;
 
-public class ContainerStepExecution extends AbstractStepExecutionImpl {
+public class ContainerStepExecution extends StepExecution {
 
     private static final long serialVersionUID = 7634132798345235774L;
 
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
 
-    @Inject(optional=true)
-    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient ContainerStep step;
 
     private transient KubernetesClient client;
@@ -36,7 +35,7 @@ public class ContainerStepExecution extends AbstractStepExecutionImpl {
     // TODO Revisit for JENKINS-40161
     public void onResume() {
         super.onResume();
-        LOGGER.log(Level.FINE, "ContainerStepExecution onResume");
+        LOGGER.log(Level.FINE, "onResume");
         try {
             KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
             client = nodeContext.connectToCloud();

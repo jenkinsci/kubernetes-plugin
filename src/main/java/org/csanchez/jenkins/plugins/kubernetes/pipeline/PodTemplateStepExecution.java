@@ -33,23 +33,21 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "%s-%s";
 
-    @Inject(optional=true)
-    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient PodTemplateStep step;
-    private String cloudName;
+    private final String cloudName;
 
     private PodTemplate newTemplate = null;
 
     PodTemplateStepExecution(PodTemplateStep step, StepContext context) {
         super(context);
         this.step = step;
+        this.cloudName = step.getCloud();
     }
 
     @Override
     public boolean start() throws Exception {
 
-        cloudName = step.getCloud();
-        Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+        Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
         if (cloud == null) {
             throw new AbortException(String.format("Cloud does not exist: %s", step.getCloud()));
         }
@@ -136,7 +134,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
             if (cloud == null) {
                 LOGGER.log(Level.WARNING, "Cloud {0} no longer exists, cannot delete pod template {1}",
-                        new Object[] { step.getCloud(), podTemplate.getName() });
+                        new Object[] { cloudName, podTemplate.getName() });
                 return;
             }
             if (cloud instanceof KubernetesCloud) {

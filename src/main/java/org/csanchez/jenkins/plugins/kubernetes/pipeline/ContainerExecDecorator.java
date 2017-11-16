@@ -77,7 +77,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private transient KubernetesClient client;
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
-    private transient List<Closeable> closables = new ArrayList<>();
+    private transient List<Closeable> closables;
     private final String podName;
     private final String namespace;
     private final String containerName;

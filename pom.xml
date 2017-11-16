@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.37</version>
+    <version>3.0</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -46,7 +46,6 @@
     <jenkins.version>2.32.1</jenkins.version>
 
     <kubernetes-client.version>2.6.1</kubernetes-client.version>
-    <slf4j.version>1.7.25</slf4j.version>
 
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
@@ -77,13 +76,6 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
       <version>${httpclient.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <!-- required plugins -->

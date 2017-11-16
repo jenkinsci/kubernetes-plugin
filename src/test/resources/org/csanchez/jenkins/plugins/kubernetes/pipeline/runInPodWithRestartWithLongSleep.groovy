@@ -7,8 +7,7 @@ podTemplate(label: 'mypod', containers: [
     node ('mypod') {
         stage('Run') {
             container('busybox') {
-                    semaphore 'wait'
-                    sh 'for i in `seq 1 20`; do echo $i; sleep 5; done'
+                    sh 'for i in `seq 1 10`; do echo $i; sleep 5; done'
             }
             echo 'finished the test!'
         }

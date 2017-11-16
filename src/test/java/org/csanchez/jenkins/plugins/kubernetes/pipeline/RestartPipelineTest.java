@@ -45,13 +45,11 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
@@ -157,97 +155,66 @@ public class RestartPipelineTest {
 
     @Test
     public void runInPodWithRestartWithMultipleContainerCalls() throws Exception {
-        story.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-
-                configureCloud();
-
-                story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                        Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestartWithMultipleContainerCalls.groovy")
-                        , true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("wait/1", b);
-                SemaphoreStep.success("wait/1", false);
-                // we need to wait until we are sure that the sh
-                // step has started...
-                Thread.sleep(10000);
-            }
+        story.then(r -> {
+            configureCloud();
+            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
+                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
+                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestartWithMultipleContainerCalls.groovy")
+                    , true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            // we need to wait until we are sure that the sh
+            // step has started...
+            r.waitForMessage("+ sleep 5", b);
         });
-        story.addStep(new Statement() {
-            @SuppressWarnings("SleepWhileInLoop")
-            @Override
-            public void evaluate() throws Throwable {
-                WorkflowRun b = story.j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
-                story.j.assertLogContains("finished the test!", story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
-            }
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
+            r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
     }
 
     @Test
     public void runInPodWithRestart() throws Exception {
-        story.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-
-                configureCloud();
-
-                story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                        Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestartWithLongSleep.groovy")
-                        , true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("wait/1", b);
-                SemaphoreStep.success("wait/1", false);
-                // we need to wait until we are sure that the sh
-                // step has started...
-                Thread.sleep(10000);
-            }
+        story.then(r -> {
+            configureCloud();
+            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
+                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
+                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestartWithLongSleep.groovy")
+                    , true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            // we need to wait until we are sure that the sh
+            // step has started...
+            r.waitForMessage("+ sleep 5", b);
         });
-        story.addStep(new Statement() {
-            @SuppressWarnings("SleepWhileInLoop")
-            @Override
-            public void evaluate() throws Throwable {
-                WorkflowRun b = story.j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
-                story.j.assertLogContains("finished the test!", story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
-            }
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
+            r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
     }
 
     @Test
     public void getContainerLogWithRestart() throws Exception {
-        story.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-
-                configureCloud();
-
-                story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                        Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(loadPipelineScript("getContainerLogWithRestart.groovy")
-                        , true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("wait/1", b);
-                SemaphoreStep.success("wait/1", false);
-                Thread.sleep(1000);
-            }
+        story.then(r -> {
+            configureCloud();
+            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
+                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
+                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(loadPipelineScript("getContainerLogWithRestart.groovy")
+                    , true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            // we need to wait until we are sure that the sh
+            // step has started...
+            r.waitForMessage("+ sleep 5", b);
         });
-        story.addStep(new Statement() {
-            @SuppressWarnings("SleepWhileInLoop")
-            @Override
-            public void evaluate() throws Throwable {
-                WorkflowRun b = story.j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
-                story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
-                story.j.assertLogContains("INFO: Handshaking", b);
-                story.j.assertLogContains("INFO: Connected", b);
-            }
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
+            r.assertBuildStatusSuccess(r.waitForCompletion(b));
+            r.assertLogContains("INFO: Handshaking", b);
+            r.assertLogContains("INFO: Connected", b);
         });
     }
 }
