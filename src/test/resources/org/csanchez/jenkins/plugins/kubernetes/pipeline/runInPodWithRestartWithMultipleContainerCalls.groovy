@@ -1,6 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
-podTemplate(label: 'mypod', namespace: 'default', idleMinutes: 0, containers: [
+podTemplate(label: 'mypod', idleMinutes: 0, containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
 
