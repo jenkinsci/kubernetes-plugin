@@ -42,6 +42,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
+    private static final Integer DISCONNECTION_TIMEOUT = Integer
+            .getInteger(KubernetesSlave.class.getName() + ".disconnectionTimeout", 5);
+
     private static final long serialVersionUID = -8642936855413034232L;
     private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
 
@@ -170,25 +173,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
-        Future disconnected = computer.disconnect(offlineCause);
-        long timeout = 5;
+
+        Future<?> disconnected = computer.disconnect(offlineCause);
+        // wait a bit for disconnection to avoid stack traces in logs
         try {
-            disconnected.get(timeout, TimeUnit.SECONDS);
-        } catch(TimeoutException tme){
-            String msg = String.format("disconnection with kubernetes pod %s timeout after %ds", name, timeout);
-            LOGGER.log(Level.WARNING, msg, tme);
-            return; 
-        } catch(InterruptedException inte) {
-            String msg = String.format("disconnection with kubernetes pod %s interrupted", name);
-            LOGGER.log(Level.WARNING, msg, inte);
-            throw inte;
-        } catch(ExecutionException ee) {
-            String msg = String.format("disconnection with kubernetes pod %s execution aborted", name);
-            LOGGER.log(Level.WARNING, msg, ee);
-            listener.error(msg);
-            // Assuming pod template has some error itself
-            // Simply return might leave some kuberentes pod of ERROR state 
-            return;
+            disconnected.get(DISCONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            String msg = String.format("Ignoring error waiting for agent disconnection %s: %s", name, e.getMessage());
+            LOGGER.log(Level.INFO, msg, e);
         }
 
         if (getCloudName() == null) {
