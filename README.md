@@ -370,6 +370,10 @@ Tests will detect it and run a set of integration tests in a new namespace.
 
 Some integration tests run a local jenkins, so the host that runs them needs
 to be accessible from the kubernetes cluster.
+By default Jenkins will listen on `192.168.64.1` interface only, for security reasons.
+If your minikube is not running in that network, pass `connectorHost` to maven, ie.
+
+  mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
 
 If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
 does not have a public hostname for the VM to access, you can set the `jenkins.host.address`

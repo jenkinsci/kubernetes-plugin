@@ -38,6 +38,9 @@
   </developers>
 
   <properties>
+    <!-- in minikube
+    minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
+    <connectorHost>192.168.64.1</connectorHost>
     <java.level>8</java.level>
 
     <!-- dependency versions -->
@@ -224,8 +227,8 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <!-- listen in all interfaces from connections from kubernetes pods -->
-            <connectorHost>0.0.0.0</connectorHost>
+            <!-- listen in this interface for connections from kubernetes pods -->
+            <connectorHost>${connectorHost}</connectorHost>
           </systemPropertyVariables>
         </configuration>
       </plugin>
