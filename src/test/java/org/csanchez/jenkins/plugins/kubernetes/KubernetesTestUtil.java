@@ -97,7 +97,7 @@ public class KubernetesTestUtil {
 
         if (client != null) {
 
-            // wait for 30 seconds for all pods to be terminated
+            // wait for 90 seconds for all pods to be terminated
             if (wait) {
                 LOGGER.log(INFO, "Waiting for pods to terminate");
                 ForkJoinPool forkJoinPool = new ForkJoinPool(1);
@@ -119,7 +119,7 @@ public class KubernetesTestUtil {
                             LOGGER.log(INFO, "Waiting for pods to terminate - interrupted");
                             return true;
                         }
-                    })).get(60, TimeUnit.SECONDS);
+                    })).get(90, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOGGER.log(INFO, "Waiting for pods to terminate - timed out");
                     // job not done in interval

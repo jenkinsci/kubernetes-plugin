@@ -74,10 +74,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String JENKINS_HOME = "JENKINS_HOME=";
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
-    private final transient KubernetesClient client;
+    private transient KubernetesClient client;
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
-    private final transient List<Closeable> closables = new ArrayList<>();
+    private transient List<Closeable> closables;
     private final String podName;
     private final String namespace;
     private final String containerName;
@@ -239,6 +239,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     this.setupEnvironmentVariable(envVars, watch);
                     doExec(watch, printStream, commands);
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    if (closables == null) {
+                        closables = new ArrayList<>();
+                    }
                     closables.add(proc);
                     return proc;
                 }  catch (InterruptedException ie) {
@@ -313,6 +316,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     @Override
     public void close() throws IOException {
+        if (closables == null) return;
+
         for (Closeable closable : closables) {
             try {
                 closable.close();
@@ -376,6 +381,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);
         }
+    }
+
+    public void setKubernetesClient(KubernetesClient client) {
+        this.client = client;
     }
 
     /**

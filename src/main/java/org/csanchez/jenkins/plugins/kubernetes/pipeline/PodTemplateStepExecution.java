@@ -5,8 +5,8 @@ import static java.util.stream.Collectors.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -30,11 +30,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "%s-%s";
 
-    private final PodTemplateStep step;
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
+    private final transient PodTemplateStep step;
+    private final String cloudName;
+
+    private PodTemplate newTemplate = null;
 
     PodTemplateStepExecution(PodTemplateStep step, StepContext context) {
         super(context);
         this.step = step;
+        this.cloudName = step.getCloud();
     }
 
     @Override
@@ -59,7 +64,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         String name = String.format(NAME_FORMAT, step.getName(), randString);
         String namespace = checkNamespace(kubernetesCloud, namespaceAction);
 
-        PodTemplate newTemplate = new PodTemplate();
+        newTemplate = new PodTemplate();
         newTemplate.setName(name);
         newTemplate.setNamespace(namespace);
         newTemplate.setInheritFrom(!Strings.isNullOrEmpty( podTemplateAction.getParentTemplates()) ? podTemplateAction.getParentTemplates() : step.getInheritFrom());
@@ -124,10 +129,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.getInstance().getCloud(step.getCloud());
+            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
             if (cloud == null) {
                 LOGGER.log(Level.WARNING, "Cloud {0} no longer exists, cannot delete pod template {1}",
-                        new Object[] { step.getCloud(), podTemplate.getName() });
+                        new Object[] { cloudName, podTemplate.getName() });
                 return;
             }
             if (cloud instanceof KubernetesCloud) {

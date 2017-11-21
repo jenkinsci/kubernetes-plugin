@@ -73,6 +73,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.logging.Level.INFO;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
@@ -120,6 +121,12 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (slave == null) {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
         }
+        if (launched) {
+            LOGGER.log(INFO, "Agent has already been launched, activating: {}", slave.getNodeName());
+            computer.setAcceptingTasks(true);
+            return;
+        }
+
         KubernetesCloud cloud = slave.getKubernetesCloud();
         final PodTemplate unwrappedTemplate = slave.getTemplate();
         try {
@@ -131,7 +138,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
-            LOGGER.log(Level.INFO, "Created Pod: {0} in namespace {1}", new Object[]{podId, namespace});
+            LOGGER.log(INFO, "Created Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             listener.getLogger().printf("Created Pod: %s in namespace %s", podId, namespace);
 
             // We need the pod to be running and connected before returning
@@ -145,7 +152,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             // wait for Pod to be running
             for (; i < j; i++) {
-                LOGGER.log(Level.INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[]{podId, i, j});
+                LOGGER.log(INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[]{podId, i, j});
                 listener.getLogger().printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s", podId, i, j);
 
                 Thread.sleep(6000);
@@ -161,7 +168,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                     if (info != null) {
                         if (info.getState().getWaiting() != null) {
                             // Pod is waiting for some reason
-                            LOGGER.log(Level.INFO, "Container is waiting {0} [{2}]: {1}",
+                            LOGGER.log(INFO, "Container is waiting {0} [{2}]: {1}",
                                     new Object[]{podId, info.getState().getWaiting(), info.getName()});
                             listener.getLogger().printf("Container is waiting %1$s [%3$s]: %2$s",
                                     podId, info.getState().getWaiting(), info.getName());
@@ -207,7 +214,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 if (slave.getComputer().isOnline()) {
                     break;
                 }
-                LOGGER.log(Level.INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
+                LOGGER.log(INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
                 listener.getLogger().printf("Waiting for slave to connect (%2$s/%3$s): %1$s", podId, i, j);
                 Thread.sleep(1000);
             }
@@ -229,6 +236,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             throw Throwables.propagate(ex);
         }
         launched = true;
+        try {
+            // We need to persist the "launched" setting...
+            slave.save();
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Could not save() agent: " + e.getMessage(), e);
+        }
     }
 
     private Pod getPodTemplate(KubernetesSlave slave, PodTemplate template) {
