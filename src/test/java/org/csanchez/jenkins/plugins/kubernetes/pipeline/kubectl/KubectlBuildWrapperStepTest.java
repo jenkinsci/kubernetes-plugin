@@ -19,8 +19,10 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.apache.commons.compress.utils.IOUtils;
@@ -36,6 +38,11 @@ public class KubectlBuildWrapperStepTest {
 
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
+
+    @BeforeClass
+    public static void isKubernetesConfigured() throws Exception {
+        assumeKubernetes();
+    }
 
     protected String loadPipelineScript(String name) {
         try {
