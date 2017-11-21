@@ -42,6 +42,7 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.lang.StringUtils;
 
+import hudson.model.Node;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -53,6 +54,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import jenkins.model.Jenkins;
 
 public class KubernetesTestUtil {
 
@@ -106,8 +108,34 @@ public class KubernetesTestUtil {
     }
 
     /**
+     * Wait for Jenkins nodes (agents) to be deleted
+     */
+    public static void waitForNodeDeletion(Jenkins jenkins) throws Exception {
+        try {
+            new ForkJoinPool(1).submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
+                try {
+                    List<Node> nodes = jenkins.getNodes();
+                    LOGGER.log(INFO, "Still waiting for nodes to be deleted: {0}", nodes);
+                    if (nodes.isEmpty()) {
+                        LOGGER.log(INFO, "All nodes are deleted");
+                    } else {
+                        LOGGER.log(INFO, "Still waiting for nodes to be deleted: {0}", nodes);
+                        Thread.sleep(5000);
+                    }
+                    return nodes.isEmpty();
+                } catch (InterruptedException e) {
+                    LOGGER.log(INFO, "Waiting for nodes to be deleted - interrupted");
+                    return true;
+                }
+            })).get(30, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            LOGGER.log(INFO, "Waiting for nodes to be deleted - timed out");
+        }
+    }
+
+    /**
      * Delete pods with matching labels
-     * 
+     *
      * @param client
      * @param labels
      * @param wait
