@@ -99,7 +99,7 @@ public class KubernetesFactoryAdapter {
         // autoconfigure if url is not set
         if (StringUtils.isBlank(serviceAddress)) {
             LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
-            builder = new ConfigBuilder(Config.autoConfigure());
+            builder = new ConfigBuilder(Config.autoConfigure(null));
         } else {
             // although this will still autoconfigure based on Config constructor notes
             // In future releases (2.4.x) the public constructor will be empty.

@@ -50,7 +50,6 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -82,7 +81,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substitut
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
  */
 public class KubernetesLauncher extends JNLPLauncher {
-
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
@@ -95,9 +93,6 @@ public class KubernetesLauncher extends JNLPLauncher {
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
-
-
-    private static final String INIT_CONTAINER_ANNOTATION = "pod.beta.kubernetes.io/init-containers";
 
     private boolean launched;
 
@@ -274,7 +269,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 
 
@@ -303,7 +298,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withName(substituteEnv(slave.getNodeName()))
                 .withLabels(slave.getKubernetesCloud().getLabelsMap(template.getLabelSet()))
                 .withAnnotations(getAnnotationsMap(template.getAnnotations()))
-                .addToAnnotations(INIT_CONTAINER_ANNOTATION, Serialization.asJson(initContainers.values().toArray(new Container[initContainers.size()])))
                 .endMetadata()
                 .withNewSpec();
 
@@ -315,13 +309,13 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withServiceAccount(substituteEnv(template.getServiceAccount()))
                 .withImagePullSecrets(imagePullSecrets)
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
+                .withInitContainers(initContainers.values().toArray(new Container[initContainers.size()]))
                 .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                 .withRestartPolicy("Never")
                 .endSpec()
                 .build();
 
         return pod;
-
     }
 
 
