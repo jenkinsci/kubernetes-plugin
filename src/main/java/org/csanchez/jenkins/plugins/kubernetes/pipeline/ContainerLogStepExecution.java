@@ -16,8 +16,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import com.google.inject.Inject;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.client.KubernetesClient;

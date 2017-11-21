@@ -3,10 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import java.io.Closeable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
