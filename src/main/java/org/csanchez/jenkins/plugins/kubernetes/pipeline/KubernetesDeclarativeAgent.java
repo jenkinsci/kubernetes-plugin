@@ -40,6 +40,12 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private PodTemplate podTemplate;
     private String podTemplateName;
 
+    @Deprecated
+    public KubernetesDeclarativeAgent(String label, ContainerTemplate containerTemplate) {
+        this.label = label;
+        this.containerTemplate = containerTemplate;
+    }
+
     @DataBoundConstructor
     public KubernetesDeclarativeAgent(String label) {
         this.label = label;
@@ -139,10 +145,10 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setPodTemplateName(String podTemplateName) {
         this.podTemplateName = podTemplateName;
-        if (!StringUtils.isEmpty(podTemplateName)) {
+        if (podTemplateName != null) {
             String cloudName = getCloud();
             if (StringUtils.isEmpty(cloudName)) {
-                cloudName = "kubernetes";
+                cloudName = KubernetesCloud.CLOUD_NAME;
             }
             Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
             if (cloud instanceof KubernetesCloud) {

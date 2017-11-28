@@ -37,7 +37,7 @@ public class KubernetesPodTemplateDeclarativeAgentTest extends AbstractKubernete
     @Issue("JENKINS-41758")
     @Test
     public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "declarative pipeline with podTemplate");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativePod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
