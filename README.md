@@ -375,6 +375,12 @@ If your minikube is not running in that network, pass `connectorHost` to maven, 
 
   mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
 
+If you don't mind others in your network being able to use your test jenkins you could just use this:
+
+  mvn clean install -DconnectorHost=0.0.0.0
+  
+Then your test jenkins will listen on all ip addresses so that the build pods will be able to connect from the pods in your minikube VM to your host.  
+
 If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
 does not have a public hostname for the VM to access, you can set the `jenkins.host.address`
 system property to the (host-only or NAT) IP of your host:
