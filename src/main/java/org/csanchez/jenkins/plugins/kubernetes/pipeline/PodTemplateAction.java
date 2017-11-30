@@ -7,33 +7,31 @@ import java.util.Stack;
 import java.util.logging.Logger;
 
 import hudson.BulkChange;
-import hudson.model.InvisibleAction;
 import hudson.model.Run;
+import jenkins.model.RunAction2;
 
-public class PodTemplateAction extends InvisibleAction {
+public class PodTemplateAction extends AbstractInvisibleRunAction2 implements RunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateAction.class.getName());
 
     private final Stack<String> names = new Stack<>();
-    private final Run run;
 
-
-    PodTemplateAction(Run run) {
-        this.run = run;
+    PodTemplateAction(Run<?, ?> run) {
+        setRun(run);
     }
 
     public void push(String template) throws IOException {
-        if (run == null) {
+        if (getRun() == null) {
             LOGGER.warning("run is null, cannot push");
             return;
         }
-        synchronized (run) {
-            BulkChange bc = new BulkChange(run);
+        synchronized (getRun()) {
+            BulkChange bc = new BulkChange(getRun());
             try {
-                PodTemplateAction action = run.getAction(PodTemplateAction.class);
+                PodTemplateAction action = getRun().getAction(PodTemplateAction.class);
                 if (action == null) {
-                    action = new PodTemplateAction(run);
-                    run.addAction(action);
+                    action = new PodTemplateAction(getRun());
+                    getRun().addAction(action);
                 }
                 action.names.push(template);
                 bc.commit();
@@ -44,17 +42,17 @@ public class PodTemplateAction extends InvisibleAction {
     }
 
     public String pop() throws IOException {
-        if (run == null) {
+        if (getRun() == null) {
             LOGGER.warning("run is null, cannot pop");
             return null;
         }
-        synchronized (run) {
-            BulkChange bc = new BulkChange(run);
+        synchronized (getRun()) {
+            BulkChange bc = new BulkChange(getRun());
             try {
-                PodTemplateAction action = run.getAction(PodTemplateAction.class);
+                PodTemplateAction action = getRun().getAction(PodTemplateAction.class);
                 if (action == null) {
-                    action = new PodTemplateAction(run);
-                    run.addAction(action);
+                    action = new PodTemplateAction(getRun());
+                    getRun().addAction(action);
                 }
                 String template = action.names.pop();
                 bc.commit();
@@ -67,11 +65,11 @@ public class PodTemplateAction extends InvisibleAction {
     }
 
     public List<String> getParentTemplateList() {
-        synchronized (run) {
-            PodTemplateAction action = run.getAction(PodTemplateAction.class);
+        synchronized (getRun()) {
+            PodTemplateAction action = getRun().getAction(PodTemplateAction.class);
             if (action == null) {
-                action = new PodTemplateAction(run);
-                run.addAction(action);
+                action = new PodTemplateAction(getRun());
+                getRun().addAction(action);
             }
             return new ArrayList<>(action.names);
         }
