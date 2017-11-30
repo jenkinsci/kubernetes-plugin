@@ -61,7 +61,7 @@ import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
- * the Jenkins slave to execute commands.
+ * the Jenkins agent to execute commands.
  *
  */
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {

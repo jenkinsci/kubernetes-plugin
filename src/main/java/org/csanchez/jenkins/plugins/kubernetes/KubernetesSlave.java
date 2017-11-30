@@ -128,8 +128,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     /**
-     * Returns the cloud instance which created this slave.
-     * @return the cloud instance which created this slave.
+     * Returns the cloud instance which created this agent.
+     * @return the cloud instance which created this agent.
      * @throws IllegalStateException if the cloud doesn't exist anymore, or is not a {@link KubernetesCloud}.
      */
     @Nonnull
@@ -193,8 +193,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
         try {
             cloud = getKubernetesCloud();
         } catch (IllegalStateException e) {
-            e.printStackTrace(listener.fatalError("Unable to terminate slave. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster."));
-            LOGGER.log(Level.SEVERE, String.format("Unable to terminate slave %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
+            e.printStackTrace(listener.fatalError("Unable to terminate agent. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster."));
+            LOGGER.log(Level.SEVERE, String.format("Unable to terminate agent %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
             return;
         }
         KubernetesClient client;
@@ -262,7 +262,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         @Override
         public String getDisplayName() {
-            return "Kubernetes Slave";
+            return "Kubernetes Agent";
         }
 
         @Override

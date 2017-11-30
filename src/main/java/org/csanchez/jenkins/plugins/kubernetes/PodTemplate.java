@@ -232,7 +232,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public void setSlaveConnectTimeout(int slaveConnectTimeout) {
         if (slaveConnectTimeout <= 0) {
-            LOGGER.log(Level.WARNING, "Slave -> Jenkins connection timeout " +
+            LOGGER.log(Level.WARNING, "Agent -> Jenkins connection timeout " +
                     "cannot be <= 0. Falling back to the default value: " +
                     DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
             this.slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;

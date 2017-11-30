@@ -18,12 +18,12 @@
       <f:textbox/>
     </f:entry>
 
-  <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
+  <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />
   </f:entry>
 
-  <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
+  <f:entry title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
     <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
                                 deleteCaption="Delete Volume" />
   </f:entry>
@@ -37,7 +37,7 @@
         <f:entry field="instanceCap" title="${%Max number of instances}">
           <f:textbox default="0"/>
         </f:entry>
-        <f:entry field="idleMinutes" title="${%Time in minutes to retain slave when idle}">
+        <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
        </f:entry>
         <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
