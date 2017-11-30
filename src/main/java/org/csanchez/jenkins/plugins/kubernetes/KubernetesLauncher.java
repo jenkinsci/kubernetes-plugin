@@ -222,7 +222,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                 if (containerStatuses != null) {
                     logLastLines(containerStatuses, podId, namespace, slave, null, client);
                 }
-                slave.terminate();
                 throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
             }
             computer.setAcceptingTasks(true);
