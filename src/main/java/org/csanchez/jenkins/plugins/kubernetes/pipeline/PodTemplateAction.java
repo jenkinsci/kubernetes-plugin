@@ -12,6 +12,11 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 implements Ru
         super(run);
     }
 
+    @Override
+    protected AbstractInvisibleRunAction2 createAction(Run<?, ?> run) {
+        return new PodTemplateAction(run);
+    }
+
     public List<String> getParentTemplateList() {
         synchronized (getRun()) {
             PodTemplateAction action = getRun().getAction(PodTemplateAction.class);

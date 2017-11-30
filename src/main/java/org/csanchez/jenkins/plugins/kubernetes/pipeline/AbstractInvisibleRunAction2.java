@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.IOException;
 import java.util.Stack;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.BulkChange;
@@ -38,7 +39,7 @@ import jenkins.model.RunAction2;
  * @since 1.1.1
  *
  */
-public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunAction2 {
+public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implements RunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractInvisibleRunAction2.class.getName());
 
@@ -50,6 +51,8 @@ public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunA
         setRun(run);
     }
 
+    protected abstract AbstractInvisibleRunAction2 createAction(Run<?, ?> run);
+
     public Run<?, ?> getRun() {
         return run;
     }
@@ -59,18 +62,19 @@ public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunA
     }
 
     public void push(String item) throws IOException {
-        if (getRun() == null) {
+        if (run == null) {
             LOGGER.warning("run is null, cannot push");
             return;
         }
-        synchronized (getRun()) {
-            BulkChange bc = new BulkChange(getRun());
+        synchronized (run) {
+            BulkChange bc = new BulkChange(run);
             try {
-                AbstractInvisibleRunAction2 action = getRun().getAction(AbstractInvisibleRunAction2.class);
+                AbstractInvisibleRunAction2 action = run.getAction(this.getClass());
                 if (action == null) {
-                    action = new AbstractInvisibleRunAction2(getRun());
-                    getRun().addAction(action);
+                    action = createAction(run);
+                    run.addAction(action);
                 }
+                LOGGER.log(Level.INFO, "Pushing item {0} to action {1} in run {2}", new Object[] { item, action, run });
                 action.stack.push(item);
                 bc.commit();
             } finally {
@@ -80,21 +84,23 @@ public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunA
     }
 
     public String pop() throws IOException {
-        if (getRun() == null) {
+        if (run == null) {
             LOGGER.warning("run is null, cannot pop");
             return null;
         }
         synchronized (getRun()) {
             BulkChange bc = new BulkChange(getRun());
             try {
-                AbstractInvisibleRunAction2 action = getRun().getAction(AbstractInvisibleRunAction2.class);
+                AbstractInvisibleRunAction2 action = getRun().getAction(this.getClass());
                 if (action == null) {
-                    action = new AbstractInvisibleRunAction2(getRun());
+                    action = createAction(getRun());
                     getRun().addAction(action);
                 }
-                String template = action.stack.pop();
+                String item = action.stack.pop();
+                LOGGER.log(Level.INFO, "Popped item {0} from action {1} in run {2}",
+                        new Object[] { item, action, run });
                 bc.commit();
-                return template;
+                return item;
             } finally {
                 bc.abort();
             }

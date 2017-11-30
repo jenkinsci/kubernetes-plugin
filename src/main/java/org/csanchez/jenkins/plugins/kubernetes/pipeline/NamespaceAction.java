@@ -11,6 +11,11 @@ public class NamespaceAction extends AbstractInvisibleRunAction2 implements RunA
         super(run);
     }
 
+    @Override
+    protected AbstractInvisibleRunAction2 createAction(Run<?, ?> run) {
+        return new NamespaceAction(run);
+    }
+
     public String getNamespace() {
         synchronized (getRun()) {
             NamespaceAction action = getRun().getAction(NamespaceAction.class);
