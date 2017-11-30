@@ -74,7 +74,8 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
                     action = createAction(run);
                     run.addAction(action);
                 }
-                LOGGER.log(Level.INFO, "Pushing item {0} to action {1} in run {2}", new Object[] { item, action, run });
+                LOGGER.log(Level.FINEST, "Pushing item {0} to action {1} in run {2}",
+                        new Object[] { item, action, run });
                 action.stack.push(item);
                 bc.commit();
             } finally {
@@ -97,7 +98,7 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
                     getRun().addAction(action);
                 }
                 String item = action.stack.pop();
-                LOGGER.log(Level.INFO, "Popped item {0} from action {1} in run {2}",
+                LOGGER.log(Level.FINEST, "Popped item {0} from action {1} in run {2}",
                         new Object[] { item, action, run });
                 bc.commit();
                 return item;
