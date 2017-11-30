@@ -1,6 +1,14 @@
 CHANGELOG
 =========
 
+1.1.1
+-----
+* Fix agent reconnection after master restart [JENKINS-47476](https://issues.jenkins-ci.org/browse/JENKINS-47476) [#244](https://github.com/jenkinsci/kubernetes-plugin/pull/244)
+* Wait 5s for complete disconnection of agents to avoid stack trace [#248](https://github.com/jenkinsci/kubernetes-plugin/pull/248)
+* If namespace is not provided nor autoconfigured should use `default` [#234](https://github.com/jenkinsci/kubernetes-plugin/pull/234)
+* Kubernetes plugin not using cmd proc variables, affecting `sshagent` step [JENKINS-47225](https://issues.jenkins-ci.org/browse/JENKINS-47225)[#236](https://github.com/jenkinsci/kubernetes-plugin/pull/236)
+* Escape quotes in environment variables [JENKINS-46670](https://issues.jenkins-ci.org/browse/JENKINS-46670)[#218](https://github.com/jenkinsci/kubernetes-plugin/pull/218)
+
 1.1
 -----
 * Only allow tasks after all containers in pod are ready [#230](https://github.com/jenkinsci/kubernetes-plugin/pull/230)
