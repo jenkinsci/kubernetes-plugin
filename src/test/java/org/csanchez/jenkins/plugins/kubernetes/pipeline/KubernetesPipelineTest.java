@@ -201,14 +201,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                     new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "overriddenNamespace");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace.groovy"), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
         NamespaceAction namespaceAction = new NamespaceAction(b);
         namespaceAction.push(overriddenNamespace);
 
-        assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(overriddenNamespace, b);
     }
@@ -227,14 +227,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                     new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "stepOverriddenNamespace");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy"), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
         NamespaceAction namespaceAction = new NamespaceAction(b);
         namespaceAction.push(overriddenNamespace);
 
-        assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(stepNamespace, b);
     }
