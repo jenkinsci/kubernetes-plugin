@@ -24,6 +24,11 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import java.io.IOException;
+import java.util.Stack;
+import java.util.logging.Logger;
+
+import hudson.BulkChange;
 import hudson.model.InvisibleAction;
 import hudson.model.Run;
 import jenkins.model.RunAction2;
@@ -35,7 +40,15 @@ import jenkins.model.RunAction2;
  */
 public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunAction2 {
 
+    private static final Logger LOGGER = Logger.getLogger(AbstractInvisibleRunAction2.class.getName());
+
+    protected final Stack<String> stack = new Stack<>();
+
     private transient Run<?, ?> run;
+
+    public AbstractInvisibleRunAction2(Run<?, ?> run) {
+        setRun(run);
+    }
 
     public Run<?, ?> getRun() {
         return run;
@@ -43,6 +56,50 @@ public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunA
 
     protected void setRun(Run<?, ?> run) {
         this.run = run;
+    }
+
+    public void push(String item) throws IOException {
+        if (getRun() == null) {
+            LOGGER.warning("run is null, cannot push");
+            return;
+        }
+        synchronized (getRun()) {
+            BulkChange bc = new BulkChange(getRun());
+            try {
+                AbstractInvisibleRunAction2 action = getRun().getAction(AbstractInvisibleRunAction2.class);
+                if (action == null) {
+                    action = new AbstractInvisibleRunAction2(getRun());
+                    getRun().addAction(action);
+                }
+                action.stack.push(item);
+                bc.commit();
+            } finally {
+                bc.abort();
+            }
+        }
+    }
+
+    public String pop() throws IOException {
+        if (getRun() == null) {
+            LOGGER.warning("run is null, cannot pop");
+            return null;
+        }
+        synchronized (getRun()) {
+            BulkChange bc = new BulkChange(getRun());
+            try {
+                AbstractInvisibleRunAction2 action = getRun().getAction(AbstractInvisibleRunAction2.class);
+                if (action == null) {
+                    action = new AbstractInvisibleRunAction2(getRun());
+                    getRun().addAction(action);
+                }
+                String template = action.stack.pop();
+                bc.commit();
+                return template;
+            } finally {
+                bc.abort();
+                return null;
+            }
+        }
     }
 
     @Override
