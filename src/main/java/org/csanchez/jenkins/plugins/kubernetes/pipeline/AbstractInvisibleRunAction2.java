@@ -97,7 +97,6 @@ public class AbstractInvisibleRunAction2 extends InvisibleAction implements RunA
                 return template;
             } finally {
                 bc.abort();
-                return null;
             }
         }
     }
