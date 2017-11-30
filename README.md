@@ -30,7 +30,7 @@ If _Kubernetes URL_ is not set, the connection options will be autoconfigured fr
 
 # Pipeline support
 
-Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the specific container you want to execute your task in.
+Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the container you want to execute your task in.
 
 This will run in jnlp container
 ```groovy
