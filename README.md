@@ -219,7 +219,7 @@ Then consumers of the library could just express the need for a maven pod with d
 ```groovy
 dockerTemplate {
   mavenTemplate {
-    node('mypodlabel') {
+    node('label') {
       container('docker') {
         sh 'echo hello from docker'
       }
