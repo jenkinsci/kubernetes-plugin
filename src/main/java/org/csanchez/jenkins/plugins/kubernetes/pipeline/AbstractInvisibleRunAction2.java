@@ -29,6 +29,7 @@ import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
 import hudson.model.InvisibleAction;
 import hudson.model.Run;
@@ -47,10 +48,16 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
 
     private transient Run<?, ?> run;
 
+    public AbstractInvisibleRunAction2() {
+        super();
+    }
+
+    @Deprecated
     public AbstractInvisibleRunAction2(Run<?, ?> run) {
         setRun(run);
     }
 
+    @Deprecated
     protected abstract AbstractInvisibleRunAction2 createAction(Run<?, ?> run);
 
     public Run<?, ?> getRun() {
@@ -61,6 +68,29 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
         this.run = run;
     }
 
+    protected static void push(@NonNull Run<?, ?> run, @NonNull Class<? extends AbstractInvisibleRunAction2> clazz,
+            @NonNull String item) throws IOException {
+        synchronized (run) {
+            BulkChange bc = new BulkChange(run);
+            try {
+                AbstractInvisibleRunAction2 action = run.getAction(clazz);
+                if (action == null) {
+                    action = clazz.newInstance();
+                    run.addAction(action);
+                }
+                LOGGER.log(Level.FINEST, "Pushing item {0} to action {1} in run {2}",
+                        new Object[] { item, action, run });
+                action.stack.push(item);
+                bc.commit();
+            } catch (InstantiationException | IllegalAccessException e) {
+                throw new RuntimeException("Can not instantiate class " + clazz, e);
+            } finally {
+                bc.abort();
+            }
+        }
+    }
+
+    @Deprecated
     public void push(String item) throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot push");
@@ -84,18 +114,19 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
         }
     }
 
+    @Deprecated
     public String pop() throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot pop");
             return null;
         }
-        synchronized (getRun()) {
-            BulkChange bc = new BulkChange(getRun());
+        synchronized (run) {
+            BulkChange bc = new BulkChange(run);
             try {
-                AbstractInvisibleRunAction2 action = getRun().getAction(this.getClass());
+                AbstractInvisibleRunAction2 action = run.getAction(this.getClass());
                 if (action == null) {
-                    action = createAction(getRun());
-                    getRun().addAction(action);
+                    action = createAction(run);
+                    run.addAction(action);
                 }
                 String item = action.stack.pop();
                 LOGGER.log(Level.FINEST, "Popped item {0} from action {1} in run {2}",
