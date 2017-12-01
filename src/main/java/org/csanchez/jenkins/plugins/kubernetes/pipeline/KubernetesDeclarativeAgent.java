@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import hudson.Util;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
@@ -147,7 +148,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     @DataBoundSetter
     public void setPodTemplateName(String podTemplateName) {
-        this.podTemplateName = podTemplateName;
+        this.podTemplateName = Util.fixEmpty(podTemplateName);
         if (podTemplateName != null) {
             String cloudName = getCloud();
             if (StringUtils.isEmpty(cloudName)) {
