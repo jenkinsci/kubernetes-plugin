@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.model.Run;
 import jenkins.model.RunAction2;
@@ -28,6 +29,7 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 implements Ru
     }
 
     @Deprecated
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
     public void push(String template) throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot push");
