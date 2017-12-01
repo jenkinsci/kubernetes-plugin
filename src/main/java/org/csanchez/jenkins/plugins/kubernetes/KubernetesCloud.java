@@ -77,8 +77,7 @@ public class KubernetesCloud extends Cloud {
 
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
-    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
-    public static final Map<String, String> NEW_DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "agent");
+    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "agent");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -350,7 +349,6 @@ public class KubernetesCloud extends Cloud {
     Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
         builder.putAll(DEFAULT_POD_LABELS);
-        builder.putAll(NEW_DEFAULT_POD_LABELS);
         if (!labelSet.isEmpty()) {
             for (LabelAtom label: labelSet) {
                 builder.put(getIdForLabel(label), "true");
