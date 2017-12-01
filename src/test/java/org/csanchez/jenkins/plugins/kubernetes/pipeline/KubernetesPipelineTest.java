@@ -206,8 +206,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
+        NamespaceAction.push(b, overriddenNamespace);
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(overriddenNamespace, b);
@@ -232,8 +231,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
+        NamespaceAction.push(b, overriddenNamespace);
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(stepNamespace, b);
