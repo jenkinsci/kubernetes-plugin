@@ -31,7 +31,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
-    private String cloud = KubernetesCloud.CLOUD_NAME;
+    private String cloud = KubernetesCloud.DEFAULT_CLOUD_NAME;
     private String inheritFrom;
 
     private final String label;

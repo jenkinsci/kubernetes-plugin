@@ -23,8 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 
 public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDeclarativeAgent> {
+    private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
+
     private final String label;
 
     private String cloud;
@@ -148,7 +151,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (podTemplateName != null) {
             String cloudName = getCloud();
             if (StringUtils.isEmpty(cloudName)) {
-                cloudName = KubernetesCloud.CLOUD_NAME;
+                cloudName = KubernetesCloud.DEFAULT_CLOUD_NAME;
             }
             Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
             if (cloud instanceof KubernetesCloud) {
@@ -164,6 +167,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
                 }
                 if (template != null) {
                     setPodTemplate(template);
+                } else {
+                    LOGGER.warning("Could not find a PodTemplate called " + podTemplateName + " in the cloud " + cloudName + " so cannot default the PodTemplate");
                 }
             }
         }
