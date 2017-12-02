@@ -193,7 +193,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(overriddenNamespace).get() == null) {
@@ -217,8 +217,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
      * Step namespace should have priority over anything else.
      */
     public void runWithStepOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
-        String stepNamespace = TESTING_NAMESPACE + "-overridden-namespace2";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
+        String stepNamespace = testingNamespace + "-overridden-namespace2";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(stepNamespace).get() == null) {
