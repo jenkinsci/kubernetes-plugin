@@ -3,6 +3,8 @@ CHANGELOG
 
 1.1.2
 -----
+* Namespace is erroneously autodetected as 'default' [#261](https://github.com/jenkinsci/kubernetes-plugin/pull/261)
+* Do not require 2.89 for installation, revert to 2.32.1 [#263](https://github.com/jenkinsci/kubernetes-plugin/pull/263)
 * IllegalStateException at hudson.XmlFile.replaceIfNotAtTopLevel [JENKINS-45892](https://issues.jenkins-ci.org/browse/JENKINS-45892) [#257](https://github.com/jenkinsci/kubernetes-plugin/pull/257)
 
 1.1.1

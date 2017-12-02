@@ -49,6 +49,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
@@ -72,8 +73,12 @@ public class KubernetesTestUtil {
         if (StringUtils.isNotBlank(branch)) {
             String namespaceWithBranch = String.format("%s-%s", DEFAULT_TESTING_NAMESPACE, branch);
             LOGGER.log(FINE, "Trying to use namespace: {0}", testingNamespace);
-            if (client.namespaces().withName(namespaceWithBranch).get() != null) {
-                testingNamespace = namespaceWithBranch;
+            try {
+                if (client.namespaces().withName(namespaceWithBranch).get() != null) {
+                    testingNamespace = namespaceWithBranch;
+                }
+            } catch (KubernetesClientException e) {
+                // nothing to do
             }
         }
         if (testingNamespace == null) {
