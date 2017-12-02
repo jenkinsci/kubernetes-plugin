@@ -75,7 +75,7 @@ public class KubernetesFactoryAdapter {
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) {
         this.serviceAddress = serviceAddress;
-        this.namespace = StringUtils.isBlank(namespace) ? "default" : namespace;
+        this.namespace = namespace;
         this.caCertData = caCertData;
         this.credentials = credentials != null ? getCredentials(credentials) : null;
         this.skipTlsVerify = skipTlsVerify;
@@ -112,7 +112,10 @@ public class KubernetesFactoryAdapter {
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
+        } else if (StringUtils.isBlank(builder.getNamespace())) {
+            builder.withNamespace("default");
         }
+
         if (credentials instanceof TokenProducer) {
             final String token = ((TokenProducer) credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
             builder.withOauthToken(token);

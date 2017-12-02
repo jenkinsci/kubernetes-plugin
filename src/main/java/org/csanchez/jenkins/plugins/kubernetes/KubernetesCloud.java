@@ -331,8 +331,8 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}",
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
+                new String[] { getDisplayName(), serverUrl, namespace });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
