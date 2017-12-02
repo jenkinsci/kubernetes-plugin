@@ -1,5 +1,25 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.Nonnull;
+
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.durabletask.executors.Messages;
+import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.jvnet.localizer.Localizable;
+import org.jvnet.localizer.ResourceBundleHolder;
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Computer;
@@ -14,22 +34,6 @@ import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.durabletask.executors.Messages;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-import org.jvnet.localizer.Localizable;
-import org.jvnet.localizer.ResourceBundleHolder;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -37,6 +41,9 @@ import java.util.logging.Logger;
 public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
+
+    private static final Integer DISCONNECTION_TIMEOUT = Integer
+            .getInteger(KubernetesSlave.class.getName() + ".disconnectionTimeout", 5);
 
     private static final long serialVersionUID = -8642936855413034232L;
     private static final String DEFAULT_AGENT_PREFIX = "jenkins-agent";
@@ -166,7 +173,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
-        computer.disconnect(offlineCause);
+
+        Future<?> disconnected = computer.disconnect(offlineCause);
+        // wait a bit for disconnection to avoid stack traces in logs
+        try {
+            disconnected.get(DISCONNECTION_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            String msg = String.format("Ignoring error waiting for agent disconnection %s: %s", name, e.getMessage());
+            LOGGER.log(Level.INFO, msg, e);
+        }
 
         if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);

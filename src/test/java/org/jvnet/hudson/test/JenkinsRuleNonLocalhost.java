@@ -24,8 +24,6 @@
 
 package org.jvnet.hudson.test;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -42,8 +40,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.ThreadPoolImpl;
 
 /**
  * @author Carlos Sanchez
@@ -52,7 +48,16 @@ import org.jvnet.hudson.test.ThreadPoolImpl;
 public class JenkinsRuleNonLocalhost extends JenkinsRule {
     private static final Logger LOGGER = Logger.getLogger(JenkinsRuleNonLocalhost.class.getName());
 
-    private static final String HOST = System.getProperty("connectorHost", "0.0.0.0");
+    private static final String HOST = System.getProperty("connectorHost", "192.168.64.1");
+
+    private Integer port;
+
+    public JenkinsRuleNonLocalhost(Integer port) {
+        this.port = port;
+    }
+
+    public JenkinsRuleNonLocalhost() {
+    }
 
     /**
      * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
@@ -81,8 +86,15 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
         connector.setHost(HOST);
-        if (System.getProperty("port")!=null)
+
+        if (System.getProperty("port")!=null) {
+            LOGGER.info("Overriding port using system property: " + System.getProperty("port"));
             connector.setPort(Integer.parseInt(System.getProperty("port")));
+        } else {
+            if (port != null) {
+                connector.setPort(port);
+            }
+        }
 
         server.addConnector(connector);
         server.start();

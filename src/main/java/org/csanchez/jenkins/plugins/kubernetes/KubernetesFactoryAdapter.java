@@ -112,7 +112,10 @@ public class KubernetesFactoryAdapter {
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
+        } else if (StringUtils.isBlank(builder.getNamespace())) {
+            builder.withNamespace("default");
         }
+
         if (credentials instanceof TokenProducer) {
             final String token = ((TokenProducer) credentials).getToken(serviceAddress, caCertData, skipTlsVerify);
             builder.withOauthToken(token);

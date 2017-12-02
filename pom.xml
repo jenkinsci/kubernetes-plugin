@@ -3,12 +3,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.32</version>
+    <version>3.0</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.1.3-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment</description>
   <packaging>hpi</packaging>
@@ -21,6 +21,14 @@
     <tag>HEAD</tag>
   </scm>
 
+  <licenses>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <developers>
     <developer>
       <id>carlos</id>
@@ -30,6 +38,9 @@
   </developers>
 
   <properties>
+    <!-- in minikube
+    minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
+    <connectorHost>192.168.64.1</connectorHost>
     <java.level>8</java.level>
 
     <!-- dependency versions -->
@@ -38,12 +49,11 @@
     <jenkins.version>2.32.1</jenkins.version>
 
     <kubernetes-client.version>2.6.1</kubernetes-client.version>
-    <slf4j.version>1.7.13</slf4j.version>
 
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
     <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
-    <jenkins-durable-task.version>1.13</jenkins-durable-task.version>
+    <jenkins-durable-task.version>1.16</jenkins-durable-task.version>
     <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
     <jenkins-structs.version>1.6</jenkins-structs.version>
     <jenkins-workflow-cps.version>2.29</jenkins-workflow-cps.version>
@@ -69,13 +79,6 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
       <version>${httpclient.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <!-- required plugins -->
@@ -176,14 +179,39 @@
       <version>${jenkins-workflow-cps.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <!-- for ContainerExecDecoratorPipelineTest -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>ssh-agent</artifactId>
+      <version>1.15</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>bouncycastle-api</artifactId>
+      <version>2.16.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
+  <!-- just to fix enforcer RequireUpperBoundDeps -->
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
         <version>${jenkins-structs.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>ssh-credentials</artifactId>
+        <version>1.12</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.sshd</groupId>
+        <artifactId>sshd-core</artifactId>
+        <version>1.6.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -196,8 +224,8 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <!-- listen in all interfaces from connections from kubernetes pods -->
-            <connectorHost>0.0.0.0</connectorHost>
+            <!-- listen in this interface for connections from kubernetes pods -->
+            <connectorHost>${connectorHost}</connectorHost>
           </systemPropertyVariables>
         </configuration>
       </plugin>

@@ -1,35 +1,30 @@
----
-apiVersion: "v1"
-kind: "Namespace"
-metadata: 
-  name: "kubernetes-plugin"
-  labels: 
-    name: "kubernetes-plugin"
-
 # jenkins
 
 ---
-apiVersion: "apps/v1beta1"
-kind: "StatefulSet"
-metadata: 
-  name: "jenkins"
-  labels: 
-    name: "jenkins"
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: jenkins
+  labels:
+    name: jenkins
 spec:
-  serviceName: "jenkins"
+  serviceName: jenkins
   replicas: 1
-  template: 
-    metadata: 
-      name: "jenkins"
-      labels: 
-        name: "jenkins"
-    spec: 
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      name: jenkins
+      labels:
+        name: jenkins
+    spec:
       terminationGracePeriodSeconds: 10
       serviceAccountName: jenkins
-      containers: 
-        - name: "jenkins"
-          image: "jenkinsci/jenkins:2.60.1"
-          ports: 
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts-alpine
+          imagePullPolicy: Always
+          ports:
             - containerPort: 8080
             - containerPort: 50000
           resources:
@@ -40,11 +35,17 @@ spec:
               cpu: 0.5
               memory: 500Mi
           env:
+            - name: LIMITS_MEMORY
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  divisor: 1Mi
             - name: JAVA_OPTS
-              value: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85"
-          volumeMounts: 
-            - name: "jenkins-home"
-              mountPath: "/var/jenkins_home"
+              # value: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+              value: -Xmx$(LIMITS_MEMORY)m -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
           livenessProbe:
             httpGet:
               path: /login
@@ -71,27 +72,26 @@ spec:
           storage: 1Gi
 
 ---
-apiVersion: "v1"
-kind: "Service"
-metadata: 
-  name: "jenkins"
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
   annotations:
     # ensure the client ip is propagated to avoid the invalid crumb issue (k8s <1.7)
     # service.beta.kubernetes.io/external-traffic: OnlyLocal
-spec: 
+spec:
   type: LoadBalancer
-  selector: 
-    name: "jenkins"
+  selector:
+    name: jenkins
   # k8s 1.7+
   externalTrafficPolicy: Local
-  ports: 
-    - 
-      name: "http"
+  ports:
+    -
+      name: http
       port: 80
       targetPort: 8080
-      protocol: "TCP"
-    - 
-      name: "slave"
+      protocol: TCP
+    -
+      name: slave
       port: 50000
-      protocol: "TCP"
-
+      protocol: TCP

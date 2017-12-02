@@ -23,8 +23,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
-import hudson.model.Environment;
-import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -61,6 +59,7 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 
 /**
  * Kubernetes cloud provider.
@@ -184,7 +183,6 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setServerUrl(@Nonnull String serverUrl) {
-        Preconditions.checkArgument(!StringUtils.isBlank(serverUrl));
         this.serverUrl = serverUrl;
     }
 
@@ -333,8 +331,8 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}",
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
+                new String[] { getDisplayName(), serverUrl, namespace });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
@@ -512,16 +510,17 @@ public class KubernetesCloud extends Cloud {
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
                         connectionTimeout, readTimeout).createClient();
 
+                // test listing pods
                 client.pods().list();
-                return FormValidation.ok("Connection successful");
+                return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
-                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
-                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getCause() == null
+                LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
+                return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getCause() == null
                         ? e.getMessage()
                         : String.format("%s: %s", e.getCause().getClass().getName(), e.getCause().getMessage()));
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, String.format("Error connecting to %s", serverUrl), e);
-                return FormValidation.error("Error connecting to %s: %s", serverUrl, e.getMessage());
+                LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
+                return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getMessage());
             }
         }
 

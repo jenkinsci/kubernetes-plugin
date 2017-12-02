@@ -3,25 +3,33 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
-import hudson.model.InvisibleAction;
 import hudson.model.Run;
+import jenkins.model.RunAction2;
 
-public class PodTemplateAction extends InvisibleAction {
+public class PodTemplateAction extends AbstractInvisibleRunAction2 implements RunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateAction.class.getName());
 
-    private final Stack<String> names = new Stack<>();
-    private final Run run;
-
-
-    PodTemplateAction(Run run) {
-        this.run = run;
+    PodTemplateAction() {
+        super();
     }
 
+    @Deprecated
+    PodTemplateAction(Run run) {
+        setRun(run);
+    }
+
+    protected static void push(@NonNull Run<?, ?> run, @NonNull String item) throws IOException {
+        AbstractInvisibleRunAction2.push(run, PodTemplateAction.class, item);
+    }
+
+    @Deprecated
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
     public void push(String template) throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot push");
@@ -35,7 +43,7 @@ public class PodTemplateAction extends InvisibleAction {
                     action = new PodTemplateAction(run);
                     run.addAction(action);
                 }
-                action.names.push(template);
+                action.stack.push(template);
                 bc.commit();
             } finally {
                 bc.abort();
@@ -43,6 +51,7 @@ public class PodTemplateAction extends InvisibleAction {
         }
     }
 
+    @Deprecated
     public String pop() throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot pop");
@@ -56,7 +65,7 @@ public class PodTemplateAction extends InvisibleAction {
                     action = new PodTemplateAction(run);
                     run.addAction(action);
                 }
-                String template = action.names.pop();
+                String template = action.stack.pop();
                 bc.commit();
                 return template;
             } finally {
@@ -67,14 +76,7 @@ public class PodTemplateAction extends InvisibleAction {
     }
 
     public List<String> getParentTemplateList() {
-        synchronized (run) {
-            PodTemplateAction action = run.getAction(PodTemplateAction.class);
-            if (action == null) {
-                action = new PodTemplateAction(run);
-                run.addAction(action);
-            }
-            return new ArrayList<>(action.names);
-        }
+        return new ArrayList<>(stack);
     }
 
     public String getParentTemplates() {

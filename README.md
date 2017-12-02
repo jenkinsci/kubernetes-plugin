@@ -105,7 +105,7 @@ Either way it provides access to the following fields:
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
 * **envVars** Environment variables that are applied to **ALL** containers.
-    * **envVar** An environment variable whose value is defined inline. 
+    * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
@@ -118,7 +118,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **name** The name of the container.
 * **image** The image of the container.
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
-    * **envVar** An environment variable whose value is defined inline. 
+    * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
 * **command** The command the container will execute.
 * **args** The arguments passed to the command.
@@ -296,7 +296,7 @@ One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP
 and will be the container acting as Jenkins agent. It can be overridden by defining a container with the same name.
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
-just runs something and exit then it should be overriden with something like `cat` with `ttyEnabled: true`.
+just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
 
 
 # Over provisioning flags
@@ -370,6 +370,16 @@ Tests will detect it and run a set of integration tests in a new namespace.
 
 Some integration tests run a local jenkins, so the host that runs them needs
 to be accessible from the kubernetes cluster.
+By default Jenkins will listen on `192.168.64.1` interface only, for security reasons.
+If your minikube is not running in that network, pass `connectorHost` to maven, ie.
+
+  mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
+
+If you don't mind others in your network being able to use your test jenkins you could just use this:
+
+  mvn clean install -DconnectorHost=0.0.0.0
+  
+Then your test jenkins will listen on all ip addresses so that the build pods will be able to connect from the pods in your minikube VM to your host.  
 
 If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
 does not have a public hostname for the VM to access, you can set the `jenkins.host.address`
@@ -477,6 +487,8 @@ Kubernetes URL to the container engine cluster endpoint or simply `https://kuber
 Under credentials, click `Add` and select `Kubernetes Service Account`,
 or alternatively use the Kubernetes API username and password. Select 'Certificate' as credentials type if the
 kubernetes cluster is configured to use client certificates for authentication.
+
+Using `Kubernetes Service Account` will cause the plugin to use the default token mounted inside the Jenkins pod. See [Configure Service Accounts for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) for more information.
 
 ![image](credentials.png)
 

@@ -28,7 +28,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,18 +37,11 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
 
-import hudson.model.Node;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -60,8 +52,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
 
-    @Rule
-    public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -83,7 +73,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate template = templates.get(0);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("PID file contents: ", b);
+        r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
     }
@@ -137,6 +127,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
         r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
         r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
+        r.assertLogContains("The value of WILL.NOT is ", b);
     }
 
     @Test
@@ -202,7 +193,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(overriddenNamespace).get() == null) {
@@ -210,14 +201,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                     new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "overriddenNamespace");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithOverriddenNamespace.groovy"), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
-
         assertNotNull(b);
+        NamespaceAction.push(b, overriddenNamespace);
+
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(overriddenNamespace, b);
     }
@@ -227,8 +217,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
      * Step namespace should have priority over anything else.
      */
     public void runWithStepOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
-        String stepNamespace = TESTING_NAMESPACE + "-overridden-namespace2";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
+        String stepNamespace = testingNamespace + "-overridden-namespace2";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(stepNamespace).get() == null) {
@@ -236,14 +226,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                     new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy"), true));
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "stepOverriddenNamespace");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy")
+                .replace("OVERRIDDEN_NAMESPACE", stepNamespace), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
-
         assertNotNull(b);
+        NamespaceAction.push(b, overriddenNamespace);
+
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(stepNamespace, b);
     }
@@ -257,39 +247,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Still alive", b);
-    }
-
-    // @Test
-    public void runInPodWithRestart() throws Exception {
-        story.addStep(new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                story.j.jenkins.clouds.add(new KubernetesCloud("test"));
-
-                story.j.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                        Node.Mode.NORMAL, "", story.j.createComputerLauncher(null), RetentionStrategy.NOOP,
-                        Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRestart.groovy")
-                        , true));
-                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-                SemaphoreStep.waitForStart("withDisplayAfterRestart/1", b);
-            }
-        });
-        story.addStep(new Statement() {
-            @SuppressWarnings("SleepWhileInLoop")
-            @Override
-            public void evaluate() throws Throwable {
-                SemaphoreStep.success("withDisplayAfterRestart/1", null);
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p", WorkflowJob.class);
-                assertNotNull(p);
-                WorkflowRun b = p.getBuildByNumber(1);
-                assertNotNull(b);
-                story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b));
-                story.j.assertLogContains("DISPLAY=:", b);
-                r.assertLogContains("xxx", b);
-            }
-        });
     }
 
     @Test

@@ -19,7 +19,8 @@ timestamps {
         resourceRequestCpu: '100m',
         resourceLimitMemory: '1200Mi')
     ], envVars: [
-        envVar(key: '_JAVA_OPTIONS', value: jvmOptions)
+        envVar(key: '_JAVA_OPTIONS', value: jvmOptions),
+        envVar(key: 'BRANCH_NAME', value: env.BRANCH_NAME)
     ], volumes: [
       persistentVolumeClaim(mountPath: '/root/.m2/repository-read-only', claimName: 'maven-repo', readOnly: true)
     ]) {
@@ -42,7 +43,7 @@ timestamps {
       stage('Test') {
         try {
           container('maven') {
-            sh 'mvn -B test'
+            sh 'mvn -B test -DconnectorHost=0.0.0.0'
           }
         } finally {
           junit '**/target/surefire-reports/**/*.xml'

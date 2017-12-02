@@ -40,6 +40,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang.StringUtils;
+
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -55,7 +57,8 @@ public class KubernetesTestUtil {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesTestUtil.class.getName());
 
-    public static final String TESTING_NAMESPACE = "kubernetes-plugin-test";
+    private static final String DEFAULT_TESTING_NAMESPACE = "kubernetes-plugin-test";
+    public static String testingNamespace;
 
     public static KubernetesCloud setupCloud() throws UnrecoverableKeyException, CertificateEncodingException,
             NoSuchAlgorithmException, KeyStoreException, IOException {
@@ -63,11 +66,26 @@ public class KubernetesTestUtil {
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
-        if (client.namespaces().withName(TESTING_NAMESPACE).get() == null) {
-            client.namespaces()
-                    .create(new NamespaceBuilder().withNewMetadata().withName(TESTING_NAMESPACE).endMetadata().build());
+
+        // if there is a namespace specific for this branch (ie. kubernetes-plugin-test-master), use it
+        String branch = System.getenv("BRANCH_NAME");
+        if (StringUtils.isNotBlank(branch)) {
+            String namespaceWithBranch = String.format("%s-%s", DEFAULT_TESTING_NAMESPACE, branch);
+            LOGGER.log(FINE, "Trying to use namespace: {0}", testingNamespace);
+            if (client.namespaces().withName(namespaceWithBranch).get() != null) {
+                testingNamespace = namespaceWithBranch;
+            }
         }
-        cloud.setNamespace(TESTING_NAMESPACE);
+        if (testingNamespace == null) {
+            testingNamespace = DEFAULT_TESTING_NAMESPACE;
+            if (client.namespaces().withName(testingNamespace).get() == null) {
+                LOGGER.log(INFO, "Creating namespace: {0}", testingNamespace);
+                client.namespaces().create(
+                        new NamespaceBuilder().withNewMetadata().withName(testingNamespace).endMetadata().build());
+            }
+        }
+        LOGGER.log(INFO, "Using namespace {0} for branch {1}", new String[] { testingNamespace, branch });
+        cloud.setNamespace(testingNamespace);
         client = cloud.connect();
 
         return cloud;
@@ -97,7 +115,7 @@ public class KubernetesTestUtil {
 
         if (client != null) {
 
-            // wait for 30 seconds for all pods to be terminated
+            // wait for 90 seconds for all pods to be terminated
             if (wait) {
                 LOGGER.log(INFO, "Waiting for pods to terminate");
                 ForkJoinPool forkJoinPool = new ForkJoinPool(1);
@@ -119,7 +137,7 @@ public class KubernetesTestUtil {
                             LOGGER.log(INFO, "Waiting for pods to terminate - interrupted");
                             return true;
                         }
-                    })).get(60, TimeUnit.SECONDS);
+                    })).get(90, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOGGER.log(INFO, "Waiting for pods to terminate - timed out");
                     // job not done in interval
