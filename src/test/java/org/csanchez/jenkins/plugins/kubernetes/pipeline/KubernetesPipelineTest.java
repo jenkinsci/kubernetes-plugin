@@ -227,7 +227,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "stepOverriddenNamespace");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy"), true));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy")
+                .replace("OVERRIDDEN_NAMESPACE", stepNamespace), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
