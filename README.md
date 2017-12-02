@@ -306,7 +306,10 @@ It will spawn one executor and wait for sometime for the first executor to be fr
 Jenkins makes sure every executor it spawns is utilized to the maximum.
 If you want to override this behaviour and spawn an executor for each build in queue immediately without waiting,
 you can use these flags during Jenkins startup:
-`-Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85`
+
+    -Dhudson.slaves.NodeProvisioner.initialDelay=0
+    -Dhudson.slaves.NodeProvisioner.MARGIN=50
+    -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
 
 
 # Configuration on minikube
