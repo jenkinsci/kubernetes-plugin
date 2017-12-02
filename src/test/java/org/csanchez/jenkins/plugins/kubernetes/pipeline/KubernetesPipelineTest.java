@@ -27,7 +27,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,7 +56,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), Collections.emptyMap(), false);
+        deletePods(cloud.connect(), getLabels(this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
@@ -75,7 +74,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
+                deletePods(cloud.connect(), getLabels(this), true));
     }
 
     @Test
