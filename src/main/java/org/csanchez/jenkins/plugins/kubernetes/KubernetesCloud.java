@@ -71,6 +71,8 @@ import jenkins.model.JenkinsLocationConfiguration;
 public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
 
+    public static final String DEFAULT_CLOUD_NAME = "kubernetes";
+
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
 
     private static final String DEFAULT_ID = "jenkins/slave-default";

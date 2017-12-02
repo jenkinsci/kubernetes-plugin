@@ -24,21 +24,21 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.*;
-
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
-public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+import static org.junit.Assert.assertNotNull;
 
-    @Issue("JENKINS-41758")
+public class KubernetesInheritPodTemplateDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+
+    @Issue("JENKINS-48140")
     @Test
     public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "declarative pipeline with containerTemplate");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "declarative pipeline inherit podTemplate");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeInheritPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));

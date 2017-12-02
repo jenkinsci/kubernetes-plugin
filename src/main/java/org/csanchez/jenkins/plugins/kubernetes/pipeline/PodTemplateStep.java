@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -30,9 +31,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
-    private static final String DEFAULT_CLOUD = "kubernetes";
-
-    private String cloud = DEFAULT_CLOUD;
+    private String cloud = KubernetesCloud.DEFAULT_CLOUD_NAME;
     private String inheritFrom;
 
     private final String label;
