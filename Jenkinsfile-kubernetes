@@ -30,9 +30,14 @@ timestamps {
         checkout scm
       }
       stage('Package') {
-        container('maven') {
+        try {
+          container('maven') {
             sh 'cp -a /root/.m2/repository-read-only /root/.m2/repository'
             sh 'mvn -B clean install -Dmaven.test.skip=true -Dfindbugs.fork=false'
+          }
+        } finally {
+          archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.hpi,**/target/*.jpi'
+          findbugs(includePattern:'**/target/findbugsXml.xml')
         }
       }
       stage('Test') {
