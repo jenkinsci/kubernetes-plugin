@@ -37,7 +37,7 @@ timestamps {
           }
         } finally {
           archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.hpi,**/target/*.jpi'
-          findbugs '**/target/findbugsXml.xml'
+          findbugs(includePattern:'**/target/findbugsXml.xml')
         }
       }
       stage('Test') {
