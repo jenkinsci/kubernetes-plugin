@@ -214,7 +214,7 @@ def call() {
     body()
 }
 ```
-Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can also **NOT** omit the `node` statement.
+Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
 
 ```groovy
 dockerTemplate {
