@@ -97,15 +97,20 @@ public class PodTemplateUtils {
         imagePullSecrets.addAll(parent.getImagePullSecrets());
         imagePullSecrets.addAll(template.getImagePullSecrets());
 
-        Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
-        Map<String, PodVolume> combinedVolumes = new HashMap<>();
+        //Init Containers
+        Map<String, ContainerTemplate> combinedInitContainers = new HashMap<>();
+        Map<String, ContainerTemplate> parentInitContainers = parent.getInitContainers().stream().collect(toMap(c -> c.getName(), c -> c));
+        combinedInitContainers.putAll(parentInitContainers);
+        combinedInitContainers.putAll(template.getInitContainers().stream().collect(toMap(c -> c.getName(), c -> combine(parentInitContainers.get(c.getName()), c))));
 
         //Containers
+        Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
         Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
         combinedContainers.putAll(parentContainers);
         combinedContainers.putAll(template.getContainers().stream().collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
 
         //Volumes
+        Map<String, PodVolume> combinedVolumes = new HashMap<>();
         Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
         combinedVolumes.putAll(parentVolumes);
         combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
@@ -125,6 +130,7 @@ public class PodTemplateUtils {
         podTemplate.setServiceAccount(serviceAccount);
         podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
+        podTemplate.setInitContainers(new ArrayList<>(combinedInitContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
