@@ -39,6 +39,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private final String name;
 
     private String namespace;
+    private List<ContainerTemplate> initContainers = new ArrayList<>();
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<TemplateEnvVar> envVars = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
@@ -95,6 +96,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setInheritFrom(String inheritFrom) {
         this.inheritFrom = inheritFrom;
+    }
+
+    public List<ContainerTemplate> getInitContainers() {
+        return initContainers;
+    }
+
+    @DataBoundSetter
+    public void setInitContainers(List<ContainerTemplate> initContainers) {
+        this.initContainers = initContainers;
     }
 
     public List<ContainerTemplate> getContainers() {

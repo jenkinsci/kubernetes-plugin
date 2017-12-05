@@ -29,6 +29,11 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry title="${%Init Containers}" description="${%List of init container in the slave pod}">
+      <f:repeatableHeteroProperty field="initContainers" hasHeader="true" addCaption="Add Init Container"
+                                    deleteCaption="Delete Init Container" />
+  </f:entry>
+
   <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />

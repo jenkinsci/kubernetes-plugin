@@ -269,11 +269,16 @@ public class KubernetesLauncher extends JNLPLauncher {
             volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
+        }
+
+
+        Map<String, Container> initContainers = new HashMap<>();
+        for (ContainerTemplate containerTemplate : template.getInitContainers()) {
+            initContainers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
         Map<String, Container> containers = new HashMap<>();
-
         for (ContainerTemplate containerTemplate : template.getContainers()) {
             containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
@@ -304,13 +309,13 @@ public class KubernetesLauncher extends JNLPLauncher {
                 .withServiceAccount(substituteEnv(template.getServiceAccount()))
                 .withImagePullSecrets(imagePullSecrets)
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
+                .withInitContainers(initContainers.values().toArray(new Container[initContainers.size()]))
                 .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
                 .withRestartPolicy("Never")
                 .endSpec()
                 .build();
 
         return pod;
-
     }
 
 
