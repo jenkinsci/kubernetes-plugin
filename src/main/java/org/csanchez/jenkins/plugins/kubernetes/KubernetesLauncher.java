@@ -60,6 +60,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,6 +113,8 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     @Override
     public void launch(SlaveComputer computer, TaskListener listener) {
+        PrintStream logger = listener.getLogger();
+
         if (!(computer instanceof KubernetesComputer)) {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
         }
@@ -139,7 +142,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
             LOGGER.log(INFO, "Created Pod: {0} in namespace {1}", new Object[]{podId, namespace});
-            listener.getLogger().printf("Created Pod: %s in namespace %s", podId, namespace);
+            logger.printf("Created Pod: %s in namespace %s%n", podId, namespace);
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
@@ -153,7 +156,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             // wait for Pod to be running
             for (; i < j; i++) {
                 LOGGER.log(INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[]{podId, i, j});
-                listener.getLogger().printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s", podId, i, j);
+                logger.printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s%n", podId, i, j);
 
                 Thread.sleep(6000);
                 pod = client.pods().inNamespace(namespace).withName(podId).get();
@@ -170,7 +173,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                             // Pod is waiting for some reason
                             LOGGER.log(INFO, "Container is waiting {0} [{2}]: {1}",
                                     new Object[]{podId, info.getState().getWaiting(), info.getName()});
-                            listener.getLogger().printf("Container is waiting %1$s [%3$s]: %2$s",
+                            logger.printf("Container is waiting %1$s [%3$s]: %2$s%n",
                                     podId, info.getState().getWaiting(), info.getName());
                             // break;
                         }
@@ -215,7 +218,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                     break;
                 }
                 LOGGER.log(INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
-                listener.getLogger().printf("Waiting for slave to connect (%2$s/%3$s): %1$s", podId, i, j);
+                logger.printf("Waiting for slave to connect (%2$s/%3$s): %1$s%n", podId, i, j);
                 Thread.sleep(1000);
             }
             if (!slave.getComputer().isOnline()) {
