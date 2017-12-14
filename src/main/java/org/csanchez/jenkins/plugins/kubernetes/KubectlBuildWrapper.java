@@ -21,6 +21,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
+import hudson.util.QuotedStringTokenizer;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
@@ -81,9 +82,15 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
+      String configFile = writeKubeConfig(workspace, launcher, build);
+      context.setDisposer(new CleanupDisposer(newHashSet(configFile)));
+      context.env("KUBECONFIG", configFile);
+    }
+
+    public String writeKubeConfig(FilePath workspace, Launcher launcher, Run<?,?> build) throws IOException, InterruptedException {
 
         FilePath configFile = workspace.createTempFile(".kube", "config");
-        Set<String> tempFiles = newHashSet(configFile.getRemote());
+        Set<String> tempFiles = newHashSet();
 
         String tlsConfig;
         if (caCertificate != null && !caCertificate.isEmpty()) {
@@ -95,7 +102,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             caCrtFile.write(ca, null);
             tempFiles.add(caCrtFile.getRemote());
 
-            tlsConfig = " --certificate-authority=" + caCrtFile.getRemote();
+            tlsConfig = " --embed-certs=true --certificate-authority=" + caCrtFile.getRemote();
         } else {
             tlsConfig = " --insecure-skip-tls-verify=true";
         }
@@ -106,9 +113,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        final StandardCredentials c = getCredentials();
+        final StandardCredentials c = getCredentials(build);
 
         String login;
+        int sensitiveFieldsCount = 1;
         if (c == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
         } else if (c instanceof TokenProducer) {
@@ -117,6 +125,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             UsernamePasswordCredentials upc = (UsernamePasswordCredentials) c;
             login = "--username=" + upc.getUsername() + " --password=" + Secret.toString(upc.getPassword());
         } else if (c instanceof StandardCertificateCredentials) {
+            sensitiveFieldsCount = 0;
             StandardCertificateCredentials scc = (StandardCertificateCredentials) c;
             KeyStore keyStore = scc.getKeyStore();
             String alias;
@@ -134,7 +143,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 clientKeyFile.write(encodedClientKey, null);
                 tempFiles.add(clientCrtFile.getRemote());
                 tempFiles.add(clientKeyFile.getRemote());
-                login = "--client-certificate=" + clientCrtFile.getRemote() + " --client-key="
+                login = "--embed-certs=true --client-certificate=" + clientCrtFile.getRemote() + " --client-key="
                         + clientKeyFile.getRemote();
             } catch (KeyStoreException e) {
                 throw new AbortException(e.getMessage());
@@ -149,10 +158,12 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             throw new AbortException("Unsupported Credentials type " + c.getClass().getName());
         }
 
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
-                .masks(false, false, false, false, false, false, true)
-                .join();
+        String[] cmds = QuotedStringTokenizer.tokenize("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login);
+        boolean[] masks = new boolean[cmds.length];
+        for(int i=0; i < sensitiveFieldsCount; i++){
+          masks[masks.length - 1 - i] = true;
+        }
+        status = launcher.launch().cmds(cmds).masks(masks).join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
         status = launcher.launch()
@@ -165,9 +176,11 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        context.setDisposer(new CleanupDisposer(tempFiles));
+        for (String tempFile : tempFiles) {
+            workspace.child(tempFile).delete();
+        }
 
-        context.env("KUBECONFIG", configFile.getRemote());
+        return configFile.getRemote();
     }
 
     /**
@@ -177,15 +190,12 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
      * @throws AbortException if no {@link StandardCredentials} matching {@link #credentialsId} is found
      */
     @CheckForNull
-    private StandardCredentials getCredentials() throws AbortException {
+    private StandardCredentials getCredentials(Run<?,?> build) throws AbortException {
         if (StringUtils.isBlank(credentialsId)) {
             return null;
         }
-        StandardCredentials result = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                        Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                CredentialsMatchers.withId(credentialsId)
-        );
+        StandardCredentials result = CredentialsProvider.findCredentialById(credentialsId, StandardCredentials.class, build,  Collections.<DomainRequirement>emptyList());
+
         if (result == null) {
             throw new AbortException("No credentials found for id \"" + credentialsId + "\"");
         }

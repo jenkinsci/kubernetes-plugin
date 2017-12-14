@@ -27,7 +27,6 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
-
 # Pipeline support
 
 Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the container you want to execute your task in.
@@ -278,6 +277,26 @@ annotations: [
    ...
 }
 
+```
+
+## kubectl configuration
+You can use the `withKubeConfig()` directive in pipeline to configure the `kubectl` command line tool for further executions.
+This is not a requirement for running slaves as Kubernetes pods, but it reveals being an simple way to set credentials from a pipeline.
+
+The following parameters are available:
+* **credentialsId** the Jenkins identifier of the credentials to use.
+* **caCertificate** an optional certificate to check the Kubernetes api server's against
+* **serverUrl** the url of an api server
+
+Within the `withKubeConfig(){}` block, any `kubectl` call will use the previously set configuration:
+```groovy
+node {
+  stage('List pods') {
+    withKubeConfig([credentialsId: 'my-kubernetes-cred-id', caCertificate: 'MIIDrTCCAxagAwIBAg...uXvFA/i+gdenFHv', serverUrl: 'https://your-api-server:6443']) {
+      sh 'kubectl get pods'
+    }
+  }
+}
 ```
 
 ## Declarative Pipeline
