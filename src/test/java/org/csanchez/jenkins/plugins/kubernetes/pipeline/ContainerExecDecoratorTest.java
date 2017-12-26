@@ -25,7 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
@@ -39,7 +39,15 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.jvnet.hudson.test.Issue;
+
+import com.google.common.collect.ImmutableMap;
 
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
@@ -50,8 +58,6 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.junit.rules.ExpectedException;
-import org.jvnet.hudson.test.Issue;
 
 /**
  * @author Carlos Sanchez
@@ -61,8 +67,6 @@ public class ContainerExecDecoratorTest {
     public ExpectedException exception = ExpectedException.none();
 
     private static KubernetesClient client;
-    private static Map<String, String> labels = Collections.singletonMap("class",
-            ContainerExecDecoratorTest.class.getSimpleName());
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
     private ContainerExecDecorator decorator;
@@ -75,14 +79,14 @@ public class ContainerExecDecoratorTest {
 
     @Before
     public void configureCloud() throws Exception {
-        client = setupCloud().connect();
-        deletePods(client, labels, false);
+        client = setupCloud(this).connect();
+        deletePods(client, getLabels(this), false);
 
         String image = "busybox";
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(labels)
+        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(getLabels(this))
                 .endMetadata().withNewSpec().withContainers(c).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
@@ -92,7 +96,7 @@ public class ContainerExecDecoratorTest {
 
     @After
     public void after() throws Exception {
-        deletePods(client, labels, false);
+        deletePods(client, getLabels(this), false);
     }
 
     @Test(timeout = 10000)
