@@ -77,7 +77,8 @@ public class KubernetesCloud extends Cloud {
 
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
-    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "agent");
+    @Deprecated
+    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -101,6 +102,7 @@ public class KubernetesCloud extends Cloud {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout;
     private int readTimeout;
+    private Map<String, String> labels;
 
     private transient KubernetesClient client;
     private int maxRequestsPerHost;
@@ -305,6 +307,17 @@ public class KubernetesCloud extends Cloud {
         return connectTimeout;
     }
 
+    /**
+     * Labels for all pods started by the plugin
+     */
+    public Map<String, String> getLabels() {
+        return labels == null ? Collections.emptyMap() : labels;
+    }
+
+    public void setLabels(Map<String, String> labels) {
+        this.labels = labels;
+    }
+
     @DataBoundSetter
     public void setMaxRequestsPerHostStr(String maxRequestsPerHostStr) {
         try  {
@@ -331,8 +344,8 @@ public class KubernetesCloud extends Cloud {
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             IOException, CertificateEncodingException {
 
-        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1}",
-                new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
+                new String[] { getDisplayName(), serverUrl, namespace });
         client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost).createClient();
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
@@ -348,7 +361,7 @@ public class KubernetesCloud extends Cloud {
 
     Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(DEFAULT_POD_LABELS);
+        builder.putAll(getLabels());
         if (!labelSet.isEmpty()) {
             for (LabelAtom label: labelSet) {
                 builder.put(getIdForLabel(label), "true");
@@ -417,7 +430,7 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(DEFAULT_POD_LABELS).list();
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
         Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
@@ -566,6 +579,9 @@ public class KubernetesCloud extends Cloud {
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
+        }
+        if (labels == null) {
+            labels = DEFAULT_POD_LABELS;
         }
         return this;
     }

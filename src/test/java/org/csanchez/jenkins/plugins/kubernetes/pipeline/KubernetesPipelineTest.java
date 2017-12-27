@@ -27,7 +27,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,7 +56,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), Collections.emptyMap(), false);
+        deletePods(cloud.connect(), getLabels(this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
@@ -75,7 +74,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
+                deletePods(cloud.connect(), getLabels(this), true));
     }
 
     @Test
@@ -193,7 +192,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(overriddenNamespace).get() == null) {
@@ -206,8 +205,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
+        NamespaceAction.push(b, overriddenNamespace);
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(overriddenNamespace, b);
@@ -218,8 +216,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
      * Step namespace should have priority over anything else.
      */
     public void runWithStepOverriddenNamespace() throws Exception {
-        String overriddenNamespace = TESTING_NAMESPACE + "-overridden-namespace";
-        String stepNamespace = TESTING_NAMESPACE + "-overridden-namespace2";
+        String overriddenNamespace = testingNamespace + "-overridden-namespace";
+        String stepNamespace = testingNamespace + "-overridden-namespace2";
         KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
         if (client.namespaces().withName(stepNamespace).get() == null) {
@@ -228,12 +226,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "stepOverriddenNamespace");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy"), true));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithStepOverriddenNamespace.groovy")
+                .replace("OVERRIDDEN_NAMESPACE", stepNamespace), true));
 
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        NamespaceAction namespaceAction = new NamespaceAction(b);
-        namespaceAction.push(overriddenNamespace);
+        NamespaceAction.push(b, overriddenNamespace);
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(stepNamespace, b);

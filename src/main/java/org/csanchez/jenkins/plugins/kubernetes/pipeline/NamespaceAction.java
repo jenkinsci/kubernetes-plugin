@@ -1,28 +1,33 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EmptyStackException;
-import java.util.List;
-import java.util.Stack;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
-import hudson.model.InvisibleAction;
 import hudson.model.Run;
+import jenkins.model.RunAction2;
 
-public class NamespaceAction extends InvisibleAction {
+public class NamespaceAction extends AbstractInvisibleRunAction2 implements RunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(NamespaceAction.class.getName());
 
-    private final Stack<String> namespaces = new Stack<>();
-    private final Run run;
-
-
-    public NamespaceAction(Run run) {
-        this.run = run;
+    NamespaceAction() {
+        super();
     }
 
+    @Deprecated
+    public NamespaceAction(Run run) {
+        setRun(run);
+    }
+
+    protected static void push(@NonNull Run<?, ?> run, @NonNull String item) throws IOException {
+        AbstractInvisibleRunAction2.push(run, NamespaceAction.class, item);
+    }
+
+    @Deprecated
     public void push(String namespace) throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot push");
@@ -36,7 +41,7 @@ public class NamespaceAction extends InvisibleAction {
                     action = new NamespaceAction(run);
                     run.addAction(action);
                 }
-                action.namespaces.push(namespace);
+                action.stack.push(namespace);
                 bc.commit();
             } finally {
                 bc.abort();
@@ -44,6 +49,8 @@ public class NamespaceAction extends InvisibleAction {
         }
     }
 
+    @Deprecated
+    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
     public String pop() throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot pop");
@@ -57,7 +64,7 @@ public class NamespaceAction extends InvisibleAction {
                     action = new NamespaceAction(run);
                     run.addAction(action);
                 }
-                String namespace = action.namespaces.pop();
+                String namespace = action.stack.pop();
                 bc.commit();
                 return namespace;
             } finally {
@@ -68,17 +75,10 @@ public class NamespaceAction extends InvisibleAction {
     }
 
     public String getNamespace() {
-        synchronized (run) {
-            NamespaceAction action = run.getAction(NamespaceAction.class);
-            if (action == null) {
-                action = new NamespaceAction(run);
-                run.addAction(action);
-            }
-            try {
-                return action.namespaces.peek();
-            } catch (EmptyStackException e) {
-                return null;
-            }
+        try {
+            return stack.peek();
+        } catch (EmptyStackException e) {
+            return null;
         }
     }
 }

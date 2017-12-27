@@ -126,7 +126,7 @@ public class RestartPipelineTest {
     }
 
     public void configureCloud() throws Exception {
-        cloud = setupCloud();
+        cloud = setupCloud(this);
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
