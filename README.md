@@ -30,8 +30,9 @@ If _Kubernetes URL_ is not set, the connection options will be autoconfigured fr
 
 # Pipeline support
 
-Nodes can be defined in a pipeline and then used
+Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the container you want to execute your task in.
 
+This will run in jnlp container
 ```groovy
 podTemplate(label: 'mypod') {
     node('mypod') {
@@ -39,6 +40,19 @@ podTemplate(label: 'mypod') {
             sh 'echo hello world'
         }
     }
+}
+```
+
+This will be container specific
+```groovy
+podTemplate(label: 'mypod') {
+  node('mypod') {
+    stage('Run shell') {
+      container('mycontainer') {
+        sh 'echo hello world'
+      }
+    }
+  }
 }
 ```
 
@@ -99,7 +113,7 @@ Either way it provides access to the following fields:
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod.
-* **container** The container templates that are use to create the containers of the pod *(see below)*.
+* **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either 'NORMAL' or 'EXCLUSIVE', this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
@@ -180,36 +194,42 @@ The example below composes two different podTemplates in order to create one wit
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
 For example one could create a function for a maven template, say `mavenTemplate.groovy`:
-
-    #!/usr/bin/groovy
-    def call() {
-    podTemplate(label: label,
-            containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
-            volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
-                      persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
-        body()
-    }
-
+```groovy
+#!/usr/bin/groovy
+def call() {
+  podTemplate(label: label,
+        containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
+        volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
+                  persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
+    body()
+}
+```
 and also a function for a docker template, say `dockerTemplate.groovy`:
+```groovy
+#!/usr/bin/groovy
+def call() {
+  podTemplate(label: label,
+        containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
+        volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
+    body()
+}
+```
+Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
 
-    #!/usr/bin/groovy
-    def call() {
-    podTemplate(label: label,
-            containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
-            volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
-        body()
-    }
-
-Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two:
-
-    dockerTemplate {
-        mavenTemplate {
-            sh """
-               mvn clean install
-               docker build -t  myimage ./target/docker/
-            """
-        }
-    }
+```groovy
+dockerTemplate {
+  mavenTemplate {
+    node('label') {
+      container('docker') {
+        sh 'echo hello from docker'
+      }
+      container('maven') {
+        sh 'echo hello from maven'
+      }
+     }
+  }
+}
+```
 
 #### Using a different namespace
 
@@ -306,7 +326,10 @@ It will spawn one executor and wait for sometime for the first executor to be fr
 Jenkins makes sure every executor it spawns is utilized to the maximum.
 If you want to override this behaviour and spawn an executor for each build in queue immediately without waiting,
 you can use these flags during Jenkins startup:
-`-Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85`
+
+    -Dhudson.slaves.NodeProvisioner.initialDelay=0
+    -Dhudson.slaves.NodeProvisioner.MARGIN=50
+    -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
 
 
 # Configuration on minikube
@@ -378,7 +401,7 @@ If your minikube is not running in that network, pass `connectorHost` to maven, 
 If you don't mind others in your network being able to use your test jenkins you could just use this:
 
   mvn clean install -DconnectorHost=0.0.0.0
-  
+
 Then your test jenkins will listen on all ip addresses so that the build pods will be able to connect from the pods in your minikube VM to your host.  
 
 If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
