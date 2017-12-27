@@ -62,7 +62,7 @@ public class KubernetesTest {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
-                new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
+                new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getCombinedEnvVars());
     }
 
     @Test
@@ -81,7 +81,7 @@ public class KubernetesTest {
         assertEquals("jenkins/jnlp-slave", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
         assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
-                containerTemplate.getEnvVars());
+                containerTemplate.getCombinedEnvVars());
         assertEquals(2, podTemplate.getVolumes().size());
 
         EmptyDirVolume emptyVolume = (EmptyDirVolume) podTemplate.getVolumes().get(0);

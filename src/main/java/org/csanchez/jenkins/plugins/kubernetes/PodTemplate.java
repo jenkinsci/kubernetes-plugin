@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -30,6 +29,9 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import java.util.stream.Collectors;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 
 /**
  * Kubernetes Pod Template
@@ -95,7 +97,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
-    private List<TemplateEnvVar> envVars = new ArrayList<>();
+    private List<PodEnvVar> envVars = new ArrayList<>();
+
+    private List<AbstractTemplateEnvVar> combinedEnvVars = new ArrayList<>();
 
     private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
 
@@ -394,25 +398,44 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
-    public List<TemplateEnvVar> getEnvVars() {
-        if (envVars == null) {
-            return Collections.emptyList();
-        }
-        return envVars;
-    }
 
-    public void addEnvVars(List<TemplateEnvVar> envVars) {
+    @DataBoundSetter
+    public void setEnvVars(List<PodEnvVar> envVars) {
         if (envVars != null) {
-            this.envVars.addAll(envVars);
+            this.migrateToCombined(envVars);
         }
     }
 
     @DataBoundSetter
-    public void setEnvVars(List<TemplateEnvVar> envVars) {
+    public void setCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
         if (envVars != null) {
+            this.combinedEnvVars.clear();
+            this.combinedEnvVars.addAll(envVars);
             this.envVars.clear();
-            this.addEnvVars(envVars);
         }
+    }
+
+    public void migrateToCombined()
+    {
+        this.migrateToCombined(this.envVars);
+    }
+
+    public void migrateToCombined(List<PodEnvVar> envVars) {
+        if (envVars != null) {
+            combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
+            this.envVars.clear();
+        }
+    }
+
+    public List<AbstractTemplateEnvVar> getCombinedEnvVars() {
+        if (combinedEnvVars == null) {
+            combinedEnvVars = Collections.emptyList();
+        }
+
+        if (envVars != null) {
+            migrateToCombined(this.envVars);
+        }
+        return combinedEnvVars;
     }
 
     public List<PodAnnotation> getAnnotations() {
@@ -568,7 +591,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
-            containerTemplate.setEnvVars(envVars);
+            containerTemplate.setCombinedEnvVars(combinedEnvVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);

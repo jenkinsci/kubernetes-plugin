@@ -1,37 +1,67 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import java.io.Serializable;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 
 /**
  * Deprecated, use KeyValueEnvVar
  */
 @Deprecated
-public class PodEnvVar extends KeyValueEnvVar {
+public class PodEnvVar extends AbstractDescribableImpl<PodEnvVar> implements Serializable, TemplateEnvVar{
 
     private static final long serialVersionUID = 5426623531408300311L;
 
+    private String key;
+    private String value;
+
     @DataBoundConstructor
     public PodEnvVar(String key, String value) {
-        super(key, value);
+        this.key = key;
+        this.value = value;
     }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+}
+
 
     @Override
     public String toString() {
         return "PodEnvVar [getValue()=" + getValue() + ", getKey()=" + getKey() + "]";
     }
 
-    public Descriptor<KeyValueEnvVar> getDescriptor() {
+    public Descriptor<PodEnvVar> getDescriptor() {
         return new DescriptorImpl();
+    }
+
+    @Override
+    public EnvVar buildEnvVar() {
+        return new EnvVarBuilder().withName(getKey()).withValue(getValue()).build();
     }
 
     @Extension
     @Symbol("podEnvVar")
-    public static class DescriptorImpl extends Descriptor<KeyValueEnvVar> {
+    public static class DescriptorImpl extends Descriptor<PodEnvVar> {
         @Override
         public String getDisplayName() {
             return "Global Environment Variable (applied to all containers)";

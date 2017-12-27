@@ -36,10 +36,10 @@ import io.fabric8.kubernetes.api.model.SecretKeySelectorBuilder;
 
 /**
  * Environment variables created from kubernetes secrets.
- * 
+ *
  * @since 0.13
  */
-public class SecretEnvVar extends AbstractTemplateEnvVar<SecretEnvVar> {
+public class SecretEnvVar extends AbstractTemplateEnvVar {
 
     private static final long serialVersionUID = -7481523353781581248L;
 
@@ -87,7 +87,7 @@ public class SecretEnvVar extends AbstractTemplateEnvVar<SecretEnvVar> {
 
     @Extension
     @Symbol("secretEnvVar")
-    public static class DescriptorImpl extends Descriptor<SecretEnvVar> {
+    public static class DescriptorImpl extends Descriptor<AbstractTemplateEnvVar> {
         @Override
         public String getDisplayName() {
             return "Environment Variable from Secret";

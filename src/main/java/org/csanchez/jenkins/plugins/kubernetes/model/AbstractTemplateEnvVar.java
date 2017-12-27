@@ -31,7 +31,7 @@ import hudson.model.AbstractDescribableImpl;
 /**
  * @since 0.13
  */
-abstract class AbstractTemplateEnvVar<T extends AbstractDescribableImpl<T>> extends AbstractDescribableImpl<T>
+public abstract class AbstractTemplateEnvVar extends AbstractDescribableImpl<AbstractTemplateEnvVar>
         implements Serializable, TemplateEnvVar {
 
     private static final long serialVersionUID = 2200143955998383068L;

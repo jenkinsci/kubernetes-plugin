@@ -44,6 +44,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -586,4 +588,29 @@ public class KubernetesCloud extends Cloud {
         return this;
     }
 
+    @Initializer(after = InitMilestone.PLUGINS_PREPARED)
+    /**
+     * Migrates legacy envVar configs to using KeyEnvVar
+     * Does NOT replace config unless user saves on configure screen.
+     * TODO: Replace with Plugin Config and move logic to that.
+     * Example: https://github.com/jenkinsci/github-plugin/blob/master/src/main/java/org/jenkinsci/plugins/github/GitHubPlugin.java
+     */
+    public static void migrateEnvVars() throws IOException {
+
+        Jenkins jenkins = Jenkins.getInstance();
+        for(Cloud cloud : jenkins.clouds) {
+            if(cloud instanceof KubernetesCloud) {
+                for(PodTemplate pt : ((KubernetesCloud) cloud).getTemplates()) {
+                    for(ContainerTemplate ct: pt.getContainers()) {
+                       if(ct!=null)
+                       {
+                           ContainerTemplate.DescriptorImpl desc = ct.getDescriptor();
+                           ct.migratedToCombined();
+                       }
+                    }
+                    pt.migrateToCombined();
+                }
+            }
+        }
+    }
 }

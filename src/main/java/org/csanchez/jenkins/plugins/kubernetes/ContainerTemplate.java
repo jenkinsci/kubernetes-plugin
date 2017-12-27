@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -16,6 +15,10 @@ import com.google.common.base.Preconditions;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import java.util.stream.Collectors;
+import org.csanchez.jenkins.plugins.kubernetes.model.AbstractTemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -47,7 +50,12 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceLimitMemory;
 
-    private final List<TemplateEnvVar> envVars = new ArrayList<>();
+    private List<ContainerEnvVar> envVars = new ArrayList<>();
+
+    private List<AbstractTemplateEnvVar> combinedEnvVars = new ArrayList<>();
+
+
+
     private List<PortMapping> ports = new ArrayList<PortMapping>();
 
     private ContainerLivenessProbe livenessProbe;
@@ -148,14 +156,63 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return alwaysPullImage;
     }
 
-    public List<TemplateEnvVar> getEnvVars() {
-        return envVars != null ? envVars : Collections.emptyList();
+    public List<ContainerEnvVar> getEnvVars() {
+        return Collections.EMPTY_LIST;
     }
 
     @DataBoundSetter
     public void setEnvVars(List<TemplateEnvVar> envVars) {
-        this.envVars.addAll(envVars);
+        if (envVars != null) {
+            for(TemplateEnvVar envVar : envVars) {
+               if(envVar instanceof ContainerEnvVar) {
+                       this.combinedEnvVars.add(new KeyValueEnvVar(envVar.getKey(), ((ContainerEnvVar) envVar).getValue()));
+                       this.envVars.add((ContainerEnvVar)envVar);
+               }
+               else {
+                   combinedEnvVars.add((AbstractTemplateEnvVar)envVar);
+               }
+            }
+
+        }
     }
+
+    @DataBoundSetter
+    public void setCombinedEnvVars(List<AbstractTemplateEnvVar> envVars) {
+        if (envVars != null) {
+            this.combinedEnvVars.clear();
+            this.combinedEnvVars.addAll(envVars);
+        }
+    }
+
+    public void migratedToCombined()
+    {
+        this.migratedToCombined(this.envVars);
+    }
+
+    public void migratedToCombined(List<ContainerEnvVar> envVars)
+    {
+        if (envVars != null)
+        {
+            combinedEnvVars.addAll(envVars.stream().map(s -> { KeyValueEnvVar p = new KeyValueEnvVar(s.getKey(), s.getValue()); return p; }).collect(Collectors.toList()));
+            this.envVars.clear();
+        }
+    }
+
+    public List<AbstractTemplateEnvVar> getCombinedEnvVars() {
+        if (combinedEnvVars == null) {
+            combinedEnvVars = Collections.emptyList();
+        }
+        //handle legacy migration case...
+        if (envVars != null)
+        {
+            migratedToCombined(envVars);
+
+        }
+        this.envVars.clear();
+        return combinedEnvVars;
+
+    }
+
 
 
     public ContainerLivenessProbe getLivenessProbe() { return livenessProbe; }
@@ -208,6 +265,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         this.resourceRequestCpu = resourceRequestCpu;
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
     }
 
     @Extension
