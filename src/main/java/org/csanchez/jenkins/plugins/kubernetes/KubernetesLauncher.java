@@ -232,8 +232,8 @@ public class KubernetesLauncher extends JNLPLauncher {
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; slave=%s, template=%s", slave, unwrappedTemplate), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
             try {
-                Jenkins.getInstance().removeNode(slave);
-            } catch (IOException e) {
+                slave.terminate();
+            } catch (IOException | InterruptedException e) {
                 LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
             }
             throw Throwables.propagate(ex);
