@@ -64,7 +64,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 /**
  * Kubernetes cloud provider.
  *
- * Starts slaves in a Kubernetes cluster using defined Docker templates for each label.
+ * Starts agents in a Kubernetes cluster using defined Docker templates for each label.
  *
  * @author Carlos Sanchez carlos@apache.org
  */

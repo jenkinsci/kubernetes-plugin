@@ -131,7 +131,7 @@ public class RestartPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
+        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = story.j.getURL();
 
         String hostAddress = System.getProperty("jenkins.host.address");

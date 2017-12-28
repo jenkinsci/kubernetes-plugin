@@ -22,7 +22,7 @@
     <f:textbox default="/home/jenkins"/>
   </f:entry>
 
-  <f:entry field="command" title="${%Command to run slave agent}">
+  <f:entry field="command" title="${%Command to run}">
     <f:textbox default="/bin/sh -c"/>
   </f:entry>
 
@@ -34,7 +34,7 @@
     <f:checkbox default="true"/>
   </f:entry>
 
-    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in slave pod}">
+    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in agent pod}">
       <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="Add Environment Variable"
                                   deleteCaption="Delete Environment Variable" />
     </f:entry>
