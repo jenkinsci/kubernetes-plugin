@@ -47,7 +47,7 @@
     <httpclient.version>4.5.1</httpclient.version>
     <jackson.version>2.5.0</jackson.version>
     <jenkins.version>2.32.1</jenkins.version>
-    <kubernetes-client.version>3.0.1</kubernetes-client.version>
+    <kubernetes-client.version>3.0.3</kubernetes-client.version>
 
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
