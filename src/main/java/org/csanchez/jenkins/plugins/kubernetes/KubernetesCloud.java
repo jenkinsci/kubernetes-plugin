@@ -52,10 +52,8 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
-import hudson.model.Items;
 import hudson.model.Label;
 import hudson.model.Node;
-import hudson.model.Run;
 import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -508,18 +506,8 @@ public class KubernetesCloud extends Cloud {
             Jenkins.XSTREAM2.addCompatibilityAlias(
                     "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
                     OpenShiftBearerTokenCredentialImpl.class);
-            Items.XSTREAM2.addCompatibilityAlias(
-                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
-                    OpenShiftBearerTokenCredentialImpl.class);
-            Run.XSTREAM2.addCompatibilityAlias(
-                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
-                    OpenShiftBearerTokenCredentialImpl.class);
             Jenkins.XSTREAM2.addCompatibilityAlias(
                     "org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
-                    OpenShiftTokenCredentialImpl.class);
-            Items.XSTREAM2.addCompatibilityAlias("org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
-                    OpenShiftTokenCredentialImpl.class);
-            Run.XSTREAM2.addCompatibilityAlias("org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
                     OpenShiftTokenCredentialImpl.class);
         }
 
