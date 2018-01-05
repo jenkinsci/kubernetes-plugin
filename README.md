@@ -196,6 +196,8 @@ This feature is extra useful, pipeline library developers as it allows you to wr
 For example one could create functions for their podTemplates and import them for use.
 Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
 ```groovy
+package com.foo.utils
+
 public void dockerTemplate(body) {
   podTemplate(label: label,
         containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
