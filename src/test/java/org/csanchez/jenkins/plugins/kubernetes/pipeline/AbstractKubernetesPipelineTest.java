@@ -79,12 +79,12 @@ public class AbstractKubernetesPipelineTest {
 
     @Before
     public void configureCloud() throws Exception {
-        cloud = setupCloud();
+        cloud = setupCloud(this);
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        // Slaves running in Kubernetes (minikube) need to connect to this server, so localhost does not work
+        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
 
         String hostAddress = System.getProperty("jenkins.host.address");

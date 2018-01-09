@@ -20,7 +20,8 @@ timestamps {
         resourceLimitMemory: '1200Mi')
     ], envVars: [
         envVar(key: '_JAVA_OPTIONS', value: jvmOptions),
-        envVar(key: 'BRANCH_NAME', value: env.BRANCH_NAME)
+        envVar(key: 'BRANCH_NAME', value: env.BRANCH_NAME),
+        envVar(key: 'BUILD_NUMBER', value: env.BUILD_NUMBER)
     ], volumes: [
       persistentVolumeClaim(mountPath: '/root/.m2/repository-read-only', claimName: 'maven-repo', readOnly: true)
     ]) {
