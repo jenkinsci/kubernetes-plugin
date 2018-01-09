@@ -110,7 +110,7 @@ public class KubernetesTestUtil {
 
     public static void assumeKubernetes() throws Exception {
         try (DefaultKubernetesClient client = new DefaultKubernetesClient(
-                new ConfigBuilder(Config.autoConfigure()).build())) {
+                new ConfigBuilder(Config.autoConfigure(null)).build())) {
             client.pods().list();
         } catch (Exception e) {
             assumeNoException(e);
