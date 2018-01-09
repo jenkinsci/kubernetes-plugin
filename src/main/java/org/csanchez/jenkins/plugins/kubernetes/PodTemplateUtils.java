@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -19,14 +20,26 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
 import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
+import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
+import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 
 public class PodTemplateUtils {
     /**
@@ -69,6 +82,143 @@ public class PodTemplateUtils {
         combined.setPrivileged(privileged);
         combined.setEnvVars(combineEnvVars(parent, template));
         return combined;
+    }
+
+    /**
+     * Combines a Container with its parent.
+     * 
+     * @param parent
+     *            The parent container (nullable).
+     * @param template
+     *            The actual container
+     * @return The combined container.
+     */
+    public static Container combine(@CheckForNull Container parent, @Nonnull Container template) {
+        Preconditions.checkNotNull(template, "Container template should not be null");
+        if (parent == null) {
+            return template;
+        }
+
+        String name = template.getName();
+        String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
+        boolean privileged = template.getSecurityContext().getPrivileged()
+                ? template.getSecurityContext().getPrivileged()
+                : (parent.getSecurityContext().getPrivileged() ? parent.getSecurityContext().getPrivileged() : false);
+        String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
+                : template.getImagePullPolicy();
+        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
+                ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
+                : template.getWorkingDir();
+        List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
+        List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
+        boolean tty = template.getTty() ? template.getTty() : (parent.getTty() ? parent.getTty() : false);
+        Quantity resourceRequestCpu = Strings
+                .isNullOrEmpty(template.getResources().getRequests().get("cpu").getAmount())
+                        ? parent.getResources().getRequests().get("cpu")
+                        : template.getResources().getRequests().get("cpu");
+        Quantity resourceRequestMemory = Strings
+                .isNullOrEmpty(template.getResources().getRequests().get("memory").getAmount())
+                        ? parent.getResources().getRequests().get("memory")
+                        : template.getResources().getRequests().get("memory");
+        Quantity resourceLimitCpu = Strings.isNullOrEmpty(template.getResources().getLimits().get("cpu").getAmount())
+                ? parent.getResources().getLimits().get("cpu")
+                : template.getResources().getLimits().get("cpu");
+        Quantity resourceLimitMemory = Strings
+                .isNullOrEmpty(template.getResources().getLimits().get("memory").getAmount())
+                        ? parent.getResources().getLimits().get("memory")
+                        : template.getResources().getLimits().get("memory");
+
+        List<VolumeMount> volumeMounts = parent.getVolumeMounts();
+        volumeMounts.addAll(template.getVolumeMounts());
+
+        Container combined = new ContainerBuilder() //
+                .withImage(image) //
+                .withName(name) //
+                .withImagePullPolicy(imagePullPolicy) //
+                .withCommand(command) //
+                .withWorkingDir(workingDir) //
+                .withArgs(args) //
+                .withTty(tty) //
+                .withNewResources() //
+                .withRequests(ImmutableMap.of("cpu", resourceRequestCpu, "memory", resourceRequestMemory)) //
+                .withLimits(ImmutableMap.of("cpu", resourceLimitCpu, "memory", resourceLimitMemory)) //
+                .endResources() //
+                .withEnv(combineEnvVars(parent, template)) //
+                .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
+                .withVolumeMounts(volumeMounts) //
+                .build();
+        return combined;
+    }
+
+    /**
+     * Combines a Pod with its parent.
+     * @param parent        The parent Pod (nullable).
+     * @param template      The child Pod
+     */
+    public static Pod combine(Pod parent, Pod template) {
+        Preconditions.checkNotNull(template, "Pod template should not be null");
+        if (parent == null) {
+            return template;
+        }
+
+        Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
+                template.getSpec().getNodeSelector());
+        String serviceAccount = Strings.isNullOrEmpty(template.getSpec().getServiceAccount())
+                ? parent.getSpec().getServiceAccount()
+                : template.getSpec().getServiceAccount();
+
+        Map<String, String> podAnnotations = mergeMaps(parent.getMetadata().getAnnotations(),
+                template.getMetadata().getAnnotations());
+
+        Set<LocalObjectReference> imagePullSecrets = new LinkedHashSet<>();
+        imagePullSecrets.addAll(parent.getSpec().getImagePullSecrets());
+        imagePullSecrets.addAll(template.getSpec().getImagePullSecrets());
+
+        // Containers
+        Map<String, Container> combinedContainers = new HashMap<>();
+        Map<String, Container> parentContainers = parent.getSpec().getContainers().stream()
+                .collect(toMap(c -> c.getName(), c -> c));
+        combinedContainers.putAll(parentContainers);
+        combinedContainers.putAll(template.getSpec().getContainers().stream()
+                .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+
+        // Volumes
+        List<Volume> combinedVolumes = Lists.newLinkedList();
+        Optional.ofNullable(parent.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
+        Optional.ofNullable(template.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
+
+//        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
+
+        //Tool location node properties
+//        List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
+//        toolLocationNodeProperties.addAll(parent.getNodeProperties());
+//        toolLocationNodeProperties.addAll(template.getNodeProperties());
+
+        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadataLike(parent.getMetadata()) //
+                .withAnnotations(podAnnotations);
+        if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
+            metadataBuilder.withName(template.getMetadata().getName());
+        }
+        if (!Strings.isNullOrEmpty(template.getMetadata().getNamespace())) {
+            metadataBuilder.withNamespace(template.getMetadata().getNamespace());
+        }
+
+        SpecNested<PodBuilder> specBuilder = metadataBuilder.endMetadata() //
+                .withNewSpecLike(parent.getSpec()) //
+                .withNodeSelector(nodeSelector) //
+                .withServiceAccount(serviceAccount) //
+                .withContainers(Lists.newArrayList(combinedContainers.values())) //
+                .withVolumes(combinedVolumes) //
+                .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
+
+        // podTemplate.setLabel(label);
+//        podTemplate.setEnvVars(combineEnvVars(parent, template));
+//        podTemplate.setWorkspaceVolume(workspaceVolume);
+//        podTemplate.setNodeProperties(toolLocationNodeProperties);
+//        podTemplate.setNodeUsageMode(nodeUsageMode);
+//        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
+
+        return specBuilder.endSpec().build();
     }
 
     /**
@@ -131,6 +281,7 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
+        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
         return podTemplate;
     }
@@ -261,6 +412,13 @@ public class PodTemplateUtils {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
+    private static List<EnvVar> combineEnvVars(Container parent, Container template) {
+        List<EnvVar> combinedEnvVars = new ArrayList<>();
+        combinedEnvVars.addAll(parent.getEnv());
+        combinedEnvVars.addAll(template.getEnv());
+        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getName())).collect(toList());
+    }
+
     private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
         List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
         combinedEnvVars.addAll(parent.getEnvVars());
@@ -273,5 +431,14 @@ public class PodTemplateUtils {
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+    }
+
+    private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
+        Map<K, V> m = new HashMap<>();
+        if (m1 != null)
+            m.putAll(m1);
+        if (m2 != null)
+            m.putAll(m2);
+        return m;
     }
 }

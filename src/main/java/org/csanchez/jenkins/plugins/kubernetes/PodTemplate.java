@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -22,6 +23,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
@@ -33,6 +35,7 @@ import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 
 /**
@@ -45,6 +48,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private static final long serialVersionUID = 3285310269140845583L;
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
+
+    private static final String DEFAULT_ID = "jenkins/slave-default";
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
@@ -107,6 +112,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
+    private String yaml;
+
     @DataBoundConstructor
     public PodTemplate() {
     }
@@ -127,6 +134,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.setYaml(from.getYaml());
     }
 
     @Deprecated
@@ -333,6 +341,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public Set<LabelAtom> getLabelSet() {
         return Label.parse(label);
+    }
+
+    public Map<String, String> getLabelsMap() {
+        Set<LabelAtom> labelSet = getLabelSet();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        if (!labelSet.isEmpty()) {
+            for (LabelAtom label : labelSet) {
+                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
+            }
+        }
+        return builder.build();
     }
 
     @DataBoundSetter
@@ -562,6 +581,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return containers;
     }
 
+    public String getYaml() {
+        return yaml;
+    }
+
+    @DataBoundSetter
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
+    }
+
     @SuppressWarnings("deprecation")
     protected Object readResolve() {
         if (containers == null) {
@@ -591,10 +619,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     /**
      * Build a Pod object from a PodTemplate
      * 
+     * @param client 
      * @param slave
      */
-    public Pod build(KubernetesSlave slave) {
-        return new PodTemplateBuilder(this).build(slave);
+    public Pod build(KubernetesClient client, KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).withSlave(slave).build();
     }
 
     @Extension

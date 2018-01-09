@@ -56,6 +56,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private Node.Mode nodeUsageMode;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
+    private String yaml;
+
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {
         this.label = label;
@@ -235,6 +237,16 @@ public class PodTemplateStep extends Step implements Serializable {
             this.imagePullSecrets.clear();
             this.imagePullSecrets.addAll(imagePullSecrets);
         }
+    }
+
+    
+    public String getYaml() {
+        return yaml;
+    }
+
+    @DataBoundSetter
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
     }
 
     @Extension

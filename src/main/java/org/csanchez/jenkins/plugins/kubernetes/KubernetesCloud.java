@@ -13,9 +13,9 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,7 +54,6 @@ import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
-import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
@@ -78,8 +77,6 @@ public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
-
-    private static final String DEFAULT_ID = "jenkins/slave-default";
 
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
@@ -371,24 +368,6 @@ public class KubernetesCloud extends Cloud {
         return client;
     }
 
-    private String getIdForLabel(Label label) {
-        if (label == null) {
-            return DEFAULT_ID;
-        }
-        return "jenkins/" + label.getName();
-    }
-
-    Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(getLabels());
-        if (!labelSet.isEmpty()) {
-            for (LabelAtom label: labelSet) {
-                builder.put(getIdForLabel(label), "true");
-            }
-        }
-        return builder.build();
-    }
-
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
@@ -452,7 +431,8 @@ public class KubernetesCloud extends Cloud {
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
-        Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
+        Map<String, String> labelsMap = new HashMap<>(this.getLabels());
+        labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
 

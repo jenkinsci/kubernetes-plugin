@@ -86,6 +86,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
+        newTemplate.setYaml(step.getYaml());
 
         if(step.getActiveDeadlineSeconds() != 0) {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());

@@ -113,6 +113,7 @@ Either way it provides access to the following fields:
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod.
+* **yaml** yaml representation of the Pod, to allow setting any values not supported as fields
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
@@ -139,6 +140,35 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 * **ports** Expose ports on the container.
+
+#### Using yaml to Define Pod Templates
+
+In order to support any possible value in Kubernetes `Pod` object, we can pass a yaml snippet that will be used as a base
+for the template. If any other properties are set outside of the yaml they will take precedence.
+
+```groovy
+podTemplate(label: 'mypod', yaml: """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+) {
+    node ('mypod') {
+      container('busybox') {
+        sh "hostname"
+      }
+    }
+}
+```
 
 #### Liveness Probe Usage
 ```groovy
