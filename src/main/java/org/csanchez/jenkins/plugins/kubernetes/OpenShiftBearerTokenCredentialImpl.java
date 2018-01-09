@@ -4,10 +4,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
 @Deprecated
+@SuppressFBWarnings("NM_SAME_SIMPLE_NAME_AS_SUPERCLASS")
 public class OpenShiftBearerTokenCredentialImpl
         extends org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl {
 
