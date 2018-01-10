@@ -35,7 +35,7 @@ import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 /**
  * @since 0.13
  */
-public class KeyValueEnvVar extends AbstractTemplateEnvVar<KeyValueEnvVar> {
+public class KeyValueEnvVar extends TemplateEnvVar {
 
     private static final long serialVersionUID = 5205795416963333813L;
 
@@ -92,7 +92,7 @@ public class KeyValueEnvVar extends AbstractTemplateEnvVar<KeyValueEnvVar> {
 
     @Extension
     @Symbol("envVar")
-    public static class DescriptorImpl extends Descriptor<KeyValueEnvVar> {
+    public static class DescriptorImpl extends Descriptor<TemplateEnvVar> {
         @Override
         public String getDisplayName() {
             return "Environment Variable";
