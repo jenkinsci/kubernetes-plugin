@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.1.2
+1.1.3
 -----
 * Fix UI support of environment variables [JENKINS-47112](https://issues.jenkins-ci.org/browse/JENKINS-47112) [#273](https://github.com/jenkinsci/kubernetes-plugin/pull/273)
 * Missing call to `slave.terminate()` [#256](https://github.com/jenkinsci/kubernetes-plugin/pull/256)
