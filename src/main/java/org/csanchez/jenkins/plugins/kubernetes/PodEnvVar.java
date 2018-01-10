@@ -1,11 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 
 /**
  * Deprecated, use KeyValueEnvVar
@@ -25,16 +29,20 @@ public class PodEnvVar extends KeyValueEnvVar {
         return "PodEnvVar [getValue()=" + getValue() + ", getKey()=" + getKey() + "]";
     }
 
-    public Descriptor<KeyValueEnvVar> getDescriptor() {
-        return new DescriptorImpl();
+    @Extension
+    @Symbol("podEnvVar")
+    public static class DescriptorImpl extends KeyValueEnvVar.DescriptorImpl {
+        @Override
+        public String getDisplayName() {
+            return "[Deprecated: use Environment Variable] Global Environment Variable (applied to all containers)";
+        }
     }
 
     @Extension
-    @Symbol("podEnvVar")
-    public static class DescriptorImpl extends Descriptor<KeyValueEnvVar> {
+    public static class DescriptorVisibilityFilterImpl extends DescriptorVisibilityFilter {
         @Override
-        public String getDisplayName() {
-            return "Global Environment Variable (applied to all containers)";
+        public boolean filter(@CheckForNull Object context, @Nonnull Descriptor descriptor) {
+            return !(descriptor instanceof PodEnvVar.DescriptorImpl);
         }
     }
 }
