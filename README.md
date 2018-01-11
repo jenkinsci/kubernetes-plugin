@@ -396,11 +396,11 @@ to be accessible from the kubernetes cluster.
 By default Jenkins will listen on `192.168.64.1` interface only, for security reasons.
 If your minikube is not running in that network, pass `connectorHost` to maven, ie.
 
-  mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
+    mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
 
 If you don't mind others in your network being able to use your test jenkins you could just use this:
 
-  mvn clean install -DconnectorHost=0.0.0.0
+    mvn clean install -DconnectorHost=0.0.0.0
 
 Then your test jenkins will listen on all ip addresses so that the build pods will be able to connect from the pods in your minikube VM to your host.  
 
