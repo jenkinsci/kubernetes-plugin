@@ -84,12 +84,6 @@
 
     <!-- required plugins -->
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials</artifactId>
-      <version>${jenkins-credentials.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
       <version>${jenkins-kubernetes-credentials.version}</version>
@@ -202,9 +196,15 @@
     </dependency>
   </dependencies>
 
-  <!-- just to fix enforcer RequireUpperBoundDeps -->
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>credentials</artifactId>
+        <version>${jenkins-credentials.version}</version>
+      </dependency>
+
+      <!-- just to fix enforcer RequireUpperBoundDeps -->
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
