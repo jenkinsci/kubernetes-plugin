@@ -386,7 +386,13 @@ Integration tests will use the currently configured context autodetected from ku
 
 Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins folder.
 
-## Integration Tests with Minikube
+## Running Kubernetes Integration Tests
+
+Please note that the system you run `mvn` on needs to be reachable from the cluster.
+If you see the agents happen to connect to the wrong host, see you can use
+`jenkins.host.address` as mentioned above.
+
+### Integration Tests with Minikube
 
 For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
 Tests will detect it and run a set of integration tests in a new namespace.
@@ -410,7 +416,7 @@ system property to the (host-only or NAT) IP of your host:
 
     mvn clean install -Djenkins.host.address=192.168.99.1
 
-## Integration Tests in a Different Cluster
+### Integration Tests in a Different Cluster
 
 Ensure you create the namespaces and roles with the following commands, then run the tests
 in namespace `kubernetes-plugin` with the service account `jenkins`
@@ -427,10 +433,6 @@ kubectl apply -n kubernetes-plugin-test -f src/test/kubernetes/service-account.y
 kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kubernetes/service-account.yml
 kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
 ```
-
-Please note that the system you run `mvn` on needs to be reachable from the cluster.
-If you see the agents happen to connect to the wrong host, see you can use
-`jenkins.host.address` as mentioned above.
 
 # Docker image
 
