@@ -27,6 +27,7 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;

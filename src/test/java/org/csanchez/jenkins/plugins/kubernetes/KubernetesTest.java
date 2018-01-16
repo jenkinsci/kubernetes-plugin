@@ -38,6 +38,10 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
 /**
  * @author Carlos Sanchez
  * @since 0.9
@@ -54,6 +58,16 @@ public class KubernetesTest {
     public void before() throws Exception {
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         r.configRoundtrip();
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_1_1() throws Exception {
+        List<Credentials> credentials = SystemCredentialsProvider.getInstance().getCredentials();
+        assertFalse(credentials.isEmpty());
+        UsernamePasswordCredentialsImpl cred = (UsernamePasswordCredentialsImpl) credentials.get(0);
+        assertEquals("token", cred.getId());
+        assertEquals("myusername", cred.getUsername());
     }
 
     @Test
