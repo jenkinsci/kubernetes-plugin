@@ -445,16 +445,16 @@ public class KubernetesCloud extends Cloud {
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2}",
-                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace() });
+                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2} with Kubernetes labels {3}",
+                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace(), getLabels() });
             return false;
         }
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label {4}",
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
-                            client.getNamespace(), label == null ? "" : label.toString() });
+                            client.getNamespace(), label == null ? "" : label.toString(), labelsMap });
             return false; // maxed out
         }
         return true;
