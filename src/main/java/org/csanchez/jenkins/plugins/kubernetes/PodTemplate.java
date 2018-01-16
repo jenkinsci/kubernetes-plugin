@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.affinities.Affinity;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -106,6 +107,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
+    private List<Affinity> affinities = new ArrayList<Affinity>();
+
     @DataBoundConstructor
     public PodTemplate() {
     }
@@ -126,6 +129,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.setAffinities(from.getAffinities());
     }
 
     @Deprecated
@@ -141,7 +145,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
-    @Restricted(NoExternalUse.class) // testing only
+    @Restricted(NoExternalUse.class)
+        // testing only
     PodTemplate(String name, List<? extends PodVolume> volumes, List<? extends ContainerTemplate> containers) {
         this.name = name;
         this.volumes.addAll(volumes);
@@ -455,12 +460,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
+    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties) {
         this.nodeProperties = nodeProperties;
     }
 
     @Nonnull
-    public List<ToolLocationNodeProperty> getNodeProperties(){
+    public List<ToolLocationNodeProperty> getNodeProperties() {
         if (nodeProperties == null) {
             return Collections.emptyList();
         }
@@ -585,6 +590,22 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
 
         return this;
+    }
+
+    @Nonnull
+    public List<Affinity> getAffinities() {
+        if (affinities == null) {
+            return Collections.emptyList();
+        }
+        return affinities;
+    }
+
+    @DataBoundSetter
+    public void setAffinities(@Nonnull List<Affinity> affinities) {
+        synchronized (this.affinities) {
+            this.affinities.clear();
+            this.affinities.addAll(affinities);
+        }
     }
 
     @Extension
