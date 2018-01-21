@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+1.2
+-----
+* Split credentials classes into new plugin [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin)  [#268](https://github.com/jenkinsci/kubernetes-plugin/pull/268)
+
+1.1.3
+-----
+* Fix UI support of environment variables [JENKINS-47112](https://issues.jenkins-ci.org/browse/JENKINS-47112) [#273](https://github.com/jenkinsci/kubernetes-plugin/pull/273)
+* Missing call to `slave.terminate()` [#256](https://github.com/jenkinsci/kubernetes-plugin/pull/256)
+* Rename slave -> agent [#258](https://github.com/jenkinsci/kubernetes-plugin/pull/258)
+* Add new line when logging the agent in Jenkins [#267](https://github.com/jenkinsci/kubernetes-plugin/pull/267)
+
 1.1.2
 -----
 * Namespace is erroneously autodetected as 'default' [#261](https://github.com/jenkinsci/kubernetes-plugin/pull/261)

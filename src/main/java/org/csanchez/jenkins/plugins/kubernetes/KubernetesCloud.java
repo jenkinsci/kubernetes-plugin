@@ -25,10 +25,14 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl;
+import org.jenkinsci.plugins.kubernetes.credentials.OpenShiftTokenCredentialImpl;
+import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
@@ -44,6 +48,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
@@ -506,6 +512,16 @@ public class KubernetesCloud extends Cloud {
         @Override
         public String getDisplayName() {
             return "Kubernetes";
+        }
+
+        @Initializer(before = InitMilestone.PLUGINS_STARTED)
+        public static void addAliases() {
+            Jenkins.XSTREAM2.addCompatibilityAlias(
+                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
+                    OpenShiftBearerTokenCredentialImpl.class);
+            Jenkins.XSTREAM2.addCompatibilityAlias(
+                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
+                    OpenShiftTokenCredentialImpl.class);
         }
 
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,

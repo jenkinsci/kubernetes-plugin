@@ -6,6 +6,7 @@ import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;

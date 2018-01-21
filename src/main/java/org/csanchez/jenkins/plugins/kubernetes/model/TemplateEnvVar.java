@@ -24,16 +24,64 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.model;
 
+import java.io.Serializable;
+
 import io.fabric8.kubernetes.api.model.EnvVar;
 
+import hudson.ExtensionPoint;
+import hudson.model.AbstractDescribableImpl;
+
 /**
- * @author Carlos Sanchez
  * @since 0.13
  */
-public interface TemplateEnvVar {
+public abstract class TemplateEnvVar extends AbstractDescribableImpl<TemplateEnvVar>
+        implements Serializable, ExtensionPoint {
 
-    String getKey();
+    private static final long serialVersionUID = 2200143955998383068L;
 
-    EnvVar buildEnvVar();
+    private String key;
 
+    public TemplateEnvVar(String key) {
+        this.key = key;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public abstract EnvVar buildEnvVar();
+
+    @Override
+    public String toString() {
+        return "TemplateEnvVar [key=" + key + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((key == null) ? 0 : key.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (!(obj instanceof TemplateEnvVar))
+            return false;
+        TemplateEnvVar other = (TemplateEnvVar) obj;
+        if (key == null) {
+            if (other.key != null)
+                return false;
+        } else if (!key.equals(other.key))
+            return false;
+        return true;
+    }
 }
