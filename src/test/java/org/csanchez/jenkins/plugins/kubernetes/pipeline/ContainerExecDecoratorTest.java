@@ -99,7 +99,7 @@ public class ContainerExecDecoratorTest {
         deletePods(client, getLabels(this), false);
     }
 
-    @Test(timeout = 10000)
+    @Test(timeout = 40000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
