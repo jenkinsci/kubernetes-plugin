@@ -13,9 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 
@@ -23,34 +20,29 @@ import io.fabric8.kubernetes.client.dsl.ExecWatch;
  * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.
  *
  */
-@Restricted(NoExternalUse.class)
 public class ContainerExecProc extends Proc implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
 
-    private final int pid;
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
     private final Callable<Integer> exitCode;
 
-    @Deprecated
+    /**
+     * 
+     * @param watch
+     * @param alive
+     * @param finished
+     * @param exitCode
+     *            a way to get the exit code
+     */
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             Callable<Integer> exitCode) {
-        this(-1, watch, alive, finished, exitCode);
-    }
-
-    public ContainerExecProc(int pid, ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-                             Callable<Integer> exitCode) {
-        this.pid = pid;
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
         this.exitCode = exitCode;
-    }
-
-    public int getPid() {
-        return pid;
     }
 
     @Override
