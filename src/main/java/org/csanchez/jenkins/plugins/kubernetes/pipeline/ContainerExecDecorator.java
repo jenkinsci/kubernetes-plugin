@@ -467,9 +467,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         FilePath pidFile = ws.child(readPidFile(commands));
         for (int w = 0; w < 10 && !pidFile.exists(); w++) {
             try {
-                Thread.sleep(1000);
+                wait(1000);
             } catch (InterruptedException e) {
-                Thread.interrupted();
                 break;
             }
         }
