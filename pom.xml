@@ -53,7 +53,7 @@
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
     <jenkins-credentials.version>2.1.11</jenkins-credentials.version>
-    <jenkins-kubernetes-credentials.version>0.2.0</jenkins-kubernetes-credentials.version>
+    <jenkins-kubernetes-credentials.version>0.3.0</jenkins-kubernetes-credentials.version>
     <jenkins-durable-task.version>1.16</jenkins-durable-task.version>
     <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
     <jenkins-structs.version>1.6</jenkins-structs.version>

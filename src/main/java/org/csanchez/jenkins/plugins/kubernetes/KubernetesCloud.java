@@ -25,14 +25,12 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl;
-import org.jenkinsci.plugins.kubernetes.credentials.OpenShiftTokenCredentialImpl;
-import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
@@ -518,10 +516,12 @@ public class KubernetesCloud extends Cloud {
         public static void addAliases() {
             Jenkins.XSTREAM2.addCompatibilityAlias(
                     "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
-                    OpenShiftBearerTokenCredentialImpl.class);
+                    org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl.class);
             Jenkins.XSTREAM2.addCompatibilityAlias(
                     "org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
-                    OpenShiftTokenCredentialImpl.class);
+                    StringCredentialsImpl.class);
+            Jenkins.XSTREAM2.addCompatibilityAlias("org.csanchez.jenkins.plugins.kubernetes.ServiceAccountCredential",
+                    org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential.class);
         }
 
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
@@ -554,19 +554,20 @@ public class KubernetesCloud extends Cloud {
         }
 
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
-            return new StandardListBoxModel()
-                    .withEmptySelection()
-                    .withMatching(
+            return new StandardListBoxModel().withEmptySelection() //
+                    .withMatching( //
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
-                            ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                    Jenkins.getInstance(),
-                                    ACL.SYSTEM,
+                                    CredentialsMatchers.instanceOf(
+                                            org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(StringCredentials.class)), //
+                            CredentialsProvider.lookupCredentials(StandardCredentials.class, //
+                                    Jenkins.getInstance(), //
+                                    ACL.SYSTEM, //
                                     serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                                      : Collections.EMPTY_LIST
+                                            : Collections.EMPTY_LIST //
                             ));
 
         }
