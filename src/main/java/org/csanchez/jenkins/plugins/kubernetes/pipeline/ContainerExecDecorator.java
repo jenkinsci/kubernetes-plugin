@@ -334,7 +334,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(pid, watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
