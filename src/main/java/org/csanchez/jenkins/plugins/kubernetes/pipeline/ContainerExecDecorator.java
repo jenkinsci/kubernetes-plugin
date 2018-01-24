@@ -465,9 +465,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private synchronized int readPidFromPidFile(String... commands) throws IOException, InterruptedException {
         int pid = -1;
-        FilePath pidFile = null;
-        for (int w = 0; w < 10 && (pidFile == null || !pidFile.exists()); w++) {
-            pidFile = ws.child(readPidFile(commands));
+        String pidFilePath = readPidFile(commands);
+        if (pidFilePath == null) {
+            return pid;
+        }
+        FilePath pidFile = ws.child(pidFilePath);
+        for (int w = 0; w < 10 && !pidFile.exists(); w++) {
             try {
                 wait(1000);
             } catch (InterruptedException e) {
