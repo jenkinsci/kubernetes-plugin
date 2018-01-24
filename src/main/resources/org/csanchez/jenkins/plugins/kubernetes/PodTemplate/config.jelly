@@ -81,6 +81,14 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry name="restartPolicy" title="Restart Policy" field="restartPolicy">
+        <select name="restartPolicy">
+            <option value="Never" selected="${instance.restartPolicy.equals('Never')? 'true':null}">Never</option>
+            <option value="OnFailure" selected="${instance.restartPolicy.equals('OnFailure')? 'true':null}">OnFailure</option>
+            <option value="Always" selected="${instance.restartPolicy.equals('Always')? 'true':null}">Always</option>
+        </select>
+    </f:entry>
+
     <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
     <f:block>
       <table>
@@ -92,6 +100,7 @@
         </f:optionalBlock>
       </table>
     </f:block>
+
   </f:advanced>
 
 </j:jelly>

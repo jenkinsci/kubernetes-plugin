@@ -87,6 +87,7 @@ public class PodTemplateUtils {
         String label = template.getLabel();
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
+        String restartPolicy = Strings.isNullOrEmpty(template.getRestartPolicy()) ? parent.getRestartPolicy() : template.getRestartPolicy();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
@@ -123,6 +124,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
+        podTemplate.setRestartPolicy(restartPolicy);
         podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);

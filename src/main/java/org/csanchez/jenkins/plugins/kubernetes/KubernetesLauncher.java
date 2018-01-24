@@ -304,12 +304,13 @@ public class KubernetesLauncher extends JNLPLauncher {
             builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
         }
 
+        String restartPolicy = template.getRestartPolicy();
         Pod pod = builder.withVolumes(volumes)
                 .withServiceAccount(substituteEnv(template.getServiceAccount()))
                 .withImagePullSecrets(imagePullSecrets)
                 .withContainers(containers.values().toArray(new Container[containers.size()]))
                 .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
-                .withRestartPolicy("Never")
+                .withRestartPolicy(restartPolicy)
                 .endSpec()
                 .build();
 

@@ -148,6 +148,12 @@ public class PodTemplateUtilsTest {
         assertEquals(1, result.getImagePullSecrets().size());
     }
 
+    @Test
+    public void shouldDefaultRestartPolicyToNever() {
+        PodTemplate template = new PodTemplate();
+    
+        assertEquals("Never", template.getRestartPolicy());
+    }
 
     @Test
     public void shouldCombineAllAnnotations() {

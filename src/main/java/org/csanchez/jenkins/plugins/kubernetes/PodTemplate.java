@@ -91,6 +91,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceLimitMemory;
 
+    private String restartPolicy = "Never";
+
     private boolean customWorkspaceVolumeEnabled;
     private WorkspaceVolume workspaceVolume;
 
@@ -126,6 +128,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.setRestartPolicy(from.getRestartPolicy());
     }
 
     @Deprecated
@@ -503,6 +506,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     public String getResourceRequestCpu() {
         return getFirstContainer().map(ContainerTemplate::getResourceRequestCpu).orElse(null);
+    }
+
+    public String getRestartPolicy() {
+        return restartPolicy;
+    }
+
+    @DataBoundSetter
+    public void setRestartPolicy(String restartPolicy) {
+        this.restartPolicy = restartPolicy;
     }
 
     @Deprecated
