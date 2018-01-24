@@ -41,6 +41,7 @@ import java.util.logging.Logger;
 
 import hudson.EnvVars;
 import hudson.FilePath;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
@@ -464,8 +465,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private synchronized int readPidFromPidFile(String... commands) throws IOException, InterruptedException {
         int pid = -1;
-        FilePath pidFile = ws.child(readPidFile(commands));
-        for (int w = 0; w < 10 && !pidFile.exists(); w++) {
+        FilePath pidFile = null;
+        for (int w = 0; w < 10 && (pidFile == null || !pidFile.exists()); w++) {
+            pidFile = ws.child(readPidFile(commands));
             try {
                 wait(1000);
             } catch (InterruptedException e) {
@@ -482,6 +484,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return pid;
     }
 
+    @CheckForNull
     static String readPidFile(String... commands) {
         if (commands.length >= 4 && "nohup".equals(commands[0]) && "sh".equals(commands[1]) && commands[2].equals("-c") && commands[3].startsWith("echo \\$\\$ >")) {
             return commands[3].substring(13, commands[3].indexOf(";") - 1);
