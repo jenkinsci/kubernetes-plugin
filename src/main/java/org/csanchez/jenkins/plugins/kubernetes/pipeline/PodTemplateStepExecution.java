@@ -91,7 +91,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
         }
 
-        kubernetesCloud.addTemplate(newTemplate);
+        kubernetesCloud.addDynamicTemplate(newTemplate);
         getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
 
         PodTemplateAction.push(run, name);
@@ -141,7 +141,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 LOGGER.log(Level.INFO, "Removing pod template and deleting pod {1} from cloud {0}",
                         new Object[] { cloud.name, podTemplate.getName() });
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                kubernetesCloud.removeTemplate(podTemplate);
+                kubernetesCloud.removeDynamicTemplate(podTemplate);
                 KubernetesClient client = kubernetesCloud.connect();
                 Boolean deleted = client.pods().withName(podTemplate.getName()).delete();
                 if (!Boolean.TRUE.equals(deleted)) {
