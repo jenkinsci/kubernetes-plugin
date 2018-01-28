@@ -259,6 +259,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onOpen(Response response) {
                                 alive.set(true);
                                 started.countDown();
+                                LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
                             }
 
                             @Override
@@ -328,7 +329,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     this.setupEnvironmentVariable(envVars, watch);
                     doExec(watch, printStream, commands);
-
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
