@@ -1,31 +1,30 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
+
 import java.io.Closeable;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.FilePath;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.EnvVars;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.EnvVars;
+import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.jenkinsci.plugins.workflow.steps.StepExecution;
-import java.util.List;
-
-
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
-
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.closeQuietly;
 
 public class ContainerStepExecution extends StepExecution {
 
@@ -69,9 +68,11 @@ public class ContainerStepExecution extends StepExecution {
         EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
         EnvVars globalVars = null;
         Jenkins instance = Jenkins.getInstance();
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor>globalNodeProperties = instance.getGlobalNodeProperties();
-        List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties.getAll(EnvironmentVariablesNodeProperty.class);
-        if ( envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0 ) {
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance
+                .getGlobalNodeProperties();
+        List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
+                .getAll(EnvironmentVariablesNodeProperty.class);
+        if (envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0) {
             globalVars = envVarsNodePropertyList.get(0).getEnvVars();
         }
         decorator = new ContainerExecDecorator();

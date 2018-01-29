@@ -49,12 +49,12 @@ import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 
 import com.google.common.collect.ImmutableMap;
+
 import hudson.EnvVars;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
-
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;

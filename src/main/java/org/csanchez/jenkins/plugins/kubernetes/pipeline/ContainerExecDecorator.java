@@ -196,30 +196,27 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 FilePath pwd = starter.pwd();
 
 
-                List<String> procStarter =  Arrays.asList(starter.envs());
-                List<String> cmdEnvs = new  ArrayList<String>();
-                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for built-in ones.
+                List<String> procStarter = Arrays.asList(starter.envs());
+                List<String> cmdEnvs = new ArrayList<String>();
+                // check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for
+                // built-in ones.
                 boolean javaHome_detected = false;
-                for(String env: procStarter)
-                {
-                    if(env.contains("JAVA_HOME"))
-                    {
+                for (String env : procStarter) {
+                    if (env.contains("JAVA_HOME")) {
                         javaHome_detected = true;
                         break;
                     }
                     for (String builtEnvVar : builtInVars) {
-                        if(env.contains(builtEnvVar))
-                        {
+                        if (env.contains(builtEnvVar)) {
                             cmdEnvs.add(env);
                         }
                     }
                 }
-                if(!javaHome_detected)
-                {
+                if (!javaHome_detected) {
                     cmdEnvs = procStarter;
                 }
-                String [] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd,  commands);
+                String[] commands = getCommands(starter);
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
