@@ -99,6 +99,10 @@ public class ContainerExecDecoratorTest {
         deletePods(client, getLabels(this), false);
     }
 
+    /**
+     * Test that multiple command execution in parallel works
+     * @throws Exception
+     */
     @Test(timeout = 10000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
@@ -212,7 +216,11 @@ public class ContainerExecDecoratorTest {
                 .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
         ContainerExecProc proc = (ContainerExecProc) launcher
                 .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
-        assertTrue(proc.isAlive());
+        // wait for proc to finish (shouldn't take long)
+        while (proc.isAlive()) {
+            Thread.sleep(100);
+        }
+        assertFalse("proc is alive", proc.isAlive());
         int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
         return new ProcReturn(proc, exitCode, out.toString());
     }
