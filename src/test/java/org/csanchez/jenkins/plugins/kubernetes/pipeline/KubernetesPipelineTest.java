@@ -109,7 +109,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithEnvVariables() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "runWithEnvVariables");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithEnvVars.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
@@ -117,6 +117,21 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEnvVars(r, b);
         r.assertLogContains("OUTSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
         r.assertLogContains("INSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_JOB_NAME = runWithEnvVariables\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_JOB_NAME = runWithEnvVariables\n", b);
+
+        // check that we are getting the correct java home
+        r.assertLogContains("INSIDE_JAVA_HOME =\n", b);
+        r.assertLogContains("JNLP_JAVA_HOME = /usr/lib/jvm/java-1.8-openjdk\n", b);
+        r.assertLogContains("JAVA7_HOME = /usr/lib/jvm/java-1.7-openjdk/jre\n", b);
+        r.assertLogContains("JAVA8_HOME = /usr/lib/jvm/java-1.8-openjdk/jre\n", b);
+
+        // check that we are not filtering too much
+        r.assertLogContains("INSIDE_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("OUTSIDE_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JNLP_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA7_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA8_HOME_X = java-home-x\n", b);
     }
 
     @Test

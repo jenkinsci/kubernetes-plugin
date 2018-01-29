@@ -74,9 +74,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-    private static final String JENKINS_HOME = "JENKINS_HOME=";
+    private static final String[] BUILT_IN_ENV_VARS = new String[] { "BUILD_NUMBER", "BUILD_ID", "BUILD_URL",
+            "NODE_NAME", "JOB_NAME", "JENKINS_URL", "BUILD_TAG", "GIT_COMMIT", "GIT_URL", "GIT_BRANCH" };
+
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private final String [] builtInVars = new String[]{"BUILD_NUMBER","BUILD_ID","BUILD_URL","NODE_NAME","JOB_NAME","JENKINS_URL","BUILD_TAG","GIT_COMMIT","GIT_URL","GIT_BRANCH"};
 
     private transient KubernetesClient client;
 
@@ -192,22 +193,30 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
+                LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
 
 
                 List<String> procStarter = Arrays.asList(starter.envs());
                 List<String> cmdEnvs = new ArrayList<String>();
+                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
+                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
+                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
+
                 // check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for
                 // built-in ones.
                 boolean javaHome_detected = false;
                 for (String env : procStarter) {
                     if (env.contains("JAVA_HOME")) {
+                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
                         javaHome_detected = true;
                         break;
                     }
-                    for (String builtEnvVar : builtInVars) {
+                    for (String builtEnvVar : BUILT_IN_ENV_VARS) {
                         if (env.contains(builtEnvVar)) {
+                            LOGGER.log(Level.FINEST, "Found built-in env var {0} in {1}",
+                                    new String[] { builtEnvVar, env });
                             cmdEnvs.add(env);
                         }
                     }
@@ -397,6 +406,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     //setup specific command envs passed into cmd
                     if (cmdEnvs != null) {
+                        LOGGER.log(Level.FINEST, "Launching with env vars: {0}", Arrays.toString(cmdEnvs));
                         for (String cmdEnv : cmdEnvs) {
                             envVars.addLine(cmdEnv);
                         }

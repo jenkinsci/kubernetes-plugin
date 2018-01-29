@@ -109,6 +109,7 @@ public class AbstractKubernetesPipelineTest {
         list.add(newEnvVarsNodeProperty);
         EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();
         envVars.put("GLOBAL", "GLOBAL");
+        envVars.put("JAVA_HOME_X", "java-home-x");
         r.jenkins.save();
     }
 
