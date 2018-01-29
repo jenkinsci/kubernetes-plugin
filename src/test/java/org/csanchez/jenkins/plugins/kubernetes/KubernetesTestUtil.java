@@ -65,8 +65,11 @@ public class KubernetesTestUtil {
     private static final String DEFAULT_TESTING_NAMESPACE = "kubernetes-plugin-test";
     public static String testingNamespace;
 
-    private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME", System.getenv("BRANCH_NAME"),
-            "BUILD_NUMBER", System.getenv("BUILD_NUMBER"));
+    private static final String BRANCH_NAME = System.getenv("BRANCH_NAME");
+    private static final String BUILD_NUMBER = System.getenv("BUILD_NUMBER");
+    private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME",
+            BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
+            BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
 
     public static KubernetesCloud setupCloud(Object test) throws UnrecoverableKeyException,
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
