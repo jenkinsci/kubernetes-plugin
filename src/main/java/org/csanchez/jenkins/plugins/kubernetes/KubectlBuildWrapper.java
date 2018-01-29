@@ -28,6 +28,7 @@ import jenkins.tasks.SimpleBuildWrapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -112,6 +113,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         String login;
         if (c == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
+        } else if (c instanceof StringCredentials) {
+            login = "--token=" + ((StringCredentials) c).getSecret().getPlainText();
         } else if (c instanceof TokenProducer) {
             login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
         } else if (c instanceof UsernamePasswordCredentials) {

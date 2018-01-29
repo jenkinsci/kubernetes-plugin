@@ -229,4 +229,25 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
     }
+
+    @Override
+    public String toString() {
+        return "ContainerTemplate{" +
+                (name == null ? "" : "name='" + name + '\'') +
+                (image == null ? "" : ", image='" + image + '\'') +
+                (!privileged ? "" : ", privileged=" + privileged) +
+                (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
+                (workingDir == null ? "" : ", workingDir='" + workingDir + '\'') +
+                (command == null ? "" : ", command='" + command + '\'') +
+                (args == null ? "" : ", args='" + args + '\'') +
+                (!ttyEnabled ? "" : ", ttyEnabled=" + ttyEnabled) +
+                (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
+                (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
+                (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
+                (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
+                '}';
+    }
 }
