@@ -32,6 +32,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import io.fabric8.kubernetes.api.model.Pod;
 import jenkins.model.Jenkins;
 
 /**
@@ -585,6 +586,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
 
         return this;
+    }
+
+    /**
+     * Build a Pod object from a PodTemplate
+     * 
+     * @param slave
+     */
+    public Pod build(KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).build(slave);
     }
 
     @Extension
