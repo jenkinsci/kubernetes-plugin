@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.1.4
+-----
+* Prevent unneeded exec operations [#239](https://github.com/jenkinsci/kubernetes-plugin/pull/239)
+* Store definition of dynamic templates to a separate configuration than Kubernetes cloud [JENKINS-49166](https://issues.jenkins-ci.org/browse/JENKINS-49166) [#279](https://github.com/jenkinsci/kubernetes-plugin/pull/279)
+
 1.1.3
 -----
 * Fix UI support of environment variables [JENKINS-47112](https://issues.jenkins-ci.org/browse/JENKINS-47112) [#273](https://github.com/jenkinsci/kubernetes-plugin/pull/273)
