@@ -5,7 +5,7 @@
     <f:block>
         <p>
             Gets the log of a container running in the current pod, and prints it to the build log or returns it.
-            Only works inside a <code>node</code> that requests a Kubernetes slave.
+            Only works inside a <code>node</code> that requests a Kubernetes agent.
         </p>
     </f:block>
     <f:entry field="name" title="Name of the container">

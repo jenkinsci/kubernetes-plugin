@@ -92,6 +92,6 @@ spec:
       targetPort: 8080
       protocol: TCP
     -
-      name: slave
+      name: agent
       port: 50000
       protocol: TCP

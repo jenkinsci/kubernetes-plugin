@@ -29,7 +29,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry title="${%Containers}" description="${%List of container in the slave pod}">
+  <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />
   </f:entry>
@@ -39,7 +39,7 @@
                                     deleteCaption="Delete Environment Variable" />
   </f:entry>
 
-  <f:entry title="${%Volumes}" description="${%List of volumes to mount in slave pod}">
+  <f:entry title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
     <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
                                 deleteCaption="Delete Volume" />
   </f:entry>

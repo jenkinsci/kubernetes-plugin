@@ -8,14 +8,14 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.1.3-SNAPSHOT</version>
+  <version>1.3-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
-  <description>Jenkins plugin to run dynamic slaves in a Kubernetes/Docker environment</description>
+  <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Kubernetes+Plugin</url>
 
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/kubernetes-plugin.git</connection>
+    <connection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
     <tag>HEAD</tag>
@@ -52,7 +52,8 @@
 
     <!-- jenkins plugins versions -->
     <jenkins-basic-steps.version>2.3</jenkins-basic-steps.version>
-    <jenkins-credentials.version>2.1.7</jenkins-credentials.version>
+    <jenkins-credentials.version>2.1.11</jenkins-credentials.version>
+    <jenkins-kubernetes-credentials.version>0.3.0</jenkins-kubernetes-credentials.version>
     <jenkins-durable-task.version>1.16</jenkins-durable-task.version>
     <jenkins-durable-task-step.version>2.11</jenkins-durable-task-step.version>
     <jenkins-structs.version>1.6</jenkins-structs.version>
@@ -83,9 +84,9 @@
 
     <!-- required plugins -->
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials</artifactId>
-      <version>${jenkins-credentials.version}</version>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>kubernetes-credentials</artifactId>
+      <version>${jenkins-kubernetes-credentials.version}</version>
     </dependency>
 
     <dependency> <!-- OnceRetentionStrategy -->
@@ -195,9 +196,15 @@
     </dependency>
   </dependencies>
 
-  <!-- just to fix enforcer RequireUpperBoundDeps -->
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>credentials</artifactId>
+        <version>${jenkins-credentials.version}</version>
+      </dependency>
+
+      <!-- just to fix enforcer RequireUpperBoundDeps -->
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
@@ -256,14 +263,14 @@
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
 
   <pluginRepositories>
     <pluginRepository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
 

@@ -27,12 +27,10 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -57,16 +55,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), Collections.emptyMap(), false);
+        deletePods(cloud.connect(), getLabels(this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        List<PodTemplate> templates = cloud.getTemplates();
-        while (templates.isEmpty()) {
+        List<PodTemplate> templates = cloud.getAllTemplates();
+        while (hasPodTemplateWithLabel("mypod",templates)) {
             LOGGER.log(Level.INFO, "Waiting for template to be created");
-            templates = cloud.getTemplates();
+            templates = cloud.getAllTemplates();
             Thread.sleep(1000);
         }
         assertFalse(templates.isEmpty());
@@ -75,7 +73,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), KubernetesCloud.DEFAULT_POD_LABELS, true));
+                deletePods(cloud.connect(), getLabels(this), true));
+    }
+
+    private boolean hasPodTemplateWithLabel(String label, List<PodTemplate> templates) {
+        return templates != null
+                && templates.stream()
+                .map(PodTemplate::getLabel)
+                .anyMatch(label::equals);
     }
 
     @Test
@@ -264,10 +269,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         r.waitForMessage("podTemplate", b);
 
-        PodTemplate deadlineTemplate = cloud.getTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().get();
+        PodTemplate deadlineTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().orElse(null);
 
-        assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
         assertNotNull(deadlineTemplate);
+        assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
         r.assertLogNotContains("Hello from container!", b);
     }
 

@@ -16,6 +16,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -26,10 +27,12 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import jenkins.model.Jenkins;
 
 /**
  * Kubernetes Pod Template
@@ -232,7 +235,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public void setSlaveConnectTimeout(int slaveConnectTimeout) {
         if (slaveConnectTimeout <= 0) {
-            LOGGER.log(Level.WARNING, "Slave -> Jenkins connection timeout " +
+            LOGGER.log(Level.WARNING, "Agent -> Jenkins connection timeout " +
                     "cannot be <= 0. Falling back to the default value: " +
                     DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
             this.slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
@@ -591,5 +594,46 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public String getDisplayName() {
             return "Kubernetes Pod Template";
         }
+
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public List<? extends Descriptor> getEnvVarsDescriptors() {
+            return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "PodTemplate{" +
+                (inheritFrom == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
+                (name == null ? "" : ", name='" + name + '\'') +
+                (namespace == null ? "" : ", namespace='" + namespace + '\'') +
+                (image == null ? "" : ", image='" + image + '\'') +
+                (!privileged ? "" : ", privileged=" + privileged) +
+                (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
+                (command == null ? "" : ", command='" + command + '\'') +
+                (args == null ? "" : ", args='" + args + '\'') +
+                (remoteFs == null ? "" : ", remoteFs='" + remoteFs + '\'') +
+                (instanceCap == Integer.MAX_VALUE ? "" : ", instanceCap=" + instanceCap) +
+                (slaveConnectTimeout == DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? "" : ", slaveConnectTimeout=" + slaveConnectTimeout) +
+                (idleMinutes == 0 ? "" : ", idleMinutes=" + idleMinutes) +
+                (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +
+                (label == null ? "" : ", label='" + label + '\'') +
+                (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'') +
+                (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
+                (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
+                (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
+                (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (!customWorkspaceVolumeEnabled ? "" : ", customWorkspaceVolumeEnabled=" + customWorkspaceVolumeEnabled) +
+                (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
+                (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
+                (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
+                (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
+                (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
+                (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
+                (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                '}';
     }
 }

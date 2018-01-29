@@ -24,10 +24,38 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.logging.Level.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
@@ -50,33 +78,6 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
-import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.util.logging.Level.INFO;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -209,7 +210,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             j = unwrappedTemplate.getSlaveConnectTimeout();
 
-            // now wait for slave to be online
+            // now wait for agent to be online
             for (; i < j; i++) {
                 if (slave.getComputer() == null) {
                     throw new IllegalStateException("Node was deleted, computer is null");
@@ -217,23 +218,23 @@ public class KubernetesLauncher extends JNLPLauncher {
                 if (slave.getComputer().isOnline()) {
                     break;
                 }
-                LOGGER.log(INFO, "Waiting for slave to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
-                logger.printf("Waiting for slave to connect (%2$s/%3$s): %1$s%n", podId, i, j);
+                LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
+                logger.printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podId, i, j);
                 Thread.sleep(1000);
             }
             if (!slave.getComputer().isOnline()) {
                 if (containerStatuses != null) {
                     logLastLines(containerStatuses, podId, namespace, slave, null, client);
                 }
-                throw new IllegalStateException("Slave is not connected after " + j + " attempts, status: " + status);
+                throw new IllegalStateException("Agent is not connected after " + j + " attempts, status: " + status);
             }
             computer.setAcceptingTasks(true);
         } catch (Throwable ex) {
-            LOGGER.log(Level.WARNING, String.format("Error in provisioning; slave=%s, template=%s", slave, unwrappedTemplate), ex);
+            LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", slave, unwrappedTemplate), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", slave.getNodeName());
             try {
-                Jenkins.getInstance().removeNode(slave);
-            } catch (IOException e) {
+                slave.terminate();
+            } catch (IOException | InterruptedException e) {
                 LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
             }
             throw Throwables.propagate(ex);
@@ -424,7 +425,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName))
                         : "";
                 LOGGER.log(Level.SEVERE,
-                        "Error in provisioning; slave={0}, template={1}. Container {2}{3}. Logs: {4}",
+                        "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
                         new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
             }
         }

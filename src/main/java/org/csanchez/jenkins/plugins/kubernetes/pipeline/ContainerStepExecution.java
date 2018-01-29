@@ -3,6 +3,8 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import java.io.Closeable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import hudson.FilePath;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
@@ -72,7 +74,14 @@ public class ContainerStepExecution extends StepExecution {
         if ( envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0 ) {
             globalVars = envVarsNodePropertyList.get(0).getEnvVars();
         }
-        decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace(), env, globalVars);
+        decorator = new ContainerExecDecorator();
+        decorator.setClient(client);
+        decorator.setPodName(nodeContext.getPodName());
+        decorator.setContainerName(containerName);
+        decorator.setNamespace(nodeContext.getNamespace());
+        decorator.setEnvironmentExpander(env);
+        decorator.setWs(getContext().get(FilePath.class));
+        decorator.setGlobalVars(globalVars);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))

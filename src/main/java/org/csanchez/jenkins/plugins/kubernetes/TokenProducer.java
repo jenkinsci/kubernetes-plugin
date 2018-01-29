@@ -1,11 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public interface TokenProducer {
-    String getToken(String serviceAddress, String caCertData, boolean skipTlsVerify) throws IOException;
+@Deprecated
+@SuppressFBWarnings("NM_SAME_SIMPLE_NAME_AS_INTERFACE")
+public interface TokenProducer extends org.jenkinsci.plugins.kubernetes.credentials.TokenProducer {
 }

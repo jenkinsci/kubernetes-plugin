@@ -61,7 +61,7 @@
         <f:textbox default=""/>
     </f:entry>
 
-    <f:entry title="${%Images}" description="${%List of Images to be launched as slaves}">
+    <f:entry title="${%Images}" description="${%List of Images to be launched as agents}">
       <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="Add Pod Template"
                                   deleteCaption="Delete Template" />
     </f:entry>
