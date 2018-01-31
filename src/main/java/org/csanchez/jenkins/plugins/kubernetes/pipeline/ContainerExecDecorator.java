@@ -20,7 +20,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -39,15 +38,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.EnvVars;
-import hudson.FilePath;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 import com.google.common.io.NullOutputStream;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.EnvVars;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.Proc;
@@ -56,11 +57,11 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.Execable;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
-import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -156,71 +157,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 int p = readPidFromPsCommand(commands);
                 //if it is a liveness check, try to find the actual process to avoid doing multiple execs.
                 if (p == 9999) {
-                    return new Proc() {
-                        @Override
-                        public boolean isAlive() throws IOException, InterruptedException {
-                            return false;
-                        }
-
-                        @Override
-                        public void kill() throws IOException, InterruptedException {
-
-                        }
-
-                        @Override
-                        public int join() throws IOException, InterruptedException {
-                            return 1;
-                        }
-
-                        @Override
-                        public InputStream getStdout() {
-                            return null;
-                        }
-
-                        @Override
-                        public InputStream getStderr() {
-                            return null;
-                        }
-
-                        @Override
-                        public OutputStream getStdin() {
-                            return null;
-                        }
-                    };
+                    return new DeadProc();
                 } else if (p > 0 && processes.containsKey(p)) {
-                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p +"].");
-                    Proc proc = processes.get(p);
-                    return new Proc() {
-
-                        @Override
-                        public boolean isAlive() throws IOException, InterruptedException {
-                            return false;
-                        }
-
-                        @Override
-                        public void kill() throws IOException, InterruptedException {
-                        }
-
-                        @Override
-                        public int join() throws IOException, InterruptedException {
-                            return proc.isAlive() ? 0 : -1;
-                        }
-
-                        @Override
-                        public InputStream getStdout() {
-                            return null;
-                        }
-
-                        @Override
-                        public InputStream getStderr() {
-                            return null;
-                        }
-
-                        @Override
-                        public OutputStream getStdin() {
-                            return null;
-                        }
-                    };
+                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p + "].");
+                    return new CachedProc(processes.get(p));
                 }
 
                 waitUntilContainerIsReady();
