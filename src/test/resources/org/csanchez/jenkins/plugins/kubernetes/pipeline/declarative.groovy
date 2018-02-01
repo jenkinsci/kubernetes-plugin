@@ -16,10 +16,8 @@ pipeline {
   stages {
     stage('Run maven') {
       steps {
-        container('maven') {
-          sh 'echo INSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}'
-          sh 'mvn -version'
-        }
+        sh 'echo INSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}'
+        sh 'mvn -version'
       }
     }
   }
