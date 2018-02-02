@@ -3,6 +3,7 @@ CHANGELOG
 
 1.2
 -----
+* Move PodTemplate -> Pod conversion to PodTemplateBuilder [#276](https://github.com/jenkinsci/kubernetes-plugin/pull/276)
 * Split credentials classes into new plugin [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin)  [#268](https://github.com/jenkinsci/kubernetes-plugin/pull/268)
 
 1.1.4
