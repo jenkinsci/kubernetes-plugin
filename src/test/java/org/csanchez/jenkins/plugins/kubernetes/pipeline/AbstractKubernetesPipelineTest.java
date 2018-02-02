@@ -104,7 +104,6 @@ public class AbstractKubernetesPipelineTest {
         r.jenkins.clouds.add(cloud);
 
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> list =  r.jenkins.getGlobalNodeProperties();
-        list.getAll(hudson.slaves.EnvironmentVariablesNodeProperty.class);
         EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
         list.add(newEnvVarsNodeProperty);
         EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();

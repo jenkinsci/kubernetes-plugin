@@ -211,7 +211,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (env.contains("JAVA_HOME")) {
                         LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
                         javaHome_detected = true;
-                        break;
                     }
                     for (String builtEnvVar : BUILT_IN_ENV_VARS) {
                         if (env.contains(builtEnvVar)) {
