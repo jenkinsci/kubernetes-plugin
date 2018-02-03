@@ -74,7 +74,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-    private static final String JENKINS_HOME = "JENKINS_HOME=";
+    private static final String[] BUILT_IN_ENV_VARS = new String[] { "BUILD_NUMBER", "BUILD_ID", "BUILD_URL",
+            "NODE_NAME", "JOB_NAME", "JENKINS_URL", "BUILD_TAG", "GIT_COMMIT", "GIT_URL", "GIT_BRANCH" };
+
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private transient KubernetesClient client;
@@ -85,13 +87,17 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient Map<Integer, ContainerExecProc> processes = new HashMap<Integer, ContainerExecProc>();
 
-    private final String podName;
-    private final String namespace;
-    private final String containerName;
-    private final EnvironmentExpander environmentExpander;
+    private String podName;
+    private String namespace;
+    private String containerName;
+    private EnvironmentExpander environmentExpander;
+    private EnvVars globalVars;
+    private FilePath ws;
 
-    private final FilePath ws;
+    public ContainerExecDecorator() {
+    }
 
+    @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, FilePath ws) {
         this.client = client;
         this.podName = podName;
@@ -126,26 +132,99 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this(client, podName, containerName, (String) null, null, null);
     }
 
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    public void setClient(KubernetesClient client) {
+        this.client = client;
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public void setPodName(String podName) {
+        this.podName = podName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public String getContainerName() {
+        return containerName;
+    }
+
+    public void setContainerName(String containerName) {
+        this.containerName = containerName;
+    }
+
+    public EnvironmentExpander getEnvironmentExpander() {
+        return environmentExpander;
+    }
+
+    public void setEnvironmentExpander(EnvironmentExpander environmentExpander) {
+        this.environmentExpander = environmentExpander;
+    }
+
+    public EnvVars getGlobalVars() {
+        return globalVars;
+    }
+
+    public void setGlobalVars(EnvVars globalVars) {
+        this.globalVars = globalVars;
+    }
+
+    public FilePath getWs() {
+        return ws;
+    }
+
+    public void setWs(FilePath ws) {
+        this.ws = ws;
+    }
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
+                LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
 
-                String [] cmdEnvs = starter.envs();
 
-                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs as we are getting other environment variables
-                for (String cmd : cmdEnvs) {
-                    if (cmd.startsWith(JENKINS_HOME)) {
-                        cmdEnvs = new String[0];
-                        LOGGER.info("Skipping injection of procstarter cmdenvs due to JENKINS_HOME present");
-                        break;
+                List<String> procStarter = Arrays.asList(starter.envs());
+                List<String> cmdEnvs = new ArrayList<String>();
+                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
+                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
+                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
+
+                // check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for
+                // built-in ones.
+                boolean javaHome_detected = false;
+                for (String env : procStarter) {
+                    if (env.contains("JAVA_HOME")) {
+                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
+                        javaHome_detected = true;
+                    }
+                    for (String builtEnvVar : BUILT_IN_ENV_VARS) {
+                        if (env.contains(builtEnvVar)) {
+                            LOGGER.log(Level.FINEST, "Found built-in env var {0} in {1}",
+                                    new String[] { builtEnvVar, env });
+                            cmdEnvs.add(env);
+                        }
                     }
                 }
-                String [] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs, starter.stdout(), pwd,  commands);
+                if (!javaHome_detected) {
+                    cmdEnvs = procStarter;
+                }
+                String[] commands = getCommands(starter);
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
@@ -314,6 +393,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
                     }
+                    //get global vars here, run the export first as they'll get overwritten.
+                    if (globalVars != null) {
+                            this.setupEnvironmentVariable(globalVars, watch);
+                    }
 
                     EnvVars envVars = new EnvVars();
                     if (environmentExpander != null) {
@@ -322,6 +405,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     //setup specific command envs passed into cmd
                     if (cmdEnvs != null) {
+                        LOGGER.log(Level.FINEST, "Launching with env vars: {0}", Arrays.toString(cmdEnvs));
                         for (String cmdEnv : cmdEnvs) {
                             envVars.addLine(cmdEnv);
                         }
