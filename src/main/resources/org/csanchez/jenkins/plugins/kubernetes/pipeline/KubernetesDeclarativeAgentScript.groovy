@@ -50,7 +50,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                                 script.checkout script.scm
                             }
                         }
-                        script.container(describable.containerTemplate.name) {
+                        script.container(describable.containerTemplate.asArgs) {
                             body.call()
                         }
                     }

@@ -18,7 +18,7 @@ pipeline {
       steps {
         sh 'set'
         sh "echo OUTSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}"
-        container('maven') {
+        container(name: 'maven', shell: '/bin/bash') {
           sh 'echo INSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}'
           sh 'mvn -version'
         }
