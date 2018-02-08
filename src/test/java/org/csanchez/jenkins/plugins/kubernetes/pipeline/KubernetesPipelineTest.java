@@ -193,6 +193,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void supportComputerEnvVars() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("buildPropertyVars.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("OPENJDK_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("JNLP_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("DEFAULT_BUILD_NUMBER: 1\n", b);
+
+    }
+
+    @Test
     public void runJobWithSpaces() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p with spaces");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runJobWithSpaces.groovy"), true));

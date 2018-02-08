@@ -43,7 +43,6 @@ import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
-import com.google.common.io.NullOutputStream;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -62,6 +61,8 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+import org.apache.commons.io.output.NullOutputStream;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -75,8 +76,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-    private static final String[] BUILT_IN_ENV_VARS = new String[] { "BUILD_NUMBER", "BUILD_ID", "BUILD_URL",
-            "NODE_NAME", "JOB_NAME", "JENKINS_URL", "BUILD_TAG", "GIT_COMMIT", "GIT_URL", "GIT_BRANCH" };
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
@@ -94,6 +93,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private EnvironmentExpander environmentExpander;
     private EnvVars globalVars;
     private FilePath ws;
+    private EnvVars rcEnvVars;
 
     public ContainerExecDecorator() {
     }
@@ -181,6 +181,16 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.globalVars = globalVars;
     }
 
+    public void setRunContextEnvVars(EnvVars rcVars)
+    {
+        this.rcEnvVars = rcVars;
+    }
+
+    public EnvVars getRunContextEnvVars()
+    {
+        return this.rcEnvVars;
+    }
+
     public FilePath getWs() {
         return ws;
     }
@@ -204,21 +214,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
                 // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
                 // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
-
-                // check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs except for
-                // built-in ones.
+                // check if the cmd is sourced from Jenkins, rather than another plugin;
+                // Currently, build level properties will be provided by the Run Context anyways.
                 boolean javaHome_detected = false;
                 for (String env : procStarter) {
                     if (env.contains("JAVA_HOME")) {
                         LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
                         javaHome_detected = true;
-                    }
-                    for (String builtEnvVar : BUILT_IN_ENV_VARS) {
-                        if (env.contains(builtEnvVar)) {
-                            LOGGER.log(Level.FINEST, "Found built-in env var {0} in {1}",
-                                    new String[] { builtEnvVar, env });
-                            cmdEnvs.add(env);
-                        }
+                        break;
                     }
                 }
                 if (!javaHome_detected) {
@@ -336,6 +339,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     //get global vars here, run the export first as they'll get overwritten.
                     if (globalVars != null) {
                             this.setupEnvironmentVariable(globalVars, watch);
+                    }
+
+                    if(rcEnvVars != null)
+                    {
+                        this.setupEnvironmentVariable(rcEnvVars, watch);
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -464,7 +472,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
             out.print(ExitCodeOutputStream.EXIT_COMMAND);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-            watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
 
             out.flush();
             watch.getInput().flush();
