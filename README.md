@@ -375,7 +375,22 @@ the last command will output kubernetes cluster configuration including API serv
 
 # Debugging
 
-Configure a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for
+First watch if the Jenkins agent pods are started.
+Make sure you are in the correct cluster and namespace.
+
+    kubectl get -a pods --watch
+
+If they are in a different state than `Running`, use `describe` to get the events
+
+    kubectl describe pods/my-jenkins-agent
+
+If they are `Running`, use `logs` to get the log output
+
+    kubectl logs -f pods/my-jenkins-agent jnlp
+
+If pods are not started or for any other error, check the logs on the master side.
+
+For more detail, configure a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for
 `org.csanchez.jenkins.plugins.kubernetes` at `ALL` level.
 
 To inspect the json messages sent back and forth to the Kubernetes API server you can configure
