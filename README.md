@@ -321,11 +321,13 @@ Also see the online help and [examples/containerLog.groovy](examples/containerLo
 
 Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent. It can be overridden by defining a container with the same name.
+and will be the container acting as Jenkins agent.
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
 
+**WARNING**
+If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
 
 # Over provisioning flags
 
