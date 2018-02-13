@@ -41,7 +41,6 @@ import java.util.logging.Logger;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
-import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -181,13 +180,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.globalVars = globalVars;
     }
 
-    public void setRunContextEnvVars(EnvVars rcVars)
-    {
+    public void setRunContextEnvVars(EnvVars rcVars) {
         this.rcEnvVars = rcVars;
     }
 
-    public EnvVars getRunContextEnvVars()
-    {
+    public EnvVars getRunContextEnvVars() {
         return this.rcEnvVars;
     }
 
@@ -341,8 +338,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             this.setupEnvironmentVariable(globalVars, watch);
                     }
 
-                    if(rcEnvVars != null)
-                    {
+                    if(rcEnvVars != null) {
                         this.setupEnvironmentVariable(rcEnvVars, watch);
                     }
 

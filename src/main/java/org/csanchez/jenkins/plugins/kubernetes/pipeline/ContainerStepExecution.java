@@ -81,8 +81,7 @@ public class ContainerStepExecution extends StepExecution {
         EnvVars rcEnvVars = null;
         Run run = getContext().get(Run.class);
         TaskListener taskListener = getContext().get(TaskListener.class);
-        if(run!=null && taskListener != null)
-        {
+        if(run!=null && taskListener != null) {
             rcEnvVars = run.getEnvironment(taskListener);
         }
 
