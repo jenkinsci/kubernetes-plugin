@@ -40,18 +40,27 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
             try {
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
+                        def checkoutMap = [:]
                         if (describable.isDoCheckout() && describable.hasScmContext(script)) {
-                            if (!describable.inStage) {
-                                script.stage(SyntheticStageNames.checkout()) {
-                                    script.checkout script.scm
+                            String subDir = describable.subdirectory
+                            if (subDir != null && subDir != "") {
+                                script.dir(subDir) {
+                                    checkoutMap.putAll(performCheckout(script, describable))
                                 }
                             } else {
-                                // No stage when we're in a nested stage already
-                                script.checkout script.scm
+                                checkoutMap.putAll(performCheckout(script, describable))
                             }
                         }
-                        script.container(describable.containerTemplate.name) {
-                            body.call()
+                        if (checkoutMap) {
+                            script.withEnv(checkoutMap.collect { k, v -> "${k}=${v}" }) {
+                                script.container(describable.containerTemplate.name) {
+                                    body.call()
+                                }
+                            }
+                        } else {
+                            script.container(describable.containerTemplate.name) {
+                                body.call()
+                            }
                         }
                     }
                 }
@@ -60,5 +69,19 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 throw e
             }
         }
+    }
+
+    private static Map performCheckout(CpsScript script, KubernetesDeclarativeAgent agent) {
+        def checkoutMap = [:]
+        if (!agent.inStage) {
+            script.stage(SyntheticStageNames.checkout()) {
+                checkoutMap.putAll(script.checkout(script.scm) ?: [:])
+            }
+        } else {
+            // No stage when we're in a nested stage already
+            checkoutMap.putAll(script.checkout(script.scm) ?: [:])
+        }
+
+        return checkoutMap
     }
 }
