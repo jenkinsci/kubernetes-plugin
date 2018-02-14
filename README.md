@@ -34,8 +34,10 @@ Nodes can be defined in a pipeline and then used, however, default execution alw
 
 This will run in jnlp container
 ```groovy
-podTemplate(label: 'mypod') {
-    node('mypod') {
+# this guarantees the node will use this template
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label) {
+    node(label) {
         stage('Run shell') {
             sh 'echo hello world'
         }
@@ -45,8 +47,9 @@ podTemplate(label: 'mypod') {
 
 This will be container specific
 ```groovy
-podTemplate(label: 'mypod') {
-  node('mypod') {
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label) {
+  node(label) {
     stage('Run shell') {
       container('mycontainer') {
         sh 'echo hello world'
@@ -71,12 +74,13 @@ Multiple containers can be defined for the agent pod, with shared resources, lik
 The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label, containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
   ]) {
 
-    node('mypod') {
+    node(label) {
         stage('Get a Maven project') {
             git 'https://github.com/jenkinsci/kubernetes-plugin.git'
             container('maven') {
@@ -112,7 +116,7 @@ Either way it provides access to the following fields:
 * **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
-* **label** The label of the pod.
+* **label** The label of the pod. Set a unique value to avoid conflicts across builds
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
