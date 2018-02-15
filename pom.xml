@@ -137,6 +137,13 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency> <!-- KubernetesDeclarativeAgentTest -->
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-scm-step</artifactId>
+      <version>${jenkins-workflow-scm-step.version}</version>
+      <scope>test</scope>
+      <classifier>tests</classifier>
+    </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
