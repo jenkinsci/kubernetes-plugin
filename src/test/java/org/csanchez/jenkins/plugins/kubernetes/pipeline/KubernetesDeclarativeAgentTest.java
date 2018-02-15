@@ -34,6 +34,12 @@ import org.jvnet.hudson.test.Issue;
 
 public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
 
+    protected WorkflowRun getAndStartBuild() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+        return p.scheduleBuild2(0).waitForStart();
+    }
+
     @Issue("JENKINS-41758")
     @Test
     public void declarative() throws Exception {
@@ -49,8 +55,9 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Test
     public void declarativeWithSCMEnvVars() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeWithSCMEnvVars.groovy"), true));
+        prepRepoWithJenkinsfile("declarativeWithSCMEnvVars.groovy");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class);
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess((r.waitForCompletion(b)));
