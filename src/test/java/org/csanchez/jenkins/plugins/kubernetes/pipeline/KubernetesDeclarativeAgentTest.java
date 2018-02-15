@@ -27,18 +27,14 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.junit.Assert.*;
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
 public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
-
-    protected WorkflowRun getAndStartBuild() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
-        return p.scheduleBuild2(0).waitForStart();
-    }
 
     @Issue("JENKINS-41758")
     @Test
@@ -56,7 +52,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Test
     public void declarativeWithSCMEnvVars() throws Exception {
         prepRepoWithJenkinsfile("declarativeWithSCMEnvVars.groovy");
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
