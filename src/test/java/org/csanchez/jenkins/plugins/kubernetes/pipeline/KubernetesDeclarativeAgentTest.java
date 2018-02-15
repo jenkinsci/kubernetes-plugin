@@ -58,6 +58,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         assertNotNull(b);
         r.assertBuildStatusSuccess((r.waitForCompletion(b)));
         r.assertLogNotContains("GIT_COMMIT is null", b);
+        r.assertLogContains("GIT_COMMIT is ", b);
     }
 
 }
