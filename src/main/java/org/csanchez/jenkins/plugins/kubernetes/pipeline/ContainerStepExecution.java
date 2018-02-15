@@ -19,6 +19,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.LauncherDecorator;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
@@ -68,13 +70,21 @@ public class ContainerStepExecution extends StepExecution {
         EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
         EnvVars globalVars = null;
         Jenkins instance = Jenkins.getInstance();
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance
-                .getGlobalNodeProperties();
+
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
         List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
                 .getAll(EnvironmentVariablesNodeProperty.class);
         if (envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0) {
             globalVars = envVarsNodePropertyList.get(0).getEnvVars();
         }
+
+        EnvVars rcEnvVars = null;
+        Run run = getContext().get(Run.class);
+        TaskListener taskListener = getContext().get(TaskListener.class);
+        if(run!=null && taskListener != null) {
+            rcEnvVars = run.getEnvironment(taskListener);
+        }
+
         decorator = new ContainerExecDecorator();
         decorator.setClient(client);
         decorator.setPodName(nodeContext.getPodName());
@@ -83,6 +93,7 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setEnvironmentExpander(env);
         decorator.setWs(getContext().get(FilePath.class));
         decorator.setGlobalVars(globalVars);
+        decorator.setRunContextEnvVars(rcEnvVars);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
