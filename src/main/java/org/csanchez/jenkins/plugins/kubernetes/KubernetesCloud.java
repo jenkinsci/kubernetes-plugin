@@ -53,6 +53,7 @@ import hudson.init.Initializer;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
+import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -394,7 +395,7 @@ public class KubernetesCloud extends Cloud {
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            for (PodTemplate t: PodTemplateFilter.applyAll(this, getAllTemplates(), label)) {
+            for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
                 for (int i = 1; i <= excessWorkload; i++) {
                     if (!addProvisionedSlave(t, label)) {
@@ -480,6 +481,26 @@ public class KubernetesCloud extends Cloud {
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+
+    /**
+     * Gets all PodTemplates that have the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return list of matching templates
+     * @deprecated Use {@link #getTemplatesFor(Label)} instead.
+     */
+    @Deprecated
+    public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
+        return new ArrayList<>(getTemplatesFor(label));
+    }
+
+    /**
+     * Gets all PodTemplates that have the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return list of matching templates
+     */
+    public List<PodTemplate> getTemplatesFor(@CheckForNull Label label) {
+        return PodTemplateFilter.applyAll(this, getAllTemplates(), label);
     }
 
     /**
