@@ -26,12 +26,14 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +43,7 @@ import java.util.logging.Logger;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
-
+import org.apache.commons.lang.ArrayUtils;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,7 +77,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
 
     private transient KubernetesClient client;
@@ -205,7 +206,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
 
-
                 List<String> procStarter = Arrays.asList(starter.envs());
                 List<String> cmdEnvs = new ArrayList<String>();
                 // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
@@ -225,10 +225,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     cmdEnvs = procStarter;
                 }
                 String[] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
+         
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), starter.stderr(), pwd,  commands);
             }
 
-            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
+            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, OutputStream errorForCaller, FilePath pwd, String... commands) throws IOException {
                 if (processes == null) {
                     processes = new HashMap<>();
                 }
@@ -248,6 +249,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 final CountDownLatch finished = new CountDownLatch(1);
                 final AtomicBoolean alive = new AtomicBoolean(false);
 
+                final List<FilterOutExitCodeOutputStream> streamsToFilter = new ArrayList<FilterOutExitCodeOutputStream>(5);
 
                 PrintStream printStream = launcher.getListener().getLogger();
                 OutputStream stream = printStream;
@@ -257,14 +259,23 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
 
+                stream = new FilterOutExitCodeOutputStream(stream, streamsToFilter);
+
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
                 // so we use a buffer
                 ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
                 // send container output to all 3 streams (pid, out, job).
                 stream = new TeeOutputStream(exitCodeOutputStream, stream);
+
+                // don't throw away error, but don't let it interrupt the parsing of output
+                OutputStream errorStream = stream;
+                if(errorForCaller != null) {
+                    errorStream = new TeeOutputStream(errorForCaller, stream);
+                }
+
                 // Send to proc caller as well if they sent one
                 if (outputForCaller != null) {
-                    stream = new TeeOutputStream(outputForCaller, stream);
+                    stream = new TeeOutputStream(new FilterOutExitCodeOutputStream(outputForCaller, streamsToFilter), stream);
                 }
 
                 String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
@@ -272,7 +283,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 printStream.println(msg);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream)
+                        .redirectingInput().writingOutput(stream).writingError(errorStream)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -357,13 +368,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     this.setupEnvironmentVariable(envVars, watch);
                     doExec(watch, printStream, commands);
+
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, streamsToFilter);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
@@ -382,7 +394,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
                 int exitCode = doLaunch(
-                        true, null, null, null,
+                        true, null, null, null, null,
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
@@ -395,7 +407,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             watch.getInput().write(
                                     String.format(
-                                            "export %s='%s'%s",
+                                            "if [ -z ${%s+x} ];then export %s='%s'; fi%s",
+                                            entry.getKey(),
                                             entry.getKey(),
                                             entry.getValue().replace("'", "'\\''"),
                                             NEWLINE
@@ -449,32 +462,37 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
+    private static void doExec(ExecWatch watch, PrintStream out, String... statements) throws IOException {
         try {
-            out.print("Executing command: ");
+            LOGGER.log(Level.FINE, "Executing command: ");
             StringBuilder sb = new StringBuilder();
             for (String stmt : statements) {
                 String s = String.format("\"%s\" ", stmt);
                 sb.append(s);
-                out.print(s);
+                LOGGER.log(Level.FINE, s);
                 watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
-            out.println();
             watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
             // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
-            out.print(ExitCodeOutputStream.EXIT_COMMAND);
+            LOGGER.log(Level.FINE, ExitCodeOutputStream.EXIT_COMMAND);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            // a hack only for sshagent. it writes out output after the exitcode has been printed if we don't wait a bit
+            if ((statements.length >= 1 && statements[0].equals("ssh-add"))
+                    || (statements.length == 2 && statements[0].equals("ssh-agent") && statements[1].equals("-k"))) {
+                String sleepExitCommand = "tmp_exit_status=$?; sleep 3; printf \"" + ExitCodeOutputStream.EXIT_COMMAND_TXT + " %3d\" $tmp_exit_status; " + EXIT + NEWLINE;
+                watch.getInput().write(sleepExitCommand.getBytes(StandardCharsets.UTF_8));
+            } else {
+                watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            }
 
-            out.flush();
             watch.getInput().flush();
         } catch (IOException e) {
-            e.printStackTrace(out);
-            throw new RuntimeException(e);
+            LOGGER.log(Level.WARNING, "IOException during executing command", e);
+            throw e;
         }
     }
 
@@ -570,8 +588,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         @Override
         public void write(int b) throws IOException {
             queue.add(b);
-            byte[] bb = new byte[]{(byte) b};
-            System.out.print(new String(bb, StandardCharsets.UTF_8));
         }
 
         public int getExitCode() {
@@ -598,4 +614,37 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             return i;
         }
     }
+    
+	static class FilterOutExitCodeOutputStream extends OutputStream {
+
+		public FilterOutExitCodeOutputStream(OutputStream sink, List<FilterOutExitCodeOutputStream> streamsToFilter) {
+			this.sink = sink;
+			streamsToFilter.add(this);
+		}
+
+		public final static byte[] EXIT_COMMAND_TXT_BYTES;
+
+		private final static int QUEUE_SIZE = 20;
+		private final OutputStream sink;
+		private final Queue<Byte> queue = new ArrayDeque<Byte>(QUEUE_SIZE);
+
+		static {
+			byte[] newLine = new byte[1];
+			Arrays.fill(newLine, "\n".getBytes(StandardCharsets.UTF_8)[0]);
+			EXIT_COMMAND_TXT_BYTES = ArrayUtils.addAll(newLine, ExitCodeOutputStream.EXIT_COMMAND_TXT.getBytes(StandardCharsets.UTF_8));
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			if (queue.size() >= QUEUE_SIZE)
+				sink.write(queue.poll());
+			queue.offer((byte) b);
+		}
+
+		public void writeOutBuffer() throws IOException {
+			byte[] q = ArrayUtils.toPrimitive(queue.toArray(new Byte[queue.size()]));
+			byte[] partToWriteOut = ContainerExecCutExitCodeUtil.getPartToWriteOut(q, EXIT_COMMAND_TXT_BYTES);
+			sink.write(partToWriteOut);
+		}
+	}
 }

@@ -8,6 +8,7 @@ podTemplate(label: 'mypod',
     node ('mypod') {
         stage('Run busybox') {
             withEnv([
+                    'FROM_ENV_DEFINITION=CBA',
                     'FROM_WITHENV_DEFINITION=DEF',
                     'WITH_QUOTE="WITH_QUOTE',
                     'AFTER_QUOTE=AFTER_QUOTE"',
