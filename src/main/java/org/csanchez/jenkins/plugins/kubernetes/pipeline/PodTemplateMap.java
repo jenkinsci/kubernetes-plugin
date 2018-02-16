@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateSource;
 
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -60,6 +61,16 @@ public class PodTemplateMap {
 
     public void removeTemplate(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate) {
         getOrCreateTemplateList(cloud).remove(podTemplate);
+    }
+
+    @Extension
+    public static class PodTemplateSourceImpl extends PodTemplateSource {
+
+        @Nonnull
+        @Override
+        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+            return PodTemplateMap.get().getTemplates(cloud);
+        }
     }
 
 }

@@ -53,7 +53,6 @@ import hudson.init.Initializer;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
-import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -188,9 +187,7 @@ public class KubernetesCloud extends Cloud {
      */
     @Nonnull
     public List<PodTemplate> getAllTemplates() {
-        List<PodTemplate> podTemplates = new ArrayList<>(PodTemplateMap.get().getTemplates(this));
-        podTemplates.addAll(templates);
-        return Collections.unmodifiableList(podTemplates);
+        return PodTemplateSource.getAll(this);
     }
 
     @DataBoundSetter
@@ -397,9 +394,7 @@ public class KubernetesCloud extends Cloud {
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            ArrayList<PodTemplate> templates = getMatchingTemplates(label);
-
-            for (PodTemplate t: templates) {
+            for (PodTemplate t: PodTemplateFilter.applyAll(this, getAllTemplates(), label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
                 for (int i = 1; i <= excessWorkload; i++) {
                     if (!addProvisionedSlave(t, label)) {
@@ -485,22 +480,6 @@ public class KubernetesCloud extends Cloud {
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
-    }
-
-    /**
-     * Gets all PodTemplates that have the matching {@link Label}.
-     * @param label label to look for in templates
-     * @return list of matching templates
-     */
-    public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
-        ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
-        List<PodTemplate> podTemplates = getAllTemplates();
-        for (PodTemplate t : podTemplates) {
-            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
-                podList.add(t);
-            }
-        }
-        return podList;
     }
 
     /**
@@ -635,4 +614,12 @@ public class KubernetesCloud extends Cloud {
         return this;
     }
 
+    @Extension
+    public static class PodTemplateSourceImpl extends PodTemplateSource {
+        @Nonnull
+        @Override
+        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+            return cloud.getTemplates();
+        }
+    }
 }
