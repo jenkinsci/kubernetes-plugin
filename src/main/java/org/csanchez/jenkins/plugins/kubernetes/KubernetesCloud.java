@@ -392,8 +392,10 @@ public class KubernetesCloud extends Cloud {
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
-
-            LOGGER.log(Level.INFO, "Excess workload after pending Spot instances: " + excessWorkload);
+            Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
+            LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
+            int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
+            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: " + toBeProvisioned);
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
