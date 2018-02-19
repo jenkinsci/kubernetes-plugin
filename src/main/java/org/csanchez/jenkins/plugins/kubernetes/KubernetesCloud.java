@@ -188,9 +188,7 @@ public class KubernetesCloud extends Cloud {
      */
     @Nonnull
     public List<PodTemplate> getAllTemplates() {
-        List<PodTemplate> podTemplates = new ArrayList<>(PodTemplateMap.get().getTemplates(this));
-        podTemplates.addAll(templates);
-        return Collections.unmodifiableList(podTemplates);
+        return PodTemplateSource.getAll(this);
     }
 
     @DataBoundSetter
@@ -397,9 +395,7 @@ public class KubernetesCloud extends Cloud {
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            ArrayList<PodTemplate> templates = getMatchingTemplates(label);
-
-            for (PodTemplate t: templates) {
+            for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
                 for (int i = 1; i <= excessWorkload; i++) {
                     if (!addProvisionedSlave(t, label)) {
@@ -491,16 +487,20 @@ public class KubernetesCloud extends Cloud {
      * Gets all PodTemplates that have the matching {@link Label}.
      * @param label label to look for in templates
      * @return list of matching templates
+     * @deprecated Use {@link #getTemplatesFor(Label)} instead.
      */
+    @Deprecated
     public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
-        ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
-        List<PodTemplate> podTemplates = getAllTemplates();
-        for (PodTemplate t : podTemplates) {
-            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
-                podList.add(t);
-            }
-        }
-        return podList;
+        return new ArrayList<>(getTemplatesFor(label));
+    }
+
+    /**
+     * Gets all PodTemplates that have the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return list of matching templates
+     */
+    public List<PodTemplate> getTemplatesFor(@CheckForNull Label label) {
+        return PodTemplateFilter.applyAll(this, getAllTemplates(), label);
     }
 
     /**
@@ -635,4 +635,12 @@ public class KubernetesCloud extends Cloud {
         return this;
     }
 
+    @Extension
+    public static class PodTemplateSourceImpl extends PodTemplateSource {
+        @Nonnull
+        @Override
+        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+            return cloud.getTemplates();
+        }
+    }
 }
