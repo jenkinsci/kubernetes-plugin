@@ -1,7 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecCutExitCodeUtil.getPartToWriteOut;
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.FilterOutExitCodeOutputStream.EXIT_COMMAND_TXT_BYTES;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream.getExitCommandTxtBytes;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.ContainerExecCutExitCodeUtil.getPartToWriteOut;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
@@ -27,56 +27,56 @@ public class ContainerExecCutExitCodeUtilTest {
 
   @Test
   public void testGoodLong() {
-    byte[] p = getPartToWriteOut(GOOD_LONG, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(GOOD_LONG, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(LONG_STR, s);
   }
 
   @Test
   public void testGoodShort() {
-    byte[] p = getPartToWriteOut(GOOD_SHORT, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(GOOD_SHORT, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(SHORT_STR, s);
   }
 
   @Test
   public void testErrLong() {
-    byte[] p = getPartToWriteOut(ERR_LONG, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(ERR_LONG, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(LONG_STR, s);
   }
 
   @Test
   public void testErrShort() {
-    byte[] p = getPartToWriteOut(ERR_SHORT, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(ERR_SHORT, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(SHORT_STR, s);
   }
 
   @Test
   public void testBadShort() {
-    byte[] p = getPartToWriteOut(BAD_SHORT, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(BAD_SHORT, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(new String(BAD_SHORT, StandardCharsets.UTF_8), s);
   }
 
   @Test
   public void testBadLong() {
-    byte[] p = getPartToWriteOut(BAD_LONG, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(BAD_LONG, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(new String(BAD_LONG, StandardCharsets.UTF_8), s);
   }
 
   @Test
   public void testBadShortNoExit() {
-    byte[] p = getPartToWriteOut(BAD_SHORT_NOEXIT, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(BAD_SHORT_NOEXIT, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(new String(BAD_SHORT_NOEXIT, StandardCharsets.UTF_8), s);
   }
 
   @Test
   public void testBadLongNoExit() {
-    byte[] p = getPartToWriteOut(BAD_LONG_NOEXIT, EXIT_COMMAND_TXT_BYTES);
+    byte[] p = getPartToWriteOut(BAD_LONG_NOEXIT, getExitCommandTxtBytes());
     String s = new String(p, StandardCharsets.UTF_8);
     assertEquals(new String(BAD_LONG_NOEXIT, StandardCharsets.UTF_8), s);
   }

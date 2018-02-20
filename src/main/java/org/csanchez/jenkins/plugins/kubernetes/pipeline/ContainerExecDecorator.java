@@ -24,16 +24,12 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,9 +37,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.ExitCodeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
-import org.apache.commons.lang.ArrayUtils;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -571,80 +568,4 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     public void setKubernetesClient(KubernetesClient client) {
         this.client = client;
     }
-
-    /**
-     * Keeps the last bytes of the output stream to parse the exit code
-     */
-    static class ExitCodeOutputStream extends OutputStream {
-
-        public static final String EXIT_COMMAND_TXT = "EXITCODE";
-        public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
-
-        private EvictingQueue<Integer> queue = EvictingQueue.create(20);
-
-        public ExitCodeOutputStream() {
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            queue.add(b);
-        }
-
-        public int getExitCode() {
-            ByteBuffer b = ByteBuffer.allocate(queue.size());
-            queue.stream().filter(Objects::nonNull).forEach((i) -> b.put((byte) i.intValue()));
-            // output ends in a 3 digit padded exit code + newline (13 10)
-            // as defined in ContainerExecDecorator#doExec
-            // ie. 32 32 49 13 10 for exit code 1
-            int i = 1;
-            String s = new String(b.array(), StandardCharsets.UTF_8);
-            if (s.indexOf(EXIT_COMMAND_TXT) < 0) {
-                LOGGER.log(Level.WARNING, "Unable to find \"{0}\" in {1}", new Object[]{EXIT_COMMAND_TXT, s});
-                return i;
-            }
-            // parse the exitcode int printed after EXITCODE
-            int start = s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length();
-            s = s.substring(start, start + 4).trim();
-            try {
-                i = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "Unable to parse exit code as integer: \"{0}\" {1} / {2}",
-                        new Object[]{s, queue.toString(), Arrays.toString(b.array())});
-            }
-            return i;
-        }
-    }
-    
-	static class FilterOutExitCodeOutputStream extends OutputStream {
-
-		public FilterOutExitCodeOutputStream(OutputStream sink, List<FilterOutExitCodeOutputStream> streamsToFilter) {
-			this.sink = sink;
-			streamsToFilter.add(this);
-		}
-
-		public final static byte[] EXIT_COMMAND_TXT_BYTES;
-
-		private final static int QUEUE_SIZE = 20;
-		private final OutputStream sink;
-		private final Queue<Byte> queue = new ArrayDeque<Byte>(QUEUE_SIZE);
-
-		static {
-			byte[] newLine = new byte[1];
-			Arrays.fill(newLine, "\n".getBytes(StandardCharsets.UTF_8)[0]);
-			EXIT_COMMAND_TXT_BYTES = ArrayUtils.addAll(newLine, ExitCodeOutputStream.EXIT_COMMAND_TXT.getBytes(StandardCharsets.UTF_8));
-		}
-
-		@Override
-		public void write(int b) throws IOException {
-			if (queue.size() >= QUEUE_SIZE)
-				sink.write(queue.poll());
-			queue.offer((byte) b);
-		}
-
-		public void writeOutBuffer() throws IOException {
-			byte[] q = ArrayUtils.toPrimitive(queue.toArray(new Byte[queue.size()]));
-			byte[] partToWriteOut = ContainerExecCutExitCodeUtil.getPartToWriteOut(q, EXIT_COMMAND_TXT_BYTES);
-			sink.write(partToWriteOut);
-		}
-	}
 }
