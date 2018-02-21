@@ -399,7 +399,7 @@ public class KubernetesCloud extends Cloud {
 
             for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
-                for (int i = 1; i <= excessWorkload; i++) {
+                for (int i = 1; i <= toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label)) {
                         break;
                     }
