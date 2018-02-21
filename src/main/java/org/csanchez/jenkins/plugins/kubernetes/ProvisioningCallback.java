@@ -24,15 +24,11 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.slaves.CloudRetentionStrategy;
-import hudson.slaves.RetentionStrategy;
-import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.util.concurrent.Callable;
+
+import javax.annotation.Nonnull;
+
+import hudson.model.Node;
 
 /**
  * Callback for Kubernetes cloud provision
@@ -45,27 +41,18 @@ class ProvisioningCallback implements Callable<Node> {
     private final KubernetesCloud cloud;
     @Nonnull
     private final PodTemplate t;
-    @CheckForNull
-    private final Label label;
 
-    public ProvisioningCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t, @CheckForNull Label label) {
+    public ProvisioningCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t) {
         this.cloud = cloud;
         this.t = t;
-        this.label = label;
     }
 
     public Node call() throws Exception {
-        RetentionStrategy retentionStrategy;
-        if (t.getIdleMinutes() == 0) {
-            retentionStrategy = new OnceRetentionStrategy(cloud.getRetentionTimeout());
-        } else {
-            retentionStrategy = new CloudRetentionStrategy(t.getIdleMinutes());
-        }
-
-        final PodTemplate unwrappedTemplate = PodTemplateUtils.unwrap(cloud.getTemplate(label),
-                cloud.getDefaultsProviderTemplate(), cloud.getTemplates());
-        return new KubernetesSlave(unwrappedTemplate, unwrappedTemplate.getName(), cloud.name,
-                unwrappedTemplate.getLabel(), retentionStrategy);
+        return KubernetesSlave
+                .builder()
+                    .podTemplate(cloud.getUnwrappedTemplate(t))
+                    .cloud(cloud)
+                .build();
     }
 
 }

@@ -51,7 +51,6 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.model.Node;
@@ -405,9 +404,7 @@ public class KubernetesCloud extends Cloud {
                     if (!addProvisionedSlave(t, label)) {
                         break;
                     }
-
-                    r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                                .submit(new ProvisioningCallback(this, t, label)), 1));
+                    r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
                 if (r.size() > 0) {
                     // Already found a matching template
@@ -485,6 +482,15 @@ public class KubernetesCloud extends Cloud {
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+
+    /**
+     * Unwraps the given pod template.
+     * @param podTemplate the pod template to unwrap.
+     * @return the unwrapped pod template
+     */
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
+        return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
     }
 
     /**
