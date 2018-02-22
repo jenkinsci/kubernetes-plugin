@@ -42,7 +42,6 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -200,7 +199,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     }
 
     public String getShell() {
-        return shell;
+        return shell == null? DEFAULT_SHELL:shell;
     }
 
     public void setShell(String shell) {
@@ -320,7 +319,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec(shell);
+                    watch = execable.exec(getShell());
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
