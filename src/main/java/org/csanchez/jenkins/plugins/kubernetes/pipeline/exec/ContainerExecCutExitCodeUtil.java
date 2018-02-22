@@ -1,10 +1,13 @@
-package org.csanchez.jenkins.plugins.kubernetes.pipeline;
+package org.csanchez.jenkins.plugins.kubernetes.pipeline.exec;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+@Restricted(NoExternalUse.class)
 public class ContainerExecCutExitCodeUtil {
     private static byte SPACE = " ".getBytes(StandardCharsets.UTF_8)[0];
 

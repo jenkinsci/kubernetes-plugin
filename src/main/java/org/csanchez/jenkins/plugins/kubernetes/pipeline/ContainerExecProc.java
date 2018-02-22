@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.FilterOutExitCodeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;

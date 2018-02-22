@@ -24,30 +24,28 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.ExitCodeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
-import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang.ArrayUtils;
-
-import com.google.common.io.NullOutputStream;
-
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.Proc;
@@ -56,10 +54,12 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.Execable;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+import org.apache.commons.io.output.NullOutputStream;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -78,38 +78,120 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private transient KubernetesClient client;
 
+
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
-    private final String podName;
-    private final String namespace;
-    private final String containerName;
-    private final EnvironmentExpander environmentExpander;
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
+    private transient Map<Integer, ContainerExecProc> processes = new HashMap<Integer, ContainerExecProc>();
 
-    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander) {
+    private String podName;
+    private String namespace;
+    private String containerName;
+    private EnvironmentExpander environmentExpander;
+    private EnvVars globalVars;
+    private FilePath ws;
+    private EnvVars rcEnvVars;
+
+    public ContainerExecDecorator() {
+    }
+
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, FilePath ws) {
         this.client = client;
         this.podName = podName;
         this.namespace = namespace;
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
+        this.ws = ws;
     }
 
+    @Deprecated
+    public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander) {
+        this(client, podName, containerName, namespace, environmentExpander, null);
+    }
+
+    @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace) {
-        this(client, podName, containerName, namespace, null);
+        this(client, podName, containerName, namespace, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished, String namespace) {
-        this(client, podName, containerName, namespace, null);
+        this(client, podName, containerName, namespace, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null, null);
+        this(client, podName, containerName, (String) null, null, null);
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String path, AtomicBoolean alive, CountDownLatch started, CountDownLatch finished) {
-        this(client, podName, containerName, null, null);
+        this(client, podName, containerName, (String) null, null, null);
+    }
+
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    public void setClient(KubernetesClient client) {
+        this.client = client;
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public void setPodName(String podName) {
+        this.podName = podName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public String getContainerName() {
+        return containerName;
+    }
+
+    public void setContainerName(String containerName) {
+        this.containerName = containerName;
+    }
+
+    public EnvironmentExpander getEnvironmentExpander() {
+        return environmentExpander;
+    }
+
+    public void setEnvironmentExpander(EnvironmentExpander environmentExpander) {
+        this.environmentExpander = environmentExpander;
+    }
+
+    public EnvVars getGlobalVars() {
+        return globalVars;
+    }
+
+    public void setGlobalVars(EnvVars globalVars) {
+        this.globalVars = globalVars;
+    }
+
+    public void setRunContextEnvVars(EnvVars rcVars) {
+        this.rcEnvVars = rcVars;
+    }
+
+    public EnvVars getRunContextEnvVars() {
+        return this.rcEnvVars;
+    }
+
+    public FilePath getWs() {
+        return ws;
+    }
+
+    public void setWs(FilePath ws) {
+        this.ws = ws;
     }
 
     @Override
@@ -117,14 +199,47 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
+                LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-                String [] commands = getCommands(starter);
-                String [] cmdEnvs = starter.envs();
-                return doLaunch(quiet, cmdEnvs, starter.stdout(), starter.stderr(), pwd,  commands);
+
+                List<String> procStarter = Arrays.asList(starter.envs());
+                List<String> cmdEnvs = new ArrayList<String>();
+                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
+                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
+                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
+                // check if the cmd is sourced from Jenkins, rather than another plugin;
+                // Currently, build level properties will be provided by the Run Context anyways.
+                boolean javaHome_detected = false;
+                for (String env : procStarter) {
+                    if (env.contains("JAVA_HOME")) {
+                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
+                        javaHome_detected = true;
+                        break;
+                    }
+                }
+                if (!javaHome_detected) {
+                    cmdEnvs = procStarter;
+                }
+                String[] commands = getCommands(starter);
+         
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), starter.stderr(), pwd,  commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, OutputStream errorForCaller, FilePath pwd, String... commands) throws IOException {
+                if (processes == null) {
+                    processes = new HashMap<>();
+                }
+                //check ifits the actual script or the ProcessLiveness check.
+                int p = readPidFromPsCommand(commands);
+                //if it is a liveness check, try to find the actual process to avoid doing multiple execs.
+                if (p == 9999) {
+                    return new DeadProc();
+                } else if (p > 0 && processes.containsKey(p)) {
+                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p + "].");
+                    return new CachedProc(processes.get(p));
+                }
+
                 waitUntilContainerIsReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
@@ -146,7 +261,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
                 // so we use a buffer
                 ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
-                // send container output both to the job output and our buffer
+                // send container output to all 3 streams (pid, out, job).
                 stream = new TeeOutputStream(exitCodeOutputStream, stream);
 
                 // don't throw away error, but don't let it interrupt the parsing of output
@@ -171,6 +286,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onOpen(Response response) {
                                 alive.set(true);
                                 started.countDown();
+                                LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
                             }
 
                             @Override
@@ -225,6 +341,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
                     }
+                    //get global vars here, run the export first as they'll get overwritten.
+                    if (globalVars != null) {
+                            this.setupEnvironmentVariable(globalVars, watch);
+                    }
+
+                    if(rcEnvVars != null) {
+                        this.setupEnvironmentVariable(rcEnvVars, watch);
+                    }
 
                     EnvVars envVars = new EnvVars();
                     if (environmentExpander != null) {
@@ -233,6 +357,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     //setup specific command envs passed into cmd
                     if (cmdEnvs != null) {
+                        LOGGER.log(Level.FINEST, "Launching with env vars: {0}", Arrays.toString(cmdEnvs));
                         for (String cmdEnv : cmdEnvs) {
                             envVars.addLine(cmdEnv);
                         }
@@ -240,13 +365,18 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     this.setupEnvironmentVariable(envVars, watch);
                     doExec(watch, printStream, commands);
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, streamsToFilter);
+
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
+
+                    int pid = readPidFromPidFile(commands);
+                    LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, streamsToFilter);
+                    processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
-                }  catch (InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     throw new InterruptedIOException(ie.getMessage());
                 } catch (Exception e) {
                     closeWatch(watch);
@@ -268,8 +398,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException
-            {
+            private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
@@ -364,6 +493,51 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
+    static int readPidFromPsCommand(String... commands) {
+        if (commands.length == 4 && "ps".equals(commands[0]) && "-o".equals(commands[1]) && commands[2].equals("pid=")) {
+            return Integer.parseInt(commands[3]);
+        }
+
+
+        if (commands.length == 4 && "ps".equals(commands[0]) && "-o".equals(commands[1]) && commands[2].startsWith("-pid")) {
+            return Integer.parseInt(commands[3]);
+        }
+        return -1;
+    }
+
+
+    private synchronized int readPidFromPidFile(String... commands) throws IOException, InterruptedException {
+        int pid = -1;
+        String pidFilePath = readPidFile(commands);
+        if (pidFilePath == null) {
+            return pid;
+        }
+        FilePath pidFile = ws.child(pidFilePath);
+        for (int w = 0; w < 10 && !pidFile.exists(); w++) {
+            try {
+                wait(1000);
+            } catch (InterruptedException e) {
+                break;
+            }
+        }
+        if (pidFile.exists()) {
+            try {
+                pid = Integer.parseInt(pidFile.readToString().trim());
+            } catch (NumberFormatException x) {
+                throw new IOException("corrupted content in " + pidFile + ": " + x, x);
+            }
+        }
+        return pid;
+    }
+
+    @CheckForNull
+    static String readPidFile(String... commands) {
+        if (commands.length >= 4 && "nohup".equals(commands[0]) && "sh".equals(commands[1]) && commands[2].equals("-c") && commands[3].startsWith("echo \\$\\$ >")) {
+            return commands[3].substring(13, commands[3].indexOf(";") - 1);
+        }
+        return null;
+    }
+
     static String[] getCommands(Launcher.ProcStarter starter) {
         List<String> allCommands = new ArrayList<String>();
 
@@ -394,80 +568,4 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     public void setKubernetesClient(KubernetesClient client) {
         this.client = client;
     }
-
-    /**
-     * Keeps the last bytes of the output stream to parse the exit code
-     */
-    static class ExitCodeOutputStream extends OutputStream {
-
-        public static final String EXIT_COMMAND_TXT = "EXITCODE";
-        public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
-
-        private EvictingQueue<Integer> queue = EvictingQueue.create(20);
-
-        public ExitCodeOutputStream() {
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            queue.add(b);
-        }
-
-        public int getExitCode() {
-            ByteBuffer b = ByteBuffer.allocate(queue.size());
-            queue.stream().filter(Objects::nonNull).forEach((i) -> b.put((byte) i.intValue()));
-            // output ends in a 3 digit padded exit code + newline (13 10)
-            // as defined in ContainerExecDecorator#doExec
-            // ie. 32 32 49 13 10 for exit code 1
-            int i = 1;
-            String s = new String(b.array(), StandardCharsets.UTF_8);
-            if (s.indexOf(EXIT_COMMAND_TXT) < 0) {
-                LOGGER.log(Level.WARNING, "Unable to find \"{0}\" in {1}", new Object[] { EXIT_COMMAND_TXT, s });
-                return i;
-            }
-            // parse the exitcode int printed after EXITCODE
-            int start = s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length();
-            s = s.substring(start, start + 4).trim();
-            try {
-                i = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "Unable to parse exit code as integer: \"{0}\" {1} / {2}",
-                        new Object[] { s, queue.toString(), Arrays.toString(b.array()) });
-            }
-            return i;
-        }
-    }
-    
-	static class FilterOutExitCodeOutputStream extends OutputStream {
-
-		public FilterOutExitCodeOutputStream(OutputStream sink, List<FilterOutExitCodeOutputStream> streamsToFilter) {
-			this.sink = sink;
-			streamsToFilter.add(this);
-		}
-
-		public final static byte[] EXIT_COMMAND_TXT_BYTES;
-
-		private final static int QUEUE_SIZE = 20;
-		private final OutputStream sink;
-		private final Queue<Byte> queue = new ArrayDeque<Byte>(QUEUE_SIZE);
-
-		static {
-			byte[] newLine = new byte[1];
-			Arrays.fill(newLine, "\n".getBytes(StandardCharsets.UTF_8)[0]);
-			EXIT_COMMAND_TXT_BYTES = ArrayUtils.addAll(newLine, ExitCodeOutputStream.EXIT_COMMAND_TXT.getBytes(StandardCharsets.UTF_8));
-		}
-
-		@Override
-		public void write(int b) throws IOException {
-			if (queue.size() >= QUEUE_SIZE)
-				sink.write(queue.poll());
-			queue.offer((byte) b);
-		}
-
-		public void writeOutBuffer() throws IOException {
-			byte[] q = ArrayUtils.toPrimitive(queue.toArray(new Byte[queue.size()]));
-			byte[] partToWriteOut = ContainerExecCutExitCodeUtil.getPartToWriteOut(q, EXIT_COMMAND_TXT_BYTES);
-			sink.write(partToWriteOut);
-		}
-	}
 }

@@ -32,6 +32,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import io.fabric8.kubernetes.api.model.Pod;
 import jenkins.model.Jenkins;
 
 /**
@@ -587,6 +588,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return this;
     }
 
+    /**
+     * Build a Pod object from a PodTemplate
+     * 
+     * @param slave
+     */
+    public Pod build(KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).build(slave);
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
@@ -600,5 +610,40 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
+    }
+
+    @Override
+    public String toString() {
+        return "PodTemplate{" +
+                (inheritFrom == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
+                (name == null ? "" : ", name='" + name + '\'') +
+                (namespace == null ? "" : ", namespace='" + namespace + '\'') +
+                (image == null ? "" : ", image='" + image + '\'') +
+                (!privileged ? "" : ", privileged=" + privileged) +
+                (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
+                (command == null ? "" : ", command='" + command + '\'') +
+                (args == null ? "" : ", args='" + args + '\'') +
+                (remoteFs == null ? "" : ", remoteFs='" + remoteFs + '\'') +
+                (instanceCap == Integer.MAX_VALUE ? "" : ", instanceCap=" + instanceCap) +
+                (slaveConnectTimeout == DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? "" : ", slaveConnectTimeout=" + slaveConnectTimeout) +
+                (idleMinutes == 0 ? "" : ", idleMinutes=" + idleMinutes) +
+                (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +
+                (label == null ? "" : ", label='" + label + '\'') +
+                (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'') +
+                (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
+                (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
+                (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
+                (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (!customWorkspaceVolumeEnabled ? "" : ", customWorkspaceVolumeEnabled=" + customWorkspaceVolumeEnabled) +
+                (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
+                (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
+                (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
+                (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
+                (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
+                (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
+                (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                '}';
     }
 }

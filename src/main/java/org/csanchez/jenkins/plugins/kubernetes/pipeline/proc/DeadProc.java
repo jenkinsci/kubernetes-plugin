@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2017, CloudBees, Inc.
+ * Copyright (c) 2018, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,50 @@
  * THE SOFTWARE.
  */
 
-package org.csanchez.jenkins.plugins.kubernetes.pipeline;
+package org.csanchez.jenkins.plugins.kubernetes.pipeline.proc;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Test;
-import org.jvnet.hudson.test.Issue;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+import hudson.Proc;
 
-    @Issue("JENKINS-41758")
-    @Test
-    public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Apache Maven 3.3.9", b);
-        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
-        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+/**
+ * Proc that always returns false for {@link #isAlive()}
+ */
+@Restricted(NoExternalUse.class)
+public class DeadProc extends Proc {
+
+    @Override
+    public boolean isAlive() throws IOException, InterruptedException {
+        return false;
     }
 
+    @Override
+    public void kill() throws IOException, InterruptedException {
+
+    }
+
+    @Override
+    public int join() throws IOException, InterruptedException {
+        return 1;
+    }
+
+    @Override
+    public InputStream getStdout() {
+        return null;
+    }
+
+    @Override
+    public InputStream getStderr() {
+        return null;
+    }
+
+    @Override
+    public OutputStream getStdin() {
+        return null;
+    }
 }

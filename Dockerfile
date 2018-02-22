@@ -1,8 +1,8 @@
-FROM jenkins/jenkins:lts
+FROM jenkins/jenkins:lts-alpine
 
-RUN /usr/local/bin/install-plugins.sh kubernetes:0.12
+ARG VERSION=1.2
+RUN /usr/local/bin/install-plugins.sh kubernetes:${VERSION}
 
-# ARG VERSION=0.12-SNAPSHOT
 # COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi
 # RUN curl -o /usr/share/jenkins/ref/plugins/kubernetes.hpi \
 #  http://repo.jenkins-ci.org/snapshots/org/csanchez/jenkins/plugins/kubernetes/0.12/kubernetes-$VERSION.hpi
