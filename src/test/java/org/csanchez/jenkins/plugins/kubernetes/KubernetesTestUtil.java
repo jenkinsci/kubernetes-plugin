@@ -111,11 +111,8 @@ public class KubernetesTestUtil {
     public static void assumeKubernetes() throws Exception {
         try (DefaultKubernetesClient client = new DefaultKubernetesClient(
                 new ConfigBuilder(Config.autoConfigure()).build())) {
-        	System.out.println("banan");
             client.pods().list();
-            System.out.println("ananasz");
         } catch (Exception e) {
-        	e.printStackTrace();
             assumeNoException(e);
         }
     }
