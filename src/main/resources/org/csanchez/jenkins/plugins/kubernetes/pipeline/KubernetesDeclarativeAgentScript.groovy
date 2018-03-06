@@ -58,7 +58,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                                 }
                             }
                         } else {
-                            script.container(describable.containerTemplate.name) {
+                            script.container(describable.containerTemplate.asArgs) {
                                 body.call()
                             }
                         }

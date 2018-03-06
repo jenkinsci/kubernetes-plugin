@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+1.3.1
+-----
+* Track agents being in provisioning to avoid overprovisioning [JENKINS-47501](https://issues.jenkins-ci.org/browse/JENKINS-47501) [#289](https://github.com/jenkinsci/kubernetes-plugin/pull/289)
+
+1.3
+-----
+* Implement extension points to contribute pod templates and filter them [JENKINS-49594](https://issues.jenkins-ci.org/browse/JENKINS-49594) [#288](https://github.com/jenkinsci/kubernetes-plugin/pull/288)
+
+1.2.1
+-----
+* Don't persist PodTemplateMap and implement onResume in PodTemplateStep. Will prevent potential leaking of dynamic pod templates definitions across restarts [JENKINS-47759](https://issues.jenkins-ci.org/browse/JENKINS-47759) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Provide injection of run context (build level) environment variables for container steps in declarative pipeline usage [JENKINS-49465](https://issues.jenkins-ci.org/browse/JENKINS-49465) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Fix global environment variables [JENKINS-47376](https://issues.jenkins-ci.org/browse/JENKINS-47376) [#245](https://github.com/jenkinsci/kubernetes-plugin/pull/245)
+
 1.2
 -----
 * Move PodTemplate -> Pod conversion to PodTemplateBuilder [#276](https://github.com/jenkinsci/kubernetes-plugin/pull/276)

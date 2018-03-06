@@ -24,5 +24,12 @@ pipeline {
         }
       }
     }
+	stage('Run maven with a different shell') {
+		steps {
+		  container(name: 'maven', shell: '/bin/bash') {
+			sh 'mvn -version'
+		  }
+		}
+	  }
   }
 }

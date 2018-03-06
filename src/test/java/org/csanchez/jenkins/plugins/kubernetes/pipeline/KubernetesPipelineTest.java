@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
+import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -81,6 +82,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 && templates.stream()
                 .map(PodTemplate::getLabel)
                 .anyMatch(label::equals);
+    }
+
+    @Test
+    public void runInPodWithDifferentShell() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
+        r.assertLogContains("/bin/bash: no such file or directory", b);
     }
 
     @Test
@@ -190,6 +201,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_HOME_ENV_VAR = /root\n",b);
         r.assertLogContains("OUTSIDE_CONTAINER_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_CONTAINER_POD_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n",b);
+    }
+
+    @Test
+    public void supportComputerEnvVars() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("buildPropertyVars.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("OPENJDK_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("JNLP_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("DEFAULT_BUILD_NUMBER: 1\n", b);
+
     }
 
     @Test
