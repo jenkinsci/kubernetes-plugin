@@ -214,8 +214,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-
-
                 List<String> procStarter = Arrays.asList(starter.envs());
                 List<String> cmdEnvs = new ArrayList<String>();
                 // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
@@ -225,7 +223,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Currently, build level properties will be provided by the Run Context anyways.
                 boolean javaHome_detected = false;
                 for (String env : procStarter) {
-                    if (env.contains("JAVA_HOME")) {
+                    if (env.equalsIgnoreCase("JAVA_HOME")) {
                         LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
                         javaHome_detected = true;
                         break;
