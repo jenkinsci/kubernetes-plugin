@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
+import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -81,6 +82,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 && templates.stream()
                 .map(PodTemplate::getLabel)
                 .anyMatch(label::equals);
+    }
+
+    @Test
+    public void runInPodWithDifferentShell() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
+        r.assertLogContains("/bin/bash: no such file or directory", b);
     }
 
     @Test

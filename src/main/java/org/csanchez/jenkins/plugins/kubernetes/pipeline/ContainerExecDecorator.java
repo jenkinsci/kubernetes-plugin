@@ -42,7 +42,6 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
@@ -77,6 +76,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
+    private static final String DEFAULT_SHELL="/bin/sh";
 
     private transient KubernetesClient client;
 
@@ -93,6 +93,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private EnvVars globalVars;
     private FilePath ws;
     private EnvVars rcEnvVars;
+    private String shell;
 
     public ContainerExecDecorator() {
     }
@@ -105,6 +106,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
+        this.shell = DEFAULT_SHELL;
     }
 
     @Deprecated
@@ -194,6 +196,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public void setWs(FilePath ws) {
         this.ws = ws;
+    }
+
+    public String getShell() {
+        return shell == null? DEFAULT_SHELL:shell;
+    }
+
+    public void setShell(String shell) {
+        this.shell = shell;
     }
 
     @Override
@@ -309,7 +319,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec("/bin/sh");
+                    watch = execable.exec(getShell());
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
