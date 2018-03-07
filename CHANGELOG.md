@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.3.2
+-----
+* Fix ssh-agent execution inside container. envVars on procstarter were discarded [JENKINS-42582](https://issues.jenkins-ci.org/browse/JENKINS-42582) [#291](https://github.com/jenkinsci/kubernetes-plugin/pull/291)
+* Allow specifying a different shell command other than `/bin/sh` [#287](https://github.com/jenkinsci/kubernetes-plugin/pull/287)
+
 1.3.1
 -----
 * Track agents being in provisioning to avoid overprovisioning [JENKINS-47501](https://issues.jenkins-ci.org/browse/JENKINS-47501) [#289](https://github.com/jenkinsci/kubernetes-plugin/pull/289)
