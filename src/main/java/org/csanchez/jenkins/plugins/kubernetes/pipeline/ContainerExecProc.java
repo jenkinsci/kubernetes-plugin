@@ -75,7 +75,6 @@ public class ContainerExecProc extends Proc implements Closeable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            filteringOutputStream.writeOutBuffer();
             return exitCode.call();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
@@ -104,6 +103,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     public void close() throws IOException {
         try {
             //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            filteringOutputStream.writeOutBuffer();
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);

@@ -314,7 +314,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 try {
                     started.await();
                 } catch (InterruptedException e) {
-                    closeWatch(watch);
+                    closeWatch(watch, filteringOutputStream);
                     throw new IOException("JENKINS-40825: interrupted while waiting for websocket connection", e);
                 }
 
@@ -364,7 +364,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 } catch (InterruptedException ie) {
                     throw new InterruptedIOException(ie.getMessage());
                 } catch (Exception e) {
-                    closeWatch(watch);
+                    closeWatch(watch, filteringOutputStream);
                     throw e;
                 }
             }
@@ -542,8 +542,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void closeWatch(ExecWatch watch) {
+    private static void closeWatch(ExecWatch watch, FilterOutExitCodeOutputStream filteringOutputStream) {
         try {
+            filteringOutputStream.writeOutBuffer();
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);
