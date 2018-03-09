@@ -5,7 +5,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Queue;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -15,9 +14,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class FilterOutExitCodeOutputStream extends OutputStream {
 
-	public FilterOutExitCodeOutputStream(OutputStream sink, List<FilterOutExitCodeOutputStream> streamsToFilter) {
+	public FilterOutExitCodeOutputStream(OutputStream sink) {
 		this.sink = sink;
-		streamsToFilter.add(this);
 	}
 
 	private final static byte[] EXIT_COMMAND_TXT_BYTES;

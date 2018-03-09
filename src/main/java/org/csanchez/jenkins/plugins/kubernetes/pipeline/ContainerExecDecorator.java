@@ -42,7 +42,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOu
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
+import javax.annotation.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -246,41 +246,34 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 final CountDownLatch finished = new CountDownLatch(1);
                 final AtomicBoolean alive = new AtomicBoolean(false);
 
-                final List<FilterOutExitCodeOutputStream> streamsToFilter = new ArrayList<FilterOutExitCodeOutputStream>(5);
-
-                PrintStream printStream = launcher.getListener().getLogger();
-                OutputStream stream = printStream;
-                // Do not send this command to the output when in quiet mode
-                if (quiet) {
-                    stream = new NullOutputStream();
-                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                if (outputForCaller == null) {
+                    outputForCaller = new NullOutputStream();
                 }
 
-                stream = new FilterOutExitCodeOutputStream(stream, streamsToFilter);
+                if (errorForCaller == null) {
+                    errorForCaller = new NullOutputStream();
+                }
+
+                PrintStream logger = launcher.getListener().getLogger();
+                // Do not send this command to the output when in quiet mode
+                if (quiet) {
+                    logger = new PrintStream(new NullOutputStream(), false, StandardCharsets.UTF_8.toString());
+                }
+
+                final OutputStream teeFilteredOutputStream = new TeeOutputStream(outputForCaller, logger);
+
+                final FilterOutExitCodeOutputStream filteringOutputStream = new FilterOutExitCodeOutputStream(
+                        teeFilteredOutputStream);
 
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
                 // so we use a buffer
-                ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
-                // send container output to all 3 streams (pid, out, job).
-                stream = new TeeOutputStream(exitCodeOutputStream, stream);
+                final ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
 
-                // don't throw away error, but don't let it interrupt the parsing of output
-                OutputStream errorStream = stream;
-                if(errorForCaller != null) {
-                    errorStream = new TeeOutputStream(errorForCaller, stream);
-                }
-
-                // Send to proc caller as well if they sent one
-                if (outputForCaller != null) {
-                    stream = new TeeOutputStream(new FilterOutExitCodeOutputStream(outputForCaller, streamsToFilter), stream);
-                }
-
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
-                LOGGER.log(Level.FINEST, msg);
-                printStream.println(msg);
+                final OutputStream stdOut = new TeeOutputStream(filteringOutputStream, exitCodeOutputStream);
+                final OutputStream stdErr = new TeeOutputStream(errorForCaller, logger);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(errorStream)
+                        .redirectingInput().writingOutput(stdOut).writingError(stdErr)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -364,7 +357,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     this.setupEnvironmentVariable(envVars, watch);
-                    doExec(watch, printStream, commands);
+                    doExec(watch, commands);
 
                     if (closables == null) {
                         closables = new ArrayList<>();
@@ -372,7 +365,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, streamsToFilter);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, filteringOutputStream);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
@@ -459,7 +452,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, String... statements) throws IOException {
+    private static void doExec(ExecWatch watch, String... statements) throws IOException {
         try {
             LOGGER.log(Level.FINE, "Executing command: ");
             StringBuilder sb = new StringBuilder();

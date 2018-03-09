@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,7 +30,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final CountDownLatch finished;
     private final ExecWatch watch;
     private final Callable<Integer> exitCode;
-    private final List<FilterOutExitCodeOutputStream> streamsToFilter;
+    private final FilterOutExitCodeOutputStream filteringOutputStream;
 
     /**
      * 
@@ -42,12 +41,12 @@ public class ContainerExecProc extends Proc implements Closeable {
      *            a way to get the exit code
      */
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-            Callable<Integer> exitCode, List<FilterOutExitCodeOutputStream> streamsToFilter) {
+            Callable<Integer> exitCode, FilterOutExitCodeOutputStream filteringOutputStream) {
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
         this.exitCode = exitCode;
-        this.streamsToFilter = streamsToFilter;
+        this.filteringOutputStream = filteringOutputStream;
     }
 
     @Override
@@ -76,9 +75,7 @@ public class ContainerExecProc extends Proc implements Closeable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            for(FilterOutExitCodeOutputStream stream : streamsToFilter) {
-                stream.writeOutBuffer();
-            }
+            filteringOutputStream.writeOutBuffer();
             return exitCode.call();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
