@@ -213,27 +213,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-                List<String> procStarter = Arrays.asList(starter.envs());
-                List<String> cmdEnvs = new ArrayList<String>();
-                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
-                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
-                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
-                // check if the cmd is sourced from Jenkins, rather than another plugin;
-                // Currently, build level properties will be provided by the Run Context anyways.
-                boolean javaHome_detected = false;
-                for (String env : procStarter) {
-                    if (env.equalsIgnoreCase("JAVA_HOME")) {
-                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
-                        javaHome_detected = true;
-                        break;
-                    }
-                }
-                if (!javaHome_detected) {
-                    cmdEnvs = procStarter;
-                }
                 String[] commands = getCommands(starter);
-         
-                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), starter.stderr(), pwd,  commands);
+                String [] cmdEnvs = starter.envs();
+                return doLaunch(quiet, cmdEnvs, starter.stdout(), starter.stderr(), pwd,  commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, OutputStream errorForCaller, FilePath pwd, String... commands) throws IOException {
