@@ -4,6 +4,7 @@ podTemplate(label: 'mypod',
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
 
+    //we should expect outer environment variables to show up here.
     env.FROM_ENV_DEFINITION = "ABC"
     node ('mypod') {
         stage('Run busybox') {
