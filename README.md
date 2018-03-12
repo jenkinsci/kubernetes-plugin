@@ -34,7 +34,7 @@ Nodes can be defined in a pipeline and then used, however, default execution alw
 
 This will run in jnlp container
 ```groovy
-# this guarantees the node will use this template
+// this guarantees the node will use this template
 def label = "mypod-${UUID.randomUUID().toString()}"
 podTemplate(label: label) {
     node(label) {
