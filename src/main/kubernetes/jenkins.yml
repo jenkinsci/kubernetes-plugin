@@ -52,12 +52,14 @@ spec:
               port: 8080
             initialDelaySeconds: 60
             timeoutSeconds: 5
+            failureThreshold: 12 # ~2 minutes
           readinessProbe:
             httpGet:
               path: /login
               port: 8080
             initialDelaySeconds: 60
             timeoutSeconds: 5
+            failureThreshold: 12 # ~2 minutes
       securityContext:
         fsGroup: 1000
   volumeClaimTemplates:
