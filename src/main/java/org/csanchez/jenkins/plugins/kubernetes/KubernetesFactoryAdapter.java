@@ -2,6 +2,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.*;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -14,6 +17,7 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import static java.util.logging.Level.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
@@ -35,6 +39,7 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 /**
@@ -110,15 +115,17 @@ public class KubernetesFactoryAdapter {
             builder = new ConfigBuilder().withMasterUrl(serviceAddress);
         }
 
-        builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
-
-        if (!StringUtils.isBlank(namespace)) {
-            builder.withNamespace(namespace);
-        } else if (StringUtils.isBlank(builder.getNamespace())) {
-            builder.withNamespace("default");
-        }
-
-        if (credentials instanceof StringCredentials) {
+        if (credentials instanceof FileCredentials) {
+            InputStream configStream = ((FileCredentials) credentials).getContent();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(configStream, StandardCharsets.UTF_8));
+            try {
+                String kubeconfigContents = reader.lines().collect(Collectors.joining("\n"));
+                Config config = Config.fromKubeconfig(kubeconfigContents);
+                builder = new ConfigBuilder(config);
+            } finally {
+                reader.close();
+            }
+        } else if (credentials instanceof StringCredentials) {
             final String token = ((StringCredentials) credentials).getSecret().getPlainText();
             builder.withOauthToken(token);
         } else if (credentials instanceof TokenProducer) {
@@ -147,7 +154,15 @@ public class KubernetesFactoryAdapter {
             // JENKINS-38829 CaCertData expects a Base64 encoded certificate
             builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
         }
+
+        builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
+
+        if (!StringUtils.isBlank(namespace)) {
+            builder.withNamespace(namespace);
+        } else if (StringUtils.isBlank(builder.getNamespace())) {
+            builder.withNamespace("default");
+        }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         return new DefaultKubernetesClient(builder.build());

@@ -28,13 +28,18 @@ import jenkins.tasks.SimpleBuildWrapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -44,6 +49,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -113,7 +119,24 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         String login;
         if (c == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
-        } else if (c instanceof StringCredentials) {
+        }
+
+        if (c instanceof FileCredentials) {
+            InputStream configStream = ((FileCredentials) c).getContent();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(configStream, StandardCharsets.UTF_8));
+            try {
+                String kubeconfigContents = reader.lines().collect(Collectors.joining("\n"));
+                configFile.write(kubeconfigContents, null);
+            } finally {
+                reader.close();
+            }
+
+            context.setDisposer(new CleanupDisposer(tempFiles));
+            context.env("KUBECONFIG", configFile.getRemote());
+            return;
+        }
+
+        if (c instanceof StringCredentials) {
             login = "--token=" + ((StringCredentials) c).getSecret().getPlainText();
         } else if (c instanceof TokenProducer) {
             login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
@@ -223,7 +246,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(FileCredentials.class)
                             ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,
