@@ -135,6 +135,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
+        this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
