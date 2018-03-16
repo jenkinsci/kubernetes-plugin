@@ -122,7 +122,7 @@ public class PodTemplateBuilder {
             volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 
         Map<String, Container> containers = new HashMap<>();
