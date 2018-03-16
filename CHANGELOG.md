@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.3.3
+-----
+* Upgrade kubernetes-client to 3.1.10 [#271](https://github.com/jenkinsci/kubernetes-plugin/pull/271)
+* Copy `jenkinsTunnel` in copy constructor [#295](https://github.com/jenkinsci/kubernetes-plugin/pull/295)
+
 1.3.2
 -----
 * Fix ssh-agent execution inside container. envVars on procstarter were discarded [JENKINS-42582](https://issues.jenkins-ci.org/browse/JENKINS-42582) [#291](https://github.com/jenkinsci/kubernetes-plugin/pull/291)
