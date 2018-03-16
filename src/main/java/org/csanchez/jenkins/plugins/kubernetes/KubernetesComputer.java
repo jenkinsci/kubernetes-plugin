@@ -1,8 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.EnvVars;
 import hudson.model.Executor;
 import hudson.model.Queue;
 import hudson.slaves.AbstractCloudComputer;
+import java.io.IOException;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,4 +44,15 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     public String toString() {
         return String.format("KubernetesComputer name: %s slave: %s", getName(), getNode());
     }
+
+    /*
+    Return empty EnvVars since we don't want to inject jnlp agent system variables;
+    */
+    @Override
+      public EnvVars getEnvironment() throws IOException, InterruptedException {
+        return new EnvVars();
+    }
+
+
+
 }

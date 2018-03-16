@@ -5,6 +5,8 @@ podTemplate(label: 'mypod', containers: [
         stage('container log') {
             container('ssh-client') {
                 sshagent (credentials: ['ContainerExecDecoratorPipelineTest-sshagent']) {
+                    sh 'env'
+                    sh 'ssh-add -L'
                     sh 'ssh -vT -o "StrictHostKeyChecking=no" git@github.com'
                 }
             }

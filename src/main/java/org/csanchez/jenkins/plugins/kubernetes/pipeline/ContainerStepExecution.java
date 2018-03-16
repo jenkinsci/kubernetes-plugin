@@ -63,6 +63,7 @@ public class ContainerStepExecution extends StepExecution {
     public boolean start() throws Exception {
         LOGGER.log(Level.FINE, "Starting container step.");
         String containerName = step.getName();
+        String shell = step.getShell();
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
         client = nodeContext.connectToCloud();
@@ -94,6 +95,7 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setWs(getContext().get(FilePath.class));
         decorator.setGlobalVars(globalVars);
         decorator.setRunContextEnvVars(rcEnvVars);
+        decorator.setShell(shell);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))

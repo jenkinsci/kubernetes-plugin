@@ -132,6 +132,9 @@ public class PodTemplateBuilder {
 
         if (template.getWorkspaceVolume() != null) {
             volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
+        } else {
+            // add an empty volume to share the workspace across the pod
+            volumes.put(WORKSPACE_VOLUME_NAME, new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 
         Map<String, Container> containers = new HashMap<>();
@@ -216,7 +219,7 @@ public class PodTemplateBuilder {
         // default workspace volume, add an empty volume to share the workspace across the pod
         if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {
             pod.getSpec().getVolumes()
-                    .add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir("").build());
+                    .add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
         pod.getSpec().getContainers().stream()
                 .filter(c -> c.getVolumeMounts().stream().noneMatch(vm -> WORKSPACE_VOLUME_NAME.equals(vm.getName())))

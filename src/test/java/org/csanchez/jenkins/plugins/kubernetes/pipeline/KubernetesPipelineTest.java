@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
+import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -106,6 +107,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(this), true));
     }
 
+    public void runInPodWithDifferentShell() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
+        r.assertLogContains("/bin/bash: no such file or directory", b);
+    }
+
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
@@ -164,7 +174,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("The value of FROM_ENV_DEFINITION is ABC", b);
+        r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
         r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
         r.assertLogContains("The value of AFTER_QUOTE is AFTER_QUOTE\"", b);

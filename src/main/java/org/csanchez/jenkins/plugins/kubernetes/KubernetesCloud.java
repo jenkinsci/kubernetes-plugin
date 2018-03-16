@@ -131,6 +131,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
+        this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
@@ -377,7 +378,7 @@ public class KubernetesCloud extends Cloud {
 
             for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
-                for (int i = 1; i <= excessWorkload; i++) {
+                for (int i = 1; i <= toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label)) {
                         break;
                     }

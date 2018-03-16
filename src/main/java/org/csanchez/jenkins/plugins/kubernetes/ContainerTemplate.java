@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -50,6 +52,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private String resourceLimitCpu;
 
     private String resourceLimitMemory;
+    private String shell;
 
     private final List<TemplateEnvVar> envVars = new ArrayList<>();
     private List<PortMapping> ports = new ArrayList<PortMapping>();
@@ -214,6 +217,18 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
+    public Map<String,Object> getAsArgs() {
+        Map<String,Object> argMap = new TreeMap<>();
+
+        argMap.put("name", name);
+
+        if (!StringUtils.isEmpty(shell)) {
+            argMap.put("shell", shell);
+        }
+
+        return argMap;
+    }
+
     @Extension
     @Symbol("containerTemplate")
     public static class DescriptorImpl extends Descriptor<ContainerTemplate> {
@@ -249,5 +264,14 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
                 (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
                 '}';
+    }
+
+    public String getShell() {
+        return shell;
+    }
+
+    @DataBoundSetter
+    public void setShell(String shell) {
+        this.shell = shell;
     }
 }
