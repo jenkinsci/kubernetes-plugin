@@ -50,6 +50,11 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import com.google.common.collect.ImmutableMap;
 
+import hudson.EnvVars;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -61,6 +66,7 @@ public class AbstractKubernetesPipelineTest {
     protected static final String SECRET_KEY = "password";
     protected static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     protected static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
+    protected static final String GLOBAL = "GLOBAL";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -96,6 +102,14 @@ public class AbstractKubernetesPipelineTest {
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
 
         r.jenkins.clouds.add(cloud);
+
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> list =  r.jenkins.getGlobalNodeProperties();
+        EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
+        list.add(newEnvVarsNodeProperty);
+        EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();
+        envVars.put("GLOBAL", "GLOBAL");
+        envVars.put("JAVA_HOME_X", "java-home-x");
+        r.jenkins.save();
     }
 
     private PodTemplate buildBusyboxTemplate(String label) {

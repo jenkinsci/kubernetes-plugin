@@ -1,24 +1,32 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
+
 import java.io.Closeable;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.FilePath;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-
-import hudson.LauncherDecorator;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
-import javax.annotation.Nonnull;
-
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.closeQuietly;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.EnvVars;
+import hudson.FilePath;
+import hudson.LauncherDecorator;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 
 public class ContainerStepExecution extends StepExecution {
 
@@ -55,12 +63,39 @@ public class ContainerStepExecution extends StepExecution {
     public boolean start() throws Exception {
         LOGGER.log(Level.FINE, "Starting container step.");
         String containerName = step.getName();
+        String shell = step.getShell();
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
         client = nodeContext.connectToCloud();
 
         EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
-        decorator = new ContainerExecDecorator(client, nodeContext.getPodName(), containerName, nodeContext.getNamespace(), env, getContext().get(FilePath.class));
+        EnvVars globalVars = null;
+        Jenkins instance = Jenkins.getInstance();
+
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
+        List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
+                .getAll(EnvironmentVariablesNodeProperty.class);
+        if (envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0) {
+            globalVars = envVarsNodePropertyList.get(0).getEnvVars();
+        }
+
+        EnvVars rcEnvVars = null;
+        Run run = getContext().get(Run.class);
+        TaskListener taskListener = getContext().get(TaskListener.class);
+        if(run!=null && taskListener != null) {
+            rcEnvVars = run.getEnvironment(taskListener);
+        }
+
+        decorator = new ContainerExecDecorator();
+        decorator.setClient(client);
+        decorator.setPodName(nodeContext.getPodName());
+        decorator.setContainerName(containerName);
+        decorator.setNamespace(nodeContext.getNamespace());
+        decorator.setEnvironmentExpander(env);
+        decorator.setWs(getContext().get(FilePath.class));
+        decorator.setGlobalVars(globalVars);
+        decorator.setRunContextEnvVars(rcEnvVars);
+        decorator.setShell(shell);
         getContext().newBodyInvoker()
                 .withContext(BodyInvoker
                         .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))

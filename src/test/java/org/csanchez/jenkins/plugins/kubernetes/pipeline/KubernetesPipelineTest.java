@@ -40,6 +40,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
+import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
@@ -84,6 +85,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodWithDifferentShell() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
+        r.assertLogContains("/bin/bash: no such file or directory", b);
+    }
+
+    @Test
     public void runInPodWithMultipleContainers() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithMultipleContainers.groovy"), true));
@@ -109,12 +120,29 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithEnvVariables() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "runWithEnvVariables");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithEnvVars.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertEnvVars(r, b);
+        r.assertLogContains("OUTSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_BUILD_NUMBER = 1\n", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_JOB_NAME = runWithEnvVariables\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_JOB_NAME = runWithEnvVariables\n", b);
+
+        // check that we are getting the correct java home
+        r.assertLogContains("INSIDE_JAVA_HOME =\n", b);
+        r.assertLogContains("JNLP_JAVA_HOME = /usr/lib/jvm/java-1.8-openjdk\n", b);
+        r.assertLogContains("JAVA7_HOME = /usr/lib/jvm/java-1.7-openjdk/jre\n", b);
+        r.assertLogContains("JAVA8_HOME = /usr/lib/jvm/java-1.8-openjdk/jre\n", b);
+
+        // check that we are not filtering too much
+        r.assertLogContains("INSIDE_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("OUTSIDE_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JNLP_JAVA_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA7_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA8_HOME_X = java-home-x\n", b);
     }
 
     @Test
@@ -124,7 +152,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("The value of FROM_ENV_DEFINITION is ABC", b);
+        r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
         r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
         r.assertLogContains("The value of AFTER_QUOTE is AFTER_QUOTE\"", b);
@@ -151,12 +179,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
+        r.assertLogContains("INSIDE_GLOBAL = " + GLOBAL + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_LEGACY =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET =\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = " + POD_ENV_VAR_FROM_SECRET_VALUE + "\n", b);
+        r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
+
     }
 
     @Test
@@ -170,6 +201,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_HOME_ENV_VAR = /root\n",b);
         r.assertLogContains("OUTSIDE_CONTAINER_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_CONTAINER_POD_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n",b);
+    }
+
+    @Test
+    public void supportComputerEnvVars() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("buildPropertyVars.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("OPENJDK_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("JNLP_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("DEFAULT_BUILD_NUMBER: 1\n", b);
+
     }
 
     @Test

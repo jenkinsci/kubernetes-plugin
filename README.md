@@ -34,8 +34,10 @@ Nodes can be defined in a pipeline and then used, however, default execution alw
 
 This will run in jnlp container
 ```groovy
-podTemplate(label: 'mypod') {
-    node('mypod') {
+// this guarantees the node will use this template
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label) {
+    node(label) {
         stage('Run shell') {
             sh 'echo hello world'
         }
@@ -45,8 +47,9 @@ podTemplate(label: 'mypod') {
 
 This will be container specific
 ```groovy
-podTemplate(label: 'mypod') {
-  node('mypod') {
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label) {
+  node(label) {
     stage('Run shell') {
       container('mycontainer') {
         sh 'echo hello world'
@@ -71,12 +74,13 @@ Multiple containers can be defined for the agent pod, with shared resources, lik
 The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
 
 ```groovy
-podTemplate(label: 'mypod', containers: [
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label, containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
   ]) {
 
-    node('mypod') {
+    node(label) {
         stage('Get a Maven project') {
             git 'https://github.com/jenkinsci/kubernetes-plugin.git'
             container('maven') {
@@ -112,7 +116,7 @@ Either way it provides access to the following fields:
 * **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
-* **label** The label of the pod.
+* **label** The label of the pod. Set a unique value to avoid conflicts across builds
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
@@ -193,32 +197,40 @@ The example below composes two different podTemplates in order to create one wit
 
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
-For example one could create a function for a maven template, say `mavenTemplate.groovy`:
+For example one could create functions for their podTemplates and import them for use.
+Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
 ```groovy
-#!/usr/bin/groovy
-def call() {
+package com.foo.utils
+
+public void dockerTemplate(body) {
+  podTemplate(label: label,
+        containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
+        volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
+    body()
+}
+}
+
+public void mavenTemplate(body) {
   podTemplate(label: label,
         containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
         volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
                   persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
     body()
 }
-```
-and also a function for a docker template, say `dockerTemplate.groovy`:
-```groovy
-#!/usr/bin/groovy
-def call() {
-  podTemplate(label: label,
-        containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
-        volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
-    body()
 }
+
+return this
 ```
+
 Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
 
 ```groovy
-dockerTemplate {
-  mavenTemplate {
+import com.foo.utils.PodTemplates
+
+slaveTemplates = new PodTemplates()
+
+slaveTemplates.dockerTemplate {
+  slaveTemplates.mavenTemplate {
     node('label') {
       container('docker') {
         sh 'echo hello from docker'
@@ -236,6 +248,22 @@ dockerTemplate {
 There might be cases, where you need to have the agent pod run inside a different namespace than the one configured with the cloud definition.
 For example you may need the agent to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
+
+#### Specifying a different shell command other than /bin/sh
+
+By default, the shell command is /bin/sh. In some case, you would like to use another shell command like /bin/bash.
+
+```groovy
+podTemplate(label: my-label) {
+  node(my-label) {
+    stage('Run specific shell') {
+      container(name:'mycontainer', shell:'/bin/bash') {
+        sh 'echo hello world'
+      }
+    }
+  }
+}
+```
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
@@ -313,11 +341,13 @@ Also see the online help and [examples/containerLog.groovy](examples/containerLo
 
 Multiple containers can be defined in a pod.
 One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent. It can be overridden by defining a container with the same name.
+and will be the container acting as Jenkins agent.
 
 Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
 just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
 
+**WARNING**
+If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
 
 # Over provisioning flags
 
@@ -367,7 +397,22 @@ the last command will output kubernetes cluster configuration including API serv
 
 # Debugging
 
-Configure a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for
+First watch if the Jenkins agent pods are started.
+Make sure you are in the correct cluster and namespace.
+
+    kubectl get -a pods --watch
+
+If they are in a different state than `Running`, use `describe` to get the events
+
+    kubectl describe pods/my-jenkins-agent
+
+If they are `Running`, use `logs` to get the log output
+
+    kubectl logs -f pods/my-jenkins-agent jnlp
+
+If pods are not started or for any other error, check the logs on the master side.
+
+For more detail, configure a new [Jenkins log recorder](https://wiki.jenkins-ci.org/display/JENKINS/Logging) for
 `org.csanchez.jenkins.plugins.kubernetes` at `ALL` level.
 
 To inspect the json messages sent back and forth to the Kubernetes API server you can configure

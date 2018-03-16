@@ -7,6 +7,7 @@ node ('busybox') {
     echo OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = \$CONTAINER_ENV_VAR_FROM_SECRET
     echo OUTSIDE_POD_ENV_VAR = \$POD_ENV_VAR
     echo OUTSIDE_POD_ENV_VAR_FROM_SECRET = \$POD_ENV_VAR_FROM_SECRET
+    echo OUTSIDE_GLOBAL = \$GLOBAL
     """
 
     stage('Run busybox') {
@@ -18,6 +19,7 @@ node ('busybox') {
             echo INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = \$CONTAINER_ENV_VAR_FROM_SECRET
             echo INSIDE_POD_ENV_VAR = \$POD_ENV_VAR
             echo INSIDE_POD_ENV_VAR_FROM_SECRET = \$POD_ENV_VAR_FROM_SECRET
+            echo INSIDE_GLOBAL = \$GLOBAL
             """
         }
     }

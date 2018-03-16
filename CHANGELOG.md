@@ -1,14 +1,37 @@
 CHANGELOG
 =========
 
+1.3.2
+-----
+* Fix ssh-agent execution inside container. envVars on procstarter were discarded [JENKINS-42582](https://issues.jenkins-ci.org/browse/JENKINS-42582) [#291](https://github.com/jenkinsci/kubernetes-plugin/pull/291)
+* Allow specifying a different shell command other than `/bin/sh` [#287](https://github.com/jenkinsci/kubernetes-plugin/pull/287)
+
+1.3.1
+-----
+* Track agents being in provisioning to avoid overprovisioning [JENKINS-47501](https://issues.jenkins-ci.org/browse/JENKINS-47501) [#289](https://github.com/jenkinsci/kubernetes-plugin/pull/289)
+
+1.3
+-----
+* Implement extension points to contribute pod templates and filter them [JENKINS-49594](https://issues.jenkins-ci.org/browse/JENKINS-49594) [#288](https://github.com/jenkinsci/kubernetes-plugin/pull/288)
+
+1.2.1
+-----
+* Don't persist PodTemplateMap and implement onResume in PodTemplateStep. Will prevent potential leaking of dynamic pod templates definitions across restarts [JENKINS-47759](https://issues.jenkins-ci.org/browse/JENKINS-47759) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Provide injection of run context (build level) environment variables for container steps in declarative pipeline usage [JENKINS-49465](https://issues.jenkins-ci.org/browse/JENKINS-49465) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Fix global environment variables [JENKINS-47376](https://issues.jenkins-ci.org/browse/JENKINS-47376) [#245](https://github.com/jenkinsci/kubernetes-plugin/pull/245)
+
 1.2
 -----
+* Move PodTemplate -> Pod conversion to PodTemplateBuilder [#276](https://github.com/jenkinsci/kubernetes-plugin/pull/276)
 * Split credentials classes into new plugin [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin)  [#268](https://github.com/jenkinsci/kubernetes-plugin/pull/268)
 
 1.1.4
 -----
-* Prevent unneeded exec operations [#239](https://github.com/jenkinsci/kubernetes-plugin/pull/239)
 * Store definition of dynamic templates to a separate configuration than Kubernetes cloud [JENKINS-49166](https://issues.jenkins-ci.org/browse/JENKINS-49166) [#279](https://github.com/jenkinsci/kubernetes-plugin/pull/279)
+  * This can cause some side effects on the order the templates are picked, see
+    * [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366) Nested podTemplate stopped working in 1.1.4
+    * [JENKINS-49313](https://issues.jenkins-ci.org/browse/JENKINS-49313) Incorrect podTemplate deployed starting in 1.1.4
+* Prevent unneeded exec operations [#239](https://github.com/jenkinsci/kubernetes-plugin/pull/239)
 
 1.1.3
 -----

@@ -20,7 +20,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -39,15 +38,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.EnvVars;
-import hudson.FilePath;
+import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
-import org.apache.commons.io.output.TeeOutputStream;
-
-import com.google.common.io.NullOutputStream;
-
+import hudson.EnvVars;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.Proc;
@@ -56,10 +54,12 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.Execable;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+import org.apache.commons.io.output.NullOutputStream;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -74,8 +74,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-    private static final String JENKINS_HOME = "JENKINS_HOME=";
+
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
+    private static final String DEFAULT_SHELL="/bin/sh";
 
     private transient KubernetesClient client;
 
@@ -85,13 +86,19 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient Map<Integer, ContainerExecProc> processes = new HashMap<Integer, ContainerExecProc>();
 
-    private final String podName;
-    private final String namespace;
-    private final String containerName;
-    private final EnvironmentExpander environmentExpander;
+    private String podName;
+    private String namespace;
+    private String containerName;
+    private EnvironmentExpander environmentExpander;
+    private EnvVars globalVars;
+    private FilePath ws;
+    private EnvVars rcEnvVars;
+    private String shell;
 
-    private final FilePath ws;
+    public ContainerExecDecorator() {
+    }
 
+    @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, FilePath ws) {
         this.client = client;
         this.podName = podName;
@@ -99,6 +106,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
+        this.shell = DEFAULT_SHELL;
     }
 
     @Deprecated
@@ -126,26 +134,106 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this(client, podName, containerName, (String) null, null, null);
     }
 
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    public void setClient(KubernetesClient client) {
+        this.client = client;
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public void setPodName(String podName) {
+        this.podName = podName;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public String getContainerName() {
+        return containerName;
+    }
+
+    public void setContainerName(String containerName) {
+        this.containerName = containerName;
+    }
+
+    public EnvironmentExpander getEnvironmentExpander() {
+        return environmentExpander;
+    }
+
+    public void setEnvironmentExpander(EnvironmentExpander environmentExpander) {
+        this.environmentExpander = environmentExpander;
+    }
+
+    public EnvVars getGlobalVars() {
+        return globalVars;
+    }
+
+    public void setGlobalVars(EnvVars globalVars) {
+        this.globalVars = globalVars;
+    }
+
+    public void setRunContextEnvVars(EnvVars rcVars) {
+        this.rcEnvVars = rcVars;
+    }
+
+    public EnvVars getRunContextEnvVars() {
+        return this.rcEnvVars;
+    }
+
+    public FilePath getWs() {
+        return ws;
+    }
+
+    public void setWs(FilePath ws) {
+        this.ws = ws;
+    }
+
+    public String getShell() {
+        return shell == null? DEFAULT_SHELL:shell;
+    }
+
+    public void setShell(String shell) {
+        this.shell = shell;
+    }
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
+                LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-
-                String [] cmdEnvs = starter.envs();
-
-                //check if the cmd is sourced from Jenkins, rather than another plugin; if so, skip cmdEnvs as we are getting other environment variables
-                for (String cmd : cmdEnvs) {
-                    if (cmd.startsWith(JENKINS_HOME)) {
-                        cmdEnvs = new String[0];
-                        LOGGER.info("Skipping injection of procstarter cmdenvs due to JENKINS_HOME present");
+                List<String> procStarter = Arrays.asList(starter.envs());
+                List<String> cmdEnvs = new ArrayList<String>();
+                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
+                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
+                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
+                // check if the cmd is sourced from Jenkins, rather than another plugin;
+                // Currently, build level properties will be provided by the Run Context anyways.
+                boolean javaHome_detected = false;
+                for (String env : procStarter) {
+                    if (env.equalsIgnoreCase("JAVA_HOME")) {
+                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
+                        javaHome_detected = true;
                         break;
                     }
                 }
-                String [] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs, starter.stdout(), pwd,  commands);
+                if (!javaHome_detected) {
+                    cmdEnvs = procStarter;
+                }
+                String[] commands = getCommands(starter);
+                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
@@ -156,71 +244,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 int p = readPidFromPsCommand(commands);
                 //if it is a liveness check, try to find the actual process to avoid doing multiple execs.
                 if (p == 9999) {
-                    return new Proc() {
-                        @Override
-                        public boolean isAlive() throws IOException, InterruptedException {
-                            return false;
-                        }
-
-                        @Override
-                        public void kill() throws IOException, InterruptedException {
-
-                        }
-
-                        @Override
-                        public int join() throws IOException, InterruptedException {
-                            return 1;
-                        }
-
-                        @Override
-                        public InputStream getStdout() {
-                            return null;
-                        }
-
-                        @Override
-                        public InputStream getStderr() {
-                            return null;
-                        }
-
-                        @Override
-                        public OutputStream getStdin() {
-                            return null;
-                        }
-                    };
+                    return new DeadProc();
                 } else if (p > 0 && processes.containsKey(p)) {
-                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p +"].");
-                    Proc proc = processes.get(p);
-                    return new Proc() {
-
-                        @Override
-                        public boolean isAlive() throws IOException, InterruptedException {
-                            return false;
-                        }
-
-                        @Override
-                        public void kill() throws IOException, InterruptedException {
-                        }
-
-                        @Override
-                        public int join() throws IOException, InterruptedException {
-                            return proc.isAlive() ? 0 : -1;
-                        }
-
-                        @Override
-                        public InputStream getStdout() {
-                            return null;
-                        }
-
-                        @Override
-                        public InputStream getStderr() {
-                            return null;
-                        }
-
-                        @Override
-                        public OutputStream getStdin() {
-                            return null;
-                        }
-                    };
+                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p + "].");
+                    return new CachedProc(processes.get(p));
                 }
 
                 waitUntilContainerIsReady();
@@ -290,7 +317,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec("/bin/sh");
+                    watch = execable.exec(getShell());
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
@@ -314,6 +341,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
                     }
+                    //get global vars here, run the export first as they'll get overwritten.
+                    if (globalVars != null) {
+                            this.setupEnvironmentVariable(globalVars, watch);
+                    }
+
+                    if(rcEnvVars != null) {
+                        this.setupEnvironmentVariable(rcEnvVars, watch);
+                    }
 
                     EnvVars envVars = new EnvVars();
                     if (environmentExpander != null) {
@@ -322,6 +357,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     //setup specific command envs passed into cmd
                     if (cmdEnvs != null) {
+                        LOGGER.log(Level.FINEST, "Launching with env vars: {0}", Arrays.toString(cmdEnvs));
                         for (String cmdEnv : cmdEnvs) {
                             envVars.addLine(cmdEnv);
                         }
@@ -440,7 +476,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
             out.print(ExitCodeOutputStream.EXIT_COMMAND);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-            watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
 
             out.flush();
             watch.getInput().flush();
