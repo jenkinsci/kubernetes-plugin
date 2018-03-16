@@ -103,7 +103,7 @@ public class ContainerExecDecoratorTest {
      * Test that multiple command execution in parallel works
      * @throws Exception
      */
-    @Test(timeout = 40000)
+    @Test(timeout = 10000)
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
