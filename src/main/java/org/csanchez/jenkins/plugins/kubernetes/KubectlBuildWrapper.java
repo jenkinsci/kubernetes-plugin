@@ -93,6 +93,9 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         FilePath configFile = workspace.createTempFile(".kube", "config");
         Set<String> tempFiles = newHashSet(configFile.getRemote());
 
+        context.env("KUBECONFIG", configFile.getRemote());
+        context.setDisposer(new CleanupDisposer(tempFiles));
+
         String tlsConfig;
         if (caCertificate != null && !caCertificate.isEmpty()) {
             FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
@@ -130,9 +133,6 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             } finally {
                 reader.close();
             }
-
-            context.setDisposer(new CleanupDisposer(tempFiles));
-            context.env("KUBECONFIG", configFile.getRemote());
             return;
         }
 
@@ -191,10 +191,6 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" use-context k8s")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
-
-        context.setDisposer(new CleanupDisposer(tempFiles));
-
-        context.env("KUBECONFIG", configFile.getRemote());
     }
 
     /**
