@@ -26,6 +26,7 @@ import javax.servlet.ServletException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -593,6 +594,7 @@ public class KubernetesCloud extends Cloud {
                     .withMatching( //
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(FileCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
                                     CredentialsMatchers.instanceOf(
                                             org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
