@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -103,28 +104,29 @@ public class KubernetesFactoryAdapter {
             KeyStoreException, IOException, CertificateEncodingException {
 
         ConfigBuilder builder;
-        // autoconfigure if url is not set
-        if (StringUtils.isBlank(serviceAddress)) {
-            LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
-            builder = new ConfigBuilder(Config.autoConfigure(null));
+        // configure from kubeconfig
+        if (credentials instanceof FileCredentials) {
+            LOGGER.log(FINE, "Configuring Kubernetes client from kubeconfig file");
+            try (InputStream is = ((FileCredentials) credentials).getContent()) {
+                Config config = Config.fromKubeconfig(IOUtils.toString(is, StandardCharsets.UTF_8));
+                builder = new ConfigBuilder(config);
+            }
         } else {
-            // although this will still autoconfigure based on Config constructor notes
-            // In future releases (2.4.x) the public constructor will be empty.
-            // The current functionality will be provided by autoConfigure().
-            // This is a necessary change to allow us distinguish between auto configured values and builder values.
-            builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+            // autoconfigure if url is not set
+            if (StringUtils.isBlank(serviceAddress)) {
+                LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
+                builder = new ConfigBuilder(Config.autoConfigure(null));
+            } else {
+                // although this will still autoconfigure based on Config constructor notes
+                // In future releases (2.4.x) the public constructor will be empty.
+                // The current functionality will be provided by autoConfigure().
+                // This is a necessary change to allow us distinguish between auto configured values and builder values.
+                builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+            }
         }
 
         if (credentials instanceof FileCredentials) {
-            InputStream configStream = ((FileCredentials) credentials).getContent();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(configStream, StandardCharsets.UTF_8));
-            try {
-                String kubeconfigContents = reader.lines().collect(Collectors.joining("\n"));
-                Config config = Config.fromKubeconfig(kubeconfigContents);
-                builder = new ConfigBuilder(config);
-            } finally {
-                reader.close();
-            }
+            // already handled above
         } else if (credentials instanceof StringCredentials) {
             final String token = ((StringCredentials) credentials).getSecret().getPlainText();
             builder.withOauthToken(token);

@@ -26,6 +26,7 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
@@ -38,6 +39,7 @@ import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -125,13 +127,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         if (c instanceof FileCredentials) {
-            InputStream configStream = ((FileCredentials) c).getContent();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(configStream, StandardCharsets.UTF_8));
-            try {
-                String kubeconfigContents = reader.lines().collect(Collectors.joining("\n"));
-                configFile.write(kubeconfigContents, null);
-            } finally {
-                reader.close();
+            try (InputStream in = ((FileCredentials) c).getContent(); OutputStream out = configFile.write()) {
+                IOUtils.copy(in, out);
             }
             return;
         }
