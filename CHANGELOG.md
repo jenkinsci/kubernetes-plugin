@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.4
+-----
+* Support kubeconfig from secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
+* Allow customization of NodeProvisioner.PlannedNode using extension point [#298](https://github.com/jenkinsci/kubernetes-plugin/pull/298)
+
 1.3.3
 -----
 * Upgrade kubernetes-client to 3.1.10 [#271](https://github.com/jenkinsci/kubernetes-plugin/pull/271)
