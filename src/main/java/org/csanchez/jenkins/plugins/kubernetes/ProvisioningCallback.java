@@ -26,8 +26,10 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.concurrent.Callable;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import hudson.model.Label;
 import hudson.model.Node;
 
 /**
@@ -41,6 +43,14 @@ class ProvisioningCallback implements Callable<Node> {
     private final KubernetesCloud cloud;
     @Nonnull
     private final PodTemplate t;
+
+    /**
+     * @deprecated Use {@link ProvisioningCallback#ProvisioningCallback(KubernetesCloud, PodTemplate)} instead.
+     */
+    @Deprecated
+    public ProvisioningCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t, @CheckForNull Label label) {
+        this(cloud, t);
+    }
 
     public ProvisioningCallback(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate t) {
         this.cloud = cloud;
