@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.Validate;
 import org.jenkinsci.plugins.durabletask.executors.Messages;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
@@ -29,6 +30,8 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
+import hudson.slaves.CloudRetentionStrategy;
+import hudson.slaves.ComputerLauncher;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -62,7 +65,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     /**
-     * @deprecated Use {@link #KubernetesSlave(PodTemplate, String, String, String, RetentionStrategy)} instead.
+     * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
@@ -72,7 +75,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     /**
-     * @deprecated Use {@link #KubernetesSlave(PodTemplate, String, String, String, RetentionStrategy)} instead.
+     * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
@@ -81,7 +84,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     /**
-     * @deprecated Use {@link #KubernetesSlave(PodTemplate, String, String, String, RetentionStrategy)} instead.
+     * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
     public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr,
@@ -90,18 +93,27 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this(template, nodeDescription, cloud.name, labelStr, rs);
     }
 
-    @DataBoundConstructor
+    /**
+     * @deprecated Use {@link Builder} instead.
+     */
+    @Deprecated
+    @DataBoundConstructor // make stapler happy. Not actually used.
     public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
+        this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, new KubernetesLauncher(), rs);
+    }
 
-        super(getSlaveName(template),
+    protected KubernetesSlave(String name, PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+                           ComputerLauncher computerLauncher, RetentionStrategy rs)
+            throws Descriptor.FormException, IOException {
+        super(name,
                 nodeDescription,
                 template.getRemoteFs(),
                 1,
                 template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
                 labelStr == null ? null : labelStr,
-                new KubernetesLauncher(),
+                computerLauncher,
                 rs,
                 template.getNodeProperties());
 
@@ -256,6 +268,118 @@ public class KubernetesSlave extends AbstractCloudSlave {
         result = 31 * result + (template != null ? template.hashCode() : 0);
         return result;
     }
+
+    /**
+     * Returns a new {@link Builder} instance.
+     * @return a new {@link Builder} instance.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builds a {@link KubernetesSlave} instance.
+     */
+    public static class Builder {
+        private String name;
+        private String nodeDescription;
+        private PodTemplate podTemplate;
+        private KubernetesCloud cloud;
+        private String label;
+        private ComputerLauncher computerLauncher;
+        private RetentionStrategy retentionStrategy;
+
+        /**
+         * @param name The name of the future {@link KubernetesSlave}
+         * @return the current instance for method chaining
+         */
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        /**
+         * @param nodeDescription The node description of the future {@link KubernetesSlave}
+         * @return the current instance for method chaining
+         */
+        public Builder nodeDescription(String nodeDescription) {
+            this.nodeDescription = nodeDescription;
+            return this;
+        }
+
+        /**
+         * @param podTemplate The pod template the future {@link KubernetesSlave} has been created from
+         * @return the current instance for method chaining
+         */
+        public Builder podTemplate(PodTemplate podTemplate) {
+            this.podTemplate = podTemplate;
+            return this;
+        }
+
+        /**
+         * @param cloud The cloud that is provisioning the {@link KubernetesSlave} instance.
+         * @return the current instance for method chaining
+         */
+        public Builder cloud(KubernetesCloud cloud) {
+            this.cloud = cloud;
+            return this;
+        }
+
+        /**
+         * @param label The label the {@link KubernetesSlave} has.
+         * @return the current instance for method chaining
+         */
+        public Builder label(String label) {
+            this.label = label;
+            return this;
+        }
+
+        /**
+         * @param computerLauncher The computer launcher to use to launch the {@link KubernetesSlave} instance.
+         * @return the current instance for method chaining
+         */
+        public Builder computerLauncher(ComputerLauncher computerLauncher) {
+            this.computerLauncher = computerLauncher;
+            return this;
+        }
+
+        /**
+         * @param retentionStrategy The retention strategy to use for the {@link KubernetesSlave} instance.
+         * @return the current instance for method chaining
+         */
+        public Builder retentionStrategy(RetentionStrategy retentionStrategy) {
+            this.retentionStrategy = retentionStrategy;
+            return this;
+        }
+
+        private RetentionStrategy determineRetentionStrategy() {
+            if (podTemplate.getIdleMinutes() == 0) {
+                return new OnceRetentionStrategy(cloud.getRetentionTimeout());
+            } else {
+                return new CloudRetentionStrategy(podTemplate.getIdleMinutes());
+            }
+        }
+
+        /**
+         * Builds the resulting {@link KubernetesSlave} instance.
+         * @return an initialized {@link KubernetesSlave} instance.
+         * @throws IOException
+         * @throws Descriptor.FormException
+         */
+        public KubernetesSlave build() throws IOException, Descriptor.FormException {
+            Validate.notNull(podTemplate);
+            Validate.notNull(cloud);
+            return new KubernetesSlave(
+                    name == null ? getSlaveName(podTemplate) : name,
+                    podTemplate,
+                    nodeDescription == null ? podTemplate.getName() : nodeDescription,
+                    cloud.name,
+                    label == null ? podTemplate.getLabel() : label,
+                    computerLauncher == null ? new KubernetesLauncher() : computerLauncher,
+                    retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
+        }
+    }
+
 
     @Extension
     public static final class DescriptorImpl extends SlaveDescriptor {
