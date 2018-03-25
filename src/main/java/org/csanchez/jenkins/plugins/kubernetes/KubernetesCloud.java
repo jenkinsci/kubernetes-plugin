@@ -28,6 +28,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -50,7 +51,6 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.security.ACL;
@@ -382,9 +382,7 @@ public class KubernetesCloud extends Cloud {
                     if (!addProvisionedSlave(t, label)) {
                         break;
                     }
-
-                    r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                                .submit(new ProvisioningCallback(this, t, label)), 1));
+                    r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
                 if (r.size() > 0) {
                     // Already found a matching template
@@ -463,6 +461,15 @@ public class KubernetesCloud extends Cloud {
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+
+    /**
+     * Unwraps the given pod template.
+     * @param podTemplate the pod template to unwrap.
+     * @return the unwrapped pod template
+     */
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
+        return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
     }
 
     /**
@@ -572,6 +579,7 @@ public class KubernetesCloud extends Cloud {
                     .withMatching( //
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(FileCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
                                     CredentialsMatchers.instanceOf(
                                             org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
