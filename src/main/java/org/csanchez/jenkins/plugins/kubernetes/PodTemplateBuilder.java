@@ -274,7 +274,7 @@ public class PodTemplateBuilder {
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
         String cmd = containerTemplate.getArgs();
-        if (slave != null) {
+        if (slave != null && cmd != null) {
             cmd = cmd.replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
                     .replaceAll(NAME_REF, slave.getComputer().getName());
         }
