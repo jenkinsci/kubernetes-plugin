@@ -24,14 +24,12 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +37,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.ExitCodeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 
@@ -74,7 +74,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
-
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
     private static final String DEFAULT_SHELL="/bin/sh";
 
@@ -214,29 +213,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
                 boolean quiet = starter.quiet();
                 FilePath pwd = starter.pwd();
-                List<String> procStarter = Arrays.asList(starter.envs());
-                List<String> cmdEnvs = new ArrayList<String>();
-                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
-                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
-                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
-                // check if the cmd is sourced from Jenkins, rather than another plugin;
-                // Currently, build level properties will be provided by the Run Context anyways.
-                boolean javaHome_detected = false;
-                for (String env : procStarter) {
-                    if (env.equalsIgnoreCase("JAVA_HOME")) {
-                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
-                        javaHome_detected = true;
-                        break;
-                    }
-                }
-                if (!javaHome_detected) {
-                    cmdEnvs = procStarter;
-                }
                 String[] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
+                String [] cmdEnvs = starter.envs();
+                return doLaunch(quiet, cmdEnvs, starter.stdout(), starter.stderr(), pwd,  commands);
             }
 
-            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
+            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, OutputStream errorForCaller, FilePath pwd, String... commands) throws IOException {
                 if (processes == null) {
                     processes = new HashMap<>();
                 }
@@ -256,31 +238,34 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 final CountDownLatch finished = new CountDownLatch(1);
                 final AtomicBoolean alive = new AtomicBoolean(false);
 
+                if (outputForCaller == null) {
+                    outputForCaller = new NullOutputStream();
+                }
 
-                PrintStream printStream = launcher.getListener().getLogger();
-                OutputStream stream = printStream;
+                if (errorForCaller == null) {
+                    errorForCaller = new NullOutputStream();
+                }
+
+                PrintStream logger = launcher.getListener().getLogger();
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
-                    stream = new NullOutputStream();
-                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                    logger = new PrintStream(new NullOutputStream(), false, StandardCharsets.UTF_8.toString());
                 }
+
+                final OutputStream teeFilteredOutputStream = new TeeOutputStream(outputForCaller, logger);
+
+                final FilterOutExitCodeOutputStream filteringOutputStream = new FilterOutExitCodeOutputStream(
+                        teeFilteredOutputStream);
 
                 // we need to keep the last bytes in the stream to parse the exit code as it is printed there
                 // so we use a buffer
-                ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
-                // send container output to all 3 streams (pid, out, job).
-                stream = new TeeOutputStream(exitCodeOutputStream, stream);
-                // Send to proc caller as well if they sent one
-                if (outputForCaller != null) {
-                    stream = new TeeOutputStream(outputForCaller, stream);
-                }
+                final ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
 
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
-                LOGGER.log(Level.FINEST, msg);
-                printStream.println(msg);
+                final OutputStream stdOut = new TeeOutputStream(filteringOutputStream, exitCodeOutputStream);
+                final OutputStream stdErr = new TeeOutputStream(errorForCaller, logger);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream)
+                        .redirectingInput().writingOutput(stdOut).writingError(stdErr)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -329,7 +314,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 try {
                     started.await();
                 } catch (InterruptedException e) {
-                    closeWatch(watch);
+                    closeWatch(watch, filteringOutputStream);
                     throw new IOException("JENKINS-40825: interrupted while waiting for websocket connection", e);
                 }
 
@@ -364,21 +349,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     this.setupEnvironmentVariable(envVars, watch);
-                    doExec(watch, printStream, commands);
+                    doExec(watch, commands);
+
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode, filteringOutputStream);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
                 } catch (InterruptedException ie) {
                     throw new InterruptedIOException(ie.getMessage());
                 } catch (Exception e) {
-                    closeWatch(watch);
+                    closeWatch(watch, filteringOutputStream);
                     throw e;
                 }
             }
@@ -390,7 +376,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
                 int exitCode = doLaunch(
-                        true, null, null, null,
+                        true, null, null, null, null,
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
@@ -403,7 +389,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             watch.getInput().write(
                                     String.format(
-                                            "export %s='%s'%s",
+                                            "if [ -z ${%s+x} ];then export %s='%s'; fi%s",
+                                            entry.getKey(),
                                             entry.getKey(),
                                             entry.getValue().replace("'", "'\\''"),
                                             NEWLINE
@@ -457,32 +444,37 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
+    private static void doExec(ExecWatch watch, String... statements) throws IOException {
         try {
-            out.print("Executing command: ");
+            LOGGER.log(Level.FINE, "Executing command: ");
             StringBuilder sb = new StringBuilder();
             for (String stmt : statements) {
                 String s = String.format("\"%s\" ", stmt);
                 sb.append(s);
-                out.print(s);
+                LOGGER.log(Level.FINE, s);
                 watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
-            out.println();
             watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
             // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
-            out.print(ExitCodeOutputStream.EXIT_COMMAND);
+            LOGGER.log(Level.FINE, ExitCodeOutputStream.EXIT_COMMAND);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            // a hack only for sshagent. it writes out output after the exitcode has been printed if we don't wait a bit
+            if ((statements.length >= 1 && statements[0].equals("ssh-add"))
+                    || (statements.length == 2 && statements[0].equals("ssh-agent") && statements[1].equals("-k"))) {
+                String sleepExitCommand = "tmp_exit_status=$?; sleep 3; printf \"" + ExitCodeOutputStream.EXIT_COMMAND_TXT + " %3d\" $tmp_exit_status; " + EXIT + NEWLINE;
+                watch.getInput().write(sleepExitCommand.getBytes(StandardCharsets.UTF_8));
+            } else {
+                watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            }
 
-            out.flush();
             watch.getInput().flush();
         } catch (IOException e) {
-            e.printStackTrace(out);
-            throw new RuntimeException(e);
+            LOGGER.log(Level.WARNING, "IOException during executing command", e);
+            throw e;
         }
     }
 
@@ -550,8 +542,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void closeWatch(ExecWatch watch) {
+    private static void closeWatch(ExecWatch watch, FilterOutExitCodeOutputStream filteringOutputStream) {
         try {
+            filteringOutputStream.writeOutBuffer();
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);
@@ -560,50 +553,5 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public void setKubernetesClient(KubernetesClient client) {
         this.client = client;
-    }
-
-    /**
-     * Keeps the last bytes of the output stream to parse the exit code
-     */
-    static class ExitCodeOutputStream extends OutputStream {
-
-        public static final String EXIT_COMMAND_TXT = "EXITCODE";
-        public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
-
-        private EvictingQueue<Integer> queue = EvictingQueue.create(20);
-
-        public ExitCodeOutputStream() {
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            queue.add(b);
-            byte[] bb = new byte[]{(byte) b};
-            System.out.print(new String(bb, StandardCharsets.UTF_8));
-        }
-
-        public int getExitCode() {
-            ByteBuffer b = ByteBuffer.allocate(queue.size());
-            queue.stream().filter(Objects::nonNull).forEach((i) -> b.put((byte) i.intValue()));
-            // output ends in a 3 digit padded exit code + newline (13 10)
-            // as defined in ContainerExecDecorator#doExec
-            // ie. 32 32 49 13 10 for exit code 1
-            int i = 1;
-            String s = new String(b.array(), StandardCharsets.UTF_8);
-            if (s.indexOf(EXIT_COMMAND_TXT) < 0) {
-                LOGGER.log(Level.WARNING, "Unable to find \"{0}\" in {1}", new Object[]{EXIT_COMMAND_TXT, s});
-                return i;
-            }
-            // parse the exitcode int printed after EXITCODE
-            int start = s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length();
-            s = s.substring(start, start + 4).trim();
-            try {
-                i = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "Unable to parse exit code as integer: \"{0}\" {1} / {2}",
-                        new Object[]{s, queue.toString(), Arrays.toString(b.array())});
-            }
-            return i;
-        }
     }
 }

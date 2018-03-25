@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.exec.FilterOutExitCodeOutputStream;
+
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 
@@ -28,6 +30,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final CountDownLatch finished;
     private final ExecWatch watch;
     private final Callable<Integer> exitCode;
+    private final FilterOutExitCodeOutputStream filteringOutputStream;
 
     /**
      * 
@@ -38,11 +41,12 @@ public class ContainerExecProc extends Proc implements Closeable {
      *            a way to get the exit code
      */
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-            Callable<Integer> exitCode) {
+            Callable<Integer> exitCode, FilterOutExitCodeOutputStream filteringOutputStream) {
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
         this.exitCode = exitCode;
+        this.filteringOutputStream = filteringOutputStream;
     }
 
     @Override
@@ -99,6 +103,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     public void close() throws IOException {
         try {
             //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            filteringOutputStream.writeOutBuffer();
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);
