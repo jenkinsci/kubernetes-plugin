@@ -77,14 +77,18 @@ public class ContainerExecProc extends Proc implements Closeable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            // command terminated with non-zero exit code: Error executing in Docker Container: 127
-            String s = error.toString(Charsets.UTF_8.name());
-            Matcher m = EXIT_CODE.matcher(s);
-            if (m.matches()) {
-                return Integer.parseInt(m.group("exitCode"));
+            if (error.size() == 0) {
+                return 0;
             } else {
-                LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: {0}", s);
-                return -1;
+                // command terminated with non-zero exit code: Error executing in Docker Container: 127
+                String s = error.toString(Charsets.UTF_8.name());
+                Matcher m = EXIT_CODE.matcher(s);
+                if (m.matches()) {
+                    return Integer.parseInt(m.group("exitCode"));
+                } else {
+                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: {0}", s);
+                    return -1;
+                }
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
