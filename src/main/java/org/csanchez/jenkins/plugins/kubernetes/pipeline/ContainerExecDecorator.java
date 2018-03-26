@@ -25,23 +25,23 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,8 +60,6 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
-import org.apache.commons.io.output.NullOutputStream;
-import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -270,14 +268,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 if (outputForCaller != null) {
                     stream = new TeeOutputStream(outputForCaller, stream);
                 }
-                OutputStream error = new ByteArrayOutputStream();
+                ByteArrayOutputStream error = new ByteArrayOutputStream();
 
                 String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream, error)
+                        .redirectingInput().writingOutput(stream).writingError(stream).writingErrorChannel(error)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -368,7 +366,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, error);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
