@@ -18,6 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -265,22 +266,18 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
 
-                // we need to keep the last bytes in the stream to parse the exit code as it is printed there
-                // so we use a buffer
-                ExitCodeOutputStream exitCodeOutputStream = new ExitCodeOutputStream();
-                // send container output to all 3 streams (pid, out, job).
-                stream = new TeeOutputStream(exitCodeOutputStream, stream);
                 // Send to proc caller as well if they sent one
                 if (outputForCaller != null) {
                     stream = new TeeOutputStream(outputForCaller, stream);
                 }
+                OutputStream error = new ByteArrayOutputStream();
 
                 String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream)
+                        .redirectingInput().writingOutput(stream).writingError(stream, error)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -337,7 +334,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        watch.getInput().write(
+                        watch.getStdinPipe().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
                     }
@@ -371,7 +368,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, exitCodeOutputStream::getExitCode);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
@@ -401,7 +398,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            watch.getInput().write(
+                            watch.getStdinPipe().write(
                                     String.format(
                                             "export %s='%s'%s",
                                             entry.getKey(),
@@ -465,21 +462,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String s = String.format("\"%s\" ", stmt);
                 sb.append(s);
                 out.print(s);
-                watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
+                watch.getStdinPipe().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
             out.println();
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getStdinPipe().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
             // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
-            sb.append(ExitCodeOutputStream.EXIT_COMMAND);
-            out.print(ExitCodeOutputStream.EXIT_COMMAND);
+            sb.append(EXIT + NEWLINE);
+            out.print(EXIT + NEWLINE);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            watch.getStdinPipe().write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
 
             out.flush();
-            watch.getInput().flush();
+            watch.getStdinPipe().flush();
         } catch (IOException e) {
             e.printStackTrace(out);
             throw new RuntimeException(e);
@@ -560,50 +557,5 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public void setKubernetesClient(KubernetesClient client) {
         this.client = client;
-    }
-
-    /**
-     * Keeps the last bytes of the output stream to parse the exit code
-     */
-    static class ExitCodeOutputStream extends OutputStream {
-
-        public static final String EXIT_COMMAND_TXT = "EXITCODE";
-        public static final String EXIT_COMMAND = "printf \"" + EXIT_COMMAND_TXT + " %3d\" $?; " + EXIT + NEWLINE;
-
-        private EvictingQueue<Integer> queue = EvictingQueue.create(20);
-
-        public ExitCodeOutputStream() {
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            queue.add(b);
-            byte[] bb = new byte[]{(byte) b};
-            System.out.print(new String(bb, StandardCharsets.UTF_8));
-        }
-
-        public int getExitCode() {
-            ByteBuffer b = ByteBuffer.allocate(queue.size());
-            queue.stream().filter(Objects::nonNull).forEach((i) -> b.put((byte) i.intValue()));
-            // output ends in a 3 digit padded exit code + newline (13 10)
-            // as defined in ContainerExecDecorator#doExec
-            // ie. 32 32 49 13 10 for exit code 1
-            int i = 1;
-            String s = new String(b.array(), StandardCharsets.UTF_8);
-            if (s.indexOf(EXIT_COMMAND_TXT) < 0) {
-                LOGGER.log(Level.WARNING, "Unable to find \"{0}\" in {1}", new Object[]{EXIT_COMMAND_TXT, s});
-                return i;
-            }
-            // parse the exitcode int printed after EXITCODE
-            int start = s.indexOf(EXIT_COMMAND_TXT) + EXIT_COMMAND_TXT.length();
-            s = s.substring(start, start + 4).trim();
-            try {
-                i = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                LOGGER.log(Level.WARNING, "Unable to parse exit code as integer: \"{0}\" {1} / {2}",
-                        new Object[]{s, queue.toString(), Arrays.toString(b.array())});
-            }
-            return i;
-        }
     }
 }

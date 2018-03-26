@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.IOUtils;
+
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 
@@ -27,22 +29,17 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
-    private final Callable<Integer> exitCode;
 
-    /**
-     * 
-     * @param watch
-     * @param alive
-     * @param finished
-     * @param exitCode
-     *            a way to get the exit code
-     */
+    @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             Callable<Integer> exitCode) {
+        this(watch, alive, finished);
+    }
+
+    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished) {
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
-        this.exitCode = exitCode;
     }
 
     @Override
@@ -54,10 +51,10 @@ public class ContainerExecProc extends Proc implements Closeable {
     public void kill() throws IOException, InterruptedException {
         try {
             // What we actually do is send a ctrl-c to the current process and then exit the shell.
-            watch.getInput().write(CTRL_C);
-            watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().flush();
+            watch.getStdinPipe().write(CTRL_C);
+            watch.getStdinPipe().write(EXIT.getBytes(StandardCharsets.UTF_8));
+            watch.getStdinPipe().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getStdinPipe().flush();
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Proc kill failed, ignoring", e);
         } finally {
@@ -71,7 +68,10 @@ public class ContainerExecProc extends Proc implements Closeable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            return exitCode.call();
+            InputStream errorPipe = watch.getErrorPipe();
+            String s = IOUtils.toString(errorPipe);
+            // TODO
+            return 0;
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
             return -1;
@@ -82,12 +82,12 @@ public class ContainerExecProc extends Proc implements Closeable {
 
     @Override
     public InputStream getStdout() {
-        return watch.getOutput();
+        return watch.getStdoutPipe();
     }
 
     @Override
     public InputStream getStderr() {
-        return watch.getError();
+        return watch.getStderrPipe();
     }
 
     @Override
@@ -98,7 +98,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            // We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);
