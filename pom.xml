@@ -71,7 +71,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.fabric8</groupId>
+      <groupId>org.csanchez.jenkins.plugins.kubernetes</groupId>
       <artifactId>kubernetes-client</artifactId>
       <version>${kubernetes-client.version}</version>
     </dependency>
