@@ -152,6 +152,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("The initial value of POD_ENV_VAR is pod-env-var-value", b);
+        r.assertLogContains("The value of POD_ENV_VAR outside container is /bin/mvn:pod-env-var-value", b);
         r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
         r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
@@ -160,6 +162,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
         r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
         r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
+        r.assertLogContains("The value of POD_ENV_VAR is pod-env-var-value:/bin/mvn", b);
         r.assertLogContains("The value of WILL.NOT is ", b);
     }
 
