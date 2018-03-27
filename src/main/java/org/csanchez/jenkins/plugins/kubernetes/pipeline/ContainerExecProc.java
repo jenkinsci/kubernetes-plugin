@@ -13,10 +13,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import com.google.common.base.Charsets;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
@@ -28,9 +27,6 @@ import io.fabric8.kubernetes.client.dsl.ExecWatch;
 public class ContainerExecProc extends Proc implements Closeable {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
-
-    private static final Pattern EXIT_CODE = Pattern.compile(
-            "command terminated with non-zero exit code: Error executing in Docker Container: (?<exitCode>\\d+)");
 
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
@@ -80,13 +76,32 @@ public class ContainerExecProc extends Proc implements Closeable {
             if (error.size() == 0) {
                 return 0;
             } else {
-                // command terminated with non-zero exit code: Error executing in Docker Container: 127
-                String s = error.toString(Charsets.UTF_8.name());
-                Matcher m = EXIT_CODE.matcher(s);
-                if (m.matches()) {
-                    return Integer.parseInt(m.group("exitCode"));
-                } else {
-                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: {0}", s);
+                // {"metadata":{},"status":"Success"}
+                // or
+                // {"metadata":{},"status":"Failure",
+                //   "message":"command terminated with non-zero exit code: Error executing in Docker Container: 127",
+                //   "reason":"NonZeroExitCode",
+                //   "details":{"causes":[{"reason":"ExitCode","message":"127"}]}}
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode errorJson = mapper.readTree(error.toByteArray());
+                    if ("Success".equalsIgnoreCase(errorJson.get("status").asText())) {
+                        return 0;
+                    }
+                    JsonNode causes = errorJson.get("details").get("causes");
+                    if (causes.isArray()) {
+                        for (JsonNode cause : causes) {
+                            if ("ExitCode".equalsIgnoreCase(cause.get("reason").asText(""))) {
+                                return cause.get("message").asInt();
+                            }
+                        }
+                    }
+                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: {0}",
+                            error.toString(StandardCharsets.UTF_8.name()));
+                    return -1;
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: "
+                            + error.toString(StandardCharsets.UTF_8.name()), e);
                     return -1;
                 }
             }
