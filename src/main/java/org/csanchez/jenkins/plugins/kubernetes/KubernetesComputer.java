@@ -45,14 +45,4 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         return String.format("KubernetesComputer name: %s slave: %s", getName(), getNode());
     }
 
-    /*
-    Return empty EnvVars since we don't want to inject jnlp agent system variables;
-    */
-    @Override
-      public EnvVars getEnvironment() throws IOException, InterruptedException {
-        return new EnvVars();
-    }
-
-
-
 }
