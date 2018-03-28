@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+1.4.1
+-----
+* Env vars using `PATH+SOMETHING` syntax clear the previous env var [JENKINS-50437](https://issues.jenkins-ci.org/browse/JENKINS-50437) [#301](https://github.com/jenkinsci/kubernetes-plugin/pull/301)
+
 1.4
 -----
 * Support kubeconfig from secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
