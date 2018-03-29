@@ -293,6 +293,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return super.createLauncher(listener);
     }
 
+    protected Object readResolve() {
+        this.executables = new HashSet<>();
+        return this;
+    }
+
     /**
      * Returns a new {@link Builder} instance.
      * @return a new {@link Builder} instance.

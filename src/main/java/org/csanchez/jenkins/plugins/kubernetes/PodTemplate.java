@@ -598,7 +598,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public String getDescriptionForLogging() {
-        return String.format("Agent specification [%s] (%s): \n%s",
+        return String.format("Agent specification [%s] (%s): %n%s",
                 getDisplayName(),
                 getLabel(),
                 getContainersDescriptionForLogging());
