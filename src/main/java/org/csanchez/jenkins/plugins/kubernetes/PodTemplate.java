@@ -597,6 +597,40 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return new PodTemplateBuilder(this).build(slave);
     }
 
+    public String getDescriptionForLogging() {
+        return String.format("Agent specification [%s] (%s): \n%s",
+                getDisplayName(),
+                getLabel(),
+                getContainersDescriptionForLogging());
+    }
+
+    private String getContainersDescriptionForLogging() {
+        List<ContainerTemplate> containers = getContainers();
+        StringBuilder sb = new StringBuilder();
+        for (ContainerTemplate ct : containers) {
+            sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
+            StringBuilder optional = new StringBuilder();
+            optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
+            optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
+            optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
+            optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
+            if (optional.length() > 0) {
+                sb.append("(").append(optional).append(")");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void optionalField(StringBuilder builder, String label, String value) {
+        if (value != null) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(label).append(": ").append(value);
+        }
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
