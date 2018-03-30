@@ -49,6 +49,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.Proc;
+import hudson.model.Computer;
 import hudson.model.Node;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -212,28 +213,28 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
-                boolean quiet = starter.quiet();
-                FilePath pwd = starter.pwd();
-                List<String> procStarter = Arrays.asList(starter.envs());
-                List<String> cmdEnvs = new ArrayList<String>();
-                // One issue that cropped up was that when executing sh commands, we would get the jnlp agent's injected
-                // environment variables as well, causing obvious problems such as JAVA_HOME being overwritten. The
-                // unsatisfying answer was to check for the presence of JENKINS_HOME in the cmdenvs and skip if present.
-                // check if the cmd is sourced from Jenkins, rather than another plugin;
-                // Currently, build level properties will be provided by the Run Context anyways.
-                boolean javaHome_detected = false;
-                for (String env : procStarter) {
-                    if (env.equalsIgnoreCase("JAVA_HOME")) {
-                        LOGGER.log(Level.FINEST, "Detected JAVA_HOME in {0}", env);
-                        javaHome_detected = true;
-                        break;
+                String[] envVars = starter.envs();
+                if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
+                    final Computer computer = node.toComputer();
+                    if (computer != null) {
+                        List<String> resultEnvVar = new ArrayList<>();
+                        try {
+                            EnvVars environment = computer.getEnvironment();
+                            String[] envs = starter.envs();
+                            for (String keyValue : envs) {
+                                String[] split = keyValue.split("=", 2);
+                                if (!split[1].equals(environment.get(split[0]))) {
+                                    // Only keep environment variables that differ from Computer's environment
+                                    resultEnvVar.add(keyValue);
+                                }
+                            }
+                            envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
+                        } catch (InterruptedException e) {
+                            throw new IOException("Unable to retrieve environment variables", e);
+                        }
                     }
                 }
-                if (!javaHome_detected) {
-                    cmdEnvs = procStarter;
-                }
-                String[] commands = getCommands(starter);
-                return doLaunch(quiet, cmdEnvs.toArray(new String[cmdEnvs.size()]), starter.stdout(), pwd, commands);
+                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), getCommands(starter));
             }
 
             private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
