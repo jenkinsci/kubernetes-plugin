@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.5
+-----
+* Allow creating Pod templates from yaml. This allows setting all possible fields in Kubernetes API using yaml [JENKINS-50282](https://issues.jenkins-ci.org/browse/JENKINS-50282) [#275](https://github.com/jenkinsci/kubernetes-plugin/pull/275)
+* Print agent specification upon node allocation [#302](https://github.com/jenkinsci/kubernetes-plugin/pull/302)
+
 1.4.1
 -----
 * Env vars using `PATH+SOMETHING` syntax clear the previous env var [JENKINS-50437](https://issues.jenkins-ci.org/browse/JENKINS-50437) [#301](https://github.com/jenkinsci/kubernetes-plugin/pull/301)
