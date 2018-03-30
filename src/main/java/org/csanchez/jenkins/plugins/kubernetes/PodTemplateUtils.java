@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -42,6 +44,9 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
 public class PodTemplateUtils {
+
+    private static final Logger LOGGER = Logger.getLogger(PodTemplateUtils.class.getName());
+
     /**
      * Combines a {@link ContainerTemplate} with its parent.
      * @param parent        The parent container template (nullable).
@@ -161,6 +166,9 @@ public class PodTemplateUtils {
             return template;
         }
 
+        LOGGER.log(Level.FINE, "Combining pods, parent: {0}", parent);
+        LOGGER.log(Level.FINE, "Combining pods, template: {0}", template);
+
         Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
                 template.getSpec().getNodeSelector());
         String serviceAccount = Strings.isNullOrEmpty(template.getSpec().getServiceAccount())
@@ -218,7 +226,9 @@ public class PodTemplateUtils {
 //        podTemplate.setNodeUsageMode(nodeUsageMode);
 //        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
-        return specBuilder.endSpec().build();
+        Pod pod = specBuilder.endSpec().build();
+        LOGGER.log(Level.FINE, "Pods combined: {0}", pod);
+        return pod;
     }
 
     /**

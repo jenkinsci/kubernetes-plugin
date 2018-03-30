@@ -109,6 +109,12 @@ public class PodTemplateBuilder {
         return this;
     }
 
+    @Deprecated
+    public Pod build(KubernetesSlave slave) {
+        LOGGER.log(Level.WARNING, "This method is deprecated and does nothing");
+        return this.build();
+    }
+
     /**
      * Create a Pod object from a PodTemplate
      */
@@ -225,6 +231,7 @@ public class PodTemplateBuilder {
                 .filter(c -> c.getVolumeMounts().stream().noneMatch(vm -> WORKSPACE_VOLUME_NAME.equals(vm.getName())))
                 .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
 
+        LOGGER.log(Level.FINE, "Pod built: {0}", pod);
         return pod;
     }
 
@@ -321,8 +328,13 @@ public class PodTemplateBuilder {
                 .build();
     }
 
-    private VolumeMount getDefaultVolumeMount(String workingDir) {
-        return new VolumeMount(workingDir, WORKSPACE_VOLUME_NAME, false, null);
+    private VolumeMount getDefaultVolumeMount(@CheckForNull String workingDir) {
+        String wd = workingDir;
+        if (wd == null) {
+            wd = ContainerTemplate.DEFAULT_WORKING_DIR;
+            LOGGER.log(Level.FINE, "Container workingDir is null, defaulting to {0}", wd);
+        }
+        return new VolumeMount(wd, WORKSPACE_VOLUME_NAME, false, null);
     }
 
     private List<VolumeMount> getContainerVolumeMounts(Collection<VolumeMount> volumeMounts, String workingDir) {
