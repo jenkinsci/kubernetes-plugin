@@ -85,6 +85,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodFromYaml() throws Exception {
+        deletePods(cloud.connect(), getLabels(this), false);
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodFromYaml.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        List<PodTemplate> templates = cloud.getTemplates();
+        while (templates.isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+        PodTemplate template = templates.get(0);
+        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("script file contents: ", b);
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), getLabels(this), true));
+    }
+
     public void runInPodWithDifferentShell() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));

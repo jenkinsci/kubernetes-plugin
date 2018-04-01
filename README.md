@@ -117,6 +117,7 @@ Either way it provides access to the following fields:
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod. Set a unique value to avoid conflicts across builds
+* **yaml** [yaml representation of the Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core), to allow setting any values not supported as fields
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
@@ -143,6 +144,38 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 * **ports** Expose ports on the container.
+
+#### Using yaml to Define Pod Templates
+
+In order to support any possible value in Kubernetes `Pod` object, we can pass a yaml snippet that will be used as a base
+for the template. If any other properties are set outside of the yaml they will take precedence.
+
+```groovy
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label, yaml: """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+) {
+    node (label) {
+      container('busybox') {
+        sh "hostname"
+      }
+    }
+}
+```
+
+You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.
 
 #### Liveness Probe Usage
 ```groovy

@@ -96,7 +96,7 @@ public class KubernetesLauncher extends JNLPLauncher {
         final PodTemplate unwrappedTemplate = slave.getTemplate();
         try {
             KubernetesClient client = cloud.connect();
-            Pod pod = getPodTemplate(slave, unwrappedTemplate);
+            Pod pod = getPodTemplate(client, slave, unwrappedTemplate);
 
             String podId = pod.getMetadata().getName();
             String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
@@ -209,8 +209,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
-    private Pod getPodTemplate(KubernetesSlave slave, PodTemplate template) {
-        return template == null ? null : template.build(slave);
+    private Pod getPodTemplate(KubernetesClient client, KubernetesSlave slave, PodTemplate template) {
+        return template == null ? null : template.build(client, slave);
     }
 
     /**
