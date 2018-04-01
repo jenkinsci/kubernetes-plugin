@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+Known issues
+------------
+* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700) [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366)
+
+See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
 1.5
 -----
 * Allow creating Pod templates from yaml. This allows setting all possible fields in Kubernetes API using yaml [JENKINS-50282](https://issues.jenkins-ci.org/browse/JENKINS-50282) [#275](https://github.com/jenkinsci/kubernetes-plugin/pull/275)
@@ -12,7 +18,7 @@ CHANGELOG
 
 1.4
 -----
-* Support kubeconfig from secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
+* Support passing `kubeconfig` file as credentials using secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
 * Allow customization of NodeProvisioner.PlannedNode using extension point [#298](https://github.com/jenkinsci/kubernetes-plugin/pull/298)
 
 1.3.3
