@@ -41,6 +41,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -59,10 +60,12 @@ import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -203,6 +206,13 @@ public class PodTemplateBuilder {
                 Pod podFromYaml = client.pods()
                         .load(new ByteArrayInputStream((yaml == null ? "" : yaml).getBytes(UTF_8))).get();
                 LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
+                // yaml can be just a fragment, avoid NPEs
+                if (podFromYaml.getMetadata() == null) {
+                    podFromYaml.setMetadata(new ObjectMeta());
+                }
+                if (podFromYaml.getSpec() == null) {
+                    podFromYaml.setSpec(new PodSpec());
+                }
                 pod = combine(podFromYaml, pod);
             }
         }
@@ -227,14 +237,16 @@ public class PodTemplateBuilder {
             pod.getSpec().getVolumes()
                     .add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
+        // default workspace volume mount. If something is already mounted in the same path ignore it
         pod.getSpec().getContainers().stream()
-                .filter(c -> c.getVolumeMounts().stream().noneMatch(vm -> WORKSPACE_VOLUME_NAME.equals(vm.getName())))
+                .filter(c -> c.getVolumeMounts().stream()
+                        .noneMatch(vm -> vm.getMountPath().equals(
+                                c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
                 .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
 
         LOGGER.log(Level.FINE, "Pod built: {0}", pod);
         return pod;
     }
-
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
         // Last-write wins map of environment variable names to values

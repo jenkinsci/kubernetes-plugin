@@ -34,6 +34,12 @@ spec:
     env:
     - name: CONTAINER_ENV_VAR
       value: container-env-var-value
+    volumeMounts:
+    - mountPath: /container/data
+      name: host-volume
   volumes:
   - name: empty-volume
     emptyDir: {}
+  - name: host-volume
+    hostPath:
+      path: /host/data

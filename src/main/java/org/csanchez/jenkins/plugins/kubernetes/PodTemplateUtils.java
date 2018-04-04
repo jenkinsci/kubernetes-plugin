@@ -12,8 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -35,11 +37,14 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.SecurityContext;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -106,9 +111,9 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        boolean privileged = template.getSecurityContext().getPrivileged()
+        Boolean privileged = template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
-                : (parent.getSecurityContext().getPrivileged() ? parent.getSecurityContext().getPrivileged() : false);
+                : parent.getSecurityContext().getPrivileged();
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
@@ -116,7 +121,7 @@ public class PodTemplateUtils {
                 : template.getWorkingDir();
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
-        boolean tty = template.getTty() ? template.getTty() : (parent.getTty() ? parent.getTty() : false);
+        Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
         Quantity resourceRequestCpu = Strings
                 .isNullOrEmpty(template.getResources().getRequests().get("cpu").getAmount())
                         ? parent.getResources().getRequests().get("cpu")
@@ -133,8 +138,9 @@ public class PodTemplateUtils {
                         ? parent.getResources().getLimits().get("memory")
                         : template.getResources().getLimits().get("memory");
 
-        List<VolumeMount> volumeMounts = parent.getVolumeMounts();
-        volumeMounts.addAll(template.getVolumeMounts());
+        Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
+                .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
+        template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
         Container combined = new ContainerBuilder() //
                 .withImage(image) //
@@ -150,8 +156,9 @@ public class PodTemplateUtils {
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
-                .withVolumeMounts(volumeMounts) //
+                .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
+
         return combined;
     }
 
