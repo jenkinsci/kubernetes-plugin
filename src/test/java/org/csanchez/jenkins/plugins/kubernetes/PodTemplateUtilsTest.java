@@ -30,12 +30,25 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+
+import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 
 public class PodTemplateUtilsTest {
 
@@ -335,6 +348,50 @@ public class PodTemplateUtilsTest {
         ContainerTemplate result = combine(template1, template2);
 
         assertThat(result.getEnvVars(), contains(containerSecretEnvVar1, containerSecretEnvVar2, containerSecretEnvVar3));
+    }
+
+    @Test
+    public void shouldCombineAllMounts() {
+        PodTemplate template1 = new PodTemplate();
+        HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
+        HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
+        template1.setVolumes(asList(hostPathVolume1, hostPathVolume2));
+
+        PodTemplate template2 = new PodTemplate();
+        HostPathVolume hostPathVolume3 = new HostPathVolume("/host/mnt3", "/container/mnt3");
+        HostPathVolume hostPathVolume4 = new HostPathVolume("/host/mnt1", "/container/mnt4");
+        template2.setVolumes(asList(hostPathVolume3, hostPathVolume4));
+
+        PodTemplate result = combine(template1, template2);
+        assertThat(result.getVolumes(), hasItems(hostPathVolume2, hostPathVolume3, hostPathVolume4));
+    }
+
+    private SpecNested<PodBuilder> podBuilder() {
+        return new PodBuilder().withNewMetadata().endMetadata().withNewSpec();
+    }
+
+    private ContainerBuilder containerBuilder() {
+        return new ContainerBuilder().withNewSecurityContext().endSecurityContext().withNewResources()
+                .withLimits(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity()))
+                .withRequests(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity())).endResources();
+    }
+
+    @Test
+    public void shouldCombineAllPodMounts() {
+        VolumeMount vm1 = new VolumeMount("/host/mnt1", "volume-1", false, null);
+        VolumeMount vm2 = new VolumeMount("/host/mnt2", "volume-2", false, null);
+        VolumeMount vm3 = new VolumeMount("/host/mnt3", "volume-3", false, null);
+        VolumeMount vm4 = new VolumeMount("/host/mnt1", "volume-4", false, null);
+        Container container1 = containerBuilder().withName("jnlp").withVolumeMounts(vm1, vm2).build();
+        Pod pod1 = podBuilder().withContainers(container1).endSpec().build();
+        Container container2 = containerBuilder().withName("jnlp").withVolumeMounts(vm3, vm4).build();
+        Pod pod2 = podBuilder().withContainers(container2).endSpec().build();
+
+        Pod result = combine(pod1, pod2);
+        List<Container> containers = result.getSpec().getContainers();
+        assertEquals(1, containers.size());
+        assertEquals(3, containers.get(0).getVolumeMounts().size());
+        assertThat(containers.get(0).getVolumeMounts(), hasItems(vm2, vm3, vm4));
     }
 
     @Test
