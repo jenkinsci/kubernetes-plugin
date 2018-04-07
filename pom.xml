@@ -42,55 +42,32 @@
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost>192.168.64.1</connectorHost>
     <java.level>8</java.level>
-
-    <!-- dependency versions -->
-    <httpclient.version>4.5.5</httpclient.version>
-    <jackson.version>2.5.0</jackson.version>
-
-    <kubernetes-client.version>3.1.10</kubernetes-client.version>
-
-    <!-- jenkins plugins versions -->
-    <jenkins-basic-steps.version>2.6</jenkins-basic-steps.version>
-    <jenkins-credentials.version>2.1.16</jenkins-credentials.version>
-    <jenkins-kubernetes-credentials.version>0.3.1</jenkins-kubernetes-credentials.version>
-    <jenkins-durable-task.version>1.22</jenkins-durable-task.version>
-    <jenkins-durable-task-step.version>2.19</jenkins-durable-task-step.version>
-    <jenkins-structs.version>1.14</jenkins-structs.version>
-    <jenkins-workflow-cps.version>2.46</jenkins-workflow-cps.version>
-    <jenkins-workflow-job.version>2.17</jenkins-workflow-job.version>
-    <jenkins-workflow-step-api.version>2.14</jenkins-workflow-step-api.version>
-    <jenkins-workflow-support.version>2.18</jenkins-workflow-support.version>
-    <jenkins-workflow-api.version>2.26</jenkins-workflow-api.version>
-    <jenkins-workflow-scm-step.version>2.6</jenkins-workflow-scm-step.version>
-    <jenkins-scm-api.version>2.2.6</jenkins-scm-api.version>
-    <jenkins-declarative.version>1.2.8</jenkins-declarative.version>
-
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
-      <version>${kubernetes-client.version}</version>
+      <version>3.1.10</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>${httpclient.version}</version>
+      <version>4.5.5</version>
     </dependency>
 
     <!-- required plugins -->
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>${jenkins-kubernetes-credentials.version}</version>
+      <version>0.3.1</version>
     </dependency>
 
     <dependency> <!-- OnceRetentionStrategy -->
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>${jenkins-durable-task.version}</version>
+      <version>1.22</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -100,12 +77,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${jenkins-workflow-step-api.version}</version>
+      <version>2.14</version>
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
-      <version>${jenkins-declarative.version}</version>
+      <version>1.2.8</version>
       <optional>true</optional>
     </dependency>
 
@@ -113,69 +90,69 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>${jenkins-workflow-job.version}</version>
+      <version>2.17</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>${jenkins-basic-steps.version}</version>
+      <version>2.6</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- StepConfigTester -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>${jenkins-workflow-step-api.version}</version>
+      <version>2.14</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>${jenkins-workflow-support.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
-      <version>${jenkins-durable-task-step.version}</version>
+      <version>2.18</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>${jenkins-workflow-support.version}</version>
+      <version>2.18</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>2.19</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-scm-step</artifactId>
-      <version>${jenkins-workflow-scm-step.version}</version>
+      <version>2.6</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>scm-api</artifactId>
-      <version>${jenkins-scm-api.version}</version>
+      <version>2.2.6</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${jenkins-declarative.version}</version>
+      <version>1.2.8</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>${jenkins-workflow-api.version}</version>
+      <version>2.26</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${jenkins-workflow-cps.version}</version>
+      <version>2.46</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -206,12 +183,12 @@
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>credentials</artifactId>
-        <version>${jenkins-credentials.version}</version>
+        <version>2.1.16</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
-        <version>${jenkins-structs.version}</version>
+        <version>1.14</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
