@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.5.2
+-----
+* Merge default `jnlp` container options [JENKINS-50533](https://issues.jenkins-ci.org/browse/JENKINS-50533) [#305](https://github.com/jenkinsci/kubernetes-plugin/pull/305)
+
 1.5.1
 -----
 * Fix duplicated volume mounts [JENKINS-50525](https://issues.jenkins-ci.org/browse/JENKINS-50525) [#303](https://github.com/jenkinsci/kubernetes-plugin/pull/303)
