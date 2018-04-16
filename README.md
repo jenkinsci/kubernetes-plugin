@@ -175,7 +175,7 @@ spec:
 }
 ```
 
-You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.
+You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
 
 #### Liveness Probe Usage
 ```groovy
