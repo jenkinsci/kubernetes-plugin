@@ -230,6 +230,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(null);
     }
 
+
     public void setInstanceCap(int instanceCap) {
         if (instanceCap < 0) {
             this.instanceCap = Integer.MAX_VALUE;
@@ -570,6 +571,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         synchronized (this.containers) {
             this.containers.clear();
             this.containers.addAll(items);
+        }
+    }
+
+    /**
+     * Helper method to let you specify a single containerTemplate inside the podTemplate
+     *
+     * though note this does not yet you configure more than one containerTemplate!
+     * See <a href="https://issues.jenkins-ci.org/browse/JENKINS-48135">JENKINS-48135</a>
+     */
+    @DataBoundSetter
+    public void setContainerTemplate(ContainerTemplate item) {
+        synchronized (this.containers) {
+            this.containers.add(item);
         }
     }
 

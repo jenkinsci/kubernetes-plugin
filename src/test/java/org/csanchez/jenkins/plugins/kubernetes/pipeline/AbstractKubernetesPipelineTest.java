@@ -89,6 +89,7 @@ public class AbstractKubernetesPipelineTest {
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
+        cloud.addTemplate(mavenTemplate("maven"));
 
         // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
@@ -115,9 +116,22 @@ public class AbstractKubernetesPipelineTest {
     private PodTemplate buildBusyboxTemplate(String label) {
         // Create a busybox template
         PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName(label);
         podTemplate.setLabel(label);
 
         ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
+        containerTemplate.setTtyEnabled(true);
+        podTemplate.getContainers().add(containerTemplate);
+        setEnvVariables(podTemplate);
+        return podTemplate;
+    }
+
+    private PodTemplate mavenTemplate(String label) {
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName(label);
+        podTemplate.setLabel(label);
+
+        ContainerTemplate containerTemplate = new ContainerTemplate("maven", "maven:3.3.9-jdk-8-alpine", "cat", "");
         containerTemplate.setTtyEnabled(true);
         podTemplate.getContainers().add(containerTemplate);
         setEnvVariables(podTemplate);

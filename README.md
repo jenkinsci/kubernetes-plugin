@@ -347,6 +347,29 @@ Declarative Pipeline support requires Jenkins 2.66+
 
 Example at [examples/declarative.groovy](examples/declarative.groovy)
 
+### Referring to PodTemplates
+
+You can refer to a named PodTemplate in the Jenkins configuration via the **inheritFrom** property as follows:
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      label "my-build-pod"
+      inheritFrom "maven"
+    }
+  }
+  ...
+}
+``` 
+
+The meaning of the values is as follows:
+
+* **label** is used to add a kubernetes label to the build pods created by the pipeline jobs
+* **inheritFrom**  is used to lookup a named PodTemplate in the Jenkins configuration for the Kubernetes Cloud and uses that as the basis for the PodTemplate for this pipeline
+
+So the above example will reuse the **maven** podTemplate from the Jenkins Kubernetes Cloud configuration and then label the build pod with **my-build-pod**.
+
 ## Accessing container logs from the pipeline
 
 If you use the `containerTemplate` to run some service in the background

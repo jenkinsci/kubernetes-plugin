@@ -24,27 +24,26 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.*;
-
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
-public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+import static org.junit.Assert.assertNotNull;
 
-    @Issue("JENKINS-41758")
+public class KubernetesPodTemplateWithInheritFromDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+
+    @Issue("JENKINS-48140")
     @Test
     public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "declarative pipeline with containerTemplate");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "declarative pipeline with podTemplate and inheritFrom");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativePodWithInheritFrom.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
-        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
     }
 
 }

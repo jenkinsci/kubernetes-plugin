@@ -63,6 +63,23 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public ContainerTemplate(String image) {
         this(null, image);
     }
+    public ContainerTemplate(ContainerTemplate that) {
+        setAlwaysPullImage(that.isAlwaysPullImage());
+        setArgs(that.getArgs());
+        setCommand(that.getCommand());
+        setEnvVars(that.getEnvVars());
+        setImage(that.getImage());
+        setLivenessProbe(that.getLivenessProbe());
+        setName(that.getName());
+        setPorts(that.getPorts());
+        setPrivileged(that.isPrivileged());
+        setResourceLimitCpu(that.getResourceLimitCpu());
+        setResourceLimitMemory(that.getResourceLimitMemory());
+        setResourceRequestCpu(that.getResourceRequestCpu());
+        setResourceRequestMemory(that.getResourceRequestMemory());
+        setTtyEnabled(that.isTtyEnabled());
+        setWorkingDir(that.getWorkingDir());
+    }
 
     @DataBoundConstructor
     public ContainerTemplate(String name, String image) {
@@ -77,6 +94,14 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.image = image;
         this.command = command;
         this.args = args;
+    }
+
+    @Override
+    public String toString() {
+        return "ContainerTemplate{" +
+                "name='" + name + '\'' +
+                ", image='" + image + '\'' +
+                '}';
     }
 
     @DataBoundSetter
