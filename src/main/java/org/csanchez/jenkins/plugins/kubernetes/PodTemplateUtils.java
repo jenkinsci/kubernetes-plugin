@@ -37,14 +37,12 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.SecurityContext;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -122,21 +120,10 @@ public class PodTemplateUtils {
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
-        Quantity resourceRequestCpu = Strings
-                .isNullOrEmpty(template.getResources().getRequests().get("cpu").getAmount())
-                        ? parent.getResources().getRequests().get("cpu")
-                        : template.getResources().getRequests().get("cpu");
-        Quantity resourceRequestMemory = Strings
-                .isNullOrEmpty(template.getResources().getRequests().get("memory").getAmount())
-                        ? parent.getResources().getRequests().get("memory")
-                        : template.getResources().getRequests().get("memory");
-        Quantity resourceLimitCpu = Strings.isNullOrEmpty(template.getResources().getLimits().get("cpu").getAmount())
-                ? parent.getResources().getLimits().get("cpu")
-                : template.getResources().getLimits().get("cpu");
-        Quantity resourceLimitMemory = Strings
-                .isNullOrEmpty(template.getResources().getLimits().get("memory").getAmount())
-                        ? parent.getResources().getLimits().get("memory")
-                        : template.getResources().getLimits().get("memory");
+        Quantity resourceRequestCpu = safeGet(parent, template, ResourceRequirements::getRequests, "cpu");
+        Quantity resourceRequestMemory = safeGet(parent, template, ResourceRequirements::getRequests, "memory");
+        Quantity resourceLimitCpu = safeGet(parent, template, ResourceRequirements::getLimits, "cpu");
+        Quantity resourceLimitMemory = safeGet(parent, template, ResourceRequirements::getLimits, "memory");
 
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
@@ -160,6 +147,18 @@ public class PodTemplateUtils {
                 .build();
 
         return combined;
+    }
+
+    private static Quantity safeGet(Container parent, Container template,
+                                    Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
+                                    String field) {
+        Quantity templateField = resourceTypeMapper.apply(template.getResources()).get(field);
+        if (templateField != null && !Strings.isNullOrEmpty(templateField.getAmount())) {
+            return templateField;
+        } else {
+            return (parent.getResources() != null) && (resourceTypeMapper.apply(parent.getResources()) != null) ?
+                    resourceTypeMapper.apply(parent.getResources()).get(field) : new Quantity("");
+        }
     }
 
     /**
