@@ -152,13 +152,15 @@ public class PodTemplateUtils {
     private static Quantity safeGet(Container parent, Container template,
                                     Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
                                     String field) {
-        Quantity templateField = resourceTypeMapper.apply(template.getResources()).get(field);
-        if (templateField != null && !Strings.isNullOrEmpty(templateField.getAmount())) {
-            return templateField;
-        } else {
-            return (parent.getResources() != null) && (resourceTypeMapper.apply(parent.getResources()) != null) ?
-                    resourceTypeMapper.apply(parent.getResources()).get(field) : new Quantity("");
-        }
+        return Optional.ofNullable(template.getResources())
+                .map(resourceTypeMapper)
+                .map(rT -> rT.get(field))
+                .filter(tF -> !Strings.isNullOrEmpty(tF.getAmount()))
+                .orElse(Optional.ofNullable(parent.getResources())
+                        .map(resourceTypeMapper)
+                        .map(rT -> rT.get(field))
+                        .orElse(new Quantity(""))
+                );
     }
 
     /**
