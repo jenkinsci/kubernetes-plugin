@@ -14,13 +14,21 @@
   ~ limitations under the License.
   -->
 
-The raw yaml of a Pod API Object.  Any pod fields set with non-empty values via the configuration fields above will take precedence
-as they are merged with this yaml.
+The raw yaml of a Pod API Object.  Any pod fields set with non-empty values via the configuration fields above will generally take precedence
+as they are merged with this yaml, though in the case of arrays (like Volumes or Tolerations) the objects in the yaml will be appeneded to the 
+existing list.
 
-Fragments of a full Pod API Object yaml representation are allowed, but the yaml fragment must start with:
+Fragments of a full Pod API Object yaml representation are allowed, but you must specify enough of the structure to give context
+for the object construction.
+
+For example, you can start with:
 
 ```
 apiVersion: v1
 kind: Pod
+spec:
+....
 ```
+
+Or you can just specify the `metadata:` and `spec:` sections as needed.
 
