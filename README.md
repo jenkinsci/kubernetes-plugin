@@ -345,7 +345,69 @@ annotations: [
 
 Declarative Pipeline support requires Jenkins 2.66+
 
-Example at [examples/declarative.groovy](examples/declarative.groovy)
+Declarative agents can be defined from yaml
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      defaultContainer: 'jnlp'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: maven
+    image: maven:alpine
+    command:
+    - cat
+    tty: true
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
+  stages {
+    stage('Run maven') {
+      steps {
+        container('maven') {
+          sh 'mvn -version'
+        }
+        container('busybox') {
+          sh '/bin/busybox'
+        }
+      }
+    }
+  }
+}
+```
+
+Note that it was previously possible to define `containerTemplate` but that has been deprecated in favor of the yaml format.
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      //cloud 'kubernetes'
+      label 'mypod'
+      containerTemplate {
+        name 'maven'
+        image 'maven:3.3.9-jdk-8-alpine'
+        ttyEnabled true
+        command 'cat'
+      }
+    }
+  }
+  stages { ... }
+}
+```
 
 ## Accessing container logs from the pipeline
 
