@@ -44,10 +44,13 @@ import com.google.common.collect.ImmutableMap;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
 public class PodTemplateUtilsTest {
@@ -392,6 +395,28 @@ public class PodTemplateUtilsTest {
         assertEquals(1, containers.size());
         assertEquals(3, containers.get(0).getVolumeMounts().size());
         assertThat(containers.get(0).getVolumeMounts(), hasItems(vm2, vm3, vm4));
+    }
+
+    @Test
+    public void shouldCombineAllTolerations() {
+    	PodSpec podSpec1 = new PodSpec();
+        Pod pod1 = new Pod();
+        Toleration toleration1 = new Toleration("effect1", "key1", "oper1", Long.parseLong("1"), "val1");
+        Toleration toleration2 = new Toleration("effect2", "key2", "oper2", Long.parseLong("2"), "val2");
+        podSpec1.setTolerations(asList(toleration1, toleration2));
+        pod1.setSpec(podSpec1);
+        pod1.setMetadata(new ObjectMeta());
+
+    	PodSpec podSpec2 = new PodSpec();
+        Pod pod2 = new Pod();
+        Toleration toleration3 = new Toleration("effect3", "key3", "oper3", Long.parseLong("3"), "val3");
+        Toleration toleration4 = new Toleration("effect4", "key4", "oper4", Long.parseLong("4"), "val4");
+        podSpec2.setTolerations(asList(toleration3, toleration4));
+        pod2.setSpec(podSpec2);
+        pod2.setMetadata(new ObjectMeta());
+
+        Pod result = combine(pod1, pod2);
+        assertThat(result.getSpec().getTolerations(), hasItems(toleration1, toleration2, toleration3, toleration4));
     }
 
     @Test
