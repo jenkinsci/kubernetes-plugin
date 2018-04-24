@@ -133,7 +133,7 @@ public class PodTemplateBuilderTest {
                 new EnvVar("HOME", "/home/jenkins", null) //
         );
         if (slave != null) {
-            assertThat(jnlp.getArgs(), contains(AGENT_SECRET, AGENT_NAME));
+            assertThat(jnlp.getArgs(), empty());
             envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
