@@ -52,7 +52,6 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -233,9 +232,6 @@ public class PodTemplateBuilder {
         }
         if (StringUtils.isBlank(jnlp.getImage())) {
             jnlp.setImage(DEFAULT_JNLP_IMAGE);
-        }
-        if (jnlp.getArgs().isEmpty() && slave != null) {
-            jnlp.setArgs(ImmutableList.of(slave.getComputer().getJnlpMac(), slave.getComputer().getName()));
         }
         Map<String, EnvVar> envVars = defaultEnvVars(slave,
                 jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR,
