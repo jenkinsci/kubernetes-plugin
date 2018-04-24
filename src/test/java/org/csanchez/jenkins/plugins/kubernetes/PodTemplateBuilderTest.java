@@ -156,4 +156,18 @@ public class PodTemplateBuilderTest {
         validateJnlpContainer(containers.get("jnlp"), slave);
     }
 
+    @Test
+    public void testOverridesContainerSpec() throws Exception {
+        PodTemplate template = new PodTemplate();
+        ContainerTemplate cT = new ContainerTemplate("jnlp", "jenkinsci/jnlp-slave:latest");
+        template.setContainers(Lists.newArrayList(cT));
+        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-overrides.yaml"))));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+
+        Map<String, Container> containers = pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        assertEquals(1, containers.size());
+        validateJnlpContainer(containers.get("jnlp"), slave);
+    }
 }
