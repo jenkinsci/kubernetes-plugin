@@ -43,6 +43,7 @@ import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -202,6 +203,11 @@ public class PodTemplateUtils {
         List<Volume> combinedVolumes = Lists.newLinkedList();
         Optional.ofNullable(parent.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
         Optional.ofNullable(template.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
+        
+        // Tolerations
+        List<Toleration> combinedTolerations = Lists.newLinkedList();
+        Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
+        Optional.ofNullable(template.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
 
 //        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
@@ -225,6 +231,7 @@ public class PodTemplateUtils {
                 .withServiceAccount(serviceAccount) //
                 .withContainers(Lists.newArrayList(combinedContainers.values())) //
                 .withVolumes(combinedVolumes) //
+                .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
 
         // podTemplate.setLabel(label);
