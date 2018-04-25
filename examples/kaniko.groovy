@@ -24,11 +24,11 @@
      tty: true
      volumeMounts:
        - name: jenkins-docker-cfg
-         mountPath: /root/.docker
+         mountPath: /root
    volumes:
      - name: jenkins-docker-cfg
        secret:
-         secretName: jenkins-docker-cfg
+         secretName: regcred
  """
    ) {
 
