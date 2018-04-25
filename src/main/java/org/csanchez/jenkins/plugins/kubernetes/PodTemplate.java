@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -110,7 +111,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    private transient List<ToolLocationNodeProperty> nodeProperties;
+    private List<ToolLocationNodeProperty> nodeProperties = new ArrayList<>();
 
     private String yaml;
 
@@ -135,6 +136,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYaml(from.getYaml());
+        this.setNodeProperties(from.getNodeProperties());
     }
 
     @Deprecated
@@ -476,7 +478,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
-        this.nodeProperties = nodeProperties;
+        if( nodeProperties != null){
+            this.nodeProperties.clear();
+            this.addNodeProperties(nodeProperties);
+        }
+    }
+
+    public void addNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
+        this.nodeProperties.addAll(nodeProperties);
     }
 
     @Nonnull
