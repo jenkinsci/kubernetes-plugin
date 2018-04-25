@@ -81,7 +81,11 @@
       <f:textbox/>
     </f:entry>
 
-    <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
+    <!-- descriptorList is not working somehow, repeatableProperty has same functionality, just ui changes a little -->
+    <f:entry title="${%Tool Locations}">
+        <f:repeatableProperty field="nodeProperties" noAddButton="true" />
+    </f:entry>
+
     <f:block>
       <table>
         <f:optionalBlock title="${%Use custom workspace volume}" field="customWorkspaceVolumeEnabled" inline="true">
