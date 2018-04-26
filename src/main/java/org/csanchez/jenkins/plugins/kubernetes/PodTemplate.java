@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -111,6 +112,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
+    @SuppressFBWarnings(value = "SE_BAD_FIELD")
     private List<ToolLocationNodeProperty> nodeProperties = new ArrayList<>();
 
     private String yaml;
