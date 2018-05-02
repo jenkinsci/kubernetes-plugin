@@ -1,9 +1,40 @@
 CHANGELOG
 =========
 
+Known issues
+------------
+* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700) [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366)
+
+See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.6.0
+-----
+* Support multiple containers in declarative pipeline [#306](https://github.com/jenkinsci/kubernetes-plugin/pull/306) [JENKINS-48135](https://issues.jenkins-ci.org/browse/JENKINS-48135)
+* Expose pod configuration via yaml to UI and merge tolerations when inheriting [#311](https://github.com/jenkinsci/kubernetes-plugin/pull/311)
+* Resolve NPE merging yaml when resource requests/limits are not set [#310](https://github.com/jenkinsci/kubernetes-plugin/pull/310)
+* Do not pass arguments to jnlp container [#315](https://github.com/jenkinsci/kubernetes-plugin/pull/315) [JENKINS-50913](https://issues.jenkins-ci.org/browse/JENKINS-50913)
+
+1.5.2
+-----
+* Merge default `jnlp` container options [JENKINS-50533](https://issues.jenkins-ci.org/browse/JENKINS-50533) [#305](https://github.com/jenkinsci/kubernetes-plugin/pull/305)
+
+1.5.1
+-----
+* Fix duplicated volume mounts [JENKINS-50525](https://issues.jenkins-ci.org/browse/JENKINS-50525) [#303](https://github.com/jenkinsci/kubernetes-plugin/pull/303)
+* Use the correct agent namespace in logs [#304](https://github.com/jenkinsci/kubernetes-plugin/pull/304)
+
+1.5
+-----
+* Allow creating Pod templates from yaml. This allows setting all possible fields in Kubernetes API using yaml [JENKINS-50282](https://issues.jenkins-ci.org/browse/JENKINS-50282) [#275](https://github.com/jenkinsci/kubernetes-plugin/pull/275)
+* Print agent specification upon node allocation [#302](https://github.com/jenkinsci/kubernetes-plugin/pull/302)
+
+1.4.1
+-----
+* Env vars using `PATH+SOMETHING` syntax clear the previous env var [JENKINS-50437](https://issues.jenkins-ci.org/browse/JENKINS-50437) [#301](https://github.com/jenkinsci/kubernetes-plugin/pull/301)
+
 1.4
 -----
-* Support kubeconfig from secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
+* Support passing `kubeconfig` file as credentials using secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
 * Allow customization of NodeProvisioner.PlannedNode using extension point [#298](https://github.com/jenkinsci/kubernetes-plugin/pull/298)
 
 1.3.3

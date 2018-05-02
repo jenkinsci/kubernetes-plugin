@@ -85,6 +85,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodFromYaml() throws Exception {
+        deletePods(cloud.connect(), getLabels(this), false);
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodFromYaml.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        List<PodTemplate> templates = cloud.getTemplates();
+        while (templates.isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+        PodTemplate template = templates.get(0);
+        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("script file contents: ", b);
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), getLabels(this), true));
+    }
+
     public void runInPodWithDifferentShell() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
@@ -101,6 +123,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[jnlp] jenkins/jnlp-slave:3.10-1-alpine", b);
+        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
+        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -152,6 +177,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("The initial value of POD_ENV_VAR is pod-env-var-value", b);
+        r.assertLogContains("The value of POD_ENV_VAR outside container is /bin/mvn:pod-env-var-value", b);
         r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
         r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
@@ -160,6 +187,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
         r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
         r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
+        r.assertLogContains("The value of POD_ENV_VAR is /bin/mvn:pod-env-var-value", b);
         r.assertLogContains("The value of WILL.NOT is ", b);
     }
 

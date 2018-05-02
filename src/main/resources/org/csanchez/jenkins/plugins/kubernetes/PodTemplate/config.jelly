@@ -94,4 +94,8 @@
     </f:block>
   </f:advanced>
 
+  <f:entry field="yaml" title="${%Raw yaml for the Pod}">
+    <f:textarea/>
+  </f:entry>
+
 </j:jelly>

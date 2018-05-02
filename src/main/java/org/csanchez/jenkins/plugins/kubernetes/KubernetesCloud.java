@@ -13,6 +13,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,7 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -45,16 +47,12 @@ import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
-
 import hudson.Extension;
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
@@ -78,8 +76,6 @@ public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
-
-    private static final String DEFAULT_ID = "jenkins/slave-default";
 
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
@@ -370,24 +366,6 @@ public class KubernetesCloud extends Cloud {
         return client;
     }
 
-    private String getIdForLabel(Label label) {
-        if (label == null) {
-            return DEFAULT_ID;
-        }
-        return "jenkins/" + label.getName();
-    }
-
-    Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(getLabels());
-        if (!labelSet.isEmpty()) {
-            for (LabelAtom label: labelSet) {
-                builder.put(getIdForLabel(label), "true");
-            }
-        }
-        return builder.build();
-    }
-
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
@@ -449,14 +427,15 @@ public class KubernetesCloud extends Cloud {
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
-        Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
+        Map<String, String> labelsMap = new HashMap<>(this.getLabels());
+        labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
                     "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace(), getLabels() });
+                    new Object[] { containerCap, slaveListItems.size(), templateNamespace, getLabels() });
             return false;
         }
 
@@ -464,7 +443,7 @@ public class KubernetesCloud extends Cloud {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
-                            client.getNamespace(), label == null ? "" : label.toString(), labelsMap });
+                            templateNamespace, label == null ? "" : label.toString(), labelsMap });
             return false; // maxed out
         }
         return true;

@@ -24,9 +24,11 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.nio.charset.StandardCharsets.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +36,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -50,21 +54,27 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent;
+import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
+import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -81,8 +91,6 @@ public class PodTemplateBuilder {
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
-    private static final String DEFAULT_JNLP_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
-
     private static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:alpine");
 
@@ -91,20 +99,32 @@ public class PodTemplateBuilder {
 
     private PodTemplate template;
 
+    @CheckForNull
+    private KubernetesSlave slave;
+
     public PodTemplateBuilder(PodTemplate template) {
         this.template = template;
     }
 
+    public PodTemplateBuilder withSlave(KubernetesSlave slave) {
+        this.slave = slave;
+        return this;
+    }
+
+    @Deprecated
+    public Pod build(KubernetesSlave slave) {
+        LOGGER.log(Level.WARNING, "This method is deprecated and does nothing");
+        return this.build();
+    }
+
     /**
      * Create a Pod object from a PodTemplate
-     * @param slave
-     * @return
      */
-    public Pod build(KubernetesSlave slave) {
+    public Pod build() {
 
         // Build volumes and volume mounts.
-        List<Volume> volumes = new ArrayList<>();
-        Map<String, VolumeMount> volumeMounts = new HashMap();
+        Map<String, Volume> volumes = new HashMap<>();
+        Map<String, VolumeMount> volumeMounts = new HashMap<>();
 
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
@@ -113,81 +133,152 @@ public class PodTemplateBuilder {
             final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString());
             if (!volumeMounts.containsKey(mountPath)) {
                 volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false, null));
-                volumes.add(volume.buildVolume(volumeName));
+                volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }
         }
 
         if (template.getWorkspaceVolume() != null) {
-            volumes.add(template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
+            volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
-            volumes.add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
+            volumes.put(WORKSPACE_VOLUME_NAME, new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 
         Map<String, Container> containers = new HashMap<>();
-
+        // containers from pod template
         for (ContainerTemplate containerTemplate : template.getContainers()) {
-            containers.put(containerTemplate.getName(), createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
+            containers.put(containerTemplate.getName(),
+                    createContainer(containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
-        if (!containers.containsKey(JNLP_NAME)) {
-            ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
-            containerTemplate.setName(JNLP_NAME);
-            containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
-            containers.put(JNLP_NAME, createContainer(slave, containerTemplate, template.getEnvVars(), volumeMounts.values()));
+        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadata();
+        if (slave != null) {
+            metadataBuilder.withName(substituteEnv(slave.getNodeName()));
+        }
+
+        Map<String, String> labels = new HashMap<>();
+        if (slave != null) {
+            labels.putAll(slave.getKubernetesCloud().getLabels());
+        }
+        labels.putAll(template.getLabelsMap());
+        if (!labels.isEmpty()) {
+            metadataBuilder.withLabels(labels);
+        }
+
+        Map<String, String> annotations = getAnnotationsMap(template.getAnnotations());
+        if (!annotations.isEmpty()) {
+            metadataBuilder.withAnnotations(annotations);
+        }
+
+        SpecNested<PodBuilder> builder = metadataBuilder.endMetadata().withNewSpec();
+
+        if (template.getActiveDeadlineSeconds() > 0) {
+            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
+        }
+
+        if (!volumes.isEmpty()) {
+            builder.withVolumes(volumes.values().toArray(new Volume[volumes.size()]));
+        }
+        if (template.getServiceAccount() != null) {
+            builder.withServiceAccount(substituteEnv(template.getServiceAccount()));
         }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
                 .map((x) -> x.toLocalObjectReference()).collect(Collectors.toList());
-
-        PodFluent.SpecNested<PodBuilder> builder = new PodBuilder()
-                .withNewMetadata()
-                .withName(substituteEnv(slave.getNodeName()))
-                .withLabels(slave.getKubernetesCloud().getLabelsMap(template.getLabelSet()))
-                .withAnnotations(getAnnotationsMap(template.getAnnotations()))
-                .endMetadata()
-                .withNewSpec();
-
-        if(template.getActiveDeadlineSeconds() > 0) {
-            builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
+        if (!imagePullSecrets.isEmpty()) {
+            builder.withImagePullSecrets(imagePullSecrets);
         }
 
-        Pod pod = builder.withVolumes(volumes)
-                .withServiceAccount(substituteEnv(template.getServiceAccount()))
-                .withImagePullSecrets(imagePullSecrets)
-                .withContainers(containers.values().toArray(new Container[containers.size()]))
-                .withNodeSelector(getNodeSelectorMap(template.getNodeSelector()))
-                .withRestartPolicy("Never")
-                .endSpec()
-                .build();
+        Map<String, String> nodeSelector = getNodeSelectorMap(template.getNodeSelector());
+        if (!nodeSelector.isEmpty()) {
+            builder.withNodeSelector(nodeSelector);
+        }
 
+        builder.withContainers(containers.values().toArray(new Container[containers.size()]));
+        Pod pod = builder.endSpec().build();
+
+        // merge with the yaml
+        String yaml = template.getYaml();
+        if (!StringUtils.isBlank(yaml)) {
+            try (KubernetesClient client = new DefaultKubernetesClient()) {
+                Pod podFromYaml = client.pods()
+                        .load(new ByteArrayInputStream((yaml == null ? "" : yaml).getBytes(UTF_8))).get();
+                LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
+                // yaml can be just a fragment, avoid NPEs
+                if (podFromYaml.getMetadata() == null) {
+                    podFromYaml.setMetadata(new ObjectMeta());
+                }
+                if (podFromYaml.getSpec() == null) {
+                    podFromYaml.setSpec(new PodSpec());
+                }
+                pod = combine(podFromYaml, pod);
+            }
+        }
+
+        // Apply defaults
+
+        // default restart policy
+        if (StringUtils.isBlank(pod.getSpec().getRestartPolicy())) {
+            pod.getSpec().setRestartPolicy("Never");
+        }
+
+        // default jnlp container
+        Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
+                .findFirst();
+        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).build());
+        if (!jnlpOpt.isPresent()) {
+            pod.getSpec().getContainers().add(jnlp);
+        }
+        if (StringUtils.isBlank(jnlp.getImage())) {
+            jnlp.setImage(DEFAULT_JNLP_IMAGE);
+        }
+        Map<String, EnvVar> envVars = defaultEnvVars(slave,
+                jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR,
+                template.getEnvVars());
+        envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
+        jnlp.setEnv(new ArrayList<>(envVars.values()));
+
+        // default workspace volume, add an empty volume to share the workspace across the pod
+        if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {
+            pod.getSpec().getVolumes()
+                    .add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
+        }
+        // default workspace volume mount. If something is already mounted in the same path ignore it
+        pod.getSpec().getContainers().stream()
+                .filter(c -> c.getVolumeMounts().stream()
+                        .noneMatch(vm -> vm.getMountPath().equals(
+                                c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
+                .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
+
+        LOGGER.log(Level.FINE, "Pod built: {0}", pod);
         return pod;
-
     }
 
-
-    private Container createContainer(KubernetesSlave slave, ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+    private Map<String, EnvVar> defaultEnvVars(KubernetesSlave slave, String workingDir,
+            Collection<TemplateEnvVar> globalEnvVars) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
-        // Add some default env vars for Jenkins
-        env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
-        env.put("JENKINS_NAME", slave.getComputer().getName());
+        if (slave != null) {
+            // Add some default env vars for Jenkins
+            env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
+            env.put("JENKINS_NAME", slave.getComputer().getName());
 
-        KubernetesCloud cloud = slave.getKubernetesCloud();
+            KubernetesCloud cloud = slave.getKubernetesCloud();
 
-        String url = cloud.getJenkinsUrlOrDie();
+            String url = cloud.getJenkinsUrlOrDie();
 
-        env.put("JENKINS_URL", url);
-        if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
-            env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
+            env.put("JENKINS_URL", url);
+            if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
+                env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
+            }
         }
 
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
         // As a result, container is running without a home set for user, resulting into using `/` for some tools,
         // and `?` for java build tools. So we force HOME to a safe location.
-        env.put("HOME", containerTemplate.getWorkingDir());
+        env.put("HOME", workingDir);
 
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
@@ -200,6 +291,12 @@ public class PodTemplateBuilder {
                     envVarsMap.put(item.getKey(), item.buildEnvVar())
             );
         }
+        return envVarsMap;
+    }
+
+    private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
+            Collection<VolumeMount> volumeMounts) {
+        Map<String, EnvVar> envVarsMap = defaultEnvVars(slave, containerTemplate.getWorkingDir(), globalEnvVars);
 
         if (containerTemplate.getEnvVars() != null) {
             containerTemplate.getEnvVars().forEach(item ->
@@ -209,20 +306,18 @@ public class PodTemplateBuilder {
 
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
+        String cmd = containerTemplate.getArgs();
+        if (slave != null && cmd != null) {
+            cmd = cmd.replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
+                    .replaceAll(NAME_REF, slave.getComputer().getName());
+        }
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
-                : parseDockerCommand(containerTemplate.getArgs() //
-                .replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
-                .replaceAll(NAME_REF, slave.getComputer().getName()));
-
-
-        List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
+                : parseDockerCommand(cmd);
 
         ContainerPort[] ports = containerTemplate.getPorts().stream().map(entry -> entry.toPort()).toArray(size -> new ContainerPort[size]);
 
-        if (!Strings.isNullOrEmpty(containerTemplate.getWorkingDir())
-                && !PodVolume.volumeMountExists(containerTemplate.getWorkingDir(), volumeMounts)) {
-            containerMounts.add(new VolumeMount(containerTemplate.getWorkingDir(), WORKSPACE_VOLUME_NAME, false, null));
-        }
+        String workingDir = substituteEnv(containerTemplate.getWorkingDir());
+        List<VolumeMount> containerMounts = getContainerVolumeMounts(volumeMounts, workingDir);
 
         ContainerLivenessProbe clp = containerTemplate.getLivenessProbe();
         Probe livenessProbe = null;
@@ -244,7 +339,7 @@ public class PodTemplateBuilder {
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
                 .endSecurityContext()
-                .withWorkingDir(substituteEnv(containerTemplate.getWorkingDir()))
+                .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
                 .addToEnv(envVars)
                 .addToPorts(ports)
@@ -257,6 +352,23 @@ public class PodTemplateBuilder {
                 .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
                 .endResources()
                 .build();
+    }
+
+    private VolumeMount getDefaultVolumeMount(@CheckForNull String workingDir) {
+        String wd = workingDir;
+        if (wd == null) {
+            wd = ContainerTemplate.DEFAULT_WORKING_DIR;
+            LOGGER.log(Level.FINE, "Container workingDir is null, defaulting to {0}", wd);
+        }
+        return new VolumeMount(wd, WORKSPACE_VOLUME_NAME, false, null);
+    }
+
+    private List<VolumeMount> getContainerVolumeMounts(Collection<VolumeMount> volumeMounts, String workingDir) {
+        List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
+        if (!Strings.isNullOrEmpty(workingDir) && !PodVolume.volumeMountExists(workingDir, volumeMounts)) {
+            containerMounts.add(getDefaultVolumeMount(workingDir));
+        }
+        return containerMounts;
     }
 
     /**
