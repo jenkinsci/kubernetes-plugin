@@ -273,6 +273,25 @@ public class PodTemplateBuilder {
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
+
+            if (slave.getKubernetesCloud().isAddMasterProxyEnvVars()) {
+                // see if the env vars for proxy that the remoting.jar looks for 
+                // are set on the master, and if so, propagate them to the slave
+                // vs. having to set on each pod template; if explicitly set already
+                // the processing of globalEnvVars below will override;
+                // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
+                String noProxy = System.getenv("no_proxy");
+                if (!StringUtils.isBlank(noProxy)) {
+                	env.put("no_proxy", noProxy);
+                }
+                String httpProxy = null;
+                if (System.getProperty("http.proxyHost") == null) {
+                    httpProxy = System.getenv("http_proxy");
+                }
+                if (!StringUtils.isBlank(httpProxy)) {
+                	env.put("http_proxy", httpProxy);
+                }
+            }
         }
 
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID

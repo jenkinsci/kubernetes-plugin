@@ -94,6 +94,7 @@ public class KubernetesCloud extends Cloud {
     private String serverCertificate;
 
     private boolean skipTlsVerify;
+    private boolean addMasterProxyEnvVars;
 
     private String namespace;
     private String jenkinsUrl;
@@ -129,6 +130,7 @@ public class KubernetesCloud extends Cloud {
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
         this.skipTlsVerify = source.skipTlsVerify;
+        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
@@ -218,6 +220,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
         this.skipTlsVerify = skipTlsVerify;
+    }
+    
+    public boolean isAddMasterProxyEnvVars() {
+    	return this.addMasterProxyEnvVars;
+    }
+    
+    @DataBoundSetter
+    public void setAddMasterProxyEnvVars(boolean addMasterProxyEnvVars) {
+    	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
     }
 
     @Nonnull
