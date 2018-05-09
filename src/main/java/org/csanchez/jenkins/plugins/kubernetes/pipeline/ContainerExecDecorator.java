@@ -333,7 +333,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        watch.getStdinPipe().write(
+                        watch.getInput().write(
                                 String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
 
                     }
@@ -397,7 +397,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            watch.getStdinPipe().write(
+                            watch.getInput().write(
                                     String.format(
                                             "export %s='%s'%s",
                                             entry.getKey(),
@@ -461,21 +461,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String s = String.format("\"%s\" ", stmt);
                 sb.append(s);
                 out.print(s);
-                watch.getStdinPipe().write(s.getBytes(StandardCharsets.UTF_8));
+                watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
             out.println();
-            watch.getStdinPipe().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
             // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
             sb.append(EXIT + NEWLINE);
             out.print(EXIT + NEWLINE);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-            watch.getStdinPipe().write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
 
             out.flush();
-            watch.getStdinPipe().flush();
+            watch.getInput().flush();
         } catch (IOException e) {
             e.printStackTrace(out);
             throw new RuntimeException(e);
