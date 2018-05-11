@@ -1,6 +1,17 @@
-podTemplate(label: 'mypod', containers: [
-        containerTemplate(name: 'ssh-client', image: 'kroniak/ssh-client:3.6', ttyEnabled: true, command: 'cat')
-]) {
+podTemplate(label: 'mypod', yaml: """
+apiVersion: v1
+kind: Pod
+metadata:
+spec:
+  containers:
+  - name: ssh-client
+    image: kroniak/ssh-client:3.6
+    command:
+    - cat
+    tty: true
+"""
+)
+{
     node ('mypod') {
         stage('container log') {
             container('ssh-client') {
