@@ -78,8 +78,8 @@ public class KubernetesCloud extends Cloud {
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
 
     public static final String JNLP_NAME = "jnlp";
+
     /** label for all pods started by the plugin */
-    @Deprecated
     public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
@@ -325,7 +325,7 @@ public class KubernetesCloud extends Cloud {
      * Labels for all pods started by the plugin
      */
     public Map<String, String> getLabels() {
-        return labels == null ? Collections.emptyMap() : labels;
+        return (labels == null || labels.isEmpty()) ? DEFAULT_POD_LABELS : labels;
     }
 
     public void setLabels(Map<String, String> labels) {
