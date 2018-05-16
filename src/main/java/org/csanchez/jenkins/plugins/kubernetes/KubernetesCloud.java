@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -425,12 +426,12 @@ public class KubernetesCloud extends Cloud {
         }
 
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> slaveListItems = slaveList.getItems();
+        List<Pod> slaveListItems = removeSucceededPods(slaveList.getItems());
 
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
-        List<Pod> namedListItems = namedList.getItems();
+        List<Pod> namedListItems = removeSucceededPods(namedList.getItems());
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
@@ -447,6 +448,12 @@ public class KubernetesCloud extends Cloud {
             return false; // maxed out
         }
         return true;
+    }
+
+    private List<Pod> removeSucceededPods(List<Pod> pods) {
+        return pods.stream()
+            .filter(pod -> !"Succeeded".equals(pod.getStatus().getPhase()))
+            .collect(Collectors.toList());
     }
 
     @Override
