@@ -131,6 +131,7 @@ Either way it provides access to the following fields:
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online.
 * **activeDeadlineSeconds** Pod is deleted after this deadline is passed.
+* **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -175,7 +176,7 @@ spec:
 }
 ```
 
-You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.
+You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
 
 #### Liveness Probe Usage
 ```groovy
@@ -345,7 +346,69 @@ annotations: [
 
 Declarative Pipeline support requires Jenkins 2.66+
 
-Example at [examples/declarative.groovy](examples/declarative.groovy)
+Declarative agents can be defined from yaml
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      defaultContainer 'jnlp'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: maven
+    image: maven:alpine
+    command:
+    - cat
+    tty: true
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
+  stages {
+    stage('Run maven') {
+      steps {
+        container('maven') {
+          sh 'mvn -version'
+        }
+        container('busybox') {
+          sh '/bin/busybox'
+        }
+      }
+    }
+  }
+}
+```
+
+Note that it was previously possible to define `containerTemplate` but that has been deprecated in favor of the yaml format.
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      //cloud 'kubernetes'
+      label 'mypod'
+      containerTemplate {
+        name 'maven'
+        image 'maven:3.3.9-jdk-8-alpine'
+        ttyEnabled true
+        command 'cat'
+      }
+    }
+  }
+  stages { ... }
+}
+```
 
 ## Accessing container logs from the pipeline
 

@@ -707,6 +707,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                (yaml == null ? "" : ", yaml=" + yaml) +                
                 '}';
     }
 }

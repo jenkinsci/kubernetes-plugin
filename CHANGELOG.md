@@ -7,6 +7,22 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.6.0
+-----
+* Support multiple containers in declarative pipeline [#306](https://github.com/jenkinsci/kubernetes-plugin/pull/306) [JENKINS-48135](https://issues.jenkins-ci.org/browse/JENKINS-48135)
+* Expose pod configuration via yaml to UI and merge tolerations when inheriting [#311](https://github.com/jenkinsci/kubernetes-plugin/pull/311)
+* Resolve NPE merging yaml when resource requests/limits are not set [#310](https://github.com/jenkinsci/kubernetes-plugin/pull/310)
+* Do not pass arguments to jnlp container [#315](https://github.com/jenkinsci/kubernetes-plugin/pull/315) [JENKINS-50913](https://issues.jenkins-ci.org/browse/JENKINS-50913)
+
+1.5.2
+-----
+* Merge default `jnlp` container options [JENKINS-50533](https://issues.jenkins-ci.org/browse/JENKINS-50533) [#305](https://github.com/jenkinsci/kubernetes-plugin/pull/305)
+
+1.5.1
+-----
+* Fix duplicated volume mounts [JENKINS-50525](https://issues.jenkins-ci.org/browse/JENKINS-50525) [#303](https://github.com/jenkinsci/kubernetes-plugin/pull/303)
+* Use the correct agent namespace in logs [#304](https://github.com/jenkinsci/kubernetes-plugin/pull/304)
+
 1.5
 -----
 * Allow creating Pod templates from yaml. This allows setting all possible fields in Kubernetes API using yaml [JENKINS-50282](https://issues.jenkins-ci.org/browse/JENKINS-50282) [#275](https://github.com/jenkinsci/kubernetes-plugin/pull/275)

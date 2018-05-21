@@ -36,12 +36,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -89,8 +90,6 @@ public class PodTemplateBuilder {
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
-
-    private static final String DEFAULT_JNLP_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
     private static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:alpine");
@@ -225,12 +224,20 @@ public class PodTemplateBuilder {
         }
 
         // default jnlp container
-        if (pod.getSpec().getContainers().stream().noneMatch(c -> JNLP_NAME.equals(c.getName()))) {
-            ContainerTemplate containerTemplate = new ContainerTemplate(DEFAULT_JNLP_IMAGE);
-            containerTemplate.setName(JNLP_NAME);
-            containerTemplate.setArgs(DEFAULT_JNLP_ARGUMENTS);
-            pod.getSpec().getContainers().add(createContainer(containerTemplate, template.getEnvVars(), volumeMounts.values()));
+        Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
+                .findFirst();
+        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).build());
+        if (!jnlpOpt.isPresent()) {
+            pod.getSpec().getContainers().add(jnlp);
         }
+        if (StringUtils.isBlank(jnlp.getImage())) {
+            jnlp.setImage(DEFAULT_JNLP_IMAGE);
+        }
+        Map<String, EnvVar> envVars = defaultEnvVars(slave,
+                jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR,
+                template.getEnvVars());
+        envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
+        jnlp.setEnv(new ArrayList<>(envVars.values()));
 
         // default workspace volume, add an empty volume to share the workspace across the pod
         if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {
@@ -248,7 +255,8 @@ public class PodTemplateBuilder {
         return pod;
     }
 
-    private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars, Collection<VolumeMount> volumeMounts) {
+    private Map<String, EnvVar> defaultEnvVars(KubernetesSlave slave, String workingDir,
+            Collection<TemplateEnvVar> globalEnvVars) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
@@ -270,7 +278,7 @@ public class PodTemplateBuilder {
         // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
         // As a result, container is running without a home set for user, resulting into using `/` for some tools,
         // and `?` for java build tools. So we force HOME to a safe location.
-        env.put("HOME", containerTemplate.getWorkingDir());
+        env.put("HOME", workingDir);
 
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
@@ -283,6 +291,12 @@ public class PodTemplateBuilder {
                     envVarsMap.put(item.getKey(), item.buildEnvVar())
             );
         }
+        return envVarsMap;
+    }
+
+    private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
+            Collection<VolumeMount> volumeMounts) {
+        Map<String, EnvVar> envVarsMap = defaultEnvVars(slave, containerTemplate.getWorkingDir(), globalEnvVars);
 
         if (containerTemplate.getEnvVars() != null) {
             containerTemplate.getEnvVars().forEach(item ->
