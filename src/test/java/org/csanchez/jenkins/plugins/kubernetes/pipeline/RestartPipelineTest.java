@@ -213,8 +213,8 @@ public class RestartPipelineTest {
         story.then(r -> {
             WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
             r.assertBuildStatusSuccess(r.waitForCompletion(b));
-            r.assertLogContains("INFO: Handshaking", b);
-            r.assertLogContains("INFO: Connected", b);
+            r.assertLogContains("[Pipeline] containerLog", b);
+            r.assertLogContains("[Pipeline] End of Pipeline", b);
         });
     }
 }
