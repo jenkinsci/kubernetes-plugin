@@ -348,8 +348,8 @@ public class PodTemplateBuilder {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(), ""))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu(), containerTemplate.getResourceLimitNvidiaGpu()))
                 .endResources()
                 .build();
     }
@@ -411,10 +411,11 @@ public class PodTemplateBuilder {
         return commands;
     }
 
-    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu, String nvidiaGpu) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
+        String actualNvidiaGpu = substituteEnv(nvidiaGpu);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -422,6 +423,10 @@ public class PodTemplateBuilder {
         if (StringUtils.isNotBlank(actualCpu)) {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
+        }
+        if (StringUtils.isNotBlank(actualNvidiaGpu)) {
+            Quantity nvidiaGpuQuantity = new Quantity(actualNvidiaGpu);
+            builder.put("nvidia.com/gpu", nvidiaGpuQuantity);
         }
         return builder.build();
     }

@@ -75,6 +75,7 @@ public class PodTemplateUtils {
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
+        String resourceLimitNvidiaGpu = Strings.isNullOrEmpty(template.getResourceLimitNvidiaGpu()) ? parent.getResourceLimitNvidiaGpu() : template.getResourceLimitNvidiaGpu();
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -85,6 +86,7 @@ public class PodTemplateUtils {
         combined.setTtyEnabled(ttyEnabled);
         combined.setResourceLimitCpu(resourceLimitCpu);
         combined.setResourceLimitMemory(resourceLimitMemory);
+        combined.setResourceLimitNvidiaGpu(resourceLimitNvidiaGpu);
         combined.setResourceRequestCpu(resourceRequestCpu);
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);

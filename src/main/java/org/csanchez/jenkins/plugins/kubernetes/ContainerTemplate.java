@@ -52,6 +52,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private String resourceLimitCpu;
 
     private String resourceLimitMemory;
+
+    private String resourceLimitNvidiaGpu;
+
     private String shell;
 
     private final List<TemplateEnvVar> envVars = new ArrayList<>();
@@ -206,6 +209,15 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setResourceLimitMemory(String resourceLimitMemory) {
         this.resourceLimitMemory = resourceLimitMemory;
+    }
+
+    public String getResourceLimitNvidiaGpu() {
+        return resourceLimitNvidiaGpu;
+    }
+
+    @DataBoundSetter
+    public void setResourceLimitNvidiaGpu(String resourceLimitNvidiaGpu) {
+        this.resourceLimitNvidiaGpu = resourceLimitNvidiaGpu;
     }
 
     public String getResourceRequestCpu() {

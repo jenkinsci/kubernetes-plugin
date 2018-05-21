@@ -60,6 +60,10 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry field="resourceLimitNvidiaGpu" title="${%Limit GPU}">
+      <f:textbox/>
+    </f:entry>
+
     <f:entry field="livenessProbe" title="${%Liveness Probe}">
       <f:rowSet name="${field}">
         <j:set var="descriptor" value="${attrs.propertyDescriptor ?: app.getDescriptorOrDie(descriptor.getPropertyTypeOrDie(instance,field).clazz)}" />
