@@ -186,6 +186,7 @@ public class PodTemplateUtils {
 
         Map<String, String> podAnnotations = mergeMaps(parent.getMetadata().getAnnotations(),
                 template.getMetadata().getAnnotations());
+        Map<String, String> podLabels = mergeMaps(parent.getMetadata().getLabels(), template.getMetadata().getLabels());
 
         Set<LocalObjectReference> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getSpec().getImagePullSecrets());
@@ -217,7 +218,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
         MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadataLike(parent.getMetadata()) //
-                .withAnnotations(podAnnotations);
+                .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
         }
