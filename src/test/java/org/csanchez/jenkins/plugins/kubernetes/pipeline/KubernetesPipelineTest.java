@@ -25,6 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.*;
 
 import java.util.List;
@@ -53,6 +54,31 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
+
+    @Test
+    public void verifyDefaultSlaveLabels() throws Exception {
+        deletePods(cloud.connect(), getLabels(this), false);
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        List<PodTemplate> templates = cloud.getAllTemplates();
+        while (hasPodTemplateWithLabel("mypod", templates)) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getAllTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+        PodTemplate template = templates.get(0);
+
+        assertThat(template.getLabelsMap(), hasEntry("jenkins/slave", "true"));
+
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("script file contents: ", b);
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), getLabels(this), true));
+    }
 
     @Test
     public void runInPod() throws Exception {
