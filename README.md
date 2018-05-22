@@ -131,6 +131,7 @@ Either way it provides access to the following fields:
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online.
 * **activeDeadlineSeconds** Pod is deleted after this deadline is passed.
+* **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -175,7 +176,7 @@ spec:
 }
 ```
 
-You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.
+You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
 
 #### Liveness Probe Usage
 ```groovy
@@ -352,7 +353,7 @@ pipeline {
   agent {
     kubernetes {
       label 'mypod'
-      defaultContainer: 'jnlp'
+      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
