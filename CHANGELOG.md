@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.6.1
+-----
+* Some fields are not inherited from parent template (InheritFrom, InstanceCap, SlaveConnectTimeout, IdleMinutes, ActiveDeadlineSeconds, ServiceAccount, CustomWorkspaceVolumeEnabled) [#319](https://github.com/jenkinsci/kubernetes-plugin/pull/319)
+
 1.6.0
 -----
 * Support multiple containers in declarative pipeline [#306](https://github.com/jenkinsci/kubernetes-plugin/pull/306) [JENKINS-48135](https://issues.jenkins-ci.org/browse/JENKINS-48135)
