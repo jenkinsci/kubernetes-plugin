@@ -46,6 +46,11 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
+import hudson.model.Node;
+import hudson.plugins.git.GitTool;
+import hudson.slaves.NodeProperty;
+import hudson.tools.ToolLocationNodeProperty;
+import hudson.tools.ToolLocationNodeProperty.ToolLocation;
 import hudson.util.Secret;
 
 /**
@@ -62,8 +67,8 @@ public class KubernetesTest {
 
     @Before
     public void before() throws Exception {
-        cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         r.configRoundtrip();
+        cloud = r.jenkins.clouds.get(KubernetesCloud.class);
     }
 
     @Test
@@ -86,6 +91,21 @@ public class KubernetesTest {
         assertPodTemplates(templates);
         assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
                 new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_0_10() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        PodTemplate template = templates.get(0);
+        List<ToolLocationNodeProperty> nodeProperties = template.getNodeProperties();
+        assertEquals(1, nodeProperties.size());
+        ToolLocationNodeProperty property = (ToolLocationNodeProperty) nodeProperties.get(0);
+        assertEquals(1, property.getLocations().size());
+        ToolLocation location = property.getLocations().get(0);
+        assertEquals("Default", location.getName());
+        assertEquals("/custom/path", location.getHome());
+        assertEquals(GitTool.class, location.getType().clazz);
     }
 
     @Test
