@@ -258,6 +258,9 @@ public class PodTemplateUtils {
             return template;
         }
 
+        LOGGER.log(Level.FINEST, "Combining pod templates, parent: {0}", parent);
+        LOGGER.log(Level.FINEST, "Combining pod templates, template: {0}", template);
+
         String name = template.getName();
         String label = template.getLabel();
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
@@ -306,8 +309,31 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
+        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ? 
+                                   template.getInheritFrom() : parent.getInheritFrom());
+        
+        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ? 
+                                   template.getInstanceCap() : parent.getInstanceCap());
+        
+        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? 
+                                           template.getSlaveConnectTimeout() : parent.getSlaveConnectTimeout());
+
+        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ? 
+                                   template.getIdleMinutes() : parent.getIdleMinutes()); 
+
+        podTemplate.setActiveDeadlineSeconds(template.getActiveDeadlineSeconds() != 0 ?
+                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds()); 
+
+            
+        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ? 
+                                      template.getServiceAccount() : parent.getServiceAccount());
+
+        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ? 
+                                                    template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
+
         podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
+        LOGGER.log(Level.FINEST, "Pod templates combined: {0}", podTemplate);
         return podTemplate;
     }
 
@@ -345,7 +371,9 @@ public class PodTemplateUtils {
                     parent = combine(parent, unwrap(next, allTemplates));
                 }
             }
-            return combine(parent, template);
+            PodTemplate combined = combine(parent, template);
+            LOGGER.log(Level.FINEST, "Combined parent + template is {0}", combined);
+            return combined;
         }
     }
 
