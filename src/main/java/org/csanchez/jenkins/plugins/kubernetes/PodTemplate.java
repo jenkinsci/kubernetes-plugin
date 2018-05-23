@@ -351,6 +351,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
             }
         }
+        builder.putAll(KubernetesCloud.DEFAULT_POD_LABELS);
         return builder.build();
     }
 
