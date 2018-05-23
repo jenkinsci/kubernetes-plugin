@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 
 import jenkins.model.JenkinsLocationConfiguration;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -12,6 +13,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 public class KubernetesCloudTest {
@@ -76,5 +78,17 @@ public class KubernetesCloudTest {
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrDie());
     }
 
+    @Test
+    public void has_default_labels_for_slave_pods() {
+        // GIVEN
+        KubernetesCloud cloud = new KubernetesCloud("name");
+
+        // WHEN
+        Map<String, String> defaultLabels = cloud.getLabels();
+
+        // THEN
+        assertNotNull(defaultLabels);
+        assertNotNull(defaultLabels.get("jenkins"));
+    }
 
 }
