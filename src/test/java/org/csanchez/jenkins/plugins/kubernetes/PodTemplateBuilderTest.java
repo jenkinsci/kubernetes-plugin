@@ -21,7 +21,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -100,7 +99,9 @@ public class PodTemplateBuilderTest {
     }
 
     private void validatePod(Pod pod) {
-        assertEquals(ImmutableMap.of("some-label", "some-label-value"), pod.getMetadata().getLabels());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+
 
         // check containers
         Map<String, Container> containers = pod.getSpec().getContainers().stream()
