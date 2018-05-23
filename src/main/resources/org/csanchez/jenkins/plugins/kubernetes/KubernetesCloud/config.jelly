@@ -55,6 +55,10 @@
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
         <f:textbox default="5"/>
       </f:entry>
+
+      <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
+        <f:checkbox />
+      </f:entry>
     </f:advanced>
 
     <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
