@@ -47,7 +47,11 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         assertNotNull(b);
         r.waitForCompletion(b);
         r.assertLogContains("Identity added:", b);
-        //check that we don't accidentally start exporting sensitive info to the log
+        //Assert that ssh-agent provided envVar is now properly contributed and set.
+        r.assertLogContains("SSH_AGENT_PID=", b);
+        //assert that our private key was loaded and is visible within the ssh-agent scope
+        r.assertLogContains("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDhvmTBXRnSbtpnkt/Ldw7ws4LFdoX9oI+5NexgpBC4Otqbn8+Ui6FGWeYflOQUcl3rgmBxsHIeFnPr9qSvgME1TWPIyHSQh2kPMd3NQgkEvioBxghnWRy7sal4KBr2P8m7Iusm8j0aCNLZ3nYjJSywWZxiqqrcpnhFuTD//FPIEhXOu2sk2FEP7YsA9TdL8mAruxy/6Ys2pRC2dQhBtmkEOyEGiBnk3ioT5iCw/Qqe+pU0yaYu69vPyAFCuazBMopPcOuRxFgKvrfCPVqcQb3HERJh5eiW5+5Vg3RwoByQUtQMK5PDBVWPo9srB0Q9Aw9DXmeJCgdtFJqhhh4SR+al /home/jenkins/workspace/sshagent@tmp/private_key",b);
+         //check that we don't accidentally start exporting sensitive info to the log
         r.assertLogNotContains("secret_passphrase", b);
     }
 }

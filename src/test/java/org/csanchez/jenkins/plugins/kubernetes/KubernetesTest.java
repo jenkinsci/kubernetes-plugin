@@ -32,11 +32,21 @@ import java.util.List;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
+import org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
+
+import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+
+import hudson.util.Secret;
 
 /**
  * @author Carlos Sanchez
@@ -54,6 +64,19 @@ public class KubernetesTest {
     public void before() throws Exception {
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         r.configRoundtrip();
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_1_1() throws Exception {
+        List<Credentials> credentials = SystemCredentialsProvider.getInstance().getCredentials();
+        assertEquals(3, credentials.size());
+        UsernamePasswordCredentialsImpl cred0 = (UsernamePasswordCredentialsImpl) credentials.get(0);
+        assertEquals("token", cred0.getId());
+        assertEquals("myusername", cred0.getUsername());
+        FileSystemServiceAccountCredential cred1 = (FileSystemServiceAccountCredential) credentials.get(1);
+        StringCredentialsImpl cred2 = (StringCredentialsImpl) credentials.get(2);
+        assertEquals("mytoken", Secret.toString(cred2.getSecret()));
     }
 
     @Test

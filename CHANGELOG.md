@@ -1,6 +1,94 @@
 CHANGELOG
 =========
 
+Known issues
+------------
+* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700) [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366)
+
+See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.6.2
+-----
+* Transfer any master proxy related envs that the remoting jar uses to the pod templates with `addMasterProxyEnvVars` option [#321](https://github.com/jenkinsci/kubernetes-plugin/pull/321)
+
+1.6.1
+-----
+* Some fields are not inherited from parent template (InheritFrom, InstanceCap, SlaveConnectTimeout, IdleMinutes, ActiveDeadlineSeconds, ServiceAccount, CustomWorkspaceVolumeEnabled) [#319](https://github.com/jenkinsci/kubernetes-plugin/pull/319)
+
+1.6.0
+-----
+* Support multiple containers in declarative pipeline [#306](https://github.com/jenkinsci/kubernetes-plugin/pull/306) [JENKINS-48135](https://issues.jenkins-ci.org/browse/JENKINS-48135)
+* Expose pod configuration via yaml to UI and merge tolerations when inheriting [#311](https://github.com/jenkinsci/kubernetes-plugin/pull/311)
+* Resolve NPE merging yaml when resource requests/limits are not set [#310](https://github.com/jenkinsci/kubernetes-plugin/pull/310)
+* Do not pass arguments to jnlp container [#315](https://github.com/jenkinsci/kubernetes-plugin/pull/315) [JENKINS-50913](https://issues.jenkins-ci.org/browse/JENKINS-50913)
+
+1.5.2
+-----
+* Merge default `jnlp` container options [JENKINS-50533](https://issues.jenkins-ci.org/browse/JENKINS-50533) [#305](https://github.com/jenkinsci/kubernetes-plugin/pull/305)
+
+1.5.1
+-----
+* Fix duplicated volume mounts [JENKINS-50525](https://issues.jenkins-ci.org/browse/JENKINS-50525) [#303](https://github.com/jenkinsci/kubernetes-plugin/pull/303)
+* Use the correct agent namespace in logs [#304](https://github.com/jenkinsci/kubernetes-plugin/pull/304)
+
+1.5
+-----
+* Allow creating Pod templates from yaml. This allows setting all possible fields in Kubernetes API using yaml [JENKINS-50282](https://issues.jenkins-ci.org/browse/JENKINS-50282) [#275](https://github.com/jenkinsci/kubernetes-plugin/pull/275)
+* Print agent specification upon node allocation [#302](https://github.com/jenkinsci/kubernetes-plugin/pull/302)
+
+1.4.1
+-----
+* Env vars using `PATH+SOMETHING` syntax clear the previous env var [JENKINS-50437](https://issues.jenkins-ci.org/browse/JENKINS-50437) [#301](https://github.com/jenkinsci/kubernetes-plugin/pull/301)
+
+1.4
+-----
+* Support passing `kubeconfig` file as credentials using secretFile credentials [JENKINS-49817](https://issues.jenkins-ci.org/browse/JENKINS-49817) [#294](https://github.com/jenkinsci/kubernetes-plugin/pull/294)
+* Allow customization of NodeProvisioner.PlannedNode using extension point [#298](https://github.com/jenkinsci/kubernetes-plugin/pull/298)
+
+1.3.3
+-----
+* Upgrade kubernetes-client to 3.1.10 [#271](https://github.com/jenkinsci/kubernetes-plugin/pull/271)
+* Copy `jenkinsTunnel` in copy constructor [#295](https://github.com/jenkinsci/kubernetes-plugin/pull/295)
+
+1.3.2
+-----
+* Fix ssh-agent execution inside container. envVars on procstarter were discarded [JENKINS-42582](https://issues.jenkins-ci.org/browse/JENKINS-42582) [#291](https://github.com/jenkinsci/kubernetes-plugin/pull/291)
+* Allow specifying a different shell command other than `/bin/sh` [#287](https://github.com/jenkinsci/kubernetes-plugin/pull/287)
+
+1.3.1
+-----
+* Track agents being in provisioning to avoid overprovisioning [JENKINS-47501](https://issues.jenkins-ci.org/browse/JENKINS-47501) [#289](https://github.com/jenkinsci/kubernetes-plugin/pull/289)
+
+1.3
+-----
+* Implement extension points to contribute pod templates and filter them [JENKINS-49594](https://issues.jenkins-ci.org/browse/JENKINS-49594) [#288](https://github.com/jenkinsci/kubernetes-plugin/pull/288)
+
+1.2.1
+-----
+* Don't persist PodTemplateMap and implement onResume in PodTemplateStep. Will prevent potential leaking of dynamic pod templates definitions across restarts [JENKINS-47759](https://issues.jenkins-ci.org/browse/JENKINS-47759) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Provide injection of run context (build level) environment variables for container steps in declarative pipeline usage [JENKINS-49465](https://issues.jenkins-ci.org/browse/JENKINS-49465) [#285](https://github.com/jenkinsci/kubernetes-plugin/pull/285)
+* Fix global environment variables [JENKINS-47376](https://issues.jenkins-ci.org/browse/JENKINS-47376) [#245](https://github.com/jenkinsci/kubernetes-plugin/pull/245)
+
+1.2
+-----
+* Move PodTemplate -> Pod conversion to PodTemplateBuilder [#276](https://github.com/jenkinsci/kubernetes-plugin/pull/276)
+* Split credentials classes into new plugin [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin)  [#268](https://github.com/jenkinsci/kubernetes-plugin/pull/268)
+
+1.1.4
+-----
+* Store definition of dynamic templates to a separate configuration than Kubernetes cloud [JENKINS-49166](https://issues.jenkins-ci.org/browse/JENKINS-49166) [#279](https://github.com/jenkinsci/kubernetes-plugin/pull/279)
+  * This can cause some side effects on the order the templates are picked, see
+    * [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366) Nested podTemplate stopped working in 1.1.4
+    * [JENKINS-49313](https://issues.jenkins-ci.org/browse/JENKINS-49313) Incorrect podTemplate deployed starting in 1.1.4
+* Prevent unneeded exec operations [#239](https://github.com/jenkinsci/kubernetes-plugin/pull/239)
+
+1.1.3
+-----
+* Fix UI support of environment variables [JENKINS-47112](https://issues.jenkins-ci.org/browse/JENKINS-47112) [#273](https://github.com/jenkinsci/kubernetes-plugin/pull/273)
+* Missing call to `slave.terminate()` [#256](https://github.com/jenkinsci/kubernetes-plugin/pull/256)
+* Rename slave -> agent [#258](https://github.com/jenkinsci/kubernetes-plugin/pull/258)
+* Add new line when logging the agent in Jenkins [#267](https://github.com/jenkinsci/kubernetes-plugin/pull/267)
+
 1.1.2
 -----
 * Namespace is erroneously autodetected as 'default' [#261](https://github.com/jenkinsci/kubernetes-plugin/pull/261)

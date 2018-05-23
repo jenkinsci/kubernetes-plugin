@@ -8,6 +8,7 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -21,6 +22,7 @@ public class ContainerStep extends Step implements Serializable {
     private static final long serialVersionUID = 5588861066775717487L;
 
     private final String name;
+    private String shell;
 
     @DataBoundConstructor
     public ContainerStep(String name) {
@@ -29,6 +31,15 @@ public class ContainerStep extends Step implements Serializable {
 
     public String getName() {
         return name;
+    }
+
+    @DataBoundSetter
+    public void setShell(String shell){
+        this.shell = shell;
+    }
+
+    public String getShell() {
+        return shell;
     }
 
     @Override

@@ -13,6 +13,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,10 @@ import javax.servlet.ServletException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -44,11 +49,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.Computer;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.labels.LabelAtom;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
@@ -64,7 +68,7 @@ import jenkins.model.JenkinsLocationConfiguration;
 /**
  * Kubernetes cloud provider.
  *
- * Starts slaves in a Kubernetes cluster using defined Docker templates for each label.
+ * Starts agents in a Kubernetes cluster using defined Docker templates for each label.
  *
  * @author Carlos Sanchez carlos@apache.org
  */
@@ -73,10 +77,9 @@ public class KubernetesCloud extends Cloud {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
 
-    private static final String DEFAULT_ID = "jenkins/slave-default";
-
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
+    @Deprecated
     public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
@@ -84,12 +87,14 @@ public class KubernetesCloud extends Cloud {
 
     private String defaultsProviderTemplate;
 
-    private List<PodTemplate> templates = new ArrayList<PodTemplate>();
+    @Nonnull
+    private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
     @CheckForNull
     private String serverCertificate;
 
     private boolean skipTlsVerify;
+    private boolean addMasterProxyEnvVars;
 
     private String namespace;
     private String jenkinsUrl;
@@ -101,6 +106,7 @@ public class KubernetesCloud extends Cloud {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout;
     private int readTimeout;
+    private Map<String, String> labels;
 
     private transient KubernetesClient client;
     private int maxRequestsPerHost;
@@ -124,8 +130,10 @@ public class KubernetesCloud extends Cloud {
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
         this.skipTlsVerify = source.skipTlsVerify;
+        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
+        this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
@@ -168,13 +176,23 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = defaultsProviderTemplate;
     }
 
+    @Nonnull
     public List<PodTemplate> getTemplates() {
         return templates;
     }
 
+    /**
+     * Returns all pod templates for this cloud including the dynamic ones.
+     * @return all pod templates for this cloud including the dynamic ones.
+     */
+    @Nonnull
+    public List<PodTemplate> getAllTemplates() {
+        return PodTemplateSource.getAll(this);
+    }
+
     @DataBoundSetter
     public void setTemplates(@Nonnull List<PodTemplate> templates) {
-        this.templates = templates;
+        this.templates = new ArrayList<>(templates);
     }
 
     public String getServerUrl() {
@@ -202,6 +220,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
         this.skipTlsVerify = skipTlsVerify;
+    }
+    
+    public boolean isAddMasterProxyEnvVars() {
+    	return this.addMasterProxyEnvVars;
+    }
+    
+    @DataBoundSetter
+    public void setAddMasterProxyEnvVars(boolean addMasterProxyEnvVars) {
+    	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
     }
 
     @Nonnull
@@ -305,6 +332,17 @@ public class KubernetesCloud extends Cloud {
         return connectTimeout;
     }
 
+    /**
+     * Labels for all pods started by the plugin
+     */
+    public Map<String, String> getLabels() {
+        return labels == null ? Collections.emptyMap() : labels;
+    }
+
+    public void setLabels(Map<String, String> labels) {
+        this.labels = labels;
+    }
+
     @DataBoundSetter
     public void setMaxRequestsPerHostStr(String maxRequestsPerHostStr) {
         try  {
@@ -339,43 +377,23 @@ public class KubernetesCloud extends Cloud {
         return client;
     }
 
-    private String getIdForLabel(Label label) {
-        if (label == null) {
-            return DEFAULT_ID;
-        }
-        return "jenkins/" + label.getName();
-    }
-
-    Map<String, String> getLabelsMap(Set<LabelAtom> labelSet) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        builder.putAll(DEFAULT_POD_LABELS);
-        if (!labelSet.isEmpty()) {
-            for (LabelAtom label: labelSet) {
-                builder.put(getIdForLabel(label), "true");
-            }
-        }
-        return builder.build();
-    }
-
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
-
-            LOGGER.log(Level.INFO, "Excess workload after pending Spot instances: " + excessWorkload);
+            Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
+            LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
+            int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
+            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: " + toBeProvisioned);
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
-            ArrayList<PodTemplate> templates = getMatchingTemplates(label);
-
-            for (PodTemplate t: templates) {
+            for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
-                for (int i = 1; i <= excessWorkload; i++) {
+                for (int i = 1; i <= toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label)) {
                         break;
                     }
-
-                    r.add(new NodeProvisioner.PlannedNode(t.getDisplayName(), Computer.threadPoolForRemoting
-                                .submit(new ProvisioningCallback(this, t, label)), 1));
+                    r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
                 if (r.size() > 0) {
                     // Already found a matching template
@@ -417,25 +435,26 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(DEFAULT_POD_LABELS).list();
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
         List<Pod> slaveListItems = slaveList.getItems();
 
-        Map<String, String> labelsMap = getLabelsMap(template.getLabelSet());
+        Map<String, String> labelsMap = new HashMap<>(this.getLabels());
+        labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2}",
-                    new Object[] { containerCap, slaveListItems.size(), client.getNamespace() });
+                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2} with Kubernetes labels {3}",
+                    new Object[] { containerCap, slaveListItems.size(), templateNamespace, getLabels() });
             return false;
         }
 
         if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label {4}",
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                     new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
-                            client.getNamespace(), label == null ? "" : label.toString() });
+                            templateNamespace, label == null ? "" : label.toString(), labelsMap });
             return false; // maxed out
         }
         return true;
@@ -452,7 +471,27 @@ public class KubernetesCloud extends Cloud {
      * @return the template
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
-        return PodTemplateUtils.getTemplateByLabel(label, templates);
+        return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+
+    /**
+     * Unwraps the given pod template.
+     * @param podTemplate the pod template to unwrap.
+     * @return the unwrapped pod template
+     */
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
+        return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
+    }
+
+    /**
+     * Gets all PodTemplates that have the matching {@link Label}.
+     * @param label label to look for in templates
+     * @return list of matching templates
+     * @deprecated Use {@link #getTemplatesFor(Label)} instead.
+     */
+    @Deprecated
+    public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
+        return new ArrayList<>(getTemplatesFor(label));
     }
 
     /**
@@ -460,14 +499,8 @@ public class KubernetesCloud extends Cloud {
      * @param label label to look for in templates
      * @return list of matching templates
      */
-    public ArrayList<PodTemplate> getMatchingTemplates(@CheckForNull Label label) {
-        ArrayList<PodTemplate> podList = new ArrayList<PodTemplate>();
-        for (PodTemplate t : templates) {
-            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
-                podList.add(t);
-            }
-        }
-        return podList;
+    public List<PodTemplate> getTemplatesFor(@CheckForNull Label label) {
+        return PodTemplateFilter.applyAll(this, getAllTemplates(), label);
     }
 
     /**
@@ -488,11 +521,39 @@ public class KubernetesCloud extends Cloud {
         this.templates.remove(t);
     }
 
+    /**
+     * Add a dynamic pod template. Won't be displayed in UI, and persisted separately from the cloud instance.
+     * @param t the template to add
+     */
+    public void addDynamicTemplate(PodTemplate t) {
+        PodTemplateMap.get().addTemplate(this, t);
+    }
+
+    /**
+     * Remove a dynamic pod template.
+     * @param t the template to remove
+     */
+    public void removeDynamicTemplate(PodTemplate t) {
+        PodTemplateMap.get().removeTemplate(this, t);
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<Cloud> {
         @Override
         public String getDisplayName() {
             return "Kubernetes";
+        }
+
+        @Initializer(before = InitMilestone.PLUGINS_STARTED)
+        public static void addAliases() {
+            Jenkins.XSTREAM2.addCompatibilityAlias(
+                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftBearerTokenCredentialImpl",
+                    org.jenkinsci.plugins.kubernetes.credentials.OpenShiftBearerTokenCredentialImpl.class);
+            Jenkins.XSTREAM2.addCompatibilityAlias(
+                    "org.csanchez.jenkins.plugins.kubernetes.OpenShiftTokenCredentialImpl",
+                    StringCredentialsImpl.class);
+            Jenkins.XSTREAM2.addCompatibilityAlias("org.csanchez.jenkins.plugins.kubernetes.ServiceAccountCredential",
+                    org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential.class);
         }
 
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
@@ -525,19 +586,21 @@ public class KubernetesCloud extends Cloud {
         }
 
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
-            return new StandardListBoxModel()
-                    .withEmptySelection()
-                    .withMatching(
+            return new StandardListBoxModel().withEmptySelection() //
+                    .withMatching( //
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
+                                    CredentialsMatchers.instanceOf(FileCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
-                            ),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                                    Jenkins.getInstance(),
-                                    ACL.SYSTEM,
+                                    CredentialsMatchers.instanceOf(
+                                            org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(StringCredentials.class)), //
+                            CredentialsProvider.lookupCredentials(StandardCredentials.class, //
+                                    Jenkins.getInstance(), //
+                                    ACL.SYSTEM, //
                                     serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                                      : Collections.EMPTY_LIST
+                                            : Collections.EMPTY_LIST //
                             ));
 
         }
@@ -567,7 +630,18 @@ public class KubernetesCloud extends Cloud {
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
         }
+        if (labels == null) {
+            labels = DEFAULT_POD_LABELS;
+        }
         return this;
     }
 
+    @Extension
+    public static class PodTemplateSourceImpl extends PodTemplateSource {
+        @Nonnull
+        @Override
+        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+            return cloud.getTemplates();
+        }
+    }
 }

@@ -65,4 +65,9 @@ public class HostPathVolume extends PodVolume {
             return "Host Path Volume";
         }
     }
+
+    @Override
+    public String toString() {
+        return "HostPathVolume [mountPath=" + mountPath + ", hostPath=" + hostPath + "]";
+    }
 }

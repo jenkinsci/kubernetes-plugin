@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -9,8 +10,10 @@ import hudson.Extension;
 import hudson.util.Secret;
 
 /**
+ * @deprecated Use {@link StringCredentials}
  * @author <a href="mailto:andy.block@gmail.com">Andrew Block</a>
  */
+@Deprecated
 public class OpenShiftTokenCredentialImpl extends BaseStandardCredentials implements TokenProducer {
 
     private final Secret secret;

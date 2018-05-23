@@ -26,13 +26,22 @@ import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -42,6 +51,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -85,6 +95,9 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         FilePath configFile = workspace.createTempFile(".kube", "config");
         Set<String> tempFiles = newHashSet(configFile.getRemote());
 
+        context.env("KUBECONFIG", configFile.getRemote());
+        context.setDisposer(new CleanupDisposer(tempFiles));
+
         String tlsConfig;
         if (caCertificate != null && !caCertificate.isEmpty()) {
             FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
@@ -111,6 +124,17 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         String login;
         if (c == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
+        }
+
+        if (c instanceof FileCredentials) {
+            try (InputStream in = ((FileCredentials) c).getContent(); OutputStream out = configFile.write()) {
+                IOUtils.copy(in, out);
+            }
+            return;
+        }
+
+        if (c instanceof StringCredentials) {
+            login = "--token=" + ((StringCredentials) c).getSecret().getPlainText();
         } else if (c instanceof TokenProducer) {
             login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
         } else if (c instanceof UsernamePasswordCredentials) {
@@ -164,10 +188,6 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" use-context k8s")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
-
-        context.setDisposer(new CleanupDisposer(tempFiles));
-
-        context.env("KUBECONFIG", configFile.getRemote());
     }
 
     /**
@@ -219,7 +239,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                             CredentialsMatchers.anyOf(
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class)
+                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
+                                    CredentialsMatchers.instanceOf(FileCredentials.class)
                             ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,

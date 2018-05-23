@@ -41,8 +41,8 @@ spec:
                   resource: limits.memory
                   divisor: 1Mi
             - name: JAVA_OPTS
-              # value: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
-              value: -Xmx$(LIMITS_MEMORY)m -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+              # value: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.initialDelay=0 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+              value: -Xmx$(LIMITS_MEMORY)m -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.initialDelay=0 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
           volumeMounts:
             - name: jenkins-home
               mountPath: /var/jenkins_home
@@ -52,12 +52,14 @@ spec:
               port: 8080
             initialDelaySeconds: 60
             timeoutSeconds: 5
+            failureThreshold: 12 # ~2 minutes
           readinessProbe:
             httpGet:
               path: /login
               port: 8080
             initialDelaySeconds: 60
             timeoutSeconds: 5
+            failureThreshold: 12 # ~2 minutes
       securityContext:
         fsGroup: 1000
   volumeClaimTemplates:
@@ -80,7 +82,7 @@ metadata:
     # ensure the client ip is propagated to avoid the invalid crumb issue (k8s <1.7)
     # service.beta.kubernetes.io/external-traffic: OnlyLocal
 spec:
-  type: LoadBalancer
+  # type: LoadBalancer
   selector:
     name: jenkins
   # k8s 1.7+
@@ -92,6 +94,31 @@ spec:
       targetPort: 8080
       protocol: TCP
     -
-      name: slave
+      name: agent
       port: 50000
       protocol: TCP
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: jenkins
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # "413 Request Entity Too Large" uploading plugins, increase client_max_body_size
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    # For nginx-ingress controller < 0.9.0.beta-18
+    ingress.kubernetes.io/ssl-redirect: "true"
+    # "413 Request Entity Too Large" uploading plugins, increase client_max_body_size
+    ingress.kubernetes.io/proxy-body-size: 50m
+    ingress.kubernetes.io/proxy-request-buffering: "off"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: jenkins
+          servicePort: 80
+    host: jenkins.example.com

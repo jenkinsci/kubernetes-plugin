@@ -50,7 +50,16 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                                 script.checkout script.scm
                             }
                         }
-                        script.container(describable.containerTemplate.name) {
+                        // what container to use for the main body
+                        def container = describable.defaultContainer ?: 'jnlp';
+
+                        if (describable.containerTemplate != null) {
+                            // run inside the container declared for backwards compatibility
+                            container = describable.containerTemplate.asArgs;
+                        }
+
+                        // call the main body
+                        script.container(container) {
                             body.call()
                         }
                     }

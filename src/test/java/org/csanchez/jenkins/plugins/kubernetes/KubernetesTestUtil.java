@@ -31,6 +31,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
@@ -43,6 +44,9 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang.StringUtils;
 
 import hudson.model.Node;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -63,9 +67,17 @@ public class KubernetesTestUtil {
     private static final String DEFAULT_TESTING_NAMESPACE = "kubernetes-plugin-test";
     public static String testingNamespace;
 
-    public static KubernetesCloud setupCloud() throws UnrecoverableKeyException, CertificateEncodingException,
-            NoSuchAlgorithmException, KeyStoreException, IOException {
+    private static final String BRANCH_NAME = System.getenv("BRANCH_NAME");
+    private static final String BUILD_NUMBER = System.getenv("BUILD_NUMBER");
+    private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME",
+            BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
+            BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
+
+    public static KubernetesCloud setupCloud(Object test) throws UnrecoverableKeyException,
+            CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        // unique labels per test
+        cloud.setLabels(getLabels(test));
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
@@ -100,11 +112,17 @@ public class KubernetesTestUtil {
 
     public static void assumeKubernetes() throws Exception {
         try (DefaultKubernetesClient client = new DefaultKubernetesClient(
-                new ConfigBuilder(Config.autoConfigure()).build())) {
+                new ConfigBuilder(Config.autoConfigure(null)).build())) {
             client.pods().list();
         } catch (Exception e) {
             assumeNoException(e);
         }
+    }
+
+    public static Map<String, String> getLabels(Object o) {
+        HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
+        l.put("class", o.getClass().getSimpleName());
+        return l;
     }
 
     /**

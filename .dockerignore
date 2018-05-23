@@ -1,5 +1,4 @@
+.git
 work
-target/jenkins-for-test
-target/kubernetes
-target/work
-target/test-classes
+target
+!target/kubernetes.hpi

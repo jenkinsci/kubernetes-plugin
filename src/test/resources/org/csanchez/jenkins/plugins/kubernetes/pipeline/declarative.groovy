@@ -16,11 +16,21 @@ pipeline {
   stages {
     stage('Run maven') {
       steps {
+        sh 'set'
+        sh 'test -f /usr/bin/mvn' // checking backwards compatibility
+        sh "echo OUTSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}"
         container('maven') {
           sh 'echo INSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}'
           sh 'mvn -version'
         }
       }
     }
+	stage('Run maven with a different shell') {
+		steps {
+		  container(name: 'maven', shell: '/bin/bash') {
+			sh 'mvn -version'
+		  }
+		}
+	  }
   }
 }

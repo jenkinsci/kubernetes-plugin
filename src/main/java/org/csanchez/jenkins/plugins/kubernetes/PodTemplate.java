@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -16,20 +17,26 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
 import hudson.tools.ToolLocationNodeProperty;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 
 /**
  * Kubernetes Pod Template
@@ -41,6 +48,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private static final long serialVersionUID = 3285310269140845583L;
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
+
+    private static final String DEFAULT_ID = "jenkins/slave-default";
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
@@ -103,6 +112,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private transient List<ToolLocationNodeProperty> nodeProperties;
 
+    private String yaml;
+
     @DataBoundConstructor
     public PodTemplate() {
     }
@@ -123,6 +134,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.setYaml(from.getYaml());
     }
 
     @Deprecated
@@ -232,7 +244,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public void setSlaveConnectTimeout(int slaveConnectTimeout) {
         if (slaveConnectTimeout <= 0) {
-            LOGGER.log(Level.WARNING, "Slave -> Jenkins connection timeout " +
+            LOGGER.log(Level.WARNING, "Agent -> Jenkins connection timeout " +
                     "cannot be <= 0. Falling back to the default value: " +
                     DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
             this.slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
@@ -329,6 +341,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public Set<LabelAtom> getLabelSet() {
         return Label.parse(label);
+    }
+
+    public Map<String, String> getLabelsMap() {
+        Set<LabelAtom> labelSet = getLabelSet();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        if (!labelSet.isEmpty()) {
+            for (LabelAtom label : labelSet) {
+                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
+            }
+        }
+        return builder.build();
     }
 
     @DataBoundSetter
@@ -558,6 +581,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return containers;
     }
 
+    public String getYaml() {
+        return yaml;
+    }
+
+    @DataBoundSetter
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
+    }
+
     @SuppressWarnings("deprecation")
     protected Object readResolve() {
         if (containers == null) {
@@ -584,6 +616,50 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return this;
     }
 
+    /**
+     * Build a Pod object from a PodTemplate
+     * 
+     * @param client 
+     * @param slave
+     */
+    public Pod build(KubernetesClient client, KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).withSlave(slave).build();
+    }
+
+    public String getDescriptionForLogging() {
+        return String.format("Agent specification [%s] (%s): %n%s",
+                getDisplayName(),
+                getLabel(),
+                getContainersDescriptionForLogging());
+    }
+
+    private String getContainersDescriptionForLogging() {
+        List<ContainerTemplate> containers = getContainers();
+        StringBuilder sb = new StringBuilder();
+        for (ContainerTemplate ct : containers) {
+            sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
+            StringBuilder optional = new StringBuilder();
+            optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
+            optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
+            optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
+            optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
+            if (optional.length() > 0) {
+                sb.append("(").append(optional).append(")");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void optionalField(StringBuilder builder, String label, String value) {
+        if (value != null) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(label).append(": ").append(value);
+        }
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
@@ -591,5 +667,47 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public String getDisplayName() {
             return "Kubernetes Pod Template";
         }
+
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public List<? extends Descriptor> getEnvVarsDescriptors() {
+            return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "PodTemplate{" +
+                (inheritFrom == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
+                (name == null ? "" : ", name='" + name + '\'') +
+                (namespace == null ? "" : ", namespace='" + namespace + '\'') +
+                (image == null ? "" : ", image='" + image + '\'') +
+                (!privileged ? "" : ", privileged=" + privileged) +
+                (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
+                (command == null ? "" : ", command='" + command + '\'') +
+                (args == null ? "" : ", args='" + args + '\'') +
+                (remoteFs == null ? "" : ", remoteFs='" + remoteFs + '\'') +
+                (instanceCap == Integer.MAX_VALUE ? "" : ", instanceCap=" + instanceCap) +
+                (slaveConnectTimeout == DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? "" : ", slaveConnectTimeout=" + slaveConnectTimeout) +
+                (idleMinutes == 0 ? "" : ", idleMinutes=" + idleMinutes) +
+                (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +
+                (label == null ? "" : ", label='" + label + '\'') +
+                (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'') +
+                (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
+                (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
+                (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
+                (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (!customWorkspaceVolumeEnabled ? "" : ", customWorkspaceVolumeEnabled=" + customWorkspaceVolumeEnabled) +
+                (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
+                (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
+                (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
+                (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
+                (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
+                (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
+                (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                (yaml == null ? "" : ", yaml=" + yaml) +                
+                '}';
     }
 }
