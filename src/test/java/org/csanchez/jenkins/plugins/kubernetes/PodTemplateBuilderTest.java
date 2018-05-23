@@ -17,11 +17,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.LoggerRule;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -43,8 +43,8 @@ public class PodTemplateBuilderTest {
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
 
-    @Mock
-    private KubernetesCloud cloud;
+    @Spy
+    private KubernetesCloud cloud = new KubernetesCloud("test");
 
     @Mock
     private KubernetesSlave slave;
@@ -89,10 +89,11 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         validatePod(pod);
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
     private void setupStubs() {
-        when(cloud.getJenkinsUrlOrDie()).thenReturn(JENKINS_URL);
+        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
         when(computer.getJnlpMac()).thenReturn(AGENT_SECRET);
         when(slave.getComputer()).thenReturn(computer);
@@ -101,7 +102,6 @@ public class PodTemplateBuilderTest {
 
     private void validatePod(Pod pod) {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
-        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
 
         // check containers
         Map<String, Container> containers = pod.getSpec().getContainers().stream()
