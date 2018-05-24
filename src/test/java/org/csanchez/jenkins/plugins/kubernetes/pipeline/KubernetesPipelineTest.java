@@ -60,7 +60,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), getLabels(this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
@@ -83,7 +83,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
 
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins", "slave"));
         assertThat(template.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
 
         assertEquals(1, pods.getItems().size());
@@ -94,7 +93,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this), true));
     }
 
     private PodTemplate podTemplateWithLabel(String label, List<PodTemplate> templates) {
@@ -104,7 +103,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPodFromYaml() throws Exception {
-        deletePods(cloud.connect(), getLabels(this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodFromYaml.groovy"), true));
@@ -122,7 +121,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this), true));
     }
 
     public void runInPodWithDifferentShell() throws Exception {
