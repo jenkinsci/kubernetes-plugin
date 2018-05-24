@@ -27,8 +27,8 @@ import javax.servlet.ServletException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -336,9 +336,15 @@ public class KubernetesCloud extends Cloud {
      * Labels for all pods started by the plugin
      */
     public Map<String, String> getLabels() {
-        return labels == null ? Collections.emptyMap() : labels;
+        return labels == null || labels.isEmpty() ? DEFAULT_POD_LABELS : labels;
     }
 
+    /**
+     * No UI yet, so this is never re-set
+     * 
+     * @param labels
+     */
+    // @DataBoundSetter
     public void setLabels(Map<String, String> labels) {
         this.labels = labels;
     }
@@ -629,9 +635,6 @@ public class KubernetesCloud extends Cloud {
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
-        }
-        if (labels == null) {
-            labels = DEFAULT_POD_LABELS;
         }
         return this;
     }

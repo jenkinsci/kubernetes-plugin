@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
@@ -40,9 +41,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
@@ -62,8 +61,8 @@ public class KubernetesTest {
 
     @Before
     public void before() throws Exception {
-        cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         r.configRoundtrip();
+        cloud = r.jenkins.clouds.get(KubernetesCloud.class);
     }
 
     @Test
@@ -77,6 +76,7 @@ public class KubernetesTest {
         FileSystemServiceAccountCredential cred1 = (FileSystemServiceAccountCredential) credentials.get(1);
         StringCredentialsImpl cred2 = (StringCredentialsImpl) credentials.get(2);
         assertEquals("mytoken", Secret.toString(cred2.getSecret()));
+        assertThat(cloud.getLabels(), hasEntry("jenkins", "slave"));
     }
 
     @Test
