@@ -182,6 +182,20 @@ public class PodTemplateUtilsTest {
         assertEquals("value3", result.getAnnotations().get(0).getValue().toString());
     }
 
+    @Test
+    public void shouldCombineAllLabels() {
+        Pod pod1 = new PodBuilder().withNewMetadata().withLabels( //
+                ImmutableMap.of("label1", "pod1", "label2", "pod1") //
+        ).endMetadata().withNewSpec().endSpec().build();
+        Pod pod2 = new PodBuilder().withNewMetadata().withLabels( //
+                ImmutableMap.of("label1", "pod2", "label3", "pod2") //
+        ).endMetadata().withNewSpec().endSpec().build();
+
+        Map<String, String> labels = combine(pod1, pod2).getMetadata().getLabels();
+        assertThat(labels, hasEntry("label1", "pod2"));
+        assertThat(labels, hasEntry("label2", "pod1"));
+        assertThat(labels, hasEntry("label3", "pod2"));
+    }
 
     @Test
     public void shouldUnwrapParent() {
