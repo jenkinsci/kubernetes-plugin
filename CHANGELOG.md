@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.6.3
+-----
+* Merge labels from yaml [#326](https://github.com/jenkinsci/kubernetes-plugin/pull/326) [JENKINS-51137](https://issues.jenkins-ci.org/browse/JENKINS-51137)
+* Instance cap reached with preexisting pods due to lack of labels [#325](https://github.com/jenkinsci/kubernetes-plugin/pull/325) [JENKINS-50268](https://issues.jenkins-ci.org/browse/JENKINS-50268)
+
 1.6.2
 -----
 * Transfer any master proxy related envs that the remoting jar uses to the pod templates with `addMasterProxyEnvVars` option [#321](https://github.com/jenkinsci/kubernetes-plugin/pull/321)
