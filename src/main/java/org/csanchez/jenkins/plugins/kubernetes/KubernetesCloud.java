@@ -27,8 +27,8 @@ import javax.servlet.ServletException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -94,6 +94,7 @@ public class KubernetesCloud extends Cloud {
     private String serverCertificate;
 
     private boolean skipTlsVerify;
+    private boolean addMasterProxyEnvVars;
 
     private String namespace;
     private String jenkinsUrl;
@@ -129,6 +130,7 @@ public class KubernetesCloud extends Cloud {
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
         this.skipTlsVerify = source.skipTlsVerify;
+        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
@@ -218,6 +220,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
         this.skipTlsVerify = skipTlsVerify;
+    }
+    
+    public boolean isAddMasterProxyEnvVars() {
+    	return this.addMasterProxyEnvVars;
+    }
+    
+    @DataBoundSetter
+    public void setAddMasterProxyEnvVars(boolean addMasterProxyEnvVars) {
+    	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
     }
 
     @Nonnull
@@ -325,9 +336,15 @@ public class KubernetesCloud extends Cloud {
      * Labels for all pods started by the plugin
      */
     public Map<String, String> getLabels() {
-        return labels == null ? Collections.emptyMap() : labels;
+        return labels == null || labels.isEmpty() ? DEFAULT_POD_LABELS : labels;
     }
 
+    /**
+     * No UI yet, so this is never re-set
+     * 
+     * @param labels
+     */
+    // @DataBoundSetter
     public void setLabels(Map<String, String> labels) {
         this.labels = labels;
     }
@@ -618,9 +635,6 @@ public class KubernetesCloud extends Cloud {
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
-        }
-        if (labels == null) {
-            labels = DEFAULT_POD_LABELS;
         }
         return this;
     }

@@ -1,0 +1,7 @@
+With this option enabled, if any of the HTTP proxy related environment variables 
+recognized by the Jenkins remoting component are set on the Jenkins Master, they 
+will be added to the environment variables of any Pod Template.
+<p>
+Any explicit setting of those variables in the environment variables section of 
+the Pod Template or Container Template will take precedence over any variables 
+set in Jenkins Master. 
