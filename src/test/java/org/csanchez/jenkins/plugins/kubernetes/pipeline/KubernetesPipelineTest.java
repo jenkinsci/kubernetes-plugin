@@ -75,10 +75,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             Thread.sleep(1000);
         }
 
-        PodList pods = cloud.connect().pods().list();
+        PodList pods = cloud.connect().pods().withLabels(getLabels(cloud, this)).list();
         while (pods.getItems().isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for pod to be created");
-            pods = cloud.connect().pods().list();
+            pods = cloud.connect().pods().withLabels(getLabels(cloud, this)).list();
             Thread.sleep(1000);
         }
 
