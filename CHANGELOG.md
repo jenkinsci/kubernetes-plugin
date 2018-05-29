@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.7.0
+-----
+* Add option to apply caps only on alive pods [#252](https://github.com/jenkinsci/kubernetes-plugin/pull/252)
+* Add idleMinutes to pod template in declarative pipeline [#336](https://github.com/jenkinsci/kubernetes-plugin/pull/336) [JENKINS-51569](https://issues.jenkins-ci.org/browse/JENKINS-51569)
+
 1.6.4
 -----
 * Use Jackson and Apache HttpComponents Client libraries from API plugins [#333](https://github.com/jenkinsci/kubernetes-plugin/pull/333) [JENKINS-51582](https://issues.jenkins-ci.org/browse/JENKINS-51582)
