@@ -6,7 +6,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
@@ -16,12 +15,17 @@ import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import com.google.common.base.Strings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.LABEL_ERROR;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.RFC1123_ERROR;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
@@ -90,6 +94,23 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         if(step.getActiveDeadlineSeconds() != 0) {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
+        }
+
+        for(ContainerTemplate container: newTemplate.getContainers())
+        {
+            if(!PodTemplateUtils.validateContainerName(container.getName()))
+            {
+                throw new AbortException(String.format( RFC1123_ERROR + "name to validate - %s", container.getName()));
+            }
+        }
+        if(!PodTemplateUtils.validateYamlContainerNames(newTemplate.getYaml()))
+        {
+            throw new AbortException(String.format( RFC1123_ERROR + " or check your yaml - %s", newTemplate.getYaml()));
+        }
+
+        if(!PodTemplateUtils.validateLabel(newTemplate.getLabel()))
+        {
+            throw new AbortException(String.format(LABEL_ERROR + " - %s", newTemplate.getLabel()));
         }
 
         kubernetesCloud.addDynamicTemplate(newTemplate);

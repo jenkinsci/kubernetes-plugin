@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
 import static hudson.Util.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
@@ -46,10 +47,16 @@ import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import java.util.LinkedHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PodTemplateUtils {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateUtils.class.getName());
+
+    public static final transient String RFC1123_ERROR= "Container Names MUST match RFC 1123 - They can only contain lowercase letters, numbers or dashes.";
+    public static final transient String LABEL_ERROR= "Labels must follow required specs - https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set";
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
@@ -95,7 +102,7 @@ public class PodTemplateUtils {
 
     /**
      * Combines a Container with its parent.
-     * 
+     *
      * @param parent
      *            The parent container (nullable).
      * @param template
@@ -203,7 +210,7 @@ public class PodTemplateUtils {
         List<Volume> combinedVolumes = Lists.newLinkedList();
         Optional.ofNullable(parent.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
         Optional.ofNullable(template.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
-        
+
         // Tolerations
         List<Toleration> combinedTolerations = Lists.newLinkedList();
         Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
@@ -309,26 +316,26 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
-        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ? 
+        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
                                    template.getInheritFrom() : parent.getInheritFrom());
-        
-        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ? 
+
+        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ?
                                    template.getInstanceCap() : parent.getInstanceCap());
-        
-        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? 
+
+        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ?
                                            template.getSlaveConnectTimeout() : parent.getSlaveConnectTimeout());
 
-        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ? 
-                                   template.getIdleMinutes() : parent.getIdleMinutes()); 
+        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ?
+                                   template.getIdleMinutes() : parent.getIdleMinutes());
 
         podTemplate.setActiveDeadlineSeconds(template.getActiveDeadlineSeconds() != 0 ?
-                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds()); 
+                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds());
 
-            
-        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ? 
+
+        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
 
-        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ? 
+        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
 
         podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
@@ -464,6 +471,54 @@ public class PodTemplateUtils {
     public static String substitute(String s, Map<String, String> properties, String defaultValue) {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
+
+    public static boolean validateYamlContainerNames(String yaml)
+    {
+        if (yaml == null || yaml.isEmpty() )
+        {
+            return true;
+        }
+        Yaml yamlparsed = new Yaml();
+        Map map = (Map) yamlparsed.load(yaml);
+        LinkedHashMap<String, Object> spec =  (LinkedHashMap<String, Object>) map.get("spec");
+        ArrayList containers = (ArrayList) spec.get("containers");
+        for(Object container : containers)
+        {
+            String name =(String) ((LinkedHashMap<String, Object>) container).get("name");
+            if(!PodTemplateUtils.validateContainerName(name))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean validateContainerName(String name)
+    {
+        if(name!= null && !name.isEmpty())
+        {
+            Pattern p = Pattern.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?");
+            Matcher m = p.matcher(name);
+            return m.matches();
+        }
+        return true;
+    }
+
+
+    /*
+    Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+    */
+    public static boolean validateLabel(String label){
+        if(label!= null && !label.isEmpty())
+        {
+            Pattern labelValidation = Pattern.compile("[a-zA-Z0-9]([_\\.-A-Za-z0-9]*[A-Za-z0-9])?");
+            if(label.length()>63 || !labelValidation.matcher(label).matches())
+            {
+                return false;
+            }
+        }
+        return true;
+   }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
         List<EnvVar> combinedEnvVars = new ArrayList<>();
