@@ -30,6 +30,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String cloud;
     private String inheritFrom;
 
+    private int idleMinutes;
     private int instanceCap;
     private String serviceAccount;
     private String nodeSelector;
@@ -67,6 +68,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setCloud(String cloud) {
         this.cloud = cloud;
+    }
+
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutes(int idleMinutes) {
+        this.idleMinutes = idleMinutes;
     }
 
     public String getInheritFrom() {
@@ -186,6 +196,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         }
         if (!StringUtils.isEmpty(cloud)) {
             argMap.put("cloud", cloud);
+        }
+        if (idleMinutes != 0) {
+            argMap.put("idleMinutes", idleMinutes);
         }
         if (!StringUtils.isEmpty(inheritFrom)) {
             argMap.put("inheritFrom", inheritFrom);
