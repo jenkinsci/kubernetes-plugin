@@ -65,6 +65,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private boolean privileged;
 
+    private boolean capOnlyOnAlivePods;
+
     private boolean alwaysPullImage;
 
     private String command;
@@ -415,6 +417,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     public boolean isAlwaysPullImage() {
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
+    }
+
+    @DataBoundSetter
+    public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
+        this.capOnlyOnAlivePods = capOnlyOnAlivePods;
+    }
+
+    public boolean isCapOnlyOnAlivePods() {
+        return capOnlyOnAlivePods;
     }
 
     public List<TemplateEnvVar> getEnvVars() {

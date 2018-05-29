@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -95,6 +96,8 @@ public class KubernetesCloud extends Cloud {
 
     private boolean skipTlsVerify;
     private boolean addMasterProxyEnvVars;
+
+    private boolean capOnlyOnAlivePods;
 
     private String namespace;
     private String jenkinsUrl;
@@ -245,6 +248,15 @@ public class KubernetesCloud extends Cloud {
     @CheckForNull
     public String getJenkinsUrl() {
         return jenkinsUrl;
+    }
+
+    @DataBoundSetter
+    public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
+        this.capOnlyOnAlivePods = capOnlyOnAlivePods;
+    }
+
+    public boolean isCapOnlyOnAlivePods() {
+        return capOnlyOnAlivePods;
     }
 
     /**
@@ -448,6 +460,22 @@ public class KubernetesCloud extends Cloud {
         labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
+
+        if (this.isCapOnlyOnAlivePods()) {
+            slaveListItems = slaveListItems.stream()
+                                           .filter(x -> x.getStatus()
+                                                         .getPhase().toLowerCase()
+                                                                    .matches("(running|pending)"))
+                                           .collect(Collectors.toList());
+        }
+
+        if (template.isCapOnlyOnAlivePods()) {
+            namedListItems = namedListItems.stream()
+                                           .filter(x -> x.getStatus()
+                                                         .getPhase().toLowerCase()
+                                                                    .matches("(running|pending)"))
+                                           .collect(Collectors.toList());
+        }
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
