@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.6.3-SNAPSHOT</version>
+  <version>1.6.5-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -43,6 +43,7 @@
     <connectorHost>192.168.64.1</connectorHost>
     <java.level>8</java.level>
     <jenkins.version>2.107.3</jenkins.version>
+    <no-test-jar>false</no-test-jar>
   </properties>
 
   <dependencies>
@@ -50,6 +51,17 @@
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
       <version>3.1.12</version>
+      <exclusions>
+        <!-- Jackson logic comes from plugins -->
+        <exclusion>
+          <artifactId>com.fasterxml.jackson.core</artifactId>
+          <groupId>jackson-core</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>com.fasterxml.jackson.core</artifactId>
+          <groupId>jackson-databind</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -57,8 +69,16 @@
       <artifactId>httpclient</artifactId>
       <version>4.5.5</version>
     </dependency>
-
-    <!-- required plugins -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>jackson2-api</artifactId>
+      <version>2.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>apache-httpcomponents-client-4-api</artifactId>
+      <version>4.5.3-2.0</version>
+    </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
