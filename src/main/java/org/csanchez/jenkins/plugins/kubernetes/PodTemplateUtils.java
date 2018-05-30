@@ -489,10 +489,8 @@ public class PodTemplateUtils {
         return errors;
     }
 
-    public static boolean validateContainerName(String name)
-    {
-        if(name!= null && !name.isEmpty())
-        {
+    public static boolean validateContainerName(String name) {
+        if (name != null && !name.isEmpty()) {
             Pattern p = Pattern.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?");
             Matcher m = p.matcher(name);
             return m.matches();
@@ -500,21 +498,18 @@ public class PodTemplateUtils {
         return true;
     }
 
-
     /*
-    Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
-    */
-    public static boolean validateLabel(String label){
-        if(label!= null && !label.isEmpty())
-        {
+     * Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+     */
+    public static boolean validateLabel(String label) {
+        if (label != null && !label.isEmpty()) {
             Pattern labelValidation = Pattern.compile("[a-zA-Z0-9]([_\\.-A-Za-z0-9]*[A-Za-z0-9])?");
-            if(label.length()>63 || !labelValidation.matcher(label).matches())
-            {
+            if (label.length() > 63 || !labelValidation.matcher(label).matches()) {
                 return false;
             }
         }
         return true;
-   }
+    }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
         List<EnvVar> combinedEnvVars = new ArrayList<>();
