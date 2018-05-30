@@ -48,7 +48,7 @@ import org.eclipse.jetty.webapp.WebXmlConfiguration;
 public class JenkinsRuleNonLocalhost extends JenkinsRule {
     private static final Logger LOGGER = Logger.getLogger(JenkinsRuleNonLocalhost.class.getName());
 
-    private static final String HOST = System.getProperty("connectorHost", "192.168.64.1");
+    private static final String HOST = System.getProperty("connectorHost");
 
     private Integer port;
 
