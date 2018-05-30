@@ -42,6 +42,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.ctc.wstx.util.StringUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -234,15 +235,13 @@ public class KubernetesCloud extends Cloud {
     	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
     }
 
-    @Nonnull
     public String getNamespace() {
         return namespace;
     }
 
     @DataBoundSetter
-    public void setNamespace(@Nonnull String namespace) {
-        Preconditions.checkArgument(!StringUtils.isBlank(namespace));
-        this.namespace = namespace;
+    public void setNamespace(String namespace) {
+        this.namespace = Util.fixEmpty(namespace);
     }
 
     @CheckForNull
