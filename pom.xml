@@ -76,12 +76,12 @@
       <exclusions>
         <!-- Jackson logic comes from plugins -->
         <exclusion>
-          <artifactId>com.fasterxml.jackson.core</artifactId>
-          <groupId>jackson-core</groupId>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-core</artifactId>
         </exclusion>
         <exclusion>
-          <artifactId>com.fasterxml.jackson.core</artifactId>
-          <groupId>jackson-databind</groupId>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
