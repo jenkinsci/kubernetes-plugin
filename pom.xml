@@ -65,11 +65,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.5</version>
-    </dependency>
-    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
       <version>2.7.3</version>
@@ -133,17 +128,17 @@
       <version>2.18</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>2.19</version>
+      <scope>test</scope>
+    </dependency>
     <dependency> <!-- SemaphoreStep -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
       <version>2.18</version>
       <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
-      <version>2.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>
