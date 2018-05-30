@@ -1,10 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
 import static hudson.Util.*;
+import static java.nio.charset.StandardCharsets.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,11 +18,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -39,18 +43,19 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
-import java.util.LinkedHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
 public class PodTemplateUtils {
 
@@ -470,20 +475,34 @@ public class PodTemplateUtils {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
-    @SuppressWarnings("unchecked")
+    public static Pod parseFromYaml(String yaml) {
+        try (KubernetesClient client = new DefaultKubernetesClient()) {
+            Pod podFromYaml = client.pods().load(new ByteArrayInputStream((yaml == null ? "" : yaml).getBytes(UTF_8)))
+                    .get();
+            LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
+            // yaml can be just a fragment, avoid NPEs
+            if (podFromYaml.getMetadata() == null) {
+                podFromYaml.setMetadata(new ObjectMeta());
+            }
+            if (podFromYaml.getSpec() == null) {
+                podFromYaml.setSpec(new PodSpec());
+            }
+            return podFromYaml;
+        }
+    }
+
     public static Collection<String> validateYamlContainerNames(String yaml) {
-        if (yaml == null || yaml.isEmpty()) {
+        if (StringUtils.isBlank(yaml)) {
             return Collections.emptyList();
         }
         Collection<String> errors = new ArrayList<>();
-        Yaml yamlparsed = new Yaml();
-        Map<String, Object> map = (Map<String, Object>) yamlparsed.load(yaml);
-        LinkedHashMap<String, Object> spec = (LinkedHashMap<String, Object>) map.get("spec");
-        ArrayList<Object> containers = (ArrayList<Object>) spec.get("containers");
-        for (Object container : containers) {
-            String name = (String) ((LinkedHashMap<String, Object>) container).get("name");
-            if (!PodTemplateUtils.validateContainerName(name)) {
-                errors.add(name);
+        Pod pod = parseFromYaml(yaml);
+        List<Container> containers = pod.getSpec().getContainers();
+        if (containers != null) {
+            for (Container container : containers) {
+                if (!PodTemplateUtils.validateContainerName(container.getName())) {
+                    errors.add(container.getName());
+                }
             }
         }
         return errors;
