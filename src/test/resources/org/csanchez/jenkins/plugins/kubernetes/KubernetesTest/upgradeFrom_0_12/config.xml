@@ -10,7 +10,7 @@
   <disableRememberMe>false</disableRememberMe>
   <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
   <workspaceDir>/var/jenkins_home/workspace/</workspaceDir>
-  <buildsDir>/builds</buildsDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
   <jdks/>
   <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
   <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>

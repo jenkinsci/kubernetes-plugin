@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.6.3-SNAPSHOT</version>
+  <version>1.6.5-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -44,8 +44,6 @@
     <java.level>8</java.level>
 
     <!-- dependency versions -->
-    <httpclient.version>4.5.1</httpclient.version>
-    <jackson.version>2.5.0</jackson.version>
     <jenkins.version>2.32.1</jenkins.version>
 
     <kubernetes-client.version>3.1.10</kubernetes-client.version>
@@ -67,6 +65,7 @@
     <jenkins-declarative.version>1.1.2</jenkins-declarative.version>
     <jenkins-script-security.version>1.26</jenkins-script-security.version>
 
+    <no-test-jar>false</no-test-jar>
   </properties>
 
   <dependencies>
@@ -74,15 +73,30 @@
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
       <version>${kubernetes-client.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>${httpclient.version}</version>
+      <exclusions>
+        <!-- Jackson logic comes from plugins -->
+        <exclusion>
+          <artifactId>com.fasterxml.jackson.core</artifactId>
+          <groupId>jackson-core</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>com.fasterxml.jackson.core</artifactId>
+          <groupId>jackson-databind</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- required plugins -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>jackson2-api</artifactId>
+      <version>2.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>apache-httpcomponents-client-4-api</artifactId>
+      <version>4.5.3-2.0</version>
+    </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
