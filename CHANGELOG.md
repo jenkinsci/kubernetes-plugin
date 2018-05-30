@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.7.1
+-----
+* Do not print credentials in build output or logs. Only affects certain pipeline steps like `withDockerRegistry`. `sh` step is not affected [SECURITY-883](https://issues.jenkins-ci.org/browse/SECURITY-883)
+
 1.7.0
 -----
 * Add option to apply caps only on alive pods [#252](https://github.com/jenkinsci/kubernetes-plugin/pull/252)

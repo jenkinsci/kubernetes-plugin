@@ -214,6 +214,12 @@
       <version>2.16.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>docker-workflow</artifactId>
+      <version>1.15</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
@@ -225,6 +231,11 @@
       </dependency>
 
       <!-- just to fix enforcer RequireUpperBoundDeps -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>credentials-binding</artifactId>
+        <version>1.12</version>
+      </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
