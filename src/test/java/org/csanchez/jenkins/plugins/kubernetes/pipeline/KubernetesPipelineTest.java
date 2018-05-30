@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -266,36 +267,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("initpwd is -" + workspace + "-", b);
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);
-    }
-
-    @Test
-    public void testBadNameDetection() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_container_name");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badcontainername.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatus(Result.FAILURE ,r.waitForCompletion(b));
-        r.assertLogContains(PodTemplateUtils.RFC1123_ERROR, b);
-    }
-
-    @Test
-    public void testBadNameYamlDetection() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_container_name_yaml");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badcontainernameyaml.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatus(Result.FAILURE ,r.waitForCompletion(b));
-        r.assertLogContains(PodTemplateUtils.RFC1123_ERROR, b);
-    }
-
-    @Test
-    public void testBadLabel() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_label");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badlabel.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatus(Result.FAILURE ,r.waitForCompletion(b));
-        r.assertLogContains(PodTemplateUtils.LABEL_ERROR, b);
     }
 
     @Test

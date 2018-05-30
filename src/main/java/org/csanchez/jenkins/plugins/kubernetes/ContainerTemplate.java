@@ -248,7 +248,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
         public FormValidation doCheckName(@QueryParameter String value) {
             if(!PodTemplateUtils.validateContainerName(value)) {
-                return FormValidation.error(PodTemplateUtils.RFC1123_ERROR);
+                return FormValidation.error(Messages.RFC1123_error(value));
             }
             return FormValidation.ok();
         }

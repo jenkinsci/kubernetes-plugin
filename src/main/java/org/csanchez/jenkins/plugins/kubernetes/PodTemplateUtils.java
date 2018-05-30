@@ -55,9 +55,6 @@ public class PodTemplateUtils {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateUtils.class.getName());
 
-    public static final transient String RFC1123_ERROR= "Container Names MUST match RFC 1123 - They can only contain lowercase letters, numbers or dashes.";
-    public static final transient String LABEL_ERROR= "Labels must follow required specs - https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set";
-
     /**
      * Combines a {@link ContainerTemplate} with its parent.
      * @param parent        The parent container template (nullable).
