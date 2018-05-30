@@ -11,6 +11,11 @@ spec:
     command:
     - cat
     tty: true
+  - name: badcontainername2_!
+    image: busybox
+    command:
+    - cat
+    tty: true
 """
 ) {
 

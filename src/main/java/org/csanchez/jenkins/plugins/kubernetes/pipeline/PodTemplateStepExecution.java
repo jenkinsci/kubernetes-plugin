@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.stream.Collectors.*;
 
+import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -100,8 +101,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 throw new AbortException(Messages.RFC1123_error(container.getName()));
             }
         }
-        if (!PodTemplateUtils.validateYamlContainerNames(newTemplate.getYaml())) {
-            throw new AbortException(Messages.RFC1123_error(newTemplate.getYaml()));
+        Collection<String> errors = PodTemplateUtils.validateYamlContainerNames(newTemplate.getYaml());
+        if (!errors.isEmpty()) {
+            throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
 
         if (!PodTemplateUtils.validateLabel(newTemplate.getLabel())) {

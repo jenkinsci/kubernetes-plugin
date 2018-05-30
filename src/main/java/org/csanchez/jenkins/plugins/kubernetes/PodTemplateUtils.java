@@ -7,6 +7,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -469,25 +470,23 @@ public class PodTemplateUtils {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
-    public static boolean validateYamlContainerNames(String yaml)
-    {
-        if (yaml == null || yaml.isEmpty() )
-        {
-            return true;
+    @SuppressWarnings("unchecked")
+    public static Collection<String> validateYamlContainerNames(String yaml) {
+        if (yaml == null || yaml.isEmpty()) {
+            return Collections.emptyList();
         }
+        Collection<String> errors = new ArrayList<>();
         Yaml yamlparsed = new Yaml();
-        Map map = (Map) yamlparsed.load(yaml);
-        LinkedHashMap<String, Object> spec =  (LinkedHashMap<String, Object>) map.get("spec");
-        ArrayList containers = (ArrayList) spec.get("containers");
-        for(Object container : containers)
-        {
-            String name =(String) ((LinkedHashMap<String, Object>) container).get("name");
-            if(!PodTemplateUtils.validateContainerName(name))
-            {
-                return false;
+        Map<String, Object> map = (Map<String, Object>) yamlparsed.load(yaml);
+        LinkedHashMap<String, Object> spec = (LinkedHashMap<String, Object>) map.get("spec");
+        ArrayList<Object> containers = (ArrayList<Object>) spec.get("containers");
+        for (Object container : containers) {
+            String name = (String) ((LinkedHashMap<String, Object>) container).get("name");
+            if (!PodTemplateUtils.validateContainerName(name)) {
+                errors.add(name);
             }
         }
-        return true;
+        return errors;
     }
 
     public static boolean validateContainerName(String name)
