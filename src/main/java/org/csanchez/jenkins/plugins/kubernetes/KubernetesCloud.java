@@ -164,13 +164,13 @@ public class KubernetesCloud extends Cloud {
     }
 
     public boolean isUsageRestricted() {
-		return usageRestricted;
-	}
+        return usageRestricted;
+    }
 
     @DataBoundSetter
     public void setUsageRestricted(boolean usageRestricted) {
-		this.usageRestricted = usageRestricted;
-	}
+        this.usageRestricted = usageRestricted;
+    }
     
     public int getRetentionTimeout() {
         return retentionTimeout;
