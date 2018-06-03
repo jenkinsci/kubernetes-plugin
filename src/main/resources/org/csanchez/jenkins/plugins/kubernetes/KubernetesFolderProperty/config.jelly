@@ -1,0 +1,22 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<f:section title="Kubernetes Plugin">
+<j:if test="${instance != null}">
+	<f:advanced>
+	<f:entry title="Usage restricted Kubernetes Clouds available to any Pipeline jobs inside this folder:"/>
+	<j:forEach var="permission" items="${instance.getEffectivePermissions()}">
+		<f:entry title="${permission.name}"><j:expr value="${permission.htmlCheckbox()}" escapeText="false" /></f:entry>
+	</j:forEach>
+	<j:if test="${instance.getEffectivePermissions().isEmpty()}">
+		<f:entry title="-- none --" />
+	</j:if>
+	</f:advanced>
+</j:if>
+<j:if test="${instance == null}">
+	<f:entry title="You have to save this folder first before you can manage Kubernetes Clouds." />
+	<f:invisibleEntry title="does-not-matter">
+		<input type="checkbox" name="does-not-matter" value="does-not-matter"/>
+	</f:invisibleEntry>
+</j:if>
+</f:section>
+</j:jelly>
