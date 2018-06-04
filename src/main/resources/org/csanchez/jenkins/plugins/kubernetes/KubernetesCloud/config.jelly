@@ -47,6 +47,10 @@
         <f:textbox default="10"/>
     </f:entry>
 
+    <f:entry field="capOnlyOnAlivePods" title="${%Apply cap only on alive pods}">
+        <f:checkbox/>
+    </f:entry>
+
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
         <f:textbox default="32"/>
     </f:entry>
@@ -54,6 +58,10 @@
     <f:advanced>
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
         <f:textbox default="5"/>
+      </f:entry>
+
+      <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
+        <f:checkbox />
       </f:entry>
     </f:advanced>
 

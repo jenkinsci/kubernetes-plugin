@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -27,8 +28,8 @@ import javax.servlet.ServletException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -41,6 +42,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.ctc.wstx.util.StringUtil;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -94,6 +96,9 @@ public class KubernetesCloud extends Cloud {
     private String serverCertificate;
 
     private boolean skipTlsVerify;
+    private boolean addMasterProxyEnvVars;
+
+    private boolean capOnlyOnAlivePods;
 
     private String namespace;
     private String jenkinsUrl;
@@ -129,6 +134,7 @@ public class KubernetesCloud extends Cloud {
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
         this.skipTlsVerify = source.skipTlsVerify;
+        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
@@ -219,21 +225,37 @@ public class KubernetesCloud extends Cloud {
     public void setSkipTlsVerify(boolean skipTlsVerify) {
         this.skipTlsVerify = skipTlsVerify;
     }
+    
+    public boolean isAddMasterProxyEnvVars() {
+    	return this.addMasterProxyEnvVars;
+    }
+    
+    @DataBoundSetter
+    public void setAddMasterProxyEnvVars(boolean addMasterProxyEnvVars) {
+    	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
+    }
 
-    @Nonnull
     public String getNamespace() {
         return namespace;
     }
 
     @DataBoundSetter
-    public void setNamespace(@Nonnull String namespace) {
-        Preconditions.checkArgument(!StringUtils.isBlank(namespace));
-        this.namespace = namespace;
+    public void setNamespace(String namespace) {
+        this.namespace = Util.fixEmpty(namespace);
     }
 
     @CheckForNull
     public String getJenkinsUrl() {
         return jenkinsUrl;
+    }
+
+    @DataBoundSetter
+    public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
+        this.capOnlyOnAlivePods = capOnlyOnAlivePods;
+    }
+
+    public boolean isCapOnlyOnAlivePods() {
+        return capOnlyOnAlivePods;
     }
 
     /**
@@ -325,9 +347,15 @@ public class KubernetesCloud extends Cloud {
      * Labels for all pods started by the plugin
      */
     public Map<String, String> getLabels() {
-        return labels == null ? Collections.emptyMap() : labels;
+        return labels == null || labels.isEmpty() ? DEFAULT_POD_LABELS : labels;
     }
 
+    /**
+     * No UI yet, so this is never re-set
+     * 
+     * @param labels
+     */
+    // @DataBoundSetter
     public void setLabels(Map<String, String> labels) {
         this.labels = labels;
     }
@@ -431,6 +459,22 @@ public class KubernetesCloud extends Cloud {
         labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
         List<Pod> namedListItems = namedList.getItems();
+
+        if (this.isCapOnlyOnAlivePods()) {
+            slaveListItems = slaveListItems.stream()
+                                           .filter(x -> x.getStatus()
+                                                         .getPhase().toLowerCase()
+                                                                    .matches("(running|pending)"))
+                                           .collect(Collectors.toList());
+        }
+
+        if (template.isCapOnlyOnAlivePods()) {
+            namedListItems = namedListItems.stream()
+                                           .filter(x -> x.getStatus()
+                                                         .getPhase().toLowerCase()
+                                                                    .matches("(running|pending)"))
+                                           .collect(Collectors.toList());
+        }
 
         if (slaveListItems != null && containerCap <= slaveListItems.size()) {
             LOGGER.log(Level.INFO,
@@ -618,9 +662,6 @@ public class KubernetesCloud extends Cloud {
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
-        }
-        if (labels == null) {
-            labels = DEFAULT_POD_LABELS;
         }
         return this;
     }

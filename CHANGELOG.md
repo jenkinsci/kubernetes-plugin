@@ -3,9 +3,35 @@ CHANGELOG
 
 Known issues
 ------------
-* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700) [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366)
+* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.7.1
+-----
+* Do not print credentials in build output or logs. Only affects certain pipeline steps like `withDockerRegistry`. `sh` step is not affected [SECURITY-883](https://issues.jenkins-ci.org/browse/SECURITY-883)
+
+1.7.0
+-----
+* Add option to apply caps only on alive pods [#252](https://github.com/jenkinsci/kubernetes-plugin/pull/252)
+* Add idleMinutes to pod template in declarative pipeline [#336](https://github.com/jenkinsci/kubernetes-plugin/pull/336) [JENKINS-51569](https://issues.jenkins-ci.org/browse/JENKINS-51569)
+
+1.6.4
+-----
+* Use Jackson and Apache HttpComponents Client libraries from API plugins [#333](https://github.com/jenkinsci/kubernetes-plugin/pull/333) [JENKINS-51582](https://issues.jenkins-ci.org/browse/JENKINS-51582)
+
+1.6.3
+-----
+* Merge labels from yaml [#326](https://github.com/jenkinsci/kubernetes-plugin/pull/326) [JENKINS-51137](https://issues.jenkins-ci.org/browse/JENKINS-51137)
+* Instance cap reached with preexisting pods due to lack of labels [#325](https://github.com/jenkinsci/kubernetes-plugin/pull/325) [JENKINS-50268](https://issues.jenkins-ci.org/browse/JENKINS-50268)
+
+1.6.2
+-----
+* Transfer any master proxy related envs that the remoting jar uses to the pod templates with `addMasterProxyEnvVars` option [#321](https://github.com/jenkinsci/kubernetes-plugin/pull/321)
+
+1.6.1
+-----
+* Some fields are not inherited from parent template (InheritFrom, InstanceCap, SlaveConnectTimeout, IdleMinutes, ActiveDeadlineSeconds, ServiceAccount, CustomWorkspaceVolumeEnabled) [#319](https://github.com/jenkinsci/kubernetes-plugin/pull/319)
 
 1.6.0
 -----

@@ -42,6 +42,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import hudson.model.Node;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -181,6 +182,20 @@ public class PodTemplateUtilsTest {
         assertEquals("value3", result.getAnnotations().get(0).getValue().toString());
     }
 
+    @Test
+    public void shouldCombineAllLabels() {
+        Pod pod1 = new PodBuilder().withNewMetadata().withLabels( //
+                ImmutableMap.of("label1", "pod1", "label2", "pod1") //
+        ).endMetadata().withNewSpec().endSpec().build();
+        Pod pod2 = new PodBuilder().withNewMetadata().withLabels( //
+                ImmutableMap.of("label1", "pod2", "label3", "pod2") //
+        ).endMetadata().withNewSpec().endSpec().build();
+
+        Map<String, String> labels = combine(pod1, pod2).getMetadata().getLabels();
+        assertThat(labels, hasEntry("label1", "pod2"));
+        assertThat(labels, hasEntry("label2", "pod1"));
+        assertThat(labels, hasEntry("label3", "pod2"));
+    }
 
     @Test
     public void shouldUnwrapParent() {
@@ -202,6 +217,44 @@ public class PodTemplateUtilsTest {
         assertEquals(3, result.getImagePullSecrets().size());
         assertEquals("sa1", result.getServiceAccount());
         assertEquals("key:value", result.getNodeSelector());
+    }
+
+    @Test
+    public void shouldDropNoDataWhenIdentical() {
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("Name");
+        podTemplate.setNamespace("NameSpace");
+        podTemplate.setLabel("Label");
+        podTemplate.setServiceAccount("ServiceAccount");
+        podTemplate.setNodeSelector("NodeSelector");
+        podTemplate.setNodeUsageMode(Node.Mode.EXCLUSIVE);
+        podTemplate.setImagePullSecrets(asList(SECRET_1));
+        podTemplate.setInheritFrom("Inherit");
+        podTemplate.setInstanceCap(99);        
+        podTemplate.setSlaveConnectTimeout(99);
+        podTemplate.setIdleMinutes(99);
+        podTemplate.setActiveDeadlineSeconds(99);
+        podTemplate.setServiceAccount("ServiceAccount");
+        podTemplate.setCustomWorkspaceVolumeEnabled(true);
+        podTemplate.setYaml("Yaml");
+        
+        PodTemplate selfCombined = combine(podTemplate, podTemplate);
+
+        assertEquals("Name", podTemplate.getName());
+        assertEquals("NameSpace", podTemplate.getNamespace());
+        assertEquals("Label", podTemplate.getLabel());
+        assertEquals("ServiceAccount", podTemplate.getServiceAccount());
+        assertEquals("NodeSelector", podTemplate.getNodeSelector());
+        assertEquals(Node.Mode.EXCLUSIVE, podTemplate.getNodeUsageMode());
+        assertEquals(asList(SECRET_1), podTemplate.getImagePullSecrets());
+        assertEquals("Inherit", podTemplate.getInheritFrom());
+        assertEquals(99, podTemplate.getInstanceCap());        
+        assertEquals(99, podTemplate.getSlaveConnectTimeout());
+        assertEquals(99, podTemplate.getIdleMinutes());
+        assertEquals(99, podTemplate.getActiveDeadlineSeconds());
+        assertEquals("ServiceAccount", podTemplate.getServiceAccount());
+        assertEquals(true, podTemplate.isCustomWorkspaceVolumeEnabled());
+        assertEquals("Yaml", podTemplate.getYaml());
     }
 
     @Test

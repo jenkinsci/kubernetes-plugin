@@ -233,10 +233,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
-                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), getCommands(starter));
+                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), starter.masks(),
+                        getCommands(starter));
             }
 
-            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
+            private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
+                    boolean[] masks, String... commands) throws IOException {
                 if (processes == null) {
                     processes = new HashMap<>();
                 }
@@ -360,7 +362,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     this.setupEnvironmentVariable(envVars, watch);
-                    doExec(watch, printStream, commands);
+                    doExec(watch, printStream, masks, commands);
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
@@ -386,7 +388,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
                 int exitCode = doLaunch(
-                        true, null, null, null,
+                        true, null, null, null, null,
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
@@ -453,14 +455,19 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
+    private static void doExec(ExecWatch watch, PrintStream out, boolean[] masks, String... statements) {
         try {
             out.print("Executing command: ");
             StringBuilder sb = new StringBuilder();
-            for (String stmt : statements) {
-                String s = String.format("\"%s\" ", stmt);
-                sb.append(s);
-                out.print(s);
+            for (int i = 0; i < statements.length; i++) {
+                String s = String.format("\"%s\" ", statements[i]);
+                if (masks != null && masks[i]) {
+                    sb.append("******** ");
+                    out.print("******** ");
+                } else {
+                    sb.append(s);
+                    out.print(s);
+                }
                 watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
