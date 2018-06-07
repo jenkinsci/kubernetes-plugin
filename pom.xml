@@ -40,7 +40,7 @@
   <properties>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
-    <connectorHost>192.168.64.1</connectorHost>
+    <connectorHost></connectorHost>
     <java.level>8</java.level>
 
     <!-- dependency versions -->

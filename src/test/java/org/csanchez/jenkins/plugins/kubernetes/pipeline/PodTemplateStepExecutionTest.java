@@ -24,7 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.*;
 
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
