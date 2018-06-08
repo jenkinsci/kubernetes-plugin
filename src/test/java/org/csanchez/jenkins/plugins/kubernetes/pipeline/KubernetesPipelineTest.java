@@ -34,12 +34,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PortMapping;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
@@ -373,6 +375,29 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(deadlineTemplate);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
         r.assertLogNotContains("Hello from container!", b);
+    }
+
+    @Issue("JENKINS-50932")
+    @Test
+    public void runParallelInPodWithHostPort() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "PodsWithHostPorts");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runParallelInPodWithHostPort.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        List<PodTemplate> templates = cloud.getAllTemplates();
+        while (podTemplateWithLabel("hostPort1", templates) == null && podTemplateWithLabel("hostPort2", templates) == null) {
+            LOGGER.log(Level.INFO, "Waiting for templates to be created");
+            templates = cloud.getAllTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("- containerPort: 10001", b);
+        r.assertLogContains("hostPort: 10001", b);
+        r.assertLogContains("- containerPort: 10002", b);
+        r.assertLogContains("hostPort: 10002", b);
     }
 
 }
