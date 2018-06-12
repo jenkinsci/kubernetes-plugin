@@ -39,7 +39,7 @@ import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
 public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
 
-    private static final String DOCKER_LOGIN_CMD = "Executing command: \"docker\" \"login\"";
+    private static final String DOCKER_LOG = "Wrote authentication to /home/jenkins/.dockercfg";
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
@@ -80,12 +80,12 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.waitForCompletion(b);
-        r.assertLogContains(DOCKER_LOGIN_CMD, b);
+        r.assertLogContains(DOCKER_LOG, b);
         // check that we don't accidentally start exporting sensitive info to the build log
         r.assertLogNotContains("secret_password", b);
         // check that we don't accidentally start exporting sensitive info to the Jenkins log
         assertTrue("docker login was not executed",
-                containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains(DOCKER_LOGIN_CMD)));
+                containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains(DOCKER_LOG)));
         assertFalse("credential leaked to log",
                 containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains("secret_password")));
     }
