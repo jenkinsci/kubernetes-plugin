@@ -1,11 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static hudson.Util.*;
+import static java.nio.charset.StandardCharsets.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,11 +18,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -37,15 +43,19 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
 public class PodTemplateUtils {
 
@@ -95,7 +105,7 @@ public class PodTemplateUtils {
 
     /**
      * Combines a Container with its parent.
-     * 
+     *
      * @param parent
      *            The parent container (nullable).
      * @param template
@@ -204,7 +214,7 @@ public class PodTemplateUtils {
         List<Volume> combinedVolumes = Lists.newLinkedList();
         Optional.ofNullable(parent.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
         Optional.ofNullable(template.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
-        
+
         // Tolerations
         List<Toleration> combinedTolerations = Lists.newLinkedList();
         Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
@@ -310,26 +320,26 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
-        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ? 
+        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
                                    template.getInheritFrom() : parent.getInheritFrom());
-        
-        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ? 
+
+        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ?
                                    template.getInstanceCap() : parent.getInstanceCap());
-        
-        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? 
+
+        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ?
                                            template.getSlaveConnectTimeout() : parent.getSlaveConnectTimeout());
 
-        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ? 
-                                   template.getIdleMinutes() : parent.getIdleMinutes()); 
+        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ?
+                                   template.getIdleMinutes() : parent.getIdleMinutes());
 
         podTemplate.setActiveDeadlineSeconds(template.getActiveDeadlineSeconds() != 0 ?
-                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds()); 
+                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds());
 
-            
-        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ? 
+
+        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
 
-        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ? 
+        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
 
         podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
@@ -464,6 +474,61 @@ public class PodTemplateUtils {
     @Deprecated
     public static String substitute(String s, Map<String, String> properties, String defaultValue) {
         return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
+    }
+
+    public static Pod parseFromYaml(String yaml) {
+        try (KubernetesClient client = new DefaultKubernetesClient()) {
+            Pod podFromYaml = client.pods().load(new ByteArrayInputStream((yaml == null ? "" : yaml).getBytes(UTF_8)))
+                    .get();
+            LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
+            // yaml can be just a fragment, avoid NPEs
+            if (podFromYaml.getMetadata() == null) {
+                podFromYaml.setMetadata(new ObjectMeta());
+            }
+            if (podFromYaml.getSpec() == null) {
+                podFromYaml.setSpec(new PodSpec());
+            }
+            return podFromYaml;
+        }
+    }
+
+    public static Collection<String> validateYamlContainerNames(String yaml) {
+        if (StringUtils.isBlank(yaml)) {
+            return Collections.emptyList();
+        }
+        Collection<String> errors = new ArrayList<>();
+        Pod pod = parseFromYaml(yaml);
+        List<Container> containers = pod.getSpec().getContainers();
+        if (containers != null) {
+            for (Container container : containers) {
+                if (!PodTemplateUtils.validateContainerName(container.getName())) {
+                    errors.add(container.getName());
+                }
+            }
+        }
+        return errors;
+    }
+
+    public static boolean validateContainerName(String name) {
+        if (name != null && !name.isEmpty()) {
+            Pattern p = Pattern.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?");
+            Matcher m = p.matcher(name);
+            return m.matches();
+        }
+        return true;
+    }
+
+    /*
+     * Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+     */
+    public static boolean validateLabel(String label) {
+        if (label != null && !label.isEmpty()) {
+            Pattern labelValidation = Pattern.compile("[a-zA-Z0-9]([_\\.-A-Za-z0-9]*[A-Za-z0-9])?");
+            if (label.length() > 63 || !labelValidation.matcher(label).matches()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
