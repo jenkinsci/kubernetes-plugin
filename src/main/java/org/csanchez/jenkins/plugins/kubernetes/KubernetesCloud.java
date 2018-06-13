@@ -453,12 +453,12 @@ public class KubernetesCloud extends Cloud {
         }
 
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> slaveListItems = slaveList.getItems();
+        List<Pod> slaveListItems = removeSucceededPods(slaveList.getItems());
 
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
         PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
-        List<Pod> namedListItems = namedList.getItems();
+        List<Pod> namedListItems = removeSucceededPods(namedList.getItems());
 
         if (this.isCapOnlyOnAlivePods()) {
             slaveListItems = slaveListItems.stream()
@@ -491,6 +491,12 @@ public class KubernetesCloud extends Cloud {
             return false; // maxed out
         }
         return true;
+    }
+
+    private List<Pod> removeSucceededPods(List<Pod> pods) {
+        return pods.stream()
+            .filter(pod -> !"Succeeded".equals(pod.getStatus().getPhase()))
+            .collect(Collectors.toList());
     }
 
     @Override
