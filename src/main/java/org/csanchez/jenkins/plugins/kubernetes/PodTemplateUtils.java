@@ -61,6 +61,8 @@ public class PodTemplateUtils {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateUtils.class.getName());
 
+    private static final Pattern LABEL_VALIDATION = Pattern.compile("[a-zA-Z0-9]([_\\.\\-a-zA-Z0-9]*[a-zA-Z0-9])?");
+
     /**
      * Combines a {@link ContainerTemplate} with its parent.
      * @param parent        The parent container template (nullable).
@@ -522,13 +524,7 @@ public class PodTemplateUtils {
      * Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
      */
     public static boolean validateLabel(String label) {
-        if (label != null && !label.isEmpty()) {
-            Pattern labelValidation = Pattern.compile("[a-zA-Z0-9]([_\\.-A-Za-z0-9]*[A-Za-z0-9])?");
-            if (label.length() > 63 || !labelValidation.matcher(label).matches()) {
-                return false;
-            }
-        }
-        return true;
+        return StringUtils.isBlank(label) ? true : label.length() <= 63 && LABEL_VALIDATION.matcher(label).matches();
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
