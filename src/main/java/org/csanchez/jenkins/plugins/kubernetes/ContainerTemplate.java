@@ -21,7 +21,9 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.QueryParameter;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -261,6 +263,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         @Restricted(DoNotUse.class) // Used by jelly
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+        }
+
+        public FormValidation doCheckName(@QueryParameter String value) {
+            if(!PodTemplateUtils.validateContainerName(value)) {
+                return FormValidation.error(Messages.RFC1123_error(value));
+            }
+            return FormValidation.ok();
         }
     }
 
