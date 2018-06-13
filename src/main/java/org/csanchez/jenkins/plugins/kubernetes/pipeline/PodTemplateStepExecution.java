@@ -4,14 +4,15 @@ import static java.util.stream.Collectors.*;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
+import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -19,6 +20,7 @@ import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import com.google.common.base.Strings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
 import hudson.model.ItemGroup;
@@ -27,6 +29,8 @@ import hudson.model.Run;
 import hudson.slaves.Cloud;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
@@ -99,6 +103,20 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         if(step.getActiveDeadlineSeconds() != 0) {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
+        }
+
+        for (ContainerTemplate container : newTemplate.getContainers()) {
+            if (!PodTemplateUtils.validateContainerName(container.getName())) {
+                throw new AbortException(Messages.RFC1123_error(container.getName()));
+            }
+        }
+        Collection<String> errors = PodTemplateUtils.validateYamlContainerNames(newTemplate.getYaml());
+        if (!errors.isEmpty()) {
+            throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
+        }
+
+        if (!PodTemplateUtils.validateLabel(newTemplate.getLabel())) {
+            throw new AbortException(Messages.label_error(newTemplate.getLabel()));
         }
 
         kubernetesCloud.addDynamicTemplate(newTemplate);

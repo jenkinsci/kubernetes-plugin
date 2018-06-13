@@ -24,6 +24,7 @@
 
 package org.jvnet.hudson.test;
 
+import java.net.BindException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -48,7 +49,7 @@ import org.eclipse.jetty.webapp.WebXmlConfiguration;
 public class JenkinsRuleNonLocalhost extends JenkinsRule {
     private static final Logger LOGGER = Logger.getLogger(JenkinsRuleNonLocalhost.class.getName());
 
-    private static final String HOST = System.getProperty("connectorHost", "192.168.64.1");
+    private static final String HOST = System.getProperty("connectorHost");
 
     private Integer port;
 
@@ -97,7 +98,12 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         }
 
         server.addConnector(connector);
-        server.start();
+        try {
+            server.start();
+        } catch (BindException e) {
+            throw new BindException(String.format("Error binding to %s:%d %s", connector.getHost(), connector.getPort(),
+                    e.getMessage()));
+        }
 
         localPort = connector.getLocalPort();
         LOGGER.log(Level.INFO, "Running on {0}", getURL());

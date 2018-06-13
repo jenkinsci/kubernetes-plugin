@@ -3,9 +3,17 @@ CHANGELOG
 
 Known issues
 ------------
-* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700) [JENKINS-49366](https://issues.jenkins-ci.org/browse/JENKINS-49366)
+* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.8.0
+-----
+* Validate label and container names with regex [#332](https://github.com/jenkinsci/kubernetes-plugin/pull/332) [#343](https://github.com/jenkinsci/kubernetes-plugin/pull/343) [JENKINS-51248](https://issues.jenkins-ci.org/browse/JENKINS-51248)
+
+1.7.1
+-----
+* Do not print credentials in build output or logs. Only affects certain pipeline steps like `withDockerRegistry`. `sh` step is not affected [SECURITY-883](https://issues.jenkins-ci.org/browse/SECURITY-883)
 
 1.7.0
 -----

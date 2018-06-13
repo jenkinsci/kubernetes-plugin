@@ -38,9 +38,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,8 +62,6 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
-import org.apache.commons.io.output.NullOutputStream;
-import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -234,10 +234,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
-                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), getCommands(starter));
+                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), starter.masks(),
+                        getCommands(starter));
             }
 
-            private Proc doLaunch(boolean quiet, String [] cmdEnvs,  OutputStream outputForCaller, FilePath pwd, String... commands) throws IOException {
+            private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
+                    boolean[] masks, String... commands) throws IOException {
                 if (processes == null) {
                     processes = new HashMap<>();
                 }
@@ -365,7 +367,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     this.setupEnvironmentVariable(envVars, watch);
-                    doExec(watch, printStream, commands);
+                    doExec(watch, printStream, masks, commands);
                     if (closables == null) {
                         closables = new ArrayList<>();
                     }
@@ -391,7 +393,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
                 int exitCode = doLaunch(
-                        true, null, null, null,
+                        true, null, null, null, null,
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
@@ -458,14 +460,19 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, String... statements) {
+    private static void doExec(ExecWatch watch, PrintStream out, boolean[] masks, String... statements) {
         try {
             out.print("Executing command: ");
             StringBuilder sb = new StringBuilder();
-            for (String stmt : statements) {
-                String s = String.format("\"%s\" ", stmt);
-                sb.append(s);
-                out.print(s);
+            for (int i = 0; i < statements.length; i++) {
+                String s = String.format("\"%s\" ", statements[i]);
+                if (masks != null && masks[i]) {
+                    sb.append("******** ");
+                    out.print("******** ");
+                } else {
+                    sb.append(s);
+                    out.print(s);
+                }
                 watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
@@ -477,7 +484,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             sb.append(ExitCodeOutputStream.EXIT_COMMAND);
             out.print(ExitCodeOutputStream.EXIT_COMMAND);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-             watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
+            watch.getInput().write(ExitCodeOutputStream.EXIT_COMMAND.getBytes(StandardCharsets.UTF_8));
 
             out.flush();
             watch.getInput().flush();

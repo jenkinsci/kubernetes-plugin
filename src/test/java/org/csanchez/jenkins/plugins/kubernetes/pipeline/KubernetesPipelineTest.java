@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -146,6 +145,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
+    }
+
+    @Test
+    public void runInPodNested() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodNested.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
+        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("go version go1.6.3", b);
     }
 
     @Test
@@ -282,7 +294,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("initpwd is -" + workspace + "-", b);
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);
-
     }
 
     @Test
