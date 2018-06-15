@@ -36,7 +36,7 @@
      stage('Build with Kaniko') {
        git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
        container('kaniko') {
-           sh '/kaniko/executor -c . --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage'
+           sh '/kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage'
        }
      }
    }
