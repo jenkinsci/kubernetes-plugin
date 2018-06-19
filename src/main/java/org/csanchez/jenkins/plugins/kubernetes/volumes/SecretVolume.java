@@ -60,6 +60,11 @@ public class SecretVolume extends PodVolume {
         return mountPath;
     }
 
+    @Override
+    public String toString() {
+        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName + "]";
+    }
+
     @Extension
     @Symbol("secretVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
