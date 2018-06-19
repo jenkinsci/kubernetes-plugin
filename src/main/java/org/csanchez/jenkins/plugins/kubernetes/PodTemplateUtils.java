@@ -144,7 +144,7 @@ public class PodTemplateUtils {
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
-        Container combined = new ContainerBuilder() //
+        Container combined = new ContainerBuilder(parent) //
                 .withImage(image) //
                 .withName(name) //
                 .withImagePullPolicy(imagePullPolicy) //
@@ -235,7 +235,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadataLike(parent.getMetadata()) //
+        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
