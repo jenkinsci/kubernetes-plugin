@@ -7,6 +7,12 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.8.2
+-----
+
+* Do not emit empty strings for resource requests/limits
+ [#342](https://github.com/jenkinsci/kubernetes-plugin/pull/342) 
+
 1.8.1
 -----
 * Get the exit code the correct way. Solves problems with many pipeline steps that rely on tool outputs [#300](https://github.com/jenkinsci/kubernetes-plugin/pull/300) [JENKINS-50392](https://issues.jenkins-ci.org/browse/JENKINS-50392)
