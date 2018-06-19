@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -142,6 +143,14 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), hasItems(envVars.toArray(new EnvVar[envVars.size()])));
+        if (jnlp.getResources() != null) {
+            if (jnlp.getResources().getRequests() != null) {
+                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
+            }
+            if (jnlp.getResources().getLimits() != null) {
+                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
+            }
+        }
     }
 
     @Test

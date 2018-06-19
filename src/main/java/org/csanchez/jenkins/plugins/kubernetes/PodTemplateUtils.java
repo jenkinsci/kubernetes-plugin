@@ -133,11 +133,13 @@ public class PodTemplateUtils {
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
-        Quantity resourceRequestCpu = safeGet(parent, template, ResourceRequirements::getRequests, "cpu");
-        Quantity resourceRequestMemory = safeGet(parent, template, ResourceRequirements::getRequests, "memory");
-        Quantity resourceLimitCpu = safeGet(parent, template, ResourceRequirements::getLimits, "cpu");
-        Quantity resourceLimitMemory = safeGet(parent, template, ResourceRequirements::getLimits, "memory");
-
+        Map<String, Quantity> requests = new HashMap<>();
+        safeGet(parent, template, ResourceRequirements::getRequests, "cpu", requests);
+        safeGet(parent, template, ResourceRequirements::getRequests, "memory", requests);
+        Map<String, Quantity> limits = new HashMap<>();
+        safeGet(parent, template, ResourceRequirements::getLimits, "cpu", limits);
+        safeGet(parent, template, ResourceRequirements::getLimits, "memory", limits);
+        
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
@@ -151,8 +153,8 @@ public class PodTemplateUtils {
                 .withArgs(args) //
                 .withTty(tty) //
                 .withNewResources() //
-                .withRequests(ImmutableMap.of("cpu", resourceRequestCpu, "memory", resourceRequestMemory)) //
-                .withLimits(ImmutableMap.of("cpu", resourceLimitCpu, "memory", resourceLimitMemory)) //
+                .withRequests(ImmutableMap.copyOf(requests)) //
+                .withLimits(ImmutableMap.copyOf(limits)) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
@@ -162,18 +164,22 @@ public class PodTemplateUtils {
         return combined;
     }
 
-    private static Quantity safeGet(Container parent, Container template,
-                                    Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
-                                    String field) {
-        return Optional.ofNullable(template.getResources())
+    private static void safeGet(Container parent, Container template,
+                                Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
+                                String field, Map<String, Quantity> out) {
+        Quantity data;
+        data = Optional.ofNullable(template.getResources())
                 .map(resourceTypeMapper)
                 .map(rT -> rT.get(field))
                 .filter(tF -> !Strings.isNullOrEmpty(tF.getAmount()))
                 .orElse(Optional.ofNullable(parent.getResources())
                         .map(resourceTypeMapper)
                         .map(rT -> rT.get(field))
-                        .orElse(new Quantity(""))
+                        .orElse(null)
                 );
+        if (data != null) {
+            out.put(field, data);
+        }   
     }
 
     /**
