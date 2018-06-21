@@ -42,14 +42,17 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
+import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -397,6 +400,41 @@ public class PodTemplateUtilsTest {
 
         assertThat(result.getEnvVars(),
                 contains(containerSecretEnvVar1, containerSecretEnvVar2, containerSecretEnvVar3));
+    }
+
+    @Test
+    public void shouldCombineAllEnvFromSourcesWithoutChangingOrder() {
+        EnvFromSource configMap1 = new EnvFromSource(new ConfigMapEnvSource("config-map-1", false), null, null);
+        EnvFromSource secret1 = new EnvFromSource(null, null, new SecretEnvSource("secret-1", false));
+        EnvFromSource configMap2 = new EnvFromSource(new ConfigMapEnvSource("config-map-2", true), null, null);
+        EnvFromSource secret2 = new EnvFromSource(null, null, new SecretEnvSource("secret-2", true));
+
+        Container container1 = new Container();
+        container1.setEnvFrom(asList(configMap1, secret1));
+
+        Container container2 = new Container();
+        container2.setEnvFrom(asList(configMap2, secret2));
+
+        Container result = combine(container1, container2);
+
+        // Config maps and secrets could potentially overwrite each other's variables. We should preserve their order.
+        assertThat(result.getEnvFrom(), contains(configMap1, secret1, configMap2, secret2));
+    }
+
+    @Test
+    public void shouldFilterOutEnvFromSourcesWithNullOrEmptyKey() {
+        EnvFromSource noSource = new EnvFromSource(null, null, null);
+        EnvFromSource noConfigMapKey = new EnvFromSource(new ConfigMapEnvSource(null, false), null, null);
+        EnvFromSource emptyConfigMapKey = new EnvFromSource(new ConfigMapEnvSource("", false), null, null);
+        EnvFromSource noSecretKey = new EnvFromSource(null, null, new SecretEnvSource(null, false));
+        EnvFromSource emptySecretKey = new EnvFromSource(null, null, new SecretEnvSource("", false));
+
+        Container container = new Container();
+        container.setEnvFrom(asList(noSource, noConfigMapKey, emptyConfigMapKey, noSecretKey, emptySecretKey));
+
+        Container result = combine(container, new Container());
+
+        assertEquals(0, result.getEnvFrom().size());
     }
 
     @Test

@@ -41,6 +41,7 @@ import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -157,6 +158,7 @@ public class PodTemplateUtils {
                 .withLimits(ImmutableMap.copyOf(limits)) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
+                .withEnvFrom(combinedEnvFromSources(parent, template))
                 .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
@@ -552,6 +554,16 @@ public class PodTemplateUtils {
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+    }
+
+    private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
+        List<EnvFromSource> combinedEnvFromSources = new ArrayList<>();
+        combinedEnvFromSources.addAll(parent.getEnvFrom());
+        combinedEnvFromSources.addAll(template.getEnvFrom());
+        return combinedEnvFromSources.stream().filter(envFromSource ->
+                envFromSource.getConfigMapRef() != null && !Strings.isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
+                        envFromSource.getSecretRef() != null && !Strings.isNullOrEmpty(envFromSource.getSecretRef().getName())
+        ).collect(toList());
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
