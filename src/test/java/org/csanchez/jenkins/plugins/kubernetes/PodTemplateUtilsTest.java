@@ -450,7 +450,7 @@ public class PodTemplateUtilsTest {
         template2.setVolumes(asList(hostPathVolume3, hostPathVolume4));
 
         PodTemplate result = combine(template1, template2);
-        assertThat(result.getVolumes(), hasItems(hostPathVolume2, hostPathVolume3, hostPathVolume4));
+        assertThat(result.getVolumes(), containsInAnyOrder(hostPathVolume1, hostPathVolume2, hostPathVolume3, hostPathVolume4));
     }
 
     private SpecNested<PodBuilder> podBuilder() {
@@ -478,7 +478,7 @@ public class PodTemplateUtilsTest {
         List<Container> containers = result.getSpec().getContainers();
         assertEquals(1, containers.size());
         assertEquals(3, containers.get(0).getVolumeMounts().size());
-        assertThat(containers.get(0).getVolumeMounts(), hasItems(vm2, vm3, vm4));
+        assertThat(containers.get(0).getVolumeMounts(), containsInAnyOrder(vm2, vm3, vm4));
     }
 
     @Test
@@ -500,7 +500,7 @@ public class PodTemplateUtilsTest {
         pod2.setMetadata(new ObjectMeta());
 
         Pod result = combine(pod1, pod2);
-        assertThat(result.getSpec().getTolerations(), hasItems(toleration1, toleration2, toleration3, toleration4));
+        assertThat(result.getSpec().getTolerations(), containsInAnyOrder(toleration1, toleration2, toleration3, toleration4));
     }
 
     @Test

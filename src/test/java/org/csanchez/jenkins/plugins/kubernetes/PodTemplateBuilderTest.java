@@ -142,7 +142,7 @@ public class PodTemplateBuilderTest {
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
-        assertThat(jnlp.getEnv(), hasItems(envVars.toArray(new EnvVar[envVars.size()])));
+        assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
         if (jnlp.getResources() != null) {
             if (jnlp.getResources().getRequests() != null) {
                 assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
