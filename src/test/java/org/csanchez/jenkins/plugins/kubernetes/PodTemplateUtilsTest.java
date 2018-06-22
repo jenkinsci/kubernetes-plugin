@@ -42,14 +42,17 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
+import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -400,6 +403,41 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void shouldCombineAllEnvFromSourcesWithoutChangingOrder() {
+        EnvFromSource configMap1 = new EnvFromSource(new ConfigMapEnvSource("config-map-1", false), null, null);
+        EnvFromSource secret1 = new EnvFromSource(null, null, new SecretEnvSource("secret-1", false));
+        EnvFromSource configMap2 = new EnvFromSource(new ConfigMapEnvSource("config-map-2", true), null, null);
+        EnvFromSource secret2 = new EnvFromSource(null, null, new SecretEnvSource("secret-2", true));
+
+        Container container1 = new Container();
+        container1.setEnvFrom(asList(configMap1, secret1));
+
+        Container container2 = new Container();
+        container2.setEnvFrom(asList(configMap2, secret2));
+
+        Container result = combine(container1, container2);
+
+        // Config maps and secrets could potentially overwrite each other's variables. We should preserve their order.
+        assertThat(result.getEnvFrom(), contains(configMap1, secret1, configMap2, secret2));
+    }
+
+    @Test
+    public void shouldFilterOutEnvFromSourcesWithNullOrEmptyKey() {
+        EnvFromSource noSource = new EnvFromSource(null, null, null);
+        EnvFromSource noConfigMapKey = new EnvFromSource(new ConfigMapEnvSource(null, false), null, null);
+        EnvFromSource emptyConfigMapKey = new EnvFromSource(new ConfigMapEnvSource("", false), null, null);
+        EnvFromSource noSecretKey = new EnvFromSource(null, null, new SecretEnvSource(null, false));
+        EnvFromSource emptySecretKey = new EnvFromSource(null, null, new SecretEnvSource("", false));
+
+        Container container = new Container();
+        container.setEnvFrom(asList(noSource, noConfigMapKey, emptyConfigMapKey, noSecretKey, emptySecretKey));
+
+        Container result = combine(container, new Container());
+
+        assertEquals(0, result.getEnvFrom().size());
+    }
+
+    @Test
     public void shouldCombineAllMounts() {
         PodTemplate template1 = new PodTemplate();
         HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
@@ -412,7 +450,7 @@ public class PodTemplateUtilsTest {
         template2.setVolumes(asList(hostPathVolume3, hostPathVolume4));
 
         PodTemplate result = combine(template1, template2);
-        assertThat(result.getVolumes(), hasItems(hostPathVolume2, hostPathVolume3, hostPathVolume4));
+        assertThat(result.getVolumes(), containsInAnyOrder(hostPathVolume1, hostPathVolume2, hostPathVolume3, hostPathVolume4));
     }
 
     private SpecNested<PodBuilder> podBuilder() {
@@ -440,7 +478,7 @@ public class PodTemplateUtilsTest {
         List<Container> containers = result.getSpec().getContainers();
         assertEquals(1, containers.size());
         assertEquals(3, containers.get(0).getVolumeMounts().size());
-        assertThat(containers.get(0).getVolumeMounts(), hasItems(vm2, vm3, vm4));
+        assertThat(containers.get(0).getVolumeMounts(), containsInAnyOrder(vm2, vm3, vm4));
     }
 
     @Test
@@ -462,7 +500,7 @@ public class PodTemplateUtilsTest {
         pod2.setMetadata(new ObjectMeta());
 
         Pod result = combine(pod1, pod2);
-        assertThat(result.getSpec().getTolerations(), hasItems(toleration1, toleration2, toleration3, toleration4));
+        assertThat(result.getSpec().getTolerations(), containsInAnyOrder(toleration1, toleration2, toleration3, toleration4));
     }
 
     @Test
