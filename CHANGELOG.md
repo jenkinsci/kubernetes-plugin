@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.8.4
+-----
+
+* Fix mountPath error provisioning `mountPath: Required value` [#346](https://github.com/jenkinsci/kubernetes-plugin/pull/346) [JENKINS-50525](https://issues.jenkins-ci.org/browse/JENKINS-50525)
+
 1.8.3
 -----
 
