@@ -7,11 +7,17 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.8.3
+-----
+
+* Preserve unsupported directives in `PodTemplate` yaml, add explicit support for envFrom
+ [#348](https://github.com/jenkinsci/kubernetes-plugin/pull/348)
+
 1.8.2
 -----
 
 * Do not emit empty strings for resource requests/limits
- [#342](https://github.com/jenkinsci/kubernetes-plugin/pull/342) 
+ [#342](https://github.com/jenkinsci/kubernetes-plugin/pull/342)
 
 1.8.1
 -----
