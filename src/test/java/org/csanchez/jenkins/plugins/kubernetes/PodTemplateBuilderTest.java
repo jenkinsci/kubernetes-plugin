@@ -13,8 +13,11 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -93,6 +96,27 @@ public class PodTemplateBuilderTest {
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
+    @Test
+    @Issue("JENKINS-50525")
+    public void testBuildWithCustomWorkspaceVolume() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setCustomWorkspaceVolumeEnabled(true);
+        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(false));
+        ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
+        containerTemplate.setWorkingDir("");
+        template.getContainers().add(containerTemplate);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        List<Container> containers = pod.getSpec().getContainers();
+        assertEquals(2, containers.size());
+        Container container0 = containers.get(0);
+        Container container1 = containers.get(1);
+        ImmutableList<VolumeMount> volumeMounts = ImmutableList
+                .of(new VolumeMount("/home/jenkins", "workspace-volume", false, null));
+        assertEquals(volumeMounts, container0.getVolumeMounts());
+        assertEquals(volumeMounts, container1.getVolumeMounts());
+    }
+
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -142,7 +166,7 @@ public class PodTemplateBuilderTest {
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
-        assertThat(jnlp.getEnv(), hasItems(envVars.toArray(new EnvVar[envVars.size()])));
+        assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
         if (jnlp.getResources() != null) {
             if (jnlp.getResources().getRequests() != null) {
                 assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));

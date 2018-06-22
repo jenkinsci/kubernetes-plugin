@@ -18,6 +18,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import com.google.common.base.Preconditions;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -151,7 +152,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setWorkingDir(String workingDir) {
-        this.workingDir = workingDir;
+        this.workingDir = Util.fixEmpty(workingDir);
     }
 
     public String getWorkingDir() {
@@ -236,6 +237,15 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         this.resourceRequestCpu = resourceRequestCpu;
+    }
+
+    public String getShell() {
+        return shell;
+    }
+
+    @DataBoundSetter
+    public void setShell(String shell) {
+        this.shell = shell;
     }
 
     public Map<String,Object> getAsArgs() {
@@ -374,12 +384,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return result;
     }
 
-    public String getShell() {
-        return shell;
-    }
-
-    @DataBoundSetter
-    public void setShell(String shell) {
-        this.shell = shell;
+    private Object readResolve() {
+        this.workingDir = Util.fixEmpty(workingDir);
+        return this;
     }
 }

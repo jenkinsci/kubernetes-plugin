@@ -41,6 +41,7 @@ import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -122,9 +123,9 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        Boolean privileged = template.getSecurityContext().getPrivileged() != null
+        Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
-                : parent.getSecurityContext().getPrivileged();
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
@@ -144,7 +145,7 @@ public class PodTemplateUtils {
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
-        Container combined = new ContainerBuilder() //
+        Container combined = new ContainerBuilder(parent) //
                 .withImage(image) //
                 .withName(name) //
                 .withImagePullPolicy(imagePullPolicy) //
@@ -157,6 +158,7 @@ public class PodTemplateUtils {
                 .withLimits(ImmutableMap.copyOf(limits)) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
+                .withEnvFrom(combinedEnvFromSources(parent, template))
                 .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
@@ -235,7 +237,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadataLike(parent.getMetadata()) //
+        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
@@ -552,6 +554,16 @@ public class PodTemplateUtils {
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+    }
+
+    private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
+        List<EnvFromSource> combinedEnvFromSources = new ArrayList<>();
+        combinedEnvFromSources.addAll(parent.getEnvFrom());
+        combinedEnvFromSources.addAll(template.getEnvFrom());
+        return combinedEnvFromSources.stream().filter(envFromSource ->
+                envFromSource.getConfigMapRef() != null && !Strings.isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
+                        envFromSource.getSecretRef() != null && !Strings.isNullOrEmpty(envFromSource.getSecretRef().getName())
+        ).collect(toList());
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {

@@ -69,6 +69,11 @@ public class EmptyDirVolume extends PodVolume {
         return new VolumeBuilder().withName(volumeName).withNewEmptyDir().withMedium(getMedium()).endEmptyDir().build();
     }
 
+    @Override
+    public String toString() {
+        return "EmptyDirVolume [mountPath=" + mountPath + ", memory=" + memory + "]";
+    }
+
     @Extension
     @Symbol("emptyDirVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
