@@ -94,6 +94,17 @@ public class PodTemplateBuilderTest {
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         validatePod(pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+
+        Map<String, Container> containers = pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        assertEquals(2, containers.size());
+
+        Container container0 = containers.get("busybox");
+        assertNotNull(container0.getResources());
+        assertNotNull(container0.getResources().getRequests());
+        assertNotNull(container0.getResources().getLimits());
+        assertThat(container0.getResources().getRequests(), hasEntry("example.com/dongle", new Quantity("42")));
+        assertThat(container0.getResources().getLimits(), hasEntry("example.com/dongle", new Quantity("42")));
     }
 
     @Test
