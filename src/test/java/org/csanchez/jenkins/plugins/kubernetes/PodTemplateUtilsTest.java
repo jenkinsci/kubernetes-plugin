@@ -220,7 +220,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldDropNoDataWhenIdentical() {
+    public void shouldDropNoDataWhenIdentical() throws IOException {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("Name");
         podTemplate.setNamespace("NameSpace");
