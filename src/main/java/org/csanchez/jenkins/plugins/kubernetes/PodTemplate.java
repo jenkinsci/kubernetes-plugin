@@ -112,8 +112,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    private List<ToolLocationNodeProperty> nodeProperties = new ArrayList<>();
+    private List<ToolLocationNodeProperty> nodeProperties;
 
     private String yaml;
 
@@ -480,20 +479,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
+        if( this.nodeProperties == null)
+            this.nodeProperties = new ArrayList<>();
         if( nodeProperties != null){
             this.nodeProperties.clear();
-            this.addNodeProperties(nodeProperties);
+            this.nodeProperties.addAll(nodeProperties);
         }
-    }
-
-    public void addNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
-        this.nodeProperties.addAll(nodeProperties);
     }
 
     @Nonnull
     public List<ToolLocationNodeProperty> getNodeProperties(){
         if (nodeProperties == null) {
-            return Collections.emptyList();
+            this.nodeProperties = new ArrayList<>();
         }
         return nodeProperties;
     }

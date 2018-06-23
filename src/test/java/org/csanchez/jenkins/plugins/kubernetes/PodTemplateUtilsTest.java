@@ -452,7 +452,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCompineAllToolLocations()
+    public void shouldCombineAllToolLocations()
     {
         PodTemplate podTemplate1 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
