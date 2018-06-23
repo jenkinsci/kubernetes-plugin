@@ -62,6 +62,11 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         return new VolumeBuilder().withName(volumeName).withNewEmptyDir().withMedium(getMedium()).endEmptyDir().build();
     }
 
+    @Override
+    public String toString() {
+        return "EmptyDirWorkspaceVolume [memory=" + memory + "]";
+    }
+
     @Extension
     @Symbol("emptyDirWorkspaceVolume")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {

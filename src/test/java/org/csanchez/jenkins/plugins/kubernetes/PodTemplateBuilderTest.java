@@ -13,20 +13,24 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
@@ -43,8 +47,8 @@ public class PodTemplateBuilderTest {
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
 
-    @Mock
-    private KubernetesCloud cloud;
+    @Spy
+    private KubernetesCloud cloud = new KubernetesCloud("test");
 
     @Mock
     private KubernetesSlave slave;
@@ -89,10 +93,32 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         validatePod(pod);
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+    }
+
+    @Test
+    @Issue("JENKINS-50525")
+    public void testBuildWithCustomWorkspaceVolume() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setCustomWorkspaceVolumeEnabled(true);
+        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(false));
+        ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
+        containerTemplate.setWorkingDir("");
+        template.getContainers().add(containerTemplate);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        List<Container> containers = pod.getSpec().getContainers();
+        assertEquals(2, containers.size());
+        Container container0 = containers.get(0);
+        Container container1 = containers.get(1);
+        ImmutableList<VolumeMount> volumeMounts = ImmutableList
+                .of(new VolumeMount("/home/jenkins", "workspace-volume", false, null));
+        assertEquals(volumeMounts, container0.getVolumeMounts());
+        assertEquals(volumeMounts, container1.getVolumeMounts());
     }
 
     private void setupStubs() {
-        when(cloud.getJenkinsUrlOrDie()).thenReturn(JENKINS_URL);
+        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
         when(computer.getJnlpMac()).thenReturn(AGENT_SECRET);
         when(slave.getComputer()).thenReturn(computer);
@@ -100,7 +126,7 @@ public class PodTemplateBuilderTest {
     }
 
     private void validatePod(Pod pod) {
-        assertEquals(ImmutableMap.of("some-label", "some-label-value"), pod.getMetadata().getLabels());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
 
         // check containers
         Map<String, Container> containers = pod.getSpec().getContainers().stream()
@@ -140,7 +166,15 @@ public class PodTemplateBuilderTest {
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
-        assertThat(jnlp.getEnv(), hasItems(envVars.toArray(new EnvVar[envVars.size()])));
+        assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
+        if (jnlp.getResources() != null) {
+            if (jnlp.getResources().getRequests() != null) {
+                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
+            }
+            if (jnlp.getResources().getLimits() != null) {
+                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
+            }
+        }
     }
 
     @Test

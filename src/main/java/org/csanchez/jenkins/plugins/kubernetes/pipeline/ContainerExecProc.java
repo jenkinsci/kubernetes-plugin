@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
@@ -27,22 +31,20 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
-    private final Callable<Integer> exitCode;
+    private final ByteArrayOutputStream error;
 
-    /**
-     * 
-     * @param watch
-     * @param alive
-     * @param finished
-     * @param exitCode
-     *            a way to get the exit code
-     */
+    @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             Callable<Integer> exitCode) {
+        this(watch, alive, finished, new ByteArrayOutputStream());
+    }
+
+    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
+            ByteArrayOutputStream error) {
         this.watch = watch;
         this.alive = alive;
         this.finished = finished;
-        this.exitCode = exitCode;
+        this.error = error;
     }
 
     @Override
@@ -71,7 +73,38 @@ public class ContainerExecProc extends Proc implements Closeable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            return exitCode.call();
+            if (error.size() == 0) {
+                return 0;
+            } else {
+                // {"metadata":{},"status":"Success"}
+                // or
+                // {"metadata":{},"status":"Failure",
+                //   "message":"command terminated with non-zero exit code: Error executing in Docker Container: 127",
+                //   "reason":"NonZeroExitCode",
+                //   "details":{"causes":[{"reason":"ExitCode","message":"127"}]}}
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode errorJson = mapper.readTree(error.toByteArray());
+                    if ("Success".equalsIgnoreCase(errorJson.get("status").asText())) {
+                        return 0;
+                    }
+                    JsonNode causes = errorJson.get("details").get("causes");
+                    if (causes.isArray()) {
+                        for (JsonNode cause : causes) {
+                            if ("ExitCode".equalsIgnoreCase(cause.get("reason").asText(""))) {
+                                return cause.get("message").asInt();
+                            }
+                        }
+                    }
+                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: {0}",
+                            error.toString(StandardCharsets.UTF_8.name()));
+                    return -1;
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Unable to parse exit code from error message: "
+                            + error.toString(StandardCharsets.UTF_8.name()), e);
+                    return -1;
+                }
+            }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error getting exit code", e);
             return -1;
@@ -98,7 +131,7 @@ public class ContainerExecProc extends Proc implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            //We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
+            // We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
             watch.close();
         } catch (Exception e) {
             LOGGER.log(Level.INFO, "failed to close watch", e);

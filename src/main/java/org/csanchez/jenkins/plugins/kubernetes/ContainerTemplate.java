@@ -18,10 +18,13 @@ import org.kohsuke.stapler.DataBoundSetter;
 import com.google.common.base.Preconditions;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.QueryParameter;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -79,6 +82,25 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.args = args;
     }
 
+    public ContainerTemplate(ContainerTemplate from) {
+        this.setName(from.getName());
+        this.setImage(from.getImage());
+        this.setPrivileged(from.isPrivileged());
+        this.setAlwaysPullImage(from.isAlwaysPullImage());
+        this.setWorkingDir(from.getWorkingDir());
+        this.setCommand(from.getCommand());
+        this.setArgs(from.getArgs());
+        this.setTtyEnabled(from.isTtyEnabled());
+        this.setResourceRequestCpu(from.getResourceRequestCpu());
+        this.setResourceRequestMemory(from.getResourceRequestMemory());
+        this.setResourceLimitCpu(from.getResourceLimitCpu());
+        this.setResourceLimitMemory(from.getResourceLimitMemory());
+        this.setShell(from.getShell());
+        this.setEnvVars(from.getEnvVars());
+        this.setPorts(from.getPorts());
+        this.setLivenessProbe(from.getLivenessProbe());
+    }
+
     @DataBoundSetter
     public void setName(String name) {
         this.name = name;
@@ -130,7 +152,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setWorkingDir(String workingDir) {
-        this.workingDir = workingDir;
+        this.workingDir = Util.fixEmpty(workingDir);
     }
 
     public String getWorkingDir() {
@@ -217,6 +239,15 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
+    public String getShell() {
+        return shell;
+    }
+
+    @DataBoundSetter
+    public void setShell(String shell) {
+        this.shell = shell;
+    }
+
     public Map<String,Object> getAsArgs() {
         Map<String,Object> argMap = new TreeMap<>();
 
@@ -243,6 +274,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
+
+        public FormValidation doCheckName(@QueryParameter String value) {
+            if(!PodTemplateUtils.validateContainerName(value)) {
+                return FormValidation.error(Messages.RFC1123_error(value));
+            }
+            return FormValidation.ok();
+        }
     }
 
     @Override
@@ -266,12 +304,88 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 '}';
     }
 
-    public String getShell() {
-        return shell;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ContainerTemplate that = (ContainerTemplate) o;
+
+        if (privileged != that.privileged) {
+            return false;
+        }
+        if (alwaysPullImage != that.alwaysPullImage) {
+            return false;
+        }
+        if (ttyEnabled != that.ttyEnabled) {
+            return false;
+        }
+        if (name != null ? !name.equals(that.name) : that.name != null) {
+            return false;
+        }
+        if (image != null ? !image.equals(that.image) : that.image != null) {
+            return false;
+        }
+        if (workingDir != null ? !workingDir.equals(that.workingDir) : that.workingDir != null) {
+            return false;
+        }
+        if (command != null ? !command.equals(that.command) : that.command != null) {
+            return false;
+        }
+        if (args != null ? !args.equals(that.args) : that.args != null) {
+            return false;
+        }
+        if (resourceRequestCpu != null ? !resourceRequestCpu.equals(that.resourceRequestCpu) : that.resourceRequestCpu != null) {
+            return false;
+        }
+        if (resourceRequestMemory != null ? !resourceRequestMemory.equals(that.resourceRequestMemory) : that.resourceRequestMemory != null) {
+            return false;
+        }
+        if (resourceLimitCpu != null ? !resourceLimitCpu.equals(that.resourceLimitCpu) : that.resourceLimitCpu != null) {
+            return false;
+        }
+        if (resourceLimitMemory != null ? !resourceLimitMemory.equals(that.resourceLimitMemory) : that.resourceLimitMemory != null) {
+            return false;
+        }
+        if (shell != null ? !shell.equals(that.shell) : that.shell != null) {
+            return false;
+        }
+        if (envVars != null ? !envVars.equals(that.envVars) : that.envVars != null) {
+            return false;
+        }
+        if (ports != null ? !ports.equals(that.ports) : that.ports != null) {
+            return false;
+        }
+        return livenessProbe != null ? livenessProbe.equals(that.livenessProbe) : that.livenessProbe == null;
     }
 
-    @DataBoundSetter
-    public void setShell(String shell) {
-        this.shell = shell;
+    @Override
+    public int hashCode() {
+        int result = name != null ? name.hashCode() : 0;
+        result = 31 * result + (image != null ? image.hashCode() : 0);
+        result = 31 * result + (privileged ? 1 : 0);
+        result = 31 * result + (alwaysPullImage ? 1 : 0);
+        result = 31 * result + (workingDir != null ? workingDir.hashCode() : 0);
+        result = 31 * result + (command != null ? command.hashCode() : 0);
+        result = 31 * result + (args != null ? args.hashCode() : 0);
+        result = 31 * result + (ttyEnabled ? 1 : 0);
+        result = 31 * result + (resourceRequestCpu != null ? resourceRequestCpu.hashCode() : 0);
+        result = 31 * result + (resourceRequestMemory != null ? resourceRequestMemory.hashCode() : 0);
+        result = 31 * result + (resourceLimitCpu != null ? resourceLimitCpu.hashCode() : 0);
+        result = 31 * result + (resourceLimitMemory != null ? resourceLimitMemory.hashCode() : 0);
+        result = 31 * result + (shell != null ? shell.hashCode() : 0);
+        result = 31 * result + (envVars != null ? envVars.hashCode() : 0);
+        result = 31 * result + (ports != null ? ports.hashCode() : 0);
+        result = 31 * result + (livenessProbe != null ? livenessProbe.hashCode() : 0);
+        return result;
+    }
+
+    private Object readResolve() {
+        this.workingDir = Util.fixEmpty(workingDir);
+        return this;
     }
 }
