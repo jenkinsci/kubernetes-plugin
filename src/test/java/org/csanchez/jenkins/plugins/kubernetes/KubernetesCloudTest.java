@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -25,7 +26,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testInheritance() {
+    public void testInheritance() throws IOException {
 
         ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jnlp:1");
         ContainerTemplate maven = new ContainerTemplate("maven", "maven:1");

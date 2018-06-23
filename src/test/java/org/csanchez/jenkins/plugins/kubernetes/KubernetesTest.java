@@ -29,6 +29,8 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.List;
 
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
@@ -98,7 +100,7 @@ public class KubernetesTest {
     public void upgradeFrom_0_10() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         PodTemplate template = templates.get(0);
-        List<ToolLocationNodeProperty> nodeProperties = template.getNodeProperties();
+        DescribableList<NodeProperty<?>,NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
         assertEquals(1, nodeProperties.size());
         ToolLocationNodeProperty property = (ToolLocationNodeProperty) nodeProperties.get(0);
         assertEquals(1, property.getLocations().size());
