@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,9 +10,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nonnull;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.*;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -21,19 +27,11 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
-import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
@@ -43,7 +41,7 @@ import jenkins.model.Jenkins;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable {
 
     private static final long serialVersionUID = 3285310269140845583L;
 
@@ -112,7 +110,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    private transient List<ToolLocationNodeProperty> nodeProperties;
+    /**
+     * DescribableList list is not Serilizable, suppressing FindBug Warning
+     * This DescribableList is also used in Jenkins Slave Class, which is implemented same in here.
+     */
+    @SuppressFBWarnings(value = "SE_BAD_FIELD")
+    private DescribableList<NodeProperty<?>,NodePropertyDescriptor> nodeProperties;
 
     private String yaml;
 
@@ -120,7 +123,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public PodTemplate() {
     }
 
-    public PodTemplate(PodTemplate from) {
+    public PodTemplate(PodTemplate from) throws IOException {
         this.setAnnotations(from.getAnnotations());
         this.setContainers(from.getContainers());
         this.setImagePullSecrets(from.getImagePullSecrets());
@@ -137,6 +140,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYaml(from.getYaml());
+        this.setNodeProperties(from.getNodeProperties());
     }
 
     @Deprecated
@@ -486,17 +490,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
-        this.nodeProperties = nodeProperties;
+    public void setNodeProperties(List<? extends NodeProperty<?>> properties) throws IOException {
+        this.getNodeProperties().replaceBy(properties);
     }
 
-    @Nonnull
-    public List<ToolLocationNodeProperty> getNodeProperties(){
-        if (nodeProperties == null) {
-            return Collections.emptyList();
-        }
+    @NonNull
+    public DescribableList<NodeProperty<?>, NodePropertyDescriptor> getNodeProperties(){
+        if( this.nodeProperties == null)
+            this.nodeProperties = new DescribableList<>(this);
         return nodeProperties;
     }
+
 
     @Deprecated
     public String getResourceRequestMemory() {
@@ -670,6 +674,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             builder.append(label).append(": ").append(value);
         }
     }
+
+    /**
+     * Empty implementation of Saveable interface. This interface is used for DescribableList implementation
+     */
+    @Override
+    public void save()  { }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {

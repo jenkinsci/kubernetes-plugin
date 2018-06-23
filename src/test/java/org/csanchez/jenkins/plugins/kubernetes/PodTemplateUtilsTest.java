@@ -30,10 +30,15 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import hudson.model.Node;
+import hudson.slaves.NodeProperty;
+import hudson.tools.ToolLocationNodeProperty;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
@@ -86,7 +91,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldReturnPodTemplateWhenParentIsNull() {
+    public void shouldReturnPodTemplateWhenParentIsNull() throws IOException {
         PodTemplate template = new PodTemplate();
         template.setName("template");
         template.setServiceAccount("sa1");
@@ -95,7 +100,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideServiceAccountIfSpecified() {
+    public void shouldOverrideServiceAccountIfSpecified() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setServiceAccount("sa");
@@ -115,7 +120,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideNodeSelectorIfSpecified() {
+    public void shouldOverrideNodeSelectorIfSpecified() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -135,7 +140,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllImagePullSecrets() {
+    public void shouldCombineAllImagePullSecrets() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -163,7 +168,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllAnnotations() {
+    public void shouldCombineAllAnnotations() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -194,7 +199,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapParent() {
+    public void shouldUnwrapParent() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -215,7 +220,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldDropNoDataWhenIdentical() {
+    public void shouldDropNoDataWhenIdentical() throws IOException {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("Name");
         podTemplate.setNamespace("NameSpace");
@@ -253,7 +258,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapMultipleParents() {
+    public void shouldUnwrapMultipleParents() throws IOException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -293,7 +298,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodKeyValueEnvVars() {
+    public void shouldCombineAllPodKeyValueEnvVars() throws IOException {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -309,7 +314,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
+    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() throws IOException {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -324,7 +329,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodSecretEnvVars() {
+    public void shouldCombineAllPodSecretEnvVars() throws IOException {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -340,7 +345,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
+    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() throws IOException {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -438,7 +443,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllMounts() {
+    public void shouldCombineAllMounts() throws IOException {
         PodTemplate template1 = new PodTemplate();
         HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
         HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
@@ -613,5 +618,24 @@ public class PodTemplateUtilsTest {
     public void testValidateLabelTooLong() {
         assertFalse(validateLabel("1234567890123456789012345678901234567890123456789012345678901234"));
         assertFalse(validateLabel("abcdefghijklmnopqrstuwxyzabcdefghijklmnopqrstuwxyzabcdefghijklmn"));
+    }
+
+    @Test
+    public void shouldCombineAllToolLocations() throws IOException {
+
+        PodTemplate podTemplate1 = new PodTemplate();
+        List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
+        nodeProperties1.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test","toolHome1")));
+        podTemplate1.setNodeProperties(nodeProperties1);
+
+        PodTemplate podTemplate2 = new PodTemplate();
+        List<ToolLocationNodeProperty> nodeProperties2 = new ArrayList<>();
+        nodeProperties2.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test","toolHome2")));
+        podTemplate2.setNodeProperties(nodeProperties2);
+
+        PodTemplate result = combine(podTemplate1,podTemplate2);
+
+        assertThat(result.getNodeProperties(), hasItems(nodeProperties1.get(0),nodeProperties2.get(0)));
+
     }
 }

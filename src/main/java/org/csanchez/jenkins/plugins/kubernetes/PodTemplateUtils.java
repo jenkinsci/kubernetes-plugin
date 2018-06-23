@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
+import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +27,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
+import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -140,7 +145,7 @@ public class PodTemplateUtils {
         Map<String, Quantity> limits = new HashMap<>();
         safeGet(parent, template, ResourceRequirements::getLimits, "cpu", limits);
         safeGet(parent, template, ResourceRequirements::getLimits, "memory", limits);
-        
+
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
@@ -181,7 +186,7 @@ public class PodTemplateUtils {
                 );
         if (data != null) {
             out.put(field, data);
-        }   
+        }
     }
 
     /**
@@ -273,7 +278,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static PodTemplate combine(PodTemplate parent, PodTemplate template) {
+    public static PodTemplate combine(PodTemplate parent, PodTemplate template) throws IOException {
         Preconditions.checkNotNull(template, "Pod template should not be null");
         if (parent == null) {
             return template;
@@ -312,8 +317,7 @@ public class PodTemplateUtils {
         WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
         //Tool location node properties
-        List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
-        toolLocationNodeProperties.addAll(parent.getNodeProperties());
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> toolLocationNodeProperties = parent.getNodeProperties();
         toolLocationNodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate();
@@ -366,7 +370,7 @@ public class PodTemplateUtils {
      * @param allTemplates               A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
+    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) throws IOException {
         if (template == null) {
             return null;
         }
@@ -405,7 +409,7 @@ public class PodTemplateUtils {
      * @param allTemplates            A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
+    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) throws IOException {
         return unwrap(template, null, allTemplates);
     }
 
