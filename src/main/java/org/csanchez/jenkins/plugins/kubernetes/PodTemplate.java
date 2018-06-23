@@ -1,21 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nonnull;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.*;
 import hudson.slaves.NodeProperty;
@@ -30,14 +27,11 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.labels.LabelAtom;
-import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
@@ -489,9 +483,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.getNodeProperties().replaceBy(properties);
     }
 
+    @NonNull
     public DescribableList<NodeProperty<?>, NodePropertyDescriptor> getNodeProperties(){
         if( this.nodeProperties == null)
-            this.nodeProperties = new DescribableList<NodeProperty<?>, NodePropertyDescriptor>(this);
+            this.nodeProperties = new DescribableList<>(this);
         return nodeProperties;
     }
 
@@ -669,9 +664,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
+    /**
+     * Empty implementation of Saveable interface. This interface is used for DescribableList implementation
+     */
     @Override
-    public void save()  {
-    }
+    public void save()  { }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
