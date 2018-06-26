@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -14,7 +15,11 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
+import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -25,6 +30,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -117,6 +123,30 @@ public class PodTemplateBuilderTest {
         assertEquals(volumeMounts, container1.getVolumeMounts());
     }
 
+    public void testBuildFromTemplate() throws Exception {
+        PodTemplate template = new PodTemplate();
+
+        List<PodVolume> volumes = new ArrayList<PodVolume>();
+        volumes.add(new HostPathVolume("/host/data", "/container/data"));
+        volumes.add(new EmptyDirVolume("/empty/dir", false));
+        template.setVolumes(volumes);
+
+        List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
+        ContainerTemplate busyboxContainer = new ContainerTemplate("busybox", "busybox");
+        busyboxContainer.setCommand("cat");
+        busyboxContainer.setTtyEnabled(true);
+        List<TemplateEnvVar> envVars = new ArrayList<TemplateEnvVar>();
+        envVars.add(new KeyValueEnvVar("CONTAINER_ENV_VAR", "container-env-var-value"));
+        busyboxContainer.setEnvVars(envVars);
+        containers.add(busyboxContainer);
+        template.setContainers(containers);
+
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
+        validatePod(pod, false);
+    }
+
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -126,6 +156,10 @@ public class PodTemplateBuilderTest {
     }
 
     private void validatePod(Pod pod) {
+        validatePod(pod, true);
+    }
+
+    private void validatePod(Pod pod, boolean fromYaml) {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
 
         // check containers
@@ -141,13 +175,25 @@ public class PodTemplateBuilderTest {
                 .collect(Collectors.toMap(Volume::getName, Function.identity()));
         assertEquals(3, volumes.size());
         assertNotNull(volumes.get("workspace-volume"));
-        assertNotNull(volumes.get("empty-volume"));
-        assertNotNull(volumes.get("host-volume"));
+        if (fromYaml) {
+            assertNotNull(volumes.get("empty-volume"));
+            assertNotNull(volumes.get("host-volume"));
+        } else {
+            assertNotNull(volumes.get("volume-0"));
+            assertNotNull(volumes.get("volume-1"));
+        }
 
         List<VolumeMount> mounts = containers.get("busybox").getVolumeMounts();
-        assertEquals(2, mounts.size());
-        assertEquals(new VolumeMount("/container/data", "host-volume", null, null), mounts.get(0));
-        assertEquals(new VolumeMount("/home/jenkins", "workspace-volume", false, null), mounts.get(1));
+        if (fromYaml) {
+            assertEquals(2, mounts.size());
+            assertEquals(new VolumeMount("/container/data", "host-volume", null, null), mounts.get(0));
+            assertEquals(new VolumeMount("/home/jenkins", "workspace-volume", false, null), mounts.get(1));
+        } else {
+            assertEquals(3, mounts.size());
+            assertEquals(new VolumeMount("/container/data", "volume-0", null, null), mounts.get(0));
+            assertEquals(new VolumeMount("/empty/dir", "volume-1", null, null), mounts.get(1));
+            assertEquals(new VolumeMount("/home/jenkins", "workspace-volume", false, null), mounts.get(2));
+        }
 
         validateJnlpContainer(containers.get("jnlp"), slave);
     }
