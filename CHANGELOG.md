@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.9.0
+-----
+
+* Update parent and Jenkins versions [#349](https://github.com/jenkinsci/kubernetes-plugin/pull/349)
+
 1.8.4
 -----
 
