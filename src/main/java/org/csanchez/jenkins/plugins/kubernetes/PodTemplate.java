@@ -110,12 +110,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    /**
-     * DescribableList list is not Serilizable, suppressing FindBug Warning
-     * This DescribableList is also used in Jenkins Slave Class, which is implemented same in here.
-     */
-    @SuppressFBWarnings(value = "SE_BAD_FIELD")
-    private DescribableList<NodeProperty<?>,NodePropertyDescriptor> nodeProperties;
+    private PodTemplateToolLocation nodeProperties;
 
     private String yaml;
 
@@ -495,9 +490,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @NonNull
-    public DescribableList<NodeProperty<?>, NodePropertyDescriptor> getNodeProperties(){
+    public PodTemplateToolLocation getNodeProperties(){
         if( this.nodeProperties == null)
-            this.nodeProperties = new DescribableList<>(this);
+            this.nodeProperties = new PodTemplateToolLocation(this);
         return nodeProperties;
     }
 

@@ -317,7 +317,7 @@ public class PodTemplateUtils {
         WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
         //Tool location node properties
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor> toolLocationNodeProperties = parent.getNodeProperties();
+        PodTemplateToolLocation toolLocationNodeProperties = parent.getNodeProperties();
         toolLocationNodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate();
