@@ -38,6 +38,9 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
     public Closure run(Closure body) {
         return {
             try {
+                if (describable.getYamlFile() != null && describable.hasScmContext(s)) {
+                    describable.setYaml(script.readTrusted(describable.getYamlFile()))
+                }
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
                         if (describable.isDoCheckout() && describable.hasScmContext(script)) {
