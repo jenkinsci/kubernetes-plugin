@@ -2,7 +2,7 @@ pipeline {
   agent {
     kubernetes {
       label 'mypod'
-      yamlFile 'examples/declarative_from_yaml_file/KubernetesPod.yml'
+      yamlFile 'examples/declarative_from_yaml_file/KubernetesPod.yaml'
     }
   }
   stages {
