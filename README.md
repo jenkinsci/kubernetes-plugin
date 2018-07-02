@@ -176,7 +176,7 @@ spec:
 }
 ```
 
-You can use [`readFile` step](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
+You can use [`readFile`](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) or [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) steps to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
 
 #### Liveness Probe Usage
 ```groovy
@@ -702,4 +702,4 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 # Related Projects
 
 * [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds
-* [Kubernetes Secrets Credentials plugin](https://github.com/hoshsadiq/jenkins-kubernetes-secrets-credentials): Credentials provider that reads Kubernetes secrets
+* [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin): Credentials provider that reads Kubernetes secrets
