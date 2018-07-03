@@ -64,7 +64,7 @@
         <f:checkbox />
       </f:entry>
 
-      <f:entry title="${%Requires permission}" field="usageRestricted">
+      <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
         <f:checkbox />
       </f:entry>
     </f:advanced>

@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -115,11 +116,10 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         }
 
         try {
-            KubernetesFolderProperty newKubernetesFolderProperty = new KubernetesFolderProperty();
-
             Set<String> inheritedGrants = new HashSet<>();
             collectAllowedClouds(inheritedGrants, getOwner().getParent());
 
+            Set<String> permittedClouds = new HashSet<>();
             JSONArray names = form.names();
             if (names != null) {
                 for (Object name : names) {
@@ -128,21 +128,19 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
                     if (strName.startsWith(PREFIX_USAGE_PERMISSION) && form.getBoolean(strName)) {
                         String cloud = StringUtils.replaceOnce(strName, PREFIX_USAGE_PERMISSION, "");
 
-                        if (isUsageRestrictedKubernetesCloud(Jenkins.getInstance().getCloud(cloud))
+                        if (isUsageRestrictedKubernetesCloud(Jenkins.get().getCloud(cloud))
                                 && !inheritedGrants.contains(cloud)) {
-                            newKubernetesFolderProperty.getPermittedClouds().add(cloud);
+                            permittedClouds.add(cloud);
                         }
                     }
                 }
             }
-
-            return newKubernetesFolderProperty;
-        } catch (JSONException jsonException) {
-            LOGGER.severe(String.format("reconfigure failed: %s", jsonException.getMessage()));
-            jsonException.printStackTrace();
-
-            return this;
+            this.permittedClouds.clear();
+            this.permittedClouds.addAll(permittedClouds);
+        } catch (JSONException e) {
+            LOGGER.log(Level.SEVERE, e, () -> "reconfigure failed: " + e.getMessage());
         }
+        return this;
     }
 
     /**
@@ -168,27 +166,14 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     }
 
     private static List<KubernetesCloud> getUsageRestrictedKubernetesClouds() {
-        List<KubernetesCloud> clouds = new ArrayList<>();
-
-        for (Cloud cloud : Jenkins.getInstance().clouds) {
-            if(cloud instanceof KubernetesCloud) {
-                if (((KubernetesCloud) cloud).isUsageRestricted()) {
-                    clouds.add((KubernetesCloud) cloud);
-                }
-            }
-        }
-
-        Collections.sort(clouds, CLOUD_BY_NAME);
-
+        List<KubernetesCloud> clouds = Jenkins.get().clouds
+                .getAll(KubernetesCloud.class)
+                .stream()
+                .filter(KubernetesCloud::isUsageRestricted)
+                .collect(Collectors.toList());
+        Collections.sort(clouds, Comparator.<Cloud, String>comparing(o -> o.name));
         return clouds;
     }
-
-    private final static Comparator<Cloud> CLOUD_BY_NAME = new Comparator<Cloud>() {
-        @Override
-        public int compare(Cloud o1, Cloud o2) {
-            return o1.name.compareTo(o2.name);
-        }
-    };
 
     public static class UsagePermission {
 
@@ -202,7 +187,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             this.inherited = inherited;
         }
 
-        private boolean isInherited() {
+        public boolean isInherited() {
             return inherited;
         }
 
@@ -210,7 +195,8 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             this.granted = granted;
         }
 
-        private boolean isGranted() {
+        @SuppressWarnings("unused") // by stapler/jelly
+        public boolean isGranted() {
             return granted;
         }
 
@@ -224,47 +210,29 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
          * @return
          */
         public String getName() {
-            return name;
+            return name + (isInherited() ? " (inherited)" : "");
         }
 
-        private String htmlCheckedAttr() {
-            return isGranted() ? "checked=\"checked\"" : "";
+        @SuppressWarnings("unused") // by stapler/jelly
+        public String getFormName() {
+            return PREFIX_USAGE_PERMISSION + getName();
         }
 
-        private String htmlReadOnlyAttr() {
-            return isModifiable() ? "" : "readonly=\"readonly\"";
-        }
-
-        private String htmlDisabledAttr() {
-            return isModifiable() ? "" : "disabled=\"disabled\"";
-        }
-
-        private boolean isModifiable() {
-            return userHasAdministerPermission() && !isInherited();
-        }
-
-        /**
-         * Called from Jelly.
-         * 
-         * @return
-         */
-        public String htmlCheckbox() {
-            return String.format("<input type=\"checkbox\" name=\"%s\" %s %s %s value=\"%s\"/>",
-                    PREFIX_USAGE_PERMISSION + getName(), htmlDisabledAttr(), htmlReadOnlyAttr(), htmlCheckedAttr(),
-                    getName());
+        @SuppressWarnings("unused") // by stapler/jelly
+        public boolean isReadonly() {
+            return !userHasAdministerPermission() || isInherited();
         }
 
     }
 
     private static boolean userHasAdministerPermission() {
-        return Jenkins.getInstance().getACL().hasPermission(Jenkins.ADMINISTER);
+        return Jenkins.get().hasPermission(Jenkins.ADMINISTER);
     }
 
     private static boolean isUsageRestrictedKubernetesCloud(Cloud cloud) {
         if (cloud instanceof KubernetesCloud) {
             return ((KubernetesCloud) cloud).isUsageRestricted();
         }
-
         return false;
     }
 
@@ -277,7 +245,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         @Nonnull
         @Override
         public String getDisplayName() {
-            return "Kubernetes Plugin";
+            return Messages.KubernetesFolderProperty_displayName();
         }
 
     }
