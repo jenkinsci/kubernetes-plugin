@@ -124,7 +124,7 @@ public class PodTemplateBuilder {
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
             //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString());
+            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
             if (!volumeMounts.containsKey(mountPath)) {
                 volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false, null));
                 volumes.put(volumeName, volume.buildVolume(volumeName));
@@ -133,9 +133,12 @@ public class PodTemplateBuilder {
         }
 
         if (template.getWorkspaceVolume() != null) {
+            LOGGER.log(Level.FINE, "Adding workspace volume from template: {0}",
+                    template.getWorkspaceVolume().toString());
             volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
         } else {
             // add an empty volume to share the workspace across the pod
+            LOGGER.log(Level.FINE, "Adding empty workspace volume");
             volumes.put(WORKSPACE_VOLUME_NAME, new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
         }
 

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -21,6 +22,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -41,6 +43,7 @@ import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -122,9 +125,9 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        Boolean privileged = template.getSecurityContext().getPrivileged() != null
+        Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
-                : parent.getSecurityContext().getPrivileged();
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
@@ -133,16 +136,14 @@ public class PodTemplateUtils {
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
-        Quantity resourceRequestCpu = safeGet(parent, template, ResourceRequirements::getRequests, "cpu");
-        Quantity resourceRequestMemory = safeGet(parent, template, ResourceRequirements::getRequests, "memory");
-        Quantity resourceLimitCpu = safeGet(parent, template, ResourceRequirements::getLimits, "cpu");
-        Quantity resourceLimitMemory = safeGet(parent, template, ResourceRequirements::getLimits, "memory");
-
+        Map<String, Quantity> requests = combineResources(parent, template, ResourceRequirements::getRequests);
+        Map<String, Quantity> limits = combineResources(parent, template, ResourceRequirements::getLimits);
+        
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
-        Container combined = new ContainerBuilder() //
+        Container combined = new ContainerBuilder(parent) //
                 .withImage(image) //
                 .withName(name) //
                 .withImagePullPolicy(imagePullPolicy) //
@@ -151,10 +152,11 @@ public class PodTemplateUtils {
                 .withArgs(args) //
                 .withTty(tty) //
                 .withNewResources() //
-                .withRequests(ImmutableMap.of("cpu", resourceRequestCpu, "memory", resourceRequestMemory)) //
-                .withLimits(ImmutableMap.of("cpu", resourceLimitCpu, "memory", resourceLimitMemory)) //
+                .withRequests(ImmutableMap.copyOf(requests)) //
+                .withLimits(ImmutableMap.copyOf(limits)) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
+                .withEnvFrom(combinedEnvFromSources(parent, template))
                 .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
@@ -162,17 +164,16 @@ public class PodTemplateUtils {
         return combined;
     }
 
-    private static Quantity safeGet(Container parent, Container template,
-                                    Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
-                                    String field) {
-        return Optional.ofNullable(template.getResources())
-                .map(resourceTypeMapper)
-                .map(rT -> rT.get(field))
-                .filter(tF -> !Strings.isNullOrEmpty(tF.getAmount()))
-                .orElse(Optional.ofNullable(parent.getResources())
-                        .map(resourceTypeMapper)
-                        .map(rT -> rT.get(field))
-                        .orElse(new Quantity(""))
+    private static Map<String, Quantity> combineResources(Container parent, Container template,
+                                                          Function<ResourceRequirements,
+                                                                   Map<String, Quantity>> resourceTypeMapper) {
+        return Stream.of(template.getResources(), parent.getResources()) //
+                .filter(Objects::nonNull) //
+                .map(resourceTypeMapper) //
+                .filter(Objects::nonNull) //
+                .map(Map::entrySet) //
+                .flatMap(Collection::stream) //
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1) // v2 (parent) loses
                 );
     }
 
@@ -229,7 +230,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadataLike(parent.getMetadata()) //
+        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
@@ -546,6 +547,16 @@ public class PodTemplateUtils {
         combinedEnvVars.addAll(parent.getEnvVars());
         combinedEnvVars.addAll(template.getEnvVars());
         return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+    }
+
+    private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
+        List<EnvFromSource> combinedEnvFromSources = new ArrayList<>();
+        combinedEnvFromSources.addAll(parent.getEnvFrom());
+        combinedEnvFromSources.addAll(template.getEnvFrom());
+        return combinedEnvFromSources.stream().filter(envFromSource ->
+                envFromSource.getConfigMapRef() != null && !Strings.isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
+                        envFromSource.getSecretRef() != null && !Strings.isNullOrEmpty(envFromSource.getSecretRef().getName())
+        ).collect(toList());
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {

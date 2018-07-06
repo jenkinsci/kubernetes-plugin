@@ -28,6 +28,11 @@ spec:
   containers:
   - name: busybox
     image: busybox
+    resources:
+      requests:
+        example.com/dongle: 42
+      limits:
+        example.com/dongle: 42
     command:
     - cat
     tty: true
