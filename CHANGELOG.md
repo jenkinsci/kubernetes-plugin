@@ -9,6 +9,11 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Preserve resources other than CPU and memory
 
+1.9.3
+-----
+
+* Avoid streaming to 2 similar OutputStreams [#356](https://github.com/jenkinsci/kubernetes-plugin/pull/356)
+
 1.9.2
 -----
 
