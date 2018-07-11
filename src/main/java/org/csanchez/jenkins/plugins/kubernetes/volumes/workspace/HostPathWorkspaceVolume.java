@@ -41,9 +41,9 @@ public class HostPathWorkspaceVolume extends WorkspaceVolume {
     }
 
     public Volume buildVolume(String volumeName) {
-        return new VolumeBuilder()
-                .withName(volumeName)
-                .withNewHostPath(getHostPath())
+        return new VolumeBuilder() //
+                .withName(volumeName) //
+                .withNewHostPath().withPath(getHostPath()).endHostPath() //
                 .build();
     }
 
