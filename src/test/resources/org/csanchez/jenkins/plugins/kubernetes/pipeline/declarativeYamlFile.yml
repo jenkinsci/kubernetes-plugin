@@ -1,6 +1,7 @@
 metadata:
   labels:
     some-label: some-label-value
+    class: KubernetesDeclarativeAgentTest
 spec:
   containers:
   - name: jnlp
