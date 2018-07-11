@@ -390,6 +390,23 @@ spec:
 }
 ```
 
+or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` file
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      defaultContainer 'jnlp'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+  stages {
+      ...
+  }
+}
+```
+
 Note that it was previously possible to define `containerTemplate` but that has been deprecated in favor of the yaml format.
 
 ```groovy
