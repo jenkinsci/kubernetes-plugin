@@ -15,7 +15,7 @@ def jvmOptions = '-Xmx300M'
 timestamps {
 
   podTemplate(serviceAccount: 'jenkins', label: label, containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.5.0-jdk-8-alpine', ttyEnabled: true, command: 'cat',
+    containerTemplate(name: 'maven', image: 'maven:3.5.4-jdk-8', ttyEnabled: true, command: 'cat',
         resourceRequestCpu: '100m',
         resourceLimitMemory: '1200Mi')
     ], envVars: [

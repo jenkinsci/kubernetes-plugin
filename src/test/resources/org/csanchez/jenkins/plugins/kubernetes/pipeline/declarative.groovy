@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'mypod'
+      label 'declarative-pod'
       containerTemplate {
         name 'maven'
         image 'maven:3.3.9-jdk-8-alpine'
