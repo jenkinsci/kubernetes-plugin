@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -74,10 +75,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             Thread.sleep(1000);
         }
 
-        PodList pods = cloud.connect().pods().withLabels(getLabels(cloud, this)).list();
+        Map<String, String> labels = getLabels(cloud, this);
+        LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
+        PodList pods = cloud.connect().pods().withLabels(labels).list();
         while (pods.getItems().isEmpty()) {
-            LOGGER.log(Level.INFO, "Waiting for pod to be created");
-            pods = cloud.connect().pods().withLabels(getLabels(cloud, this)).list();
+            LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
+            pods = cloud.connect().pods().withLabels(labels).list();
             Thread.sleep(1000);
         }
 
@@ -86,6 +89,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         assertEquals(1, pods.getItems().size());
         Pod pod = pods.getItems().get(0);
+        LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/mypod", "true"));
 
