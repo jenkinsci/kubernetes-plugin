@@ -32,12 +32,16 @@ import org.jenkinsci.plugins.workflow.cps.CpsScript
 public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<KubernetesDeclarativeAgent> {
     public KubernetesDeclarativeAgentScript(CpsScript s, KubernetesDeclarativeAgent a) {
         super(s, a)
+
     }
 
     @Override
     public Closure run(Closure body) {
         return {
             try {
+                if (describable.getYamlFile() != null && describable.hasScmContext(script)) {
+                    describable.setYaml(script.readTrusted(describable.getYamlFile()))
+                }
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
                         if (describable.isDoCheckout() && describable.hasScmContext(script)) {
