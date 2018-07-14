@@ -124,7 +124,7 @@ public class PodTemplateBuilder {
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
             //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString());
+            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
             if (!volumeMounts.containsKey(mountPath)) {
                 volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false, null));
                 volumes.put(volumeName, volume.buildVolume(volumeName));

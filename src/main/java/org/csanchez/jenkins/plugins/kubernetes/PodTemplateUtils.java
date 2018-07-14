@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -21,6 +22,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -138,13 +140,9 @@ public class PodTemplateUtils {
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
-        Map<String, Quantity> requests = new HashMap<>();
-        safeGet(parent, template, ResourceRequirements::getRequests, "cpu", requests);
-        safeGet(parent, template, ResourceRequirements::getRequests, "memory", requests);
-        Map<String, Quantity> limits = new HashMap<>();
-        safeGet(parent, template, ResourceRequirements::getLimits, "cpu", limits);
-        safeGet(parent, template, ResourceRequirements::getLimits, "memory", limits);
-
+        Map<String, Quantity> requests = combineResources(parent, template, ResourceRequirements::getRequests);
+        Map<String, Quantity> limits = combineResources(parent, template, ResourceRequirements::getLimits);
+        
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
@@ -170,22 +168,17 @@ public class PodTemplateUtils {
         return combined;
     }
 
-    private static void safeGet(Container parent, Container template,
-                                Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper,
-                                String field, Map<String, Quantity> out) {
-        Quantity data;
-        data = Optional.ofNullable(template.getResources())
-                .map(resourceTypeMapper)
-                .map(rT -> rT.get(field))
-                .filter(tF -> !Strings.isNullOrEmpty(tF.getAmount()))
-                .orElse(Optional.ofNullable(parent.getResources())
-                        .map(resourceTypeMapper)
-                        .map(rT -> rT.get(field))
-                        .orElse(null)
+    private static Map<String, Quantity> combineResources(Container parent, Container template,
+                                                          Function<ResourceRequirements,
+                                                                   Map<String, Quantity>> resourceTypeMapper) {
+        return Stream.of(template.getResources(), parent.getResources()) //
+                .filter(Objects::nonNull) //
+                .map(resourceTypeMapper) //
+                .filter(Objects::nonNull) //
+                .map(Map::entrySet) //
+                .flatMap(Collection::stream) //
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1) // v2 (parent) loses
                 );
-        if (data != null) {
-            out.put(field, data);
-        }
     }
 
     /**

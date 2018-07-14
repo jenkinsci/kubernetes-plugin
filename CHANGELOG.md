@@ -7,6 +7,33 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+Preserve resources other than CPU and memory
+
+1.10.0
+-----
+
+* Add `yamlFile` option for Declarative agent to read yaml definition from a different file [#355](https://github.com/jenkinsci/kubernetes-plugin/pull/355) [JENKINS-52259](https://issues.jenkins-ci.org/browse/JENKINS-52259)
+
+1.9.3
+-----
+
+* Avoid streaming to 2 similar OutputStreams [#356](https://github.com/jenkinsci/kubernetes-plugin/pull/356)
+
+1.9.2
+-----
+
+* Combine all resources declared in requests and limits not just CPU and memory [#350](https://github.com/jenkinsci/kubernetes-plugin/pull/350)
+
+1.9.1
+-----
+
+* Jenkins master in windows changes the file separator of `mountPath` incorrectly [#308](https://github.com/jenkinsci/kubernetes-plugin/pull/308) [JENKINS-47178](https://issues.jenkins-ci.org/browse/JENKINS-47178)
+
+1.9.0
+-----
+
+* Update parent and Jenkins versions [#349](https://github.com/jenkinsci/kubernetes-plugin/pull/349)
+
 1.8.4
 -----
 
