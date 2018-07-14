@@ -1,9 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
-
 import jenkins.model.JenkinsLocationConfiguration;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -26,7 +23,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testInheritance() throws IOException {
+    public void testInheritance() {
 
         ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jnlp:1");
         ContainerTemplate maven = new ContainerTemplate("maven", "maven:1");

@@ -485,8 +485,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setNodeProperties(List<? extends NodeProperty<?>> properties) throws IOException {
-        this.getNodeProperties().replaceBy(properties);
+    public void setNodeProperties(List<? extends NodeProperty<?>> properties)  {
+        this.getNodeProperties().clear();
+        this.getNodeProperties().addAll(properties);
     }
 
     @NonNull

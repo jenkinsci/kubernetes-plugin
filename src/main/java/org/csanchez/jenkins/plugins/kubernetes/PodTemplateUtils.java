@@ -5,7 +5,6 @@ import static java.nio.charset.StandardCharsets.*;
 import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
-import java.io.IOException;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -278,7 +277,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static PodTemplate combine(PodTemplate parent, PodTemplate template) throws IOException {
+    public static PodTemplate combine(PodTemplate parent, PodTemplate template) {
         Preconditions.checkNotNull(template, "Pod template should not be null");
         if (parent == null) {
             return template;
@@ -370,7 +369,7 @@ public class PodTemplateUtils {
      * @param allTemplates               A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) throws IOException {
+    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
         if (template == null) {
             return null;
         }
@@ -409,7 +408,7 @@ public class PodTemplateUtils {
      * @param allTemplates            A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) throws IOException {
+    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
         return unwrap(template, null, allTemplates);
     }
 

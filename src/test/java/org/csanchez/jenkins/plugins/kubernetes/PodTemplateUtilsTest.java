@@ -30,7 +30,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -91,7 +90,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldReturnPodTemplateWhenParentIsNull() throws IOException {
+    public void shouldReturnPodTemplateWhenParentIsNull() {
         PodTemplate template = new PodTemplate();
         template.setName("template");
         template.setServiceAccount("sa1");
@@ -100,7 +99,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideServiceAccountIfSpecified() throws IOException {
+    public void shouldOverrideServiceAccountIfSpecified() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setServiceAccount("sa");
@@ -120,7 +119,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideNodeSelectorIfSpecified() throws IOException {
+    public void shouldOverrideNodeSelectorIfSpecified() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -140,7 +139,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllImagePullSecrets() throws IOException {
+    public void shouldCombineAllImagePullSecrets() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -168,7 +167,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllAnnotations() throws IOException {
+    public void shouldCombineAllAnnotations() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -199,7 +198,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapParent() throws IOException {
+    public void shouldUnwrapParent() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -220,7 +219,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldDropNoDataWhenIdentical() throws IOException {
+    public void shouldDropNoDataWhenIdentical()  {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("Name");
         podTemplate.setNamespace("NameSpace");
@@ -258,7 +257,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapMultipleParents() throws IOException {
+    public void shouldUnwrapMultipleParents()  {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -298,7 +297,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodKeyValueEnvVars() throws IOException {
+    public void shouldCombineAllPodKeyValueEnvVars()  {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -314,7 +313,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() throws IOException {
+    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars()  {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -329,7 +328,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodSecretEnvVars() throws IOException {
+    public void shouldCombineAllPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -345,7 +344,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() throws IOException {
+    public void shouldFilterOutNullOrEmptyPodSecretEnvVars()  {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -443,7 +442,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllMounts() throws IOException {
+    public void shouldCombineAllMounts()  {
         PodTemplate template1 = new PodTemplate();
         HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
         HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
@@ -621,7 +620,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllToolLocations() throws IOException {
+    public void shouldCombineAllToolLocations() {
 
         PodTemplate podTemplate1 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
