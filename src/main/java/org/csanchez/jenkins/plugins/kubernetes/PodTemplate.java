@@ -118,7 +118,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public PodTemplate() {
     }
 
-    public PodTemplate(PodTemplate from) throws IOException {
+    public PodTemplate(PodTemplate from) {
         this.setAnnotations(from.getAnnotations());
         this.setContainers(from.getContainers());
         this.setImagePullSecrets(from.getImagePullSecrets());

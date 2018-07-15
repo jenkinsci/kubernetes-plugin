@@ -512,7 +512,7 @@ public class KubernetesCloud extends Cloud {
      * @param podTemplate the pod template to unwrap.
      * @return the unwrapped pod template
      */
-    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) throws IOException {
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
         return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
     }
 
