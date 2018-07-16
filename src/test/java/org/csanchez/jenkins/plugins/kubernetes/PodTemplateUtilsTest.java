@@ -257,7 +257,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapMultipleParents()  {
+    public void shouldUnwrapMultipleParents() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -297,7 +297,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodKeyValueEnvVars()  {
+    public void shouldCombineAllPodKeyValueEnvVars() {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -313,7 +313,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars()  {
+    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -344,7 +344,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodSecretEnvVars()  {
+    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -442,7 +442,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllMounts()  {
+    public void shouldCombineAllMounts() {
         PodTemplate template1 = new PodTemplate();
         HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
         HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
