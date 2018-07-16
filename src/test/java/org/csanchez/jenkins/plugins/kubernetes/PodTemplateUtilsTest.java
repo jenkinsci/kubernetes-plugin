@@ -30,10 +30,14 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import hudson.model.Node;
+import hudson.slaves.NodeProperty;
+import hudson.tools.ToolLocationNodeProperty;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
@@ -613,5 +617,24 @@ public class PodTemplateUtilsTest {
     public void testValidateLabelTooLong() {
         assertFalse(validateLabel("1234567890123456789012345678901234567890123456789012345678901234"));
         assertFalse(validateLabel("abcdefghijklmnopqrstuwxyzabcdefghijklmnopqrstuwxyzabcdefghijklmn"));
+    }
+
+    @Test
+    public void shouldCombineAllToolLocations() {
+
+        PodTemplate podTemplate1 = new PodTemplate();
+        List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
+        nodeProperties1.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test","toolHome1")));
+        podTemplate1.setNodeProperties(nodeProperties1);
+
+        PodTemplate podTemplate2 = new PodTemplate();
+        List<ToolLocationNodeProperty> nodeProperties2 = new ArrayList<>();
+        nodeProperties2.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test","toolHome2")));
+        podTemplate2.setNodeProperties(nodeProperties2);
+
+        PodTemplate result = combine(podTemplate1,podTemplate2);
+
+        assertThat(result.getNodeProperties(), hasItems(nodeProperties1.get(0),nodeProperties2.get(0)));
+
     }
 }
