@@ -272,12 +272,11 @@ public class KubernetesCloud extends Cloud {
     @Nonnull
     public String getJenkinsUrlOrDie() {
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
-        String locationConfigurationUrl = locationConfiguration != null ? locationConfiguration.getUrl() : null;
         String url = StringUtils.defaultIfBlank(
                 getJenkinsUrl(),
                 StringUtils.defaultIfBlank(
                         System.getProperty("KUBERNETES_JENKINS_URL",System.getenv("KUBERNETES_JENKINS_URL")),
-                        locationConfigurationUrl
+                        locationConfiguration.getUrl()
                 )
         );
         if (url == null) {
