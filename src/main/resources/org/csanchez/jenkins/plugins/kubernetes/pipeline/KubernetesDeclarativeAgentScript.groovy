@@ -32,12 +32,16 @@ import org.jenkinsci.plugins.workflow.cps.CpsScript
 public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<KubernetesDeclarativeAgent> {
     public KubernetesDeclarativeAgentScript(CpsScript s, KubernetesDeclarativeAgent a) {
         super(s, a)
+
     }
 
     @Override
     public Closure run(Closure body) {
         return {
             try {
+                if (describable.getYamlFile() != null && describable.hasScmContext(script)) {
+                    describable.setYaml(script.readTrusted(describable.getYamlFile()))
+                }
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
                         def checkoutMap = [:]
@@ -51,14 +55,24 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                                 checkoutMap.putAll(performCheckout(script, describable))
                             }
                         }
+                        // what container to use for the main body
+                        def container = describable.defaultContainer ?: 'jnlp';
+
+                        if (describable.containerTemplate != null) {
+                            // run inside the container declared for backwards compatibility
+                            container = describable.containerTemplate.asArgs;
+                        }
+
                         if (checkoutMap) {
                             script.withEnv(checkoutMap.collect { k, v -> "${k}=${v}" }) {
-                                script.container(describable.containerTemplate.name) {
+                                // call the main body
+                                script.container(container) {
                                     body.call()
                                 }
                             }
                         } else {
-                            script.container(describable.containerTemplate.asArgs) {
+                            // call the main body
+                            script.container(container) {
                                 body.call()
                             }
                         }

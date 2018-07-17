@@ -1,8 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.Arrays;
-import java.util.Collections;
-
 import jenkins.model.JenkinsLocationConfiguration;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;

@@ -48,6 +48,10 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="capOnlyOnAlivePods" title="${%Apply cap only on alive pods}">
+    <f:checkbox/>
+  </f:entry>
+
   <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
     <f:textbox/>
   </f:entry>
@@ -60,10 +64,14 @@
     <f:textbox/>
   </f:entry>
 
-    <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}" field="annotations">
-      <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
-                                  deleteCaption="Delete annotation Variable" />
-    </f:entry>
+  <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}" field="annotations">
+    <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
+                                deleteCaption="Delete annotation Variable" />
+  </f:entry>
+
+  <f:entry field="yaml" title="${%Raw yaml for the Pod}">
+    <f:textarea/>
+  </f:entry>
 
   <f:advanced>
 
@@ -74,14 +82,12 @@
 
     <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
-     </f:entry>
-
+    </f:entry>
 
     <f:entry field="nodeSelector" title="${%Node Selector}">
       <f:textbox/>
     </f:entry>
 
-    <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
     <f:block>
       <table>
         <f:optionalBlock title="${%Use custom workspace volume}" field="customWorkspaceVolumeEnabled" inline="true">
@@ -92,6 +98,9 @@
         </f:optionalBlock>
       </table>
     </f:block>
+
+    <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
+
   </f:advanced>
 
 </j:jelly>

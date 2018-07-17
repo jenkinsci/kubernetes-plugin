@@ -2,23 +2,35 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgent;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentDescriptor;
 import org.jenkinsci.plugins.variant.OptionalExtension;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDeclarativeAgent> {
-    private final String label;
+
+    private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
+
+    private String label;
 
     private String cloud;
     private String inheritFrom;
 
+    private int idleMinutes;
     private int instanceCap;
     private String serviceAccount;
     private String nodeSelector;
@@ -26,8 +38,16 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private int activeDeadlineSeconds;
 
     private ContainerTemplate containerTemplate;
+    private List<ContainerTemplate> containerTemplates;
+    private String defaultContainer;
+    private String yaml;
+    private String yamlFile;
 
     @DataBoundConstructor
+    public KubernetesDeclarativeAgent() {
+    }
+
+    @Deprecated
     public KubernetesDeclarativeAgent(String label, ContainerTemplate containerTemplate) {
         this.label = label;
         this.containerTemplate = containerTemplate;
@@ -37,6 +57,11 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         return label;
     }
 
+    @DataBoundSetter
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
     public String getCloud() {
         return cloud;
     }
@@ -44,6 +69,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setCloud(String cloud) {
         this.cloud = cloud;
+    }
+
+    public int getIdleMinutes() {
+        return idleMinutes;
+    }
+
+    @DataBoundSetter
+    public void setIdleMinutes(int idleMinutes) {
+        this.idleMinutes = idleMinutes;
     }
 
     public String getInheritFrom() {
@@ -91,8 +125,43 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.workingDir = workingDir;
     }
 
+    public String getYaml() {
+        return yaml;
+    }
+
+    @DataBoundSetter
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
+    }
+
+    @Deprecated
     public ContainerTemplate getContainerTemplate() {
         return containerTemplate;
+    }
+
+    @DataBoundSetter
+    @Restricted(DoNotUse.class)
+    public void setContainerTemplate(ContainerTemplate containerTemplate) {
+        this.containerTemplate = containerTemplate;
+    }
+
+    @NonNull
+    public List<ContainerTemplate> getContainerTemplates() {
+        return containerTemplates != null ? containerTemplates : Collections.emptyList();
+    }
+
+    @DataBoundSetter
+    public void setContainerTemplates(List<ContainerTemplate> containerTemplates) {
+        this.containerTemplates = containerTemplates;
+    }
+
+    public String getDefaultContainer() {
+        return defaultContainer;
+    }
+
+    @DataBoundSetter
+    public void setDefaultContainer(String defaultContainer) {
+        this.defaultContainer = defaultContainer;
     }
 
     public int getActiveDeadlineSeconds() {
@@ -100,17 +169,46 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     }
 
     @DataBoundSetter
-    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) { this.activeDeadlineSeconds = activeDeadlineSeconds; }
+    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) {
+        this.activeDeadlineSeconds = activeDeadlineSeconds;
+    }
 
-    public Map<String,Object> getAsArgs() {
-        Map<String,Object> argMap = new TreeMap<>();
+    public String getYamlFile() {
+        return yamlFile;
+    }
+
+    @DataBoundSetter
+    public void setYamlFile(String yamlFile) {
+        this.yamlFile = yamlFile;
+    }
+
+    public Map<String, Object> getAsArgs() {
+        Map<String, Object> argMap = new TreeMap<>();
 
         argMap.put("label", label);
         argMap.put("name", label);
-        argMap.put("containers", Collections.singletonList(containerTemplate));
 
+        List<ContainerTemplate> containerTemplates = getContainerTemplates();
+        if (containerTemplate != null) {
+            LOGGER.log(Level.WARNING,
+                    "containerTemplate option in declarative pipeline is deprecated, use containerTemplates");
+            if (containerTemplates.isEmpty()) {
+                containerTemplates = Collections.singletonList(containerTemplate);
+            } else {
+                LOGGER.log(Level.WARNING,
+                        "Ignoring containerTemplate option as containerTemplates is also defined");
+            }
+        }
+        argMap.put("containers", containerTemplates);
+
+        if (!StringUtils.isEmpty(yaml)) {
+            argMap.put("yaml", yaml);
+        }
         if (!StringUtils.isEmpty(cloud)) {
             argMap.put("cloud", cloud);
+        }
+        if (idleMinutes != 0) {
+            argMap.put("idleMinutes", idleMinutes);
         }
         if (!StringUtils.isEmpty(inheritFrom)) {
             argMap.put("inheritFrom", inheritFrom);
@@ -135,7 +233,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         return argMap;
     }
 
-    @OptionalExtension(requirePlugins = "pipeline-model-extensions") @Symbol("kubernetes")
+    @OptionalExtension(requirePlugins = "pipeline-model-extensions")
+    @Symbol("kubernetes")
     public static class DescriptorImpl extends DeclarativeAgentDescriptor<KubernetesDeclarativeAgent> {
     }
 }

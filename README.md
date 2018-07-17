@@ -34,7 +34,7 @@ Nodes can be defined in a pipeline and then used, however, default execution alw
 
 This will run in jnlp container
 ```groovy
-# this guarantees the node will use this template
+// this guarantees the node will use this template
 def label = "mypod-${UUID.randomUUID().toString()}"
 podTemplate(label: label) {
     node(label) {
@@ -117,6 +117,7 @@ Either way it provides access to the following fields:
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
 * **label** The label of the pod. Set a unique value to avoid conflicts across builds
+* **yaml** [yaml representation of the Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core), to allow setting any values not supported as fields
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
@@ -130,6 +131,7 @@ Either way it provides access to the following fields:
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online.
 * **activeDeadlineSeconds** Pod is deleted after this deadline is passed.
+* **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -143,6 +145,38 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 * **ports** Expose ports on the container.
+
+#### Using yaml to Define Pod Templates
+
+In order to support any possible value in Kubernetes `Pod` object, we can pass a yaml snippet that will be used as a base
+for the template. If any other properties are set outside of the yaml they will take precedence.
+
+```groovy
+def label = "mypod-${UUID.randomUUID().toString()}"
+podTemplate(label: label, yaml: """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+) {
+    node (label) {
+      container('busybox') {
+        sh "hostname"
+      }
+    }
+}
+```
+
+You can use [`readFile`](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) or [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) steps to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
 
 #### Liveness Probe Usage
 ```groovy
@@ -312,7 +346,86 @@ annotations: [
 
 Declarative Pipeline support requires Jenkins 2.66+
 
-Example at [examples/declarative.groovy](examples/declarative.groovy)
+Declarative agents can be defined from yaml
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      defaultContainer 'jnlp'
+      yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+spec:
+  containers:
+  - name: maven
+    image: maven:alpine
+    command:
+    - cat
+    tty: true
+  - name: busybox
+    image: busybox
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
+  stages {
+    stage('Run maven') {
+      steps {
+        container('maven') {
+          sh 'mvn -version'
+        }
+        container('busybox') {
+          sh '/bin/busybox'
+        }
+      }
+    }
+  }
+}
+```
+
+or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` file
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      defaultContainer 'jnlp'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+  stages {
+      ...
+  }
+}
+```
+
+Note that it was previously possible to define `containerTemplate` but that has been deprecated in favor of the yaml format.
+
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      //cloud 'kubernetes'
+      label 'mypod'
+      containerTemplate {
+        name 'maven'
+        image 'maven:3.3.9-jdk-8-alpine'
+        ttyEnabled true
+        command 'cat'
+      }
+    }
+  }
+  stages { ... }
+}
+```
 
 ## Accessing container logs from the pipeline
 
@@ -606,4 +719,4 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 # Related Projects
 
 * [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds
-* [Kubernetes Secrets Credentials plugin](https://github.com/hoshsadiq/jenkins-kubernetes-secrets-credentials): Credentials provider that reads Kubernetes secrets
+* [kubernetes-credentials](https://github.com/jenkinsci/kubernetes-credentials-plugin): Credentials provider that reads Kubernetes secrets

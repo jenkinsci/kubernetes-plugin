@@ -26,15 +26,19 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.junit.Assert.*;
 
+import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
-import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
 public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+    @Rule
+    public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
     @Issue("JENKINS-41758")
     @Test
@@ -61,4 +65,38 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("GIT_COMMIT is ", b);
     }
 
+    @Issue("JENKINS-48135")
+    @Test
+    public void declarativeFromYaml() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeFromYaml.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = jnlp\n", b);
+        r.assertLogContains("MAVEN_CONTAINER_ENV_VAR = maven\n", b);
+        r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
+    }
+
+    @Issue("JENKINS-52259")
+    @Test
+    public void declarativeFromYamlFile() throws Exception {
+        repoRule.init();
+        repoRule.write("Jenkinsfile", loadPipelineScript("declarativeFromYamlFile.groovy"));
+        repoRule.write("declarativeYamlFile.yml", loadPipelineScript("declarativeYamlFile.yml"));
+        repoRule.git("add", "Jenkinsfile");
+        repoRule.git("add", "declarativeYamlFile.yml");
+        repoRule.git("commit", "--message=files");
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(repoRule.toString()).createSCM(), "Jenkinsfile"));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = jnlp\n", b);
+        r.assertLogContains("MAVEN_CONTAINER_ENV_VAR = maven\n", b);
+        r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
+    }
 }

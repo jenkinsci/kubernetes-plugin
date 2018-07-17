@@ -2,6 +2,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.*;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -14,10 +17,12 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import static java.util.logging.Level.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -35,6 +40,7 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
+import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 /**
@@ -98,27 +104,30 @@ public class KubernetesFactoryAdapter {
             KeyStoreException, IOException, CertificateEncodingException {
 
         ConfigBuilder builder;
-        // autoconfigure if url is not set
-        if (StringUtils.isBlank(serviceAddress)) {
-            LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
-            builder = new ConfigBuilder(Config.autoConfigure());
+        // configure from kubeconfig
+        if (credentials instanceof FileCredentials) {
+            LOGGER.log(FINE, "Configuring Kubernetes client from kubeconfig file");
+            try (InputStream is = ((FileCredentials) credentials).getContent()) {
+                Config config = Config.fromKubeconfig(IOUtils.toString(is, StandardCharsets.UTF_8));
+                builder = new ConfigBuilder(config);
+            }
         } else {
-            // although this will still autoconfigure based on Config constructor notes
-            // In future releases (2.4.x) the public constructor will be empty.
-            // The current functionality will be provided by autoConfigure().
-            // This is a necessary change to allow us distinguish between auto configured values and builder values.
-            builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+            // autoconfigure if url is not set
+            if (StringUtils.isBlank(serviceAddress)) {
+                LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
+                builder = new ConfigBuilder(Config.autoConfigure(null));
+            } else {
+                // although this will still autoconfigure based on Config constructor notes
+                // In future releases (2.4.x) the public constructor will be empty.
+                // The current functionality will be provided by autoConfigure().
+                // This is a necessary change to allow us distinguish between auto configured values and builder values.
+                builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+            }
         }
 
-        builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
-
-        if (!StringUtils.isBlank(namespace)) {
-            builder.withNamespace(namespace);
-        } else if (StringUtils.isBlank(builder.getNamespace())) {
-            builder.withNamespace("default");
-        }
-
-        if (credentials instanceof StringCredentials) {
+        if (credentials instanceof FileCredentials) {
+            // already handled above
+        } else if (credentials instanceof StringCredentials) {
             final String token = ((StringCredentials) credentials).getSecret().getPlainText();
             builder.withOauthToken(token);
         } else if (credentials instanceof TokenProducer) {
@@ -147,7 +156,15 @@ public class KubernetesFactoryAdapter {
             // JENKINS-38829 CaCertData expects a Base64 encoded certificate
             builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
         }
+
+        builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
+
+        if (!StringUtils.isBlank(namespace)) {
+            builder.withNamespace(namespace);
+        } else if (StringUtils.isBlank(builder.getNamespace())) {
+            builder.withNamespace("default");
+        }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         return new DefaultKubernetesClient(builder.build());

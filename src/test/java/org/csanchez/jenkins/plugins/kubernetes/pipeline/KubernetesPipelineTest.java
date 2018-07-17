@@ -25,9 +25,11 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +44,8 @@ import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 /**
@@ -56,16 +60,62 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), getLabels(this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         List<PodTemplate> templates = cloud.getAllTemplates();
-        while (hasPodTemplateWithLabel("mypod",templates)) {
-            LOGGER.log(Level.INFO, "Waiting for template to be created");
+
+        PodTemplate template = null;
+        while ((template = podTemplateWithLabel("mypod", templates)) == null) {
+            LOGGER.log(Level.INFO, "Waiting for mypod template to be created");
             templates = cloud.getAllTemplates();
+            Thread.sleep(1000);
+        }
+
+        Map<String, String> labels = getLabels(cloud, this);
+        LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
+        PodList pods = cloud.connect().pods().withLabels(labels).list();
+        while (pods.getItems().isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
+            pods = cloud.connect().pods().withLabels(labels).list();
+            Thread.sleep(1000);
+        }
+
+        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
+        assertThat(template.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
+
+        assertEquals(1, pods.getItems().size());
+        Pod pod = pods.getItems().get(0);
+        LOGGER.log(Level.INFO, "One pod found: {0}", pod);
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/mypod", "true"));
+
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("script file contents: ", b);
+        assertFalse("There are pods leftover after test execution, see previous logs",
+                deletePods(cloud.connect(), getLabels(cloud, this), true));
+    }
+
+    private PodTemplate podTemplateWithLabel(String label, List<PodTemplate> templates) {
+        return templates != null ? templates.stream().filter(t -> label.equals(t.getLabel())).findFirst().orElse(null)
+                : null;
+    }
+
+    @Test
+    public void runInPodFromYaml() throws Exception {
+        deletePods(cloud.connect(), getLabels(cloud, this), false);
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodFromYaml.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        List<PodTemplate> templates = cloud.getTemplates();
+        while (templates.isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getTemplates();
             Thread.sleep(1000);
         }
         assertFalse(templates.isEmpty());
@@ -74,17 +124,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this), true));
     }
 
-    private boolean hasPodTemplateWithLabel(String label, List<PodTemplate> templates) {
-        return templates != null
-                && templates.stream()
-                .map(PodTemplate::getLabel)
-                .anyMatch(label::equals);
-    }
-
-    @Test
     public void runInPodWithDifferentShell() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithDifferentShell.groovy"), true));
@@ -101,9 +143,25 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[jnlp] jenkins/jnlp-slave:3.10-1-alpine", b);
+        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
+        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
+    }
+
+    @Test
+    public void runInPodNested() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodNested.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
+        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("go version go1.6.3", b);
     }
 
     @Test
@@ -152,7 +210,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("The value of FROM_ENV_DEFINITION is ABC", b);
+        r.assertLogContains("The initial value of POD_ENV_VAR is pod-env-var-value", b);
+        r.assertLogContains("The value of POD_ENV_VAR outside container is /bin/mvn:pod-env-var-value", b);
+        r.assertLogContains("The value of FROM_ENV_DEFINITION is ABC", b);
         r.assertLogContains("The value of FROM_WITHENV_DEFINITION is DEF", b);
         r.assertLogContains("The value of WITH_QUOTE is \"WITH_QUOTE", b);
         r.assertLogContains("The value of AFTER_QUOTE is AFTER_QUOTE\"", b);
@@ -160,6 +220,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of AFTER_ESCAPED_QUOTE is AFTER_ESCAPED_QUOTE\\\"", b);
         r.assertLogContains("The value of SINGLE_QUOTE is BEFORE'AFTER", b);
         r.assertLogContains("The value of WITH_NEWLINE is before newline\nafter newline", b);
+        r.assertLogContains("The value of POD_ENV_VAR is /bin/mvn:pod-env-var-value", b);
         r.assertLogContains("The value of WILL.NOT is ", b);
     }
 
@@ -237,7 +298,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("initpwd is -" + workspace + "-", b);
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);
-
     }
 
     @Test

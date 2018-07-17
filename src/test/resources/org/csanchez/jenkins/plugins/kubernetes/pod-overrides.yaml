@@ -1,0 +1,11 @@
+spec:
+  containers:
+  - name: jnlp
+    image: jenkins-jnlp-override
+    volumeMounts:
+    - mountPath: /home/jenkins
+      name: host-volume
+  volumes:
+  - name: host-volume
+    hostPath:
+      path: /host/data

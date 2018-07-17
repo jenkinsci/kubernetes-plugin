@@ -136,8 +136,12 @@ public class AbstractKubernetesPipelineTest {
     }
 
     protected String loadPipelineScript(String name) {
+        return loadPipelineScript(getClass(), name);
+    }
+
+    public static String loadPipelineScript(Class<?> clazz, String name) {
         try {
-            return new String(IOUtils.toByteArray(getClass().getResourceAsStream(name)));
+            return new String(IOUtils.toByteArray(clazz.getResourceAsStream(name)));
         } catch (Throwable t) {
             throw new RuntimeException("Could not read resource:[" + name + "].");
         }

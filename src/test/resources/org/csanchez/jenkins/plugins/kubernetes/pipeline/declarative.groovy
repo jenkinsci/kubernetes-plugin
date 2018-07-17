@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'mypod'
+      label 'declarative-pod'
       containerTemplate {
         name 'maven'
         image 'maven:3.3.9-jdk-8-alpine'
@@ -17,6 +17,7 @@ pipeline {
     stage('Run maven') {
       steps {
         sh 'set'
+        sh 'test -f /usr/bin/mvn' // checking backwards compatibility
         sh "echo OUTSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}"
         container('maven') {
           sh 'echo INSIDE_CONTAINER_ENV_VAR = ${CONTAINER_ENV_VAR}'

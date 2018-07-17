@@ -1,16 +1,23 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.annotation.Nonnull;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.*;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -20,19 +27,13 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
 import com.google.common.base.Strings;
-
+import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
 import hudson.model.labels.LabelAtom;
-import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 
 /**
@@ -40,11 +41,13 @@ import jenkins.model.Jenkins;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable {
 
     private static final long serialVersionUID = 3285310269140845583L;
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
+
+    private static final String DEFAULT_ID = "jenkins/slave-default";
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
@@ -59,6 +62,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String image;
 
     private boolean privileged;
+
+    private boolean capOnlyOnAlivePods;
 
     private boolean alwaysPullImage;
 
@@ -105,7 +110,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
 
-    private transient List<ToolLocationNodeProperty> nodeProperties;
+    private PodTemplateToolLocation nodeProperties;
+
+    private String yaml;
 
     @DataBoundConstructor
     public PodTemplate() {
@@ -127,6 +134,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.setYaml(from.getYaml());
+        this.setNodeProperties(from.getNodeProperties());
     }
 
     @Deprecated
@@ -335,6 +344,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return Label.parse(label);
     }
 
+    public Map<String, String> getLabelsMap() {
+        Set<LabelAtom> labelSet = getLabelSet();
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
+        if (!labelSet.isEmpty()) {
+            for (LabelAtom label : labelSet) {
+                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
+            }
+        }
+        return builder.build();
+    }
+
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = label;
@@ -398,6 +418,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isAlwaysPullImage).orElse(false);
     }
 
+    @DataBoundSetter
+    public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
+        this.capOnlyOnAlivePods = capOnlyOnAlivePods;
+    }
+
+    public boolean isCapOnlyOnAlivePods() {
+        return capOnlyOnAlivePods;
+    }
+
     public List<TemplateEnvVar> getEnvVars() {
         if (envVars == null) {
             return Collections.emptyList();
@@ -456,17 +485,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setNodeProperties(List<ToolLocationNodeProperty> nodeProperties){
-        this.nodeProperties = nodeProperties;
+    public void setNodeProperties(List<? extends NodeProperty<?>> properties)  {
+        this.getNodeProperties().clear();
+        this.getNodeProperties().addAll(properties);
     }
 
-    @Nonnull
-    public List<ToolLocationNodeProperty> getNodeProperties(){
-        if (nodeProperties == null) {
-            return Collections.emptyList();
-        }
+    @NonNull
+    public PodTemplateToolLocation getNodeProperties(){
+        if( this.nodeProperties == null)
+            this.nodeProperties = new PodTemplateToolLocation(this);
         return nodeProperties;
     }
+
 
     @Deprecated
     public String getResourceRequestMemory() {
@@ -562,6 +592,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return containers;
     }
 
+    public String getYaml() {
+        return yaml;
+    }
+
+    @DataBoundSetter
+    public void setYaml(String yaml) {
+        this.yaml = yaml;
+    }
+
     @SuppressWarnings("deprecation")
     protected Object readResolve() {
         if (containers == null) {
@@ -590,12 +629,53 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     /**
      * Build a Pod object from a PodTemplate
-     * 
+     *
+     * @param client
      * @param slave
      */
-    public Pod build(KubernetesSlave slave) {
-        return new PodTemplateBuilder(this).build(slave);
+    public Pod build(KubernetesClient client, KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).withSlave(slave).build();
     }
+
+    public String getDescriptionForLogging() {
+        return String.format("Agent specification [%s] (%s): %n%s",
+                getDisplayName(),
+                getLabel(),
+                getContainersDescriptionForLogging());
+    }
+
+    private String getContainersDescriptionForLogging() {
+        List<ContainerTemplate> containers = getContainers();
+        StringBuilder sb = new StringBuilder();
+        for (ContainerTemplate ct : containers) {
+            sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
+            StringBuilder optional = new StringBuilder();
+            optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
+            optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
+            optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
+            optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
+            if (optional.length() > 0) {
+                sb.append("(").append(optional).append(")");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private void optionalField(StringBuilder builder, String label, String value) {
+        if (value != null) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(label).append(": ").append(value);
+        }
+    }
+
+    /**
+     * Empty implementation of Saveable interface. This interface is used for DescribableList implementation
+     */
+    @Override
+    public void save()  { }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
@@ -610,6 +690,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
+        
     }
 
     @Override
@@ -644,6 +725,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                (yaml == null ? "" : ", yaml=" + yaml) +
                 '}';
     }
 }
