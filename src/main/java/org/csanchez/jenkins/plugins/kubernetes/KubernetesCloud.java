@@ -283,7 +283,7 @@ public class KubernetesCloud extends Cloud {
         if (url == null) {
             url = "http://jenkins/";
             this.setJenkinsUrl(url);
-            LOGGER.log(Level.FINE, "Using default Jenkins URL for Kubernetes: {0}", url)
+            LOGGER.log(Level.FINE, "Using default Jenkins URL for Kubernetes: {0}", url);
                 
         }
         url = url.endsWith("/") ? url : url + "/";
