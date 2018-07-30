@@ -34,6 +34,7 @@ import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -589,12 +590,14 @@ public class KubernetesCloud extends Cloud {
                     org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential.class);
         }
 
+        @RequirePOST
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
@@ -618,7 +621,9 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        @RequirePOST
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             return new StandardListBoxModel().withEmptySelection() //
                     .withMatching( //
                             CredentialsMatchers.anyOf(
@@ -638,6 +643,7 @@ public class KubernetesCloud extends Cloud {
 
         }
 
+        @RequirePOST
         public FormValidation doCheckMaxRequestsPerHostStr(@QueryParameter String value) throws IOException, ServletException {
             try {
                 Integer.parseInt(value);
