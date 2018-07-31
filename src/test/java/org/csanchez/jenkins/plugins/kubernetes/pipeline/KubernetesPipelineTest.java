@@ -375,4 +375,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogNotContains("Hello from container!", b);
     }
 
+    @Test
+    public void runInPodWithRetention() throws Exception {
+        deletePods(cloud.connect(), getLabels(cloud, this), false);
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with retention");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRetention.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        assertTrue(deletePods(cloud.connect(), getLabels(this), true));
+    }
+
 }

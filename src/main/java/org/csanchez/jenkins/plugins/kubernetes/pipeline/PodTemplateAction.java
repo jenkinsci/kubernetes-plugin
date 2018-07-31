@@ -70,7 +70,6 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 implements Ru
                 return template;
             } finally {
                 bc.abort();
-                return null;
             }
         }
     }

@@ -28,6 +28,8 @@ import javax.servlet.ServletException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -43,8 +45,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.ctc.wstx.util.StringUtil;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
@@ -55,6 +55,7 @@ import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -115,6 +116,8 @@ public class KubernetesCloud extends Cloud {
 
     private transient KubernetesClient client;
     private int maxRequestsPerHost;
+    @CheckForNull
+    private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -143,6 +146,7 @@ public class KubernetesCloud extends Cloud {
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
         this.connectTimeout = source.connectTimeout;
+        this.podRetention = source.podRetention;
     }
 
     @Deprecated
@@ -251,10 +255,12 @@ public class KubernetesCloud extends Cloud {
     }
 
     @DataBoundSetter
+    @Deprecated
     public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
         this.capOnlyOnAlivePods = capOnlyOnAlivePods;
     }
 
+    @Deprecated
     public boolean isCapOnlyOnAlivePods() {
         return capOnlyOnAlivePods;
     }
@@ -379,6 +385,26 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
+     * Gets the global pod retention policy for the plugin.
+     */
+    public PodRetention getPodRetention() {
+        return this.podRetention;
+    }
+    
+    /**
+     * Set the global pod retention policy for the plugin.
+     * 
+     * @param podRetention the pod retention policy for the plugin.
+     */
+    @DataBoundSetter
+    public void setPodRetention(PodRetention podRetention) {
+        if (podRetention == null || podRetention instanceof Default) {
+            podRetention = PodRetention.getKubernetesCloudDefault();
+        }
+        this.podRetention = podRetention;
+    }
+
+    /**
      * Connects to Kubernetes.
      *
      * @return Kubernetes client.
@@ -454,42 +480,30 @@ public class KubernetesCloud extends Cloud {
         }
 
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> slaveListItems = slaveList.getItems();
+        List<Pod> allActiveSlavePods = slaveList.getItems().stream()
+                .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                .collect(Collectors.toList());
 
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
-        PodList namedList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
-        List<Pod> namedListItems = namedList.getItems();
+        PodList templateSlaveList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
+        List<Pod> activeTemplateSlavePods = templateSlaveList.getItems().stream()
+                .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                .collect(Collectors.toList());
 
-        if (this.isCapOnlyOnAlivePods()) {
-            slaveListItems = slaveListItems.stream()
-                                           .filter(x -> x.getStatus()
-                                                         .getPhase().toLowerCase()
-                                                                    .matches("(running|pending)"))
-                                           .collect(Collectors.toList());
-        }
-
-        if (template.isCapOnlyOnAlivePods()) {
-            namedListItems = namedListItems.stream()
-                                           .filter(x -> x.getStatus()
-                                                         .getPhase().toLowerCase()
-                                                                    .matches("(running|pending)"))
-                                           .collect(Collectors.toList());
-        }
-
-        if (slaveListItems != null && containerCap <= slaveListItems.size()) {
+        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size()) {
             LOGGER.log(Level.INFO,
-                    "Total container cap of {0} reached, not provisioning: {1} running or errored in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, slaveListItems.size(), templateNamespace, getLabels() });
+                    "Total container cap of {0} reached, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
+                    new Object[] { containerCap, allActiveSlavePods.size(), templateNamespace, getLabels() });
             return false;
         }
 
-        if (namedListItems != null && slaveListItems != null && template.getInstanceCap() <= namedListItems.size()) {
+        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size()) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or errored in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), slaveListItems.size(),
+                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
+                    new Object[] { template.getInstanceCap(), template.getName(), allActiveSlavePods.size(),
                             templateNamespace, label == null ? "" : label.toString(), labelsMap });
-            return false; // maxed out
+            return false;
         }
         return true;
     }
@@ -652,6 +666,24 @@ public class KubernetesCloud extends Cloud {
                 return FormValidation.error("Please supply an integer");
             }
         }
+
+        public List<Descriptor<PodRetention>> getAllowedPodRetentions() {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins == null) {
+                return new ArrayList<>(0);
+            }
+            return DescriptorVisibilityFilter.apply(this, jenkins.getDescriptorList(PodRetention.class));
+        }
+
+        @SuppressWarnings("rawtypes")
+        public Descriptor getDefaultPodRetention() {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins == null) {
+                return null;
+            }
+            return jenkins.getDescriptor(PodRetention.getKubernetesCloudDefault().getClass());
+        }
+
     }
 
     @Override

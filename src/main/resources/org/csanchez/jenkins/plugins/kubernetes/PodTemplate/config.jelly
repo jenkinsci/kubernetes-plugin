@@ -48,9 +48,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="capOnlyOnAlivePods" title="${%Apply cap only on alive pods}">
-    <f:checkbox/>
-  </f:entry>
+  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" /> 
 
   <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
     <f:textbox/>
