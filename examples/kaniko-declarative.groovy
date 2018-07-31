@@ -8,9 +8,12 @@
  * https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-in-the-cluster-that-holds-your-authorization-token
  */
 
-def label = "kaniko-${UUID.randomUUID().toString()}"
-
-podTemplate(name: 'kaniko', label: label, yaml: """
+pipeline {
+  agent {
+    kubernetes {
+      //cloud 'kubernetes'
+      label 'kaniko'
+      yaml """
 kind: Pod
 metadata:
   name: kaniko
@@ -35,16 +38,20 @@ spec:
             - key: .dockerconfigjson
               path: .docker/config.json
 """
-  ) {
-
-  node(label) {
+      }
+    }
+  }
+  stages {
     stage('Build with Kaniko') {
-      git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
-      container(name: 'kaniko', shell: '/busybox/sh') {
-        withEnv(['PATH+EXTRA=/busybox']) {
-          sh '''#!/busybox/sh
-          /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage
-          '''
+      environment {
+        PATH = "/busybox:$PATH"
+      }
+      steps {
+        git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
+        container(name: 'kaniko', shell: '/busybox/sh') {
+            sh '''#!/busybox/sh
+            /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage
+            '''
         }
       }
     }

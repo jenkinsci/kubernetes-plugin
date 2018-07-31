@@ -347,6 +347,7 @@ public class PodTemplateUtils {
 
         podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
+        podTemplate.setPodRetention(template.getPodRetention());
 
         podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 

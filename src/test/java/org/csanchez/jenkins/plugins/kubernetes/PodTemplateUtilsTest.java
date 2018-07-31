@@ -59,6 +59,7 @@ import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
 public class PodTemplateUtilsTest {
 
@@ -469,10 +470,14 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void shouldCombineAllPodMounts() {
-        VolumeMount vm1 = new VolumeMount("/host/mnt1", "volume-1", false, null);
-        VolumeMount vm2 = new VolumeMount("/host/mnt2", "volume-2", false, null);
-        VolumeMount vm3 = new VolumeMount("/host/mnt3", "volume-3", false, null);
-        VolumeMount vm4 = new VolumeMount("/host/mnt1", "volume-4", false, null);
+        VolumeMount vm1 = new VolumeMountBuilder().withMountPath("/host/mnt1").withName("volume-1").withReadOnly(false)
+                .build();
+        VolumeMount vm2 = new VolumeMountBuilder().withMountPath("/host/mnt2").withName("volume-2").withReadOnly(false)
+                .build();
+        VolumeMount vm3 = new VolumeMountBuilder().withMountPath("/host/mnt3").withName("volume-3").withReadOnly(false)
+                .build();
+        VolumeMount vm4 = new VolumeMountBuilder().withMountPath("/host/mnt1").withName("volume-4").withReadOnly(false)
+                .build();
         Container container1 = containerBuilder().withName("jnlp").withVolumeMounts(vm1, vm2).build();
         Pod pod1 = podBuilder().withContainers(container1).endSpec().build();
         Container container2 = containerBuilder().withName("jnlp").withVolumeMounts(vm3, vm4).build();

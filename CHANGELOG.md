@@ -9,6 +9,21 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Preserve resources other than CPU and memory
 
+1.12.0
+------
+
+* Add optional usage restriction for a Kubernetes cloud using folder properties [#282](https://github.com/jenkinsci/kubernetes-plugin/pull/282)
+
+1.11.0
+------
+
+* Add Pod Retention policies to keep pods around on failure [#354](https://github.com/jenkinsci/kubernetes-plugin/pull/354) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
+
+1.10.2
+------
+
+* Global configuration `testConnection` using GET allows stealing credentials + CSRF [SECURITY-1016](https://issues.jenkins-ci.org/browse/SECURITY-1016)
+
 1.10.1
 -------
 

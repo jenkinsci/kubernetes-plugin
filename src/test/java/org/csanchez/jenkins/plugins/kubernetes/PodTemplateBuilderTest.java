@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
 public class PodTemplateBuilderTest {
 
@@ -128,8 +129,10 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
         Container container0 = containers.get(0);
         Container container1 = containers.get(1);
-        ImmutableList<VolumeMount> volumeMounts = ImmutableList
-                .of(new VolumeMount("/home/jenkins", "workspace-volume", false, null));
+
+        ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
+                .withMountPath("/home/jenkins").withName("workspace-volume").withReadOnly(false).build());
+
         assertEquals(volumeMounts, container0.getVolumeMounts());
         assertEquals(volumeMounts, container1.getVolumeMounts());
     }
@@ -197,13 +200,18 @@ public class PodTemplateBuilderTest {
         List<VolumeMount> mounts = containers.get("busybox").getVolumeMounts();
         if (fromYaml) {
             assertEquals(2, mounts.size());
-            assertEquals(new VolumeMount("/container/data", "host-volume", null, null), mounts.get(0));
-            assertEquals(new VolumeMount("/home/jenkins", "workspace-volume", false, null), mounts.get(1));
+            assertEquals(new VolumeMountBuilder().withMountPath("/container/data").withName("host-volume").build(),
+                    mounts.get(0));
+            assertEquals(new VolumeMountBuilder().withMountPath("/home/jenkins").withName("workspace-volume")
+                    .withReadOnly(false).build(), mounts.get(1));
         } else {
             assertEquals(3, mounts.size());
-            assertEquals(new VolumeMount("/container/data", "volume-0", null, null), mounts.get(0));
-            assertEquals(new VolumeMount("/empty/dir", "volume-1", null, null), mounts.get(1));
-            assertEquals(new VolumeMount("/home/jenkins", "workspace-volume", false, null), mounts.get(2));
+            assertEquals(new VolumeMountBuilder().withMountPath("/container/data").withName("volume-0").build(),
+                    mounts.get(0));
+            assertEquals(new VolumeMountBuilder().withMountPath("/empty/dir").withName("volume-1").build(),
+                    mounts.get(1));
+            assertEquals(new VolumeMountBuilder().withMountPath("/home/jenkins").withName("workspace-volume")
+                    .withReadOnly(false).build(), mounts.get(2));
         }
 
         validateJnlpContainer(containers.get("jnlp"), slave);

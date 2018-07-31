@@ -47,9 +47,8 @@
         <f:textbox default="10"/>
     </f:entry>
 
-    <f:entry field="capOnlyOnAlivePods" title="${%Apply cap only on alive pods}">
-        <f:checkbox/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" 
+        descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" /> 
 
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
         <f:textbox default="32"/>
@@ -61,6 +60,10 @@
       </f:entry>
 
       <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
+        <f:checkbox />
+      </f:entry>
+
+      <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
         <f:checkbox />
       </f:entry>
     </f:advanced>

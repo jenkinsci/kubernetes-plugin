@@ -17,6 +17,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
@@ -33,15 +34,19 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.TaskListener;
+import hudson.remoting.Engine;
+import hudson.remoting.VirtualChannel;
 import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import jenkins.security.MasterToSlaveCallable;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -178,10 +183,45 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return new KubernetesComputer(this);
     }
 
+    public PodRetention getPodRetention(KubernetesCloud cloud) {
+        PodRetention retentionPolicy = cloud.getPodRetention();
+        if (template != null) {
+            retentionPolicy = template.getPodRetention();
+        }
+        return retentionPolicy;
+    }
+
     @Override
     protected void _terminate(TaskListener listener) throws IOException, InterruptedException {
         LOGGER.log(Level.INFO, "Terminating Kubernetes instance for agent {0}", name);
+        
+        KubernetesCloud cloud;
+        try {
+            cloud = getKubernetesCloud();
+        } catch (IllegalStateException e) {
+            e.printStackTrace(listener.fatalError("Unable to terminate agent. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster."));
+            LOGGER.log(Level.SEVERE, String.format("Unable to terminate agent %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
+            return;
+        }
 
+        KubernetesClient client;
+        try {
+            client = cloud.connect();
+        } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
+                | KeyStoreException e) {
+            String msg = String.format("Failed to connect to cloud %s. There may be leftover resources on the Kubernetes cluster.", getCloudName());
+            e.printStackTrace(listener.fatalError(msg));
+            LOGGER.log(Level.SEVERE, msg);
+            return;
+        }
+
+        // Prior to termination, determine if we should delete the slave pod based on
+        // the slave pod's current state and the pod retention policy.
+        // Healthy slave pods should still have a JNLP agent running at this point.
+        String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
+        Pod pod = client.pods().inNamespace(actualNamespace).withName(name).get();
+        boolean deletePod = getPodRetention(cloud).shouldDeletePod(cloud, pod);
+        
         Computer computer = toComputer();
         if (computer == null) {
             String msg = String.format("Computer for agent is null: %s", name);
@@ -190,6 +230,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
+        // Tell the slave to stop JNLP reconnects.
+        VirtualChannel ch = computer.getChannel();
+        if (ch != null) {
+            ch.call(new SlaveDisconnector());
+        }
+
+        // Disconnect the master from the slave agent
         OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
 
         Future<?> disconnected = computer.disconnect(offlineCause);
@@ -207,24 +254,20 @@ public class KubernetesSlave extends AbstractCloudSlave {
             listener.fatalError(msg);
             return;
         }
-        KubernetesCloud cloud;
-        try {
-            cloud = getKubernetesCloud();
-        } catch (IllegalStateException e) {
-            e.printStackTrace(listener.fatalError("Unable to terminate agent. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster."));
-            LOGGER.log(Level.SEVERE, String.format("Unable to terminate agent %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
-            return;
-        }
-        KubernetesClient client;
-        try {
-            client = cloud.connect();
-        } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
-                | KeyStoreException e) {
-            String msg = String.format("Failed to connect to cloud %s", getCloudName());
-            e.printStackTrace(listener.fatalError(msg));
-            return;
-        }
 
+        if (deletePod) {
+            deleteSlavePod(listener, client);
+        } else {
+            // Log warning, as the slave pod may still be running
+            LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
+                    new Object[] { name, getPodRetention(cloud) });
+        }
+        String msg = String.format("Disconnected computer %s", name);
+        LOGGER.log(Level.INFO, msg);
+        listener.getLogger().println(msg);
+    }
+
+    private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
         String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
         try {
             Boolean deleted = client.pods().inNamespace(actualNamespace).withName(name).delete();
@@ -245,7 +288,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
-        LOGGER.log(Level.INFO, "Disconnected computer {0}", name);
     }
 
     @Override
@@ -421,6 +463,27 @@ public class KubernetesSlave extends AbstractCloudSlave {
         @Override
         public boolean isInstantiable() {
             return false;
+        }
+
+    }
+
+    private static class SlaveDisconnector extends MasterToSlaveCallable<Void, IOException> {
+
+        private static final long serialVersionUID = 8683427258340193283L;
+
+		private static final Logger LOGGER = Logger.getLogger(SlaveDisconnector.class.getName());
+
+        @Override
+        public Void call() throws IOException {
+            Engine e = Engine.current();
+            // No engine, do nothing.
+            if (e == null) {
+                return null;
+            }
+            // Tell the slave JNLP agent to not attempt further reconnects.
+            e.setNoReconnect(true);
+            LOGGER.log(Level.INFO, "Disabled slave engine reconnects.");
+            return null;
         }
 
     }

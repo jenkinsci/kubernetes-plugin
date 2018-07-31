@@ -1,0 +1,17 @@
+<div>
+    <p>
+        This setting controls how slave pods are retained after the Jenkins build completes for this pod template.
+        Values other than "default" will override the plugin's Pod Retention setting.
+        The following retention policies are supported:
+    </p>
+    <ol>
+        <li>default - use the Pod Retention setting for the plugin.</li>
+        <li>Never - always delete the slave pod.</li>
+        <li>On Failure - keep the slave pod if it fails during the build.</li>
+        <li>Always - always keep the slave pod.</li>
+    </ol>
+    <p>
+        <strong>Note:</strong> Kubernetes administrators are responsible for managing any kept slave pod.
+        These will not be deleted by the Jenkins Kubernetes plugin.
+    </p>
+</div>
