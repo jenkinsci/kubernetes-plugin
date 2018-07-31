@@ -9,6 +9,11 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Preserve resources other than CPU and memory
 
+1.12.0
+------
+
+* Add optional usage restriction for a Kubernetes cloud using folder properties [#282](https://github.com/jenkinsci/kubernetes-plugin/pull/282)
+
 1.11.0
 ------
 
