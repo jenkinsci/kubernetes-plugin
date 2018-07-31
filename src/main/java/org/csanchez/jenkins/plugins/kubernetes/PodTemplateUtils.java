@@ -28,6 +28,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.util.DescribableList;
+import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -305,8 +309,7 @@ public class PodTemplateUtils {
         WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
         //Tool location node properties
-        List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
-        toolLocationNodeProperties.addAll(parent.getNodeProperties());
+        PodTemplateToolLocation toolLocationNodeProperties = parent.getNodeProperties();
         toolLocationNodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate();
@@ -344,6 +347,7 @@ public class PodTemplateUtils {
 
         podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
+        podTemplate.setPodRetention(template.getPodRetention());
 
         podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 

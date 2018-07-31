@@ -1,9 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.util.Arrays;
-import java.util.Collections;
+import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.fail;
 
-import jenkins.model.JenkinsLocationConfiguration;
+import java.util.Arrays;
+
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.junit.After;
@@ -11,8 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.fail;
+import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
 
@@ -76,5 +77,10 @@ public class KubernetesCloudTest {
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrDie());
     }
 
+    @Test
+    public void testKubernetesCloudDefaults() {
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
+    }
 
 }

@@ -27,7 +27,6 @@ import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
@@ -100,6 +99,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
         newTemplate.setYaml(step.getYaml());
+        newTemplate.setPodRetention(step.getPodRetention());
 
         if(step.getActiveDeadlineSeconds() != 0) {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
@@ -204,17 +204,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 return;
             }
             if (cloud instanceof KubernetesCloud) {
-                LOGGER.log(Level.INFO, "Removing pod template and deleting pod {1} from cloud {0}",
+                LOGGER.log(Level.INFO, "Removing pod template {1} from cloud {0}",
                         new Object[] { cloud.name, podTemplate.getName() });
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeDynamicTemplate(podTemplate);
-                KubernetesClient client = kubernetesCloud.connect();
-                Boolean deleted = client.pods().withName(podTemplate.getName()).delete();
-                if (!Boolean.TRUE.equals(deleted)) {
-                    LOGGER.log(Level.WARNING, "Failed to delete pod for agent {0}/{1}: not found",
-                            new String[] { client.getNamespace(), podTemplate.getName() });
-                    return;
-                }
             } else {
                 LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
                         new String[] { cloud.name, cloud.getClass().getName() });
