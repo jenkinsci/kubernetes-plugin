@@ -94,6 +94,7 @@ public class PodTemplateUtils {
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
+        List<PortMapping> ports = template.getPorts().isEmpty() ? parent.getPorts() : template.getPorts();
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -109,6 +110,7 @@ public class PodTemplateUtils {
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
         combined.setEnvVars(combineEnvVars(parent, template));
+        combined.setPorts(ports);
         return combined;
     }
 
@@ -142,7 +144,7 @@ public class PodTemplateUtils {
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
         Map<String, Quantity> requests = combineResources(parent, template, ResourceRequirements::getRequests);
         Map<String, Quantity> limits = combineResources(parent, template, ResourceRequirements::getLimits);
-        
+
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
