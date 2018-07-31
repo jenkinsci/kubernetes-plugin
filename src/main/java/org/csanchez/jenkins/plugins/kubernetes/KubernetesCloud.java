@@ -113,6 +113,7 @@ public class KubernetesCloud extends Cloud {
     private int connectTimeout;
     private int readTimeout;
     private Map<String, String> labels;
+    private boolean usageRestricted;
 
     private transient KubernetesClient client;
     private int maxRequestsPerHost;
@@ -146,6 +147,7 @@ public class KubernetesCloud extends Cloud {
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
         this.connectTimeout = source.connectTimeout;
+        this.usageRestricted = source.usageRestricted;
         this.podRetention = source.podRetention;
     }
 
@@ -167,6 +169,15 @@ public class KubernetesCloud extends Cloud {
 
     }
 
+    public boolean isUsageRestricted() {
+        return usageRestricted;
+    }
+
+    @DataBoundSetter
+    public void setUsageRestricted(boolean usageRestricted) {
+        this.usageRestricted = usageRestricted;
+    }
+    
     public int getRetentionTimeout() {
         return retentionTimeout;
     }

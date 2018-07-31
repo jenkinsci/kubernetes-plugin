@@ -2,6 +2,8 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.stream.Collectors.*;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -9,6 +11,7 @@ import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
 import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -20,6 +23,8 @@ import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
@@ -60,6 +65,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
 
         Run<?, ?> run = getContext().get(Run.class);
+        if (kubernetesCloud.isUsageRestricted()) {
+            checkAccess(run, kubernetesCloud);
+        }
+
         PodTemplateAction podTemplateAction = run.getAction(PodTemplateAction.class);
         NamespaceAction namespaceAction = run.getAction(NamespaceAction.class);
         String parentTemplates = podTemplateAction != null ? podTemplateAction.getParentTemplates() : null;
@@ -121,6 +130,26 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void stop(Throwable cause) throws Exception {
         new PodTemplateAction(getContext().get(Run.class)).pop();
+    }
+
+    /**
+     * Check if the current Job is permitted to use the cloud.
+     * 
+     * @param run
+     * @param kubernetesCloud
+     * @throws AbortException
+     *             in case the Job has not been authorized to use the
+     *             kubernetesCloud
+     */
+    private void checkAccess(Run<?, ?> run, KubernetesCloud kubernetesCloud) throws AbortException {
+        Job<?, ?> job = run.getParent(); // Return the associated Job for this Build
+        ItemGroup<?> parent = job.getParent(); // Get the Parent of the Job (which might be a Folder)
+
+        Set<String> allowedClouds = new HashSet<>();
+        KubernetesFolderProperty.collectAllowedClouds(allowedClouds, parent);
+        if (!allowedClouds.contains(kubernetesCloud.name)) {
+            throw new AbortException(String.format("Not authorized to use Kubernetes cloud: %s", step.getCloud()));
+        }
     }
 
     private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull NamespaceAction namespaceAction) {

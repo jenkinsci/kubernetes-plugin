@@ -62,6 +62,10 @@
       <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
         <f:checkbox />
       </f:entry>
+
+      <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
+        <f:checkbox />
+      </f:entry>
     </f:advanced>
 
     <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
