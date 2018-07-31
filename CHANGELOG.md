@@ -9,6 +9,11 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Preserve resources other than CPU and memory
 
+1.11.0
+------
+
+* Add Pod Retention policies to keep pods around on failure [#354](https://github.com/jenkinsci/kubernetes-plugin/pull/354) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
+
 1.10.2
 ------
 
