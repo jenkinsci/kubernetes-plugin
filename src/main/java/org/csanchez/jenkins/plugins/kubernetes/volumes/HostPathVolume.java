@@ -29,6 +29,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.HostPathVolumeSource;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
@@ -43,9 +44,9 @@ public class HostPathVolume extends PodVolume {
     }
 
     public Volume buildVolume(String volumeName) {
-        return new VolumeBuilder()
-                .withName(volumeName)
-                .withNewHostPath(getHostPath())
+        return new VolumeBuilder() //
+                .withName(volumeName) //
+                .withNewHostPath().withPath(getHostPath()).endHostPath() //
                 .build();
     }
 
