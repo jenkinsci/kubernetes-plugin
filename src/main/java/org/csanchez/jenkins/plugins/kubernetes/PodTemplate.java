@@ -714,6 +714,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
 
+        @SuppressWarnings("rawtypes")
+        public Descriptor getDefaultPodRetention() {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins == null) {
+                return null;
+            }
+            return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
+        }
+
     }
 
     @Override

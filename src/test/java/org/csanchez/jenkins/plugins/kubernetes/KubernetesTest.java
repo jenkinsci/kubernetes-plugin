@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
@@ -77,8 +78,9 @@ public class KubernetesTest {
     public void upgradeFrom_1_10() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
+        assertEquals(new Never(), cloud.getPodRetention());
         PodTemplate template = templates.get(0);
-        assertEquals(new Never(), template.getPodRetention());
+        assertEquals(new Default(), template.getPodRetention());
     }
 
     @Test
