@@ -30,9 +30,8 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.List;
 
-import hudson.slaves.NodePropertyDescriptor;
-import hudson.util.DescribableList;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential;
@@ -47,11 +46,12 @@ import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 
-import hudson.model.Node;
 import hudson.plugins.git.GitTool;
 import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
 import hudson.tools.ToolLocationNodeProperty;
 import hudson.tools.ToolLocationNodeProperty.ToolLocation;
+import hudson.util.DescribableList;
 import hudson.util.Secret;
 
 /**
@@ -70,6 +70,15 @@ public class KubernetesTest {
     public void before() throws Exception {
         r.configRoundtrip();
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_1_10() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
+        assertEquals(new Never(), template.getPodRetention());
     }
 
     @Test
