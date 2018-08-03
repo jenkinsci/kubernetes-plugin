@@ -613,17 +613,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.yaml = yaml;
     }
 
-	public PodRetention getPodRetention() {
-		return podRetention;
-	}
+    public PodRetention getPodRetention() {
+        return podRetention;
+    }
 
     @DataBoundSetter
-	public void setPodRetention(PodRetention podRetention) {
+    public void setPodRetention(PodRetention podRetention) {
         if (podRetention == null) {
             podRetention = PodRetention.getPodTemplateDefault();
         }
-		this.podRetention = podRetention;
-	}
+        this.podRetention = podRetention;
+    }
 
     protected Object readResolve() {
         if (containers == null) {
