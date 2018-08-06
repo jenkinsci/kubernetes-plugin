@@ -53,6 +53,18 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
     }
 
+    @Test
+    public void declarativeWithSCMEnvVars() throws Exception {
+        prepRepoWithJenkinsfile("declarativeWithSCMEnvVars.groovy");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess((r.waitForCompletion(b)));
+        r.assertLogNotContains("GIT_COMMIT is null", b);
+        r.assertLogContains("GIT_COMMIT is ", b);
+    }
+
     @Issue("JENKINS-48135")
     @Test
     public void declarativeFromYaml() throws Exception {

@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -47,6 +48,7 @@ import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
+import jenkins.plugins.git.GitSampleRepoRule;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -77,6 +79,15 @@ public class AbstractKubernetesPipelineTest {
     @Rule
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
+    @Rule
+    public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+
+    protected void prepRepoWithJenkinsfile(String pipelineName) throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", loadPipelineScript(pipelineName));
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--message=files");
+    }
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
