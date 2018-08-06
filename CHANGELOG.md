@@ -9,6 +9,11 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Preserve resources other than CPU and memory
 
+1.12.1
+------
+
+* Fix defaults for Pod Retention on Pod templates [#363](https://github.com/jenkinsci/kubernetes-plugin/pull/363) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
+
 1.12.0
 ------
 
