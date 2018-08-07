@@ -25,6 +25,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
 import hudson.model.Result
 import org.jenkinsci.plugins.pipeline.modeldefinition.SyntheticStageNames
+import org.jenkinsci.plugins.pipeline.modeldefinition.agent.CheckoutScript
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentScript
 import org.jenkinsci.plugins.workflow.cps.CpsScript
 
@@ -44,28 +45,20 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 }
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
-                        if (describable.isDoCheckout() && describable.hasScmContext(script)) {
-                            if (!describable.inStage) {
-                                script.stage(SyntheticStageNames.checkout()) {
-                                    script.checkout script.scm
-                                }
-                            } else {
-                                // No stage when we're in a nested stage already
-                                script.checkout script.scm
+                        CheckoutScript.doCheckout(script, describable) {
+                            // what container to use for the main body
+                            def container = describable.defaultContainer ?: 'jnlp';
+
+                            if (describable.containerTemplate != null) {
+                                // run inside the container declared for backwards compatibility
+                                container = describable.containerTemplate.asArgs;
                             }
-                        }
-                        // what container to use for the main body
-                        def container = describable.defaultContainer ?: 'jnlp';
 
-                        if (describable.containerTemplate != null) {
-                            // run inside the container declared for backwards compatibility
-                            container = describable.containerTemplate.asArgs;
-                        }
-
-                        // call the main body
-                        script.container(container) {
-                            body.call()
-                        }
+                            // call the main body
+                            script.container(container) {
+                                body.call()
+                            }
+                        }.call()
                     }
                 }
             } catch (Exception e) {
