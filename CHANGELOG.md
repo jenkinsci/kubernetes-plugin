@@ -7,7 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
-Preserve resources other than CPU and memory
+1.12.3
+------
+
+* Upgrade Jenkins to 2.121.2 [#365](https://github.com/jenkinsci/kubernetes-plugin/pull/365)
 
 1.12.2
 ------

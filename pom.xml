@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.12.3-SNAPSHOT</version>
+  <version>1.12.4-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -42,7 +42,7 @@
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost />
     <java.level>8</java.level>
-    <jenkins.version>2.121.1</jenkins.version>
+    <jenkins.version>2.121.2</jenkins.version>
     <no-test-jar>false</no-test-jar>
   </properties>
 
