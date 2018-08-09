@@ -613,17 +613,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.yaml = yaml;
     }
 
-	public PodRetention getPodRetention() {
-		return podRetention;
-	}
+    public PodRetention getPodRetention() {
+        return podRetention;
+    }
 
     @DataBoundSetter
-	public void setPodRetention(PodRetention podRetention) {
+    public void setPodRetention(PodRetention podRetention) {
         if (podRetention == null) {
             podRetention = PodRetention.getPodTemplateDefault();
         }
-		this.podRetention = podRetention;
-	}
+        this.podRetention = podRetention;
+    }
 
     protected Object readResolve() {
         if (containers == null) {
@@ -712,6 +712,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         @Restricted(DoNotUse.class) // Used by jelly
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+        }
+
+        @SuppressWarnings("rawtypes")
+        public Descriptor getDefaultPodRetention() {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins == null) {
+                return null;
+            }
+            return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
         }
 
     }

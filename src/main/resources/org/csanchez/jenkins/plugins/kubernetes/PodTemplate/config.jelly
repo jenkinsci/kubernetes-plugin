@@ -48,7 +48,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" /> 
+  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" /> 
 
   <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
     <f:textbox/>

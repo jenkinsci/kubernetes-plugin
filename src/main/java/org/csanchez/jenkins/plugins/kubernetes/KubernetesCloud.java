@@ -711,6 +711,9 @@ public class KubernetesCloud extends Cloud {
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
         }
+        if (podRetention == null) {
+            podRetention = PodRetention.getKubernetesCloudDefault();
+        }
         return this;
     }
 
