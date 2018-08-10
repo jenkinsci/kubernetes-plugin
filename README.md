@@ -535,7 +535,7 @@ at `DEBUG` level.
 
 ## Deleting pods in bad state
 
-    kubectl get -a pods -o name --selector=jenkins=agent | xargs -I {} kubectl delete {}
+    kubectl get pods -o name --selector=jenkins=slave --all-namespaces  | xargs -I {} kubectl delete {}
 
 # Building and Testing
 
