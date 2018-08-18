@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.12.4
+------
+
+* Chinese localization [#368](https://github.com/jenkinsci/kubernetes-plugin/pull/368)[#370](https://github.com/jenkinsci/kubernetes-plugin/pull/370)
+
 1.12.3
 ------
 
