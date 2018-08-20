@@ -251,7 +251,10 @@ public class PodTemplateBuilder {
         if (slave != null) {
             // Add some default env vars for Jenkins
             env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
+            // JENKINS_AGENT_NAME is default in jnlp-slave
+            // JENKINS_NAME only here for backwords compatability
             env.put("JENKINS_NAME", slave.getComputer().getName());
+            env.put("JENKINS_AGENT_NAME", slave.getComputer().getName());
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
