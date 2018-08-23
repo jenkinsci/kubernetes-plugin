@@ -52,7 +52,7 @@ public class OnFailure extends PodRetention implements Serializable {
 
         @Override
         public String getDisplayName() {
-            return "On Failure";
+            return Messages.on_Failure();
         }
 
     }

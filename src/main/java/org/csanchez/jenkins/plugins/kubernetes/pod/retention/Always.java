@@ -49,7 +49,7 @@ public class Always extends PodRetention implements Serializable {
 
         @Override
         public String getDisplayName() {
-            return "Always";
+            return Messages.always();
         }
 
     }
