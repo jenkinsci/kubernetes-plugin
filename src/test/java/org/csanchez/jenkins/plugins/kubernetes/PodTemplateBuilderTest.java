@@ -137,6 +137,7 @@ public class PodTemplateBuilderTest {
         assertEquals(volumeMounts, container1.getVolumeMounts());
     }
 
+    @Test
     public void testBuildFromTemplate() throws Exception {
         PodTemplate template = new PodTemplate();
 
@@ -206,19 +207,33 @@ public class PodTemplateBuilderTest {
                     .withReadOnly(false).build(), mounts.get(1));
         } else {
             assertEquals(3, mounts.size());
-            assertEquals(new VolumeMountBuilder().withMountPath("/container/data").withName("volume-0").build(),
+            assertEquals(new VolumeMountBuilder().withMountPath("/container/data").withName("volume-0").withReadOnly(false).build(),
                     mounts.get(0));
-            assertEquals(new VolumeMountBuilder().withMountPath("/empty/dir").withName("volume-1").build(),
+            assertEquals(new VolumeMountBuilder().withMountPath("/empty/dir").withName("volume-1").withReadOnly(false).build(),
                     mounts.get(1));
             assertEquals(new VolumeMountBuilder().withMountPath("/home/jenkins").withName("workspace-volume")
                     .withReadOnly(false).build(), mounts.get(2));
+        }
+
+        List<VolumeMount> jnlpMounts = containers.get("jnlp").getVolumeMounts();
+        if (fromYaml) {
+            assertEquals(1, jnlpMounts.size());
+            assertEquals(new VolumeMountBuilder().withMountPath("/home/jenkins").withName("workspace-volume")
+                    .withReadOnly(false).build(), jnlpMounts.get(0));
+        } else {
+            assertEquals(3, jnlpMounts.size());
+            assertEquals(new VolumeMountBuilder().withMountPath("/container/data").withName("volume-0").withReadOnly(false).build(),
+                    jnlpMounts.get(0));
+            assertEquals(new VolumeMountBuilder().withMountPath("/empty/dir").withName("volume-1").withReadOnly(false).build(),
+                    jnlpMounts.get(1));
+            assertEquals(new VolumeMountBuilder().withMountPath("/home/jenkins").withName("workspace-volume")
+                    .withReadOnly(false).build(), jnlpMounts.get(2));
         }
 
         validateJnlpContainer(containers.get("jnlp"), slave);
     }
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave) {
-        assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         assertThat(jnlp.getCommand(), empty());
         List<EnvVar> envVars = Lists.newArrayList( //
                 new EnvVar("HOME", "/home/jenkins", null) //
@@ -252,7 +267,9 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = pod.getSpec().getContainers().stream()
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
         assertEquals(1, containers.size());
-        validateJnlpContainer(containers.get("jnlp"), slave);
+        Container jnlp = containers.get("jnlp");
+		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        validateJnlpContainer(jnlp, slave);
     }
 
     @Test
@@ -267,6 +284,8 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = pod.getSpec().getContainers().stream()
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
         assertEquals(1, containers.size());
-        validateJnlpContainer(containers.get("jnlp"), slave);
+        Container jnlp = containers.get("jnlp");
+		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        validateJnlpContainer(jnlp, slave);
     }
 }
