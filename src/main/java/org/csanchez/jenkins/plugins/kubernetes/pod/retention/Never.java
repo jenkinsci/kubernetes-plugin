@@ -48,7 +48,7 @@ public class Never extends PodRetention implements Serializable {
         
         @Override
         public String getDisplayName() {
-            return "Never";
+            return Messages.never();
         }
     }
 

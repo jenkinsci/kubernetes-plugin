@@ -67,7 +67,7 @@ public class Default extends PodRetention implements Serializable {
 
         @Override
         public String getDisplayName() {
-            return "Default";
+            return Messages._default();
         }
 
     }
