@@ -10,6 +10,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 1.12.4
 ------
 
+* Add volumes from pod template to JNLP container [#371](https://github.com/jenkinsci/kubernetes-plugin/pull/371) [JENKINS-50879](https://issues.jenkins-ci.org/browse/JENKINS-50879)
 * Chinese localization [#368](https://github.com/jenkinsci/kubernetes-plugin/pull/368)[#370](https://github.com/jenkinsci/kubernetes-plugin/pull/370)
 
 1.12.3
