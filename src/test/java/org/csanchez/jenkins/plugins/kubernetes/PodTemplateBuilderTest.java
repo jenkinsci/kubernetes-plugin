@@ -234,6 +234,7 @@ public class PodTemplateBuilderTest {
             envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
+            envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
