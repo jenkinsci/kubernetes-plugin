@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.*;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -259,7 +260,45 @@ public class PodTemplateBuilderTest {
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
+        assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
+        assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
+        assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
+        validateJnlpContainer(jnlp, slave);
+    }
+
+    /**
+     * This is counter intuitive, the yaml contents are ignored because the parent fields are merged first with the
+     * child ones. Then the fields override what is defined in the yaml, so in effect the parent resource limits and
+     * requests are used.
+     */
+    @Test
+    public void testInheritsFromWithYaml() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        ContainerTemplate container1 = new ContainerTemplate("jnlp", "image1");
+        container1.setResourceLimitCpu("1");
+        container1.setResourceLimitMemory("1Gi");
+        container1.setResourceRequestCpu("100m");
+        container1.setResourceRequestMemory("156Mi");
+        parent.setContainers(Arrays.asList(container1));
+
+        PodTemplate template = new PodTemplate();
+        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-overrides.yaml"))));
+        template.setInheritFrom("parent");
+        setupStubs();
+
+        PodTemplate result = combine(parent, template);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+
+        Map<String, Container> containers = pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        assertEquals(1, containers.size());
+        Container jnlp = containers.get("jnlp");
+        assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
+        assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
+        assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
+        assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
         validateJnlpContainer(jnlp, slave);
     }
 
