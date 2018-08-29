@@ -1,0 +1,32 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:kube="/org/csanchez/jenkins/plugins/kubernetes/form">
+	<f:section title="${descriptor.displayName}">
+		<f:description>
+			${%Allow pipeline support for the following restricted Kubernetes Clouds}
+		</f:description>
+		<j:choose>
+			<j:when test="${instance != null}">
+				<j:set var="effectivePermissions" value="${instance.effectivePermissions}"/>
+				<j:choose>
+					<j:when test="${empty effectivePermissions}">
+						<f:entry title="-- none --" />
+					</j:when>
+					<j:otherwise>
+						<j:forEach var="permission" items="${effectivePermissions}">
+							<f:entry field="${permission.formName}">
+								<kube:checkbox title="${permission.name}" checked="${permission.granted}" readonly="${permission.readonly}"/>
+							</f:entry>
+						</j:forEach>
+					</j:otherwise>
+				</j:choose>
+			</j:when>
+			<j:otherwise>
+				<f:entry title="${%You have to save this folder first before you can manage Kubernetes Clouds.}" />
+				<f:invisibleEntry>
+					<!-- Needed to create the property on save -->
+					<input type="checkbox"/>
+				</f:invisibleEntry>
+			</j:otherwise>
+		</j:choose>
+	</f:section>
+</j:jelly>

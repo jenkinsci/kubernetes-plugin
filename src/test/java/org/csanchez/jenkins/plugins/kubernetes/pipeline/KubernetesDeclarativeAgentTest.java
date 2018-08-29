@@ -87,4 +87,15 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("MAVEN_CONTAINER_ENV_VAR = maven\n", b);
         r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
     }
+
+    @Issue("JENKINS-52623")
+    @Test
+    public void declarativeSCMVars() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with repo");
+        // We can't use a local GitSampleRepoRule for this because the repo has to be accessible from within the container.
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep("https://github.com/abayer/jenkins-52623.git").createSCM(), "Jenkinsfile"));
+        WorkflowRun b = r.buildAndAssertSuccess(p);
+        r.assertLogContains("Outside container: GIT_BRANCH is origin/master", b);
+        r.assertLogContains("In container: GIT_BRANCH is origin/master", b);
+    }
 }

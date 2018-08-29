@@ -7,7 +7,36 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
-Preserve resources other than CPU and memory
+1.12.4
+------
+
+* Add volumes from pod template to JNLP container [#371](https://github.com/jenkinsci/kubernetes-plugin/pull/371) [JENKINS-50879](https://issues.jenkins-ci.org/browse/JENKINS-50879)
+* Chinese localization [#368](https://github.com/jenkinsci/kubernetes-plugin/pull/368)[#370](https://github.com/jenkinsci/kubernetes-plugin/pull/370)
+
+1.12.3
+------
+
+* Upgrade Jenkins to 2.121.2 [#365](https://github.com/jenkinsci/kubernetes-plugin/pull/365)
+
+1.12.2
+------
+
+* Using declarative, environment variables like COMMIT_ID, GIT_BRANCH are not populated. Use CheckoutScript to populate environment [#364](https://github.com/jenkinsci/kubernetes-plugin/pull/364) [JENKINS-52623](https://issues.jenkins-ci.org/browse/JENKINS-52623)
+
+1.12.1
+------
+
+* Fix defaults for Pod Retention on Pod templates [#363](https://github.com/jenkinsci/kubernetes-plugin/pull/363) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
+
+1.12.0
+------
+
+* Add optional usage restriction for a Kubernetes cloud using folder properties [#282](https://github.com/jenkinsci/kubernetes-plugin/pull/282)
+
+1.11.0
+------
+
+* Add Pod Retention policies to keep pods around on failure [#354](https://github.com/jenkinsci/kubernetes-plugin/pull/354) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
 
 1.10.2
 ------

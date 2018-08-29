@@ -47,9 +47,8 @@
         <f:textbox default="10"/>
     </f:entry>
 
-    <f:entry field="capOnlyOnAlivePods" title="${%Apply cap only on alive pods}">
-        <f:checkbox/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" 
+        descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" /> 
 
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
         <f:textbox default="32"/>
@@ -63,6 +62,10 @@
       <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
         <f:checkbox />
       </f:entry>
+
+      <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
+        <f:checkbox />
+      </f:entry>
     </f:advanced>
 
     <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
@@ -70,8 +73,8 @@
     </f:entry>
 
     <f:entry title="${%Images}" description="${%List of Images to be launched as agents}">
-      <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="Add Pod Template"
-                                  deleteCaption="Delete Template" />
+      <f:repeatableHeteroProperty field="templates" hasHeader="true" addCaption="$%{Add Pod Template}"
+                                  deleteCaption="${%Delete Template}" />
     </f:entry>
 
 </j:jelly>

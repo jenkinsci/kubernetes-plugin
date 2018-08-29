@@ -35,8 +35,8 @@
   </f:entry>
 
     <f:entry title="${%EnvVars}" description="${%List of environment variables to set in agent pod}">
-      <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="Add Environment Variable"
-                                  deleteCaption="Delete Environment Variable" />
+      <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="${%Add Environment Variable}"
+                                  deleteCaption="${%Delete Environment Variable}" />
     </f:entry>
 
   <f:advanced>
@@ -68,8 +68,8 @@
       </f:rowSet>
     </f:entry>
     <f:entry title="${%PortMappings}" description="${%List of exposed ports}">
-      <f:repeatableHeteroProperty field="ports" hasHeader="true" addCaption="Add Port Mapping"
-                                    deleteCaption="Delete Port Mapping" />
+      <f:repeatableHeteroProperty field="ports" hasHeader="true" addCaption="${%Add Port Mapping}"
+                                    deleteCaption="${%Delete Port Mapping}" />
     </f:entry>
 
   </f:advanced>

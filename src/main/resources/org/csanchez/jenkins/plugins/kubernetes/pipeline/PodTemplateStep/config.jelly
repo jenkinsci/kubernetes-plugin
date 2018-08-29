@@ -37,6 +37,9 @@
         <f:entry field="instanceCap" title="${%Max number of instances}">
           <f:textbox default="0"/>
         </f:entry>
+        <f:entry title="${%Pod Retention}">
+          <f:dropdownDescriptorSelector field="podRetention"/> 
+        </f:entry>
         <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
        </f:entry>

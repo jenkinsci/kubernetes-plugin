@@ -69,6 +69,7 @@ import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -126,7 +127,8 @@ public class PodTemplateBuilder {
             //We need to normalize the path or we can end up in really hard to debug issues.
             final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMount(mountPath, volumeName, false, null));
+                volumeMounts.put(mountPath, new VolumeMountBuilder() //
+                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }
@@ -212,7 +214,8 @@ public class PodTemplateBuilder {
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
                 .findFirst();
-        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).build());
+        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME)
+                .withVolumeMounts(volumeMounts.values().toArray(new VolumeMount[volumeMounts.values().size()])).build());
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
         }
@@ -249,7 +252,10 @@ public class PodTemplateBuilder {
         if (slave != null) {
             // Add some default env vars for Jenkins
             env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
+            // JENKINS_AGENT_NAME is default in jnlp-slave
+            // JENKINS_NAME only here for backwords compatability
             env.put("JENKINS_NAME", slave.getComputer().getName());
+            env.put("JENKINS_AGENT_NAME", slave.getComputer().getName());
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
@@ -365,7 +371,7 @@ public class PodTemplateBuilder {
             wd = ContainerTemplate.DEFAULT_WORKING_DIR;
             LOGGER.log(Level.FINE, "Container workingDir is null, defaulting to {0}", wd);
         }
-        return new VolumeMount(wd, WORKSPACE_VOLUME_NAME, false, null);
+        return new VolumeMountBuilder().withMountPath(wd).withName(WORKSPACE_VOLUME_NAME).withReadOnly(false).build();
     }
 
     private List<VolumeMount> getContainerVolumeMounts(Collection<VolumeMount> volumeMounts, String workingDir) {

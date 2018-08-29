@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,16 +9,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.*;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.NodePropertyDescriptor;
-import hudson.util.DescribableList;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -27,11 +26,18 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.Saveable;
 import hudson.model.labels.LabelAtom;
+import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
@@ -114,6 +120,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String yaml;
 
+    @CheckForNull
+    private PodRetention podRetention = PodRetention.getPodTemplateDefault();
+
     @DataBoundConstructor
     public PodTemplate() {
     }
@@ -136,6 +145,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYaml(from.getYaml());
         this.setNodeProperties(from.getNodeProperties());
+        this.setPodRetention(from.getPodRetention());
     }
 
     @Deprecated
@@ -419,10 +429,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
+    @Deprecated
     public void setCapOnlyOnAlivePods(boolean capOnlyOnAlivePods) {
         this.capOnlyOnAlivePods = capOnlyOnAlivePods;
     }
 
+    @Deprecated
     public boolean isCapOnlyOnAlivePods() {
         return capOnlyOnAlivePods;
     }
@@ -601,7 +613,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.yaml = yaml;
     }
 
-    @SuppressWarnings("deprecation")
+    public PodRetention getPodRetention() {
+        return podRetention;
+    }
+
+    @DataBoundSetter
+    public void setPodRetention(PodRetention podRetention) {
+        if (podRetention == null) {
+            podRetention = PodRetention.getPodTemplateDefault();
+        }
+        this.podRetention = podRetention;
+    }
+
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
@@ -690,7 +713,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
-        
+
+        @SuppressWarnings("rawtypes")
+        public Descriptor getDefaultPodRetention() {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins == null) {
+                return null;
+            }
+            return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
+        }
+
     }
 
     @Override

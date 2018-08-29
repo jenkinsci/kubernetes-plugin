@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +39,12 @@ import java.util.Map;
 import hudson.model.Node;
 import hudson.slaves.NodeProperty;
 import hudson.tools.ToolLocationNodeProperty;
+
+import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
+import org.jenkinsci.plugins.pipeline.modeldefinition.shaded.com.google.common.collect.Lists;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -56,9 +60,12 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.QuantityBuilder;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
 public class PodTemplateUtilsTest {
 
@@ -469,10 +476,14 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void shouldCombineAllPodMounts() {
-        VolumeMount vm1 = new VolumeMount("/host/mnt1", "volume-1", false, null);
-        VolumeMount vm2 = new VolumeMount("/host/mnt2", "volume-2", false, null);
-        VolumeMount vm3 = new VolumeMount("/host/mnt3", "volume-3", false, null);
-        VolumeMount vm4 = new VolumeMount("/host/mnt1", "volume-4", false, null);
+        VolumeMount vm1 = new VolumeMountBuilder().withMountPath("/host/mnt1").withName("volume-1").withReadOnly(false)
+                .build();
+        VolumeMount vm2 = new VolumeMountBuilder().withMountPath("/host/mnt2").withName("volume-2").withReadOnly(false)
+                .build();
+        VolumeMount vm3 = new VolumeMountBuilder().withMountPath("/host/mnt3").withName("volume-3").withReadOnly(false)
+                .build();
+        VolumeMount vm4 = new VolumeMountBuilder().withMountPath("/host/mnt1").withName("volume-4").withReadOnly(false)
+                .build();
         Container container1 = containerBuilder().withName("jnlp").withVolumeMounts(vm1, vm2).build();
         Pod pod1 = podBuilder().withContainers(container1).endSpec().build();
         Container container2 = containerBuilder().withName("jnlp").withVolumeMounts(vm3, vm4).build();
@@ -505,6 +516,32 @@ public class PodTemplateUtilsTest {
 
         Pod result = combine(pod1, pod2);
         assertThat(result.getSpec().getTolerations(), containsInAnyOrder(toleration1, toleration2, toleration3, toleration4));
+    }
+
+    @Test
+    public void shouldCombineAllResources() {
+        Container container1 = new Container();
+        container1.setResources(new ResourceRequirementsBuilder() //
+                .addToLimits("cpu", new Quantity("1")) //
+                .addToLimits("memory", new Quantity("1Gi")) //
+                .addToRequests("cpu", new Quantity("100m")) //
+                .addToRequests("memory", new Quantity("156Mi")) //
+                .build());
+
+        Container container2 = new Container();
+        container2.setResources(new ResourceRequirementsBuilder() //
+                .addToLimits("cpu", new Quantity("2")) //
+                .addToLimits("memory", new Quantity("2Gi")) //
+                .addToRequests("cpu", new Quantity("200m")) //
+                .addToRequests("memory", new Quantity("256Mi")) //
+                .build());
+
+        Container result = combine(container1, container2);
+
+        assertEquals(new Quantity("2"), result.getResources().getLimits().get("cpu"));
+        assertEquals(new Quantity("2Gi"), result.getResources().getLimits().get("memory"));
+        assertEquals(new Quantity("200m"), result.getResources().getRequests().get("cpu"));
+        assertEquals(new Quantity("256Mi"), result.getResources().getRequests().get("memory"));
     }
 
     @Test
