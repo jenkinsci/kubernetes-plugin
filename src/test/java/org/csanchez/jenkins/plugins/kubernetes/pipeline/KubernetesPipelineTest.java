@@ -398,6 +398,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("hostPort: 10001", b);
         r.assertLogContains("- containerPort: 10002", b);
         r.assertLogContains("hostPort: 10002", b);
+    }
 
     @Test
     public void runInPodWithRetention() throws Exception {
