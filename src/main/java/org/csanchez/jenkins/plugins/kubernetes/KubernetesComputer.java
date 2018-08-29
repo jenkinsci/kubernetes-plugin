@@ -6,6 +6,7 @@ import hudson.slaves.AbstractCloudComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -58,6 +59,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Container> getContainers() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         KubernetesSlave slave = getNode();
         if(slave == null) {
             return new ArrayList<>();
@@ -74,6 +76,8 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     public void doContainerLog(@QueryParameter String containerId,
                                StaplerRequest req, StaplerResponse rsp) throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+
         ByteBuffer outputStream = new ByteBuffer();
         KubernetesSlave slave = getNode();
         if(slave != null) {
