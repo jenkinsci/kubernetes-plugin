@@ -1,10 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.Collection;
 
+import hudson.model.Label;
+import hudson.slaves.NodeProvisioner;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -83,4 +87,23 @@ public class KubernetesCloudTest {
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
     }
 
+    @Test
+    public void testInstanceCap() {
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        cloud.setContainerCapStr("100");
+
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test");
+        podTemplate.setLabel("test");
+        podTemplate.setInstanceCap(5);
+
+        cloud.addTemplate(podTemplate);
+
+        Label test = Label.get("test");
+        assertTrue(cloud.canProvision(test));
+
+        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+
+        assertEquals(5, plannedNodes.size());
+    }
 }
