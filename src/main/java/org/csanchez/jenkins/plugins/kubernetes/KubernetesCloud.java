@@ -443,8 +443,8 @@ public class KubernetesCloud extends Cloud {
 
             for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
-                for (int i = 1; i <= toBeProvisioned; i++) {
-                    if (!addProvisionedSlave(t, label)) {
+                for (int i = 0; i < toBeProvisioned; i++) {
+                    if (!addProvisionedSlave(t, label, i)) {
                         break;
                     }
                     r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
@@ -476,7 +476,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label) throws Exception {
+    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
         if (containerCap == 0) {
             return true;
         }
@@ -501,14 +501,14 @@ public class KubernetesCloud extends Cloud {
                 .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
                 .collect(Collectors.toList());
 
-        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size()) {
+        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Total container cap of {0} reached, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
                     new Object[] { containerCap, allActiveSlavePods.size(), templateNamespace, getLabels() });
             return false;
         }
 
-        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size()) {
+        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                     new Object[] { template.getInstanceCap(), template.getName(), allActiveSlavePods.size(),
