@@ -106,4 +106,24 @@ public class KubernetesCloudTest {
 
         assertEquals(5, plannedNodes.size());
     }
+
+    @Test
+    public void testContainerCap() {
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        cloud.setContainerCapStr("10");
+
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test");
+        podTemplate.setLabel("test");
+        podTemplate.setInstanceCap(20);
+
+        cloud.addTemplate(podTemplate);
+
+        Label test = Label.get("test");
+        assertTrue(cloud.canProvision(test));
+
+        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+
+        assertEquals(10, plannedNodes.size());
+    }
 }
