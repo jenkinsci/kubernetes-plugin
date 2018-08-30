@@ -1,15 +1,21 @@
 podTemplate(label: 'mypod',
     envVars: [
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
-        secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password')
+        secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password'),
+        fieldEnvVar(key: 'POD_ENV_VAR_FROM_FIELD', fieldPath: 'metadata.name', apiVersion: 'v1'),
+        resourceFieldEnvVar(key: 'POD_ENV_VAR_FROM_RESOURCE_FIELD', resource: 'requests.cpu', containerName: 'busybox', divisor: '1000m')
     ],
     containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
             envVars: [
                 containerEnvVar(key: 'CONTAINER_ENV_VAR_LEGACY', value: 'container-env-var-value'),
                 envVar(key: 'CONTAINER_ENV_VAR', value: 'container-env-var-value'),
-                secretEnvVar(key: 'CONTAINER_ENV_VAR_FROM_SECRET', secretName: 'container-secret', secretKey: 'password')
+                secretEnvVar(key: 'CONTAINER_ENV_VAR_FROM_SECRET', secretName: 'container-secret', secretKey: 'password'),
+                fieldEnvVar(key: 'CONTAINER_ENV_VAR_FROM_FIELD', fieldPath: 'metadata.namespace'),
+                resourceFieldEnvVar(key: 'CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD', resource: 'limits.cpu')
             ],
+            resourceRequestCpu: '100m',
+            resourceLimitCpu: '1.0'
         ),
         containerTemplate(name: 'java7', image: 'openjdk:7u151-jre-alpine', ttyEnabled: true, command: '/bin/cat'),
         containerTemplate(name: 'java8', image: 'openjdk:8u151-jre-alpine', ttyEnabled: true, command: '/bin/cat')
@@ -23,8 +29,12 @@ podTemplate(label: 'mypod',
         echo OUTSIDE_CONTAINER_ENV_VAR = \$CONTAINER_ENV_VAR
         echo OUTSIDE_CONTAINER_ENV_VAR_LEGACY = \$CONTAINER_ENV_VAR_LEGACY
         echo OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = \$CONTAINER_ENV_VAR_FROM_SECRET
+        echo OUTSIDE_CONTAINER_ENV_VAR_FROM_FIELD = \$CONTAINER_ENV_VAR_FROM_FIELD
+        echo OUTSIDE_CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD = \$CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD
         echo OUTSIDE_POD_ENV_VAR = \$POD_ENV_VAR
         echo OUTSIDE_POD_ENV_VAR_FROM_SECRET = \$POD_ENV_VAR_FROM_SECRET
+        echo OUTSIDE_POD_ENV_VAR_FROM_FIELD = \$POD_ENV_VAR_FROM_FIELD
+        echo OUTSIDE_POD_ENV_VAR_FROM_RESOURCE_FIELD = \$POD_ENV_VAR_FROM_RESOURCE_FIELD
         echo OUTSIDE_JAVA_HOME_X = \$JAVA_HOME_X
         echo OUTSIDE_GLOBAL = \$GLOBAL
         """
@@ -37,8 +47,12 @@ podTemplate(label: 'mypod',
                 echo INSIDE_CONTAINER_ENV_VAR = \$CONTAINER_ENV_VAR
                 echo INSIDE_CONTAINER_ENV_VAR_LEGACY = \$CONTAINER_ENV_VAR_LEGACY
                 echo INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = \$CONTAINER_ENV_VAR_FROM_SECRET
+                echo INSIDE_CONTAINER_ENV_VAR_FROM_FIELD = \$CONTAINER_ENV_VAR_FROM_FIELD
+                echo INSIDE_CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD = \$CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD
                 echo INSIDE_POD_ENV_VAR = \$POD_ENV_VAR
                 echo INSIDE_POD_ENV_VAR_FROM_SECRET = \$POD_ENV_VAR_FROM_SECRET
+                echo INSIDE_POD_ENV_VAR_FROM_FIELD = \$POD_ENV_VAR_FROM_FIELD
+                echo INSIDE_POD_ENV_VAR_FROM_RESOURCE_FIELD = \$POD_ENV_VAR_FROM_RESOURCE_FIELD
                 echo INSIDE_JAVA_HOME_X = \$JAVA_HOME_X
                 echo INSIDE_JAVA_HOME = \$JAVA_HOME
                 echo INSIDE_GLOBAL = \$GLOBAL
