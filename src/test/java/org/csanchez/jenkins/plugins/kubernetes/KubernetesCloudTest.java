@@ -122,12 +122,10 @@ public class KubernetesCloudTest {
                 return mockClient;
             }
         };
-        cloud.setContainerCapStr("100");
 
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("test");
         podTemplate.setLabel("test");
-        podTemplate.setInstanceCap(5);
 
         cloud.addTemplate(podTemplate);
 
@@ -135,7 +133,10 @@ public class KubernetesCloudTest {
         assertTrue(cloud.canProvision(test));
 
         Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+        assertEquals(200, plannedNodes.size());
 
+        podTemplate.setInstanceCap(5);
+        plannedNodes = cloud.provision(test, 200);
         assertEquals(5, plannedNodes.size());
     }
 
@@ -156,12 +157,10 @@ public class KubernetesCloudTest {
                 return mockClient;
             }
         };
-        cloud.setContainerCapStr("10");
 
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("test");
         podTemplate.setLabel("test");
-        podTemplate.setInstanceCap(20);
 
         cloud.addTemplate(podTemplate);
 
@@ -169,7 +168,11 @@ public class KubernetesCloudTest {
         assertTrue(cloud.canProvision(test));
 
         Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+        assertEquals(200, plannedNodes.size());
 
+        cloud.setContainerCapStr("10");
+        podTemplate.setInstanceCap(20);
+        plannedNodes = cloud.provision(test, 200);
         assertEquals(10, plannedNodes.size());
     }
 }
