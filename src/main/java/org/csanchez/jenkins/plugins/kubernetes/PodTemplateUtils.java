@@ -94,7 +94,9 @@ public class PodTemplateUtils {
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-        List<PortMapping> ports = template.getPorts().isEmpty() ? parent.getPorts() : template.getPorts();
+        Map<String, PortMapping> ports = parent.getPorts().stream()
+                .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
+        template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -110,7 +112,7 @@ public class PodTemplateUtils {
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
         combined.setEnvVars(combineEnvVars(parent, template));
-        combined.setPorts(ports);
+        combined.setPorts(new ArrayList<>(ports.values()));
         return combined;
     }
 
