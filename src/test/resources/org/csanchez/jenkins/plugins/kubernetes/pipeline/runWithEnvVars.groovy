@@ -3,8 +3,7 @@ podTemplate(label: 'mypod',
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
         secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password'),
         fieldEnvVar(key: 'POD_ENV_VAR_FROM_FIELD', fieldPath: 'metadata.name', apiVersion: 'v1'),
-        resourceFieldEnvVar(key: 'POD_ENV_VAR_FROM_RESOURCE_FIELD', resource: 'limits.cpu', containerName: 'busybox', divisor: '1')
-
+        resourceFieldEnvVar(key: 'POD_ENV_VAR_FROM_RESOURCE_FIELD', resource: 'requests.cpu', containerName: 'busybox', divisor: '1000m')
     ],
     containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
@@ -15,6 +14,8 @@ podTemplate(label: 'mypod',
                 fieldEnvVar(key: 'CONTAINER_ENV_VAR_FROM_FIELD', fieldPath: 'metadata.namespace'),
                 resourceFieldEnvVar(key: 'CONTAINER_ENV_VAR_FROM_RESOURCE_FIELD', resource: 'limits.cpu')
             ],
+            resourceRequestCpu: '100m',
+            resourceLimitCpu: '1.0'
         ),
         containerTemplate(name: 'java7', image: 'openjdk:7u151-jre-alpine', ttyEnabled: true, command: '/bin/cat'),
         containerTemplate(name: 'java8', image: 'openjdk:8u151-jre-alpine', ttyEnabled: true, command: '/bin/cat')
