@@ -91,7 +91,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/mypod", "true"));
+        assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/mypod", "true"));
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
