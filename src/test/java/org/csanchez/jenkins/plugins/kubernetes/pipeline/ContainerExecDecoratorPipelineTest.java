@@ -69,7 +69,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
     @Test
     public void docker() throws Exception {
         StandardUsernamePasswordCredentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
-                "ContainerExecDecoratorPipelineTest-docker", "bob", "username", "secret_password");
+                "ContainerExecDecoratorPipelineTest-docker", "bob", "myusername", "secret_password");
         SystemCredentialsProvider.getInstance().getCredentials().add(credentials);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "docker");
@@ -78,7 +78,8 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.waitForCompletion(b);
-        r.assertLogContains("Wrote authentication to /home/jenkins/.dockercfg", b);
+        // docker login will fail but we can check that it runs the correct command
+        r.assertLogContains("Executing command: \"docker\" \"login\" \"-u\" \"myusername\" \"-p\" ******** \"https://index.docker.io/v1/\"", b);
         // check that we don't accidentally start exporting sensitive info to the build log
         r.assertLogNotContains("secret_password", b);
         // check that we don't accidentally start exporting sensitive info to the Jenkins log
