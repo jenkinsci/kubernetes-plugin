@@ -1,6 +1,6 @@
 FROM jenkins/jenkins:lts-alpine
 
-ARG VERSION=1.12.3
+ARG VERSION=1.12.4
 RUN /usr/local/bin/install-plugins.sh kubernetes:${VERSION}
 
 # COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi

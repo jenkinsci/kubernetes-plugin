@@ -21,7 +21,7 @@
 				</j:choose>
 			</j:when>
 			<j:otherwise>
-				<f:entry title="You have to save this folder first before you can manage Kubernetes Clouds." />
+				<f:entry title="${%You have to save this folder first before you can manage Kubernetes Clouds.}" />
 				<f:invisibleEntry>
 					<!-- Needed to create the property on save -->
 					<input type="checkbox"/>

@@ -214,7 +214,8 @@ public class PodTemplateBuilder {
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
                 .findFirst();
-        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).build());
+        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME)
+                .withVolumeMounts(volumeMounts.values().toArray(new VolumeMount[volumeMounts.values().size()])).build());
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
         }
@@ -251,7 +252,10 @@ public class PodTemplateBuilder {
         if (slave != null) {
             // Add some default env vars for Jenkins
             env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
+            // JENKINS_AGENT_NAME is default in jnlp-slave
+            // JENKINS_NAME only here for backwords compatability
             env.put("JENKINS_NAME", slave.getComputer().getName());
+            env.put("JENKINS_AGENT_NAME", slave.getComputer().getName());
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 

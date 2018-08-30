@@ -5,6 +5,13 @@ spec:
     volumeMounts:
     - mountPath: /home/jenkins
       name: host-volume
+    resources:
+      limits:
+        cpu: 2
+        memory: 2Gi
+      requests:
+        cpu: 200m
+        memory: 256Mi
   volumes:
   - name: host-volume
     hostPath:
