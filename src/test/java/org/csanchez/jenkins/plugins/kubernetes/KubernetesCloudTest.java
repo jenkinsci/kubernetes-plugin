@@ -1,8 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -12,6 +10,18 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.LoggerRule;
+import org.mockito.Mockito;
 
 import hudson.model.Label;
 import hudson.slaves.NodeProvisioner;
@@ -21,21 +31,16 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.PodResource;
-import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-
 import jenkins.model.JenkinsLocationConfiguration;
-import org.mockito.Mockito;
 
 public class KubernetesCloudTest {
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
+
+    @Rule
+    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
+            Level.ALL);
 
     @After
     public void tearDown() {

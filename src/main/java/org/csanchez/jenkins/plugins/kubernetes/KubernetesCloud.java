@@ -437,18 +437,20 @@ public class KubernetesCloud extends Cloud {
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
-            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: " + toBeProvisioned);
+            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: {0}", toBeProvisioned);
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getDisplayName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label, i)) {
                         break;
                     }
                     r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
+                LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
+                        new Object[] { t.getDisplayName(), r.size() });
                 if (r.size() > 0) {
                     // Already found a matching template
                     return r;
