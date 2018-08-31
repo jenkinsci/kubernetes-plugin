@@ -513,7 +513,7 @@ public class KubernetesCloud extends Cloud {
         if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), allActiveSlavePods.size() + scheduledCount,
+                    new Object[] { template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
                             templateNamespace, label == null ? "" : label.toString(), labelsMap });
             return false;
         }
