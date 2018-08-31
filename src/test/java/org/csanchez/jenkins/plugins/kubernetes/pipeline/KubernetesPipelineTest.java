@@ -69,8 +69,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         List<PodTemplate> templates = cloud.getAllTemplates();
 
         PodTemplate template = null;
-        while ((template = podTemplateWithLabel("mypod", templates)) == null) {
-            LOGGER.log(Level.INFO, "Waiting for mypod template to be created");
+        while ((template = podTemplateWithLabel("runInPod", templates)) == null) {
+            LOGGER.log(Level.INFO, "Waiting for runInPod template to be created");
             templates = cloud.getAllTemplates();
             Thread.sleep(1000);
         }
@@ -85,13 +85,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
 
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
+        assertThat(template.getLabelsMap(), hasEntry("jenkins/runInPod", "true"));
 
         assertEquals(1, pods.getItems().size());
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/mypod", "true"));
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/runInPod", "true"));
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
@@ -368,7 +368,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         r.waitForMessage("podTemplate", b);
 
-        PodTemplate deadlineTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "deadline").findAny().orElse(null);
+        PodTemplate deadlineTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "runWithActiveDeadlineSeconds").findAny().orElse(null);
 
         assertNotNull(deadlineTemplate);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
