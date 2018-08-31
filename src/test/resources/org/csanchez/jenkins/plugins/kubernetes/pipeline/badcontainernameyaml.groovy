@@ -1,4 +1,4 @@
-podTemplate(label: 'mypod', yaml: """
+podTemplate(label: 'badcontainernameyaml', yaml: """
 apiVersion: v1
 kind: Pod
 metadata:
@@ -19,7 +19,7 @@ spec:
 """
 ) {
 
-    node ('mypod') {
+    node ('badcontainernameyaml') {
       stage('Run') {
         container('busybox') {
           sh """
