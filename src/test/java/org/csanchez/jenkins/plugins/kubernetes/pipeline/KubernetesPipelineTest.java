@@ -104,7 +104,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
-        assertEquals(1, pods.getItems().size());
+        assertThat(pods.getItems(), hasSize(1));
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
