@@ -490,9 +490,13 @@ public class KubernetesCloud extends Cloud {
         }
 
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> allActiveSlavePods = slaveList.getItems().stream()
-                .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                .collect(Collectors.toList());
+        List<Pod> allActiveSlavePods = null;
+        // JENKINS-53370 check for nulls
+        if (slaveList != null && slaveList.getItems() != null) {
+            allActiveSlavePods = slaveList.getItems().stream() //
+                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                    .collect(Collectors.toList());
+        }
 
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
