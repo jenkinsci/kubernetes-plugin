@@ -26,6 +26,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 1.12.1
 ------
 
+* Upgrade kubernetes-client to 4.0.0. Drops support for Kubernetes <1.6 [#358](https://github.com/jenkinsci/kubernetes-plugin/pull/358) [JENKINS-53363](https://issues.jenkins-ci.org/browse/JENKINS-53363)
 * Fix defaults for Pod Retention on Pod templates [#363](https://github.com/jenkinsci/kubernetes-plugin/pull/363) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
 
 1.12.0

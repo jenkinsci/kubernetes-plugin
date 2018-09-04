@@ -28,6 +28,13 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
+### Restricting what jobs can use your configured cloud
+
+Clouds can be configured to only allow certain jobs to use them.
+
+To enable this, in your cloud's advanced configuration check the
+`Restrict pipeline support to authorized folders` box. For a job to then
+use this cloud configuration you will need to add it in the jobs folder's configuration.
 
 # Pipeline support
 
