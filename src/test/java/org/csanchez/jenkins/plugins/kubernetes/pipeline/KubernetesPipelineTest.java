@@ -42,6 +42,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
@@ -61,19 +62,22 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
+    @Rule
+    public TestName name = new TestName();
+
     @Test
     public void runInPod() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
 
         logs.capture(1000);
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
 
         List<PodTemplate> templates = null;
-        while ((templates = podTemplatesWithLabel("runInPod", cloud.getAllTemplates())).isEmpty()) {
+        while ((templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates())).isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for runInPod template to be created");
             Thread.sleep(1000);
         }
@@ -98,13 +102,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertThat(templates, hasSize(1));
         PodTemplate template = templates.get(0);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins/runInPod", "true"));
+        assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
         assertEquals(1, pods.getItems().size());
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/runInPod", "true"));
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
