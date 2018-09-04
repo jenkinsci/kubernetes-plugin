@@ -55,8 +55,14 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                             }
 
                             // call the main body
-                            script.container(container) {
+                            if (container == 'jnlp') {
+                                // If default container is not changed by the pipeline user,
+                                // do not enclose the body with a `container` statement.
                                 body.call()
+                            } else {
+                                script.container(container) {
+                                    body.call()
+                                }
                             }
                         }.call()
                     }
