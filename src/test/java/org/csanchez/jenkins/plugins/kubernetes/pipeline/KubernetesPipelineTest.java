@@ -67,6 +67,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
+
+        logs.capture(1000);
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
 
@@ -78,7 +80,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         LOGGER.log(Level.INFO, "Found templates with label runInPod: {0}", templates);
         for (PodTemplate template : cloud.getAllTemplates()) {
             LOGGER.log(Level.INFO, "Cloud template \"{0}\" labels: {1}",
-                    new Object[] { template.getName(), template.getLabelsMap() });
+                    new Object[] { template.getName(), template.getLabelSet() });
         }
 
         Map<String, String> labels = getLabels(cloud, this);
@@ -87,6 +89,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
             pods = cloud.connect().pods().withLabels(labels).list();
             Thread.sleep(1000);
+        }
+
+        for (String msg : logs.getMessages()) {
+            System.out.println(msg);
         }
 
         assertThat(templates, hasSize(1));
