@@ -28,10 +28,12 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -46,6 +48,7 @@ import hudson.model.Result;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.PodListBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 /**
@@ -66,24 +69,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPod.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        List<PodTemplate> templates = cloud.getAllTemplates();
 
-        PodTemplate template = null;
-        while ((template = podTemplateWithLabel("runInPod", templates)) == null) {
+        List<PodTemplate> templates = null;
+        while ((templates = podTemplatesWithLabel("runInPod", cloud.getAllTemplates())).isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for runInPod template to be created");
-            templates = cloud.getAllTemplates();
             Thread.sleep(1000);
+        }
+        LOGGER.log(Level.INFO, "Found templates with label runInPod: {0}", templates);
+        for (PodTemplate template : cloud.getAllTemplates()) {
+            LOGGER.log(Level.INFO, "Cloud template \"{0}\" labels: {1}",
+                    new Object[] { template.getName(), template.getLabelsMap() });
         }
 
         Map<String, String> labels = getLabels(cloud, this);
-        LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
-        PodList pods = cloud.connect().pods().withLabels(labels).list();
+        PodList pods = new PodListBuilder().withItems(Collections.emptyList()).build();
         while (pods.getItems().isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
             pods = cloud.connect().pods().withLabels(labels).list();
             Thread.sleep(1000);
         }
 
+        assertThat(templates, hasSize(1));
+        PodTemplate template = templates.get(0);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         assertThat(template.getLabelsMap(), hasEntry("jenkins/runInPod", "true"));
 
@@ -99,9 +106,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(cloud, this), true));
     }
 
-    private PodTemplate podTemplateWithLabel(String label, List<PodTemplate> templates) {
-        return templates != null ? templates.stream().filter(t -> label.equals(t.getLabel())).findFirst().orElse(null)
-                : null;
+    private List<PodTemplate> podTemplatesWithLabel(String label, List<PodTemplate> templates) {
+        return templates.stream().filter(t -> label.equals(t.getLabel())).collect(Collectors.toList());
     }
 
     @Test
