@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.12.6
+------
+
+* Container and instance cap are not honored when requesting lots of slaves [#374](https://github.com/jenkinsci/kubernetes-plugin/pull/374) [JENKINS-53313](https://issues.jenkins-ci.org/browse/JENKINS-53313)
+
 1.12.5
 ------
 
