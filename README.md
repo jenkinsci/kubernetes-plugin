@@ -75,6 +75,18 @@ The default jnlp agent image used can be customized by adding it to the template
 containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
+or with the yaml syntax
+
+```
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'jenkins/jnlp-slave:3.10-1-alpine'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+```
+
 ### Container Group Support
 
 Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
