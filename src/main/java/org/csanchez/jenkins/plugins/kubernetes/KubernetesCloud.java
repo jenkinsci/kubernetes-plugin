@@ -437,18 +437,20 @@ public class KubernetesCloud extends Cloud {
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
-            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: " + toBeProvisioned);
+            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: {0}", toBeProvisioned);
 
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template: " + t.getDisplayName());
-                for (int i = 1; i <= toBeProvisioned; i++) {
-                    if (!addProvisionedSlave(t, label)) {
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getDisplayName() });
+                for (int i = 0; i < toBeProvisioned; i++) {
+                    if (!addProvisionedSlave(t, label, i)) {
                         break;
                     }
                     r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
+                LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
+                        new Object[] { t.getDisplayName(), r.size() });
                 if (r.size() > 0) {
                     // Already found a matching template
                     return r;
@@ -476,7 +478,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label) throws Exception {
+    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
         if (containerCap == 0) {
             return true;
         }
@@ -509,17 +511,17 @@ public class KubernetesCloud extends Cloud {
                     .collect(Collectors.toList());
         }
 
-        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size()) {
+        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Total container cap of {0} reached, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, allActiveSlavePods.size(), templateNamespace, getLabels() });
+                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels() });
             return false;
         }
 
-        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size()) {
+        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), allActiveSlavePods.size(),
+                    new Object[] { template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
                             templateNamespace, label == null ? "" : label.toString(), labelsMap });
             return false;
         }
