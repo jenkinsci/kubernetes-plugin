@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.12.5
+------
+
+* Check for nulls in older kubernetes versions, fixes some NPEs in Kubernetes 1.5 [#378](https://github.com/jenkinsci/kubernetes-plugin/pull/378) [JENKINS-53370](https://issues.jenkins-ci.org/browse/JENKINS-53370)
+
 1.12.4
 ------
 
