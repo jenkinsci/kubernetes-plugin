@@ -490,16 +490,24 @@ public class KubernetesCloud extends Cloud {
         }
 
         PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> allActiveSlavePods = slaveList.getItems().stream()
-                .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                .collect(Collectors.toList());
+        List<Pod> allActiveSlavePods = null;
+        // JENKINS-53370 check for nulls
+        if (slaveList != null && slaveList.getItems() != null) {
+            allActiveSlavePods = slaveList.getItems().stream() //
+                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                    .collect(Collectors.toList());
+        }
 
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
         PodList templateSlaveList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
-        List<Pod> activeTemplateSlavePods = templateSlaveList.getItems().stream()
-                .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                .collect(Collectors.toList());
+        // JENKINS-53370 check for nulls
+        List<Pod> activeTemplateSlavePods = null;
+        if (templateSlaveList != null && templateSlaveList.getItems() != null) {
+            activeTemplateSlavePods = templateSlaveList.getItems().stream()
+                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                    .collect(Collectors.toList());
+        }
 
         if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size()) {
             LOGGER.log(Level.INFO,
