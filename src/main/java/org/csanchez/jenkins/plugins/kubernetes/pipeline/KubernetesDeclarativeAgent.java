@@ -191,7 +191,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         List<ContainerTemplate> containerTemplates = getContainerTemplates();
         if (containerTemplate != null) {
             LOGGER.log(Level.WARNING,
-                    "containerTemplate option in declarative pipeline is deprecated, use containerTemplates");
+                    "containerTemplate option in declarative pipeline is deprecated, use yaml syntax to define containers");
             if (containerTemplates.isEmpty()) {
                 containerTemplates = Collections.singletonList(containerTemplate);
             } else {
