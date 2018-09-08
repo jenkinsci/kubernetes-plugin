@@ -6,6 +6,9 @@
  * You need to create a jenkins-docker-cfg secret with your docker config
  * as described in
  * https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-secret-in-the-cluster-that-holds-your-authorization-token
+ *
+ * ie.
+ * kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v1/ --docker-username=csanchez --docker-password=mypassword --docker-email=john@doe.com
  */
 
 pipeline {
@@ -49,7 +52,7 @@ spec:
         git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
         container(name: 'kaniko', shell: '/busybox/sh') {
             sh '''#!/busybox/sh
-            /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage
+            /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure --skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage
             '''
         }
       }
