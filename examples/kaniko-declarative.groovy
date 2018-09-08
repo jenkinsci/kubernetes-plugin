@@ -38,7 +38,6 @@ spec:
             - key: .dockerconfigjson
               path: .docker/config.json
 """
-      }
     }
   }
   stages {
