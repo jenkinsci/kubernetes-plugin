@@ -29,7 +29,7 @@ THE SOFTWARE.
     <l:main-panel>
       <table class="sortable pane bigtable">
         <tr>
-          <th>Name</th><th>Image</th><th>imagePullPolicy</th><th>workingDir</th>
+          <th>Name</th><th>Image</th><th>ImagePullPolicy</th><th>WorkingDir</th>
         </tr>
 
         <j:forEach var="v" items="${it.containers}">
