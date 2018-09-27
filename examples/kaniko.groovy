@@ -43,7 +43,7 @@ spec:
       container(name: 'kaniko', shell: '/busybox/sh') {
         withEnv(['PATH+EXTRA=/busybox']) {
           sh '''#!/busybox/sh
-          /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --destination=mydockerregistry:5000/myorg/myimage
+          /kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure-skip-tls-verify --cache=true --destination=mydockerregistry:5000/myorg/myimage
           '''
         }
       }
