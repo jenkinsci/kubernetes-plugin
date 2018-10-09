@@ -40,6 +40,7 @@ import jenkins.model.RunAction2;
  * @since 1.1.1
  *
  */
+@Deprecated
 public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implements RunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(AbstractInvisibleRunAction2.class.getName());

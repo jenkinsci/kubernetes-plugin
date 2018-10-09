@@ -27,7 +27,6 @@ public class NamespaceAction extends AbstractInvisibleRunAction2 implements RunA
         setRun(run);
     }
 
-    @Deprecated
     protected static void push(@NonNull Run<?, ?> run, @NonNull String item) throws IOException {
         AbstractInvisibleRunAction2.push(run, NamespaceAction.class, item);
     }
@@ -79,7 +78,6 @@ public class NamespaceAction extends AbstractInvisibleRunAction2 implements RunA
         }
     }
 
-    @Deprecated
     public String getNamespace() {
         try {
             return stack.peek();

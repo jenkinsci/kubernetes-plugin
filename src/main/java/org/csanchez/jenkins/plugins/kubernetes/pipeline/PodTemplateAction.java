@@ -28,7 +28,6 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 implements Ru
         setRun(run);
     }
 
-    @Deprecated
     protected static void push(@NonNull Run<?, ?> run, @NonNull String item) throws IOException {
         AbstractInvisibleRunAction2.push(run, PodTemplateAction.class, item);
     }
@@ -79,12 +78,10 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 implements Ru
         }
     }
 
-    @Deprecated
     public List<String> getParentTemplateList() {
         return new ArrayList<>(stack);
     }
 
-    @Deprecated
     public String getParentTemplates() {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
