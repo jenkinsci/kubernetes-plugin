@@ -37,6 +37,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -111,35 +112,30 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
-        List<PodTemplate> templates = cloud.getAllTemplates();
+        SemaphoreStep.waitForStart("podTemplate1/1", b);
+        PodTemplate template1 = podTemplateWithLabel("mypod", cloud.getAllTemplates());
+        SemaphoreStep.success("podTemplate1/1", null);
+        assertEquals(Integer.MAX_VALUE, template1.getInstanceCap());
+        assertThat(template1.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
+        SemaphoreStep.waitForStart("pod1/1", b);
+        Map<String, String> labels1 = getLabels(cloud, this);
+        labels1.put("jenkins/mypod", "true");
+        PodList pods = cloud.connect().pods().withLabels(labels1).list();
+        assertTrue(!pods.getItems().isEmpty());
+        SemaphoreStep.success("pod1/1", null);
 
-        PodTemplate template = null;
-        while ((template = podTemplateWithLabel("mypod2", templates)) == null) {
-            LOGGER.log(Level.INFO, "Waiting for mypod2 template to be created");
-            templates = cloud.getAllTemplates();
-            Thread.sleep(1000);
-        }
-
-        assertNull("mypod2 should not inherit from anything", template.getInheritFrom());
-
-        Map<String, String> labels = getLabels(cloud, this);
-        LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
-        PodList pods = cloud.connect().pods().withLabels(labels).list();
-        while (pods.getItems().isEmpty()) {
-            LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
-            pods = cloud.connect().pods().withLabels(labels).list();
-            Thread.sleep(1000);
-        }
-
-        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins/mypod2", "true"));
-
-        for (Pod pod : pods.getItems()) {
-            LOGGER.log(Level.INFO, "{0}", pod);
-            Map<String, String> l = pod.getMetadata().getLabels();
-            assertThat(l, hasEntry("jenkins", "slave"));
-        }
-
+        SemaphoreStep.waitForStart("podTemplate2/1", b);
+        PodTemplate template2 = podTemplateWithLabel("mypod2", cloud.getAllTemplates());
+        SemaphoreStep.success("podTemplate2/1", null);
+        assertEquals(Integer.MAX_VALUE, template2.getInstanceCap());
+        assertThat(template2.getLabelsMap(), hasEntry("jenkins/mypod2", "true"));
+        assertNull("mypod2 should not inherit from anything", template2.getInheritFrom());
+        SemaphoreStep.waitForStart("pod2/1", b);
+        Map<String, String> labels2 = getLabels(cloud, this);
+        labels1.put("jenkins/mypod2", "true");
+        PodList pods2 = cloud.connect().pods().withLabels(labels2).list();
+        assertTrue(!pods2.getItems().isEmpty());
+        SemaphoreStep.success("pod2/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
