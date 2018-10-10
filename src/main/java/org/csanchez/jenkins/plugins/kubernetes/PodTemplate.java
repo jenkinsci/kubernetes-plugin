@@ -642,6 +642,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
+        
+        if (podRetention == null) {
+            // https://issues.jenkins-ci.org/browse/JENKINS-53260
+            // various legacy paths for injecting pod templates can 
+            // bypass the defaulting paths and the
+            // value can still be null, so check for it here so 
+            // as to not blow up things like termination path
+            podRetention = PodRetention.getPodTemplateDefault();
+        }
 
         if (annotations == null) {
             annotations = new ArrayList<>();

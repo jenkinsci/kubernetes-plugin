@@ -193,11 +193,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
             // pod templates where the
             // value can still be null, so check for it here so 
             // as to not blow up termination path
-            if (pr != null) {
+            //if (pr != null) {
                 retentionPolicy = pr;
-            } else {
-                LOGGER.fine("Template pod retention policy was null");
-            }
+            //} else {
+            //    LOGGER.fine("Template pod retention policy was null");
+            //}
         }
         return retentionPolicy;
     }
