@@ -3,9 +3,14 @@ CHANGELOG
 
 Known issues
 ------------
-* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
+* Nested pod templates and inheritance issues [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.12.7
+------
+* Fix nested Pod Templates support [#382](https://github.com/jenkinsci/kubernetes-plugin/pull/382) [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196)
+* Fix pod spec display in build logs [#384](https://github.com/jenkinsci/kubernetes-plugin/pull/384)
 
 1.12.6
 ------
