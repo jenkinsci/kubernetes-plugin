@@ -682,11 +682,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             }
             sb.append("\n");
         }
+        if (StringUtils.isNotBlank(getYaml())) {
+            sb.append("yaml:\n")
+                    .append(getYaml())
+                    .append("\n");
+        }
         return sb.toString();
     }
 
     private void optionalField(StringBuilder builder, String label, String value) {
-        if (value != null) {
+        if (StringUtils.isNotBlank(value)) {
             if (builder.length() > 0) {
                 builder.append(", ");
             }
