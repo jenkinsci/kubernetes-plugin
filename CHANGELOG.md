@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.12.8
+------
+* Handle null retention policy resulting from direct xml pod template injection (seen during agent termination) [#381](https://github.com/jenkinsci/kubernetes-plugin/pull/381)
+
 1.12.7
 ------
 * Fix nested Pod Templates support [#382](https://github.com/jenkinsci/kubernetes-plugin/pull/382) [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196)
