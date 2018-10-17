@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -90,8 +91,8 @@ public class ContainerExecDecoratorTest {
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(getLabels(this, name))
-                .endMetadata().withNewSpec().withContainers(c).endSpec().build());
+        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
+                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
@@ -105,6 +106,7 @@ public class ContainerExecDecoratorTest {
 
     /**
      * Test that multiple command execution in parallel works
+     * 
      * @throws Exception
      */
     @Test(timeout = 10000)
@@ -175,7 +177,8 @@ public class ContainerExecDecoratorTest {
 
     @Test
     public void testCommandExecutionWithNohup() throws Exception {
-        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c",
+                "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
         assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
@@ -208,20 +211,33 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-46719")
     public void testContainerDoesNotExist() throws Exception {
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist", client.getNamespace());
+        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist",
+                client.getNamespace());
         exception.expect(IOException.class);
         exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
+    }
+
+    @Test(timeout=10000)
+    @Issue("JENKINS-50429")
+    public void testContainerExecPerformance() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            ProcReturn r = execCommand(false, "ls");
+        }
     }
 
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Launcher launcher = decorator
                 .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
+        Map<String, String> envs = new HashMap<>(100);
+        for (int i = 0; i < 50; i++) {
+            envs.put("aaaaaaaa" + i, "bbbbbbbb");
+        }
         ContainerExecProc proc = (ContainerExecProc) launcher
-                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
+                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).envs(envs).quiet(quiet));
         // wait for proc to finish (shouldn't take long)
-        while (proc.isAlive()) {
+        for (int i = 0; proc.isAlive() && i < 200; i++) {
             Thread.sleep(100);
         }
         assertFalse("proc is alive", proc.isAlive());
