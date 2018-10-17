@@ -186,7 +186,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
     public PodRetention getPodRetention(KubernetesCloud cloud) {
         PodRetention retentionPolicy = cloud.getPodRetention();
         if (template != null) {
-            retentionPolicy = template.getPodRetention();
+            PodRetention pr = template.getPodRetention();
+            // https://issues.jenkins-ci.org/browse/JENKINS-53260
+            // even though we default the pod template's retention
+            // strategy, there are various legacy paths for injecting
+            // pod templates where the
+            // value can still be null, so check for it here so 
+            // as to not blow up termination path
+            //if (pr != null) {
+                retentionPolicy = pr;
+            //} else {
+            //    LOGGER.fine("Template pod retention policy was null");
+            //}
         }
         return retentionPolicy;
     }
