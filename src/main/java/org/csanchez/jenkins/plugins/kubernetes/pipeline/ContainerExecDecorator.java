@@ -412,9 +412,19 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private void waitUntilContainerIsReady() throws IOException {
+                long start = System.currentTimeMillis();
                 try {
-                    Pod pod = client.pods().inNamespace(namespace).withName(podName)
-                            .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
+                    Pod pod = null;
+                    try {
+                        pod = client.pods().inNamespace(namespace).withName(podName)
+                                .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
+                    } catch (InterruptedException e) {
+                        // JENKINS-53297 IKS throws InterruptedException, maybe try again
+                        pod = client.pods().inNamespace(namespace).withName(podName).get();
+                        if (pod == null) {
+                            throw e;
+                        }
+                    }
 
                     if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
                         throw new IOException("Failed to execute shell script inside container " +
@@ -434,9 +444,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                     throw new IOException("container [" + containerName + "] does not exist in pod [" + podName + "]");
                 } catch (InterruptedException | KubernetesClientTimeoutException e) {
-                    throw new IOException("Failed to execute shell script inside container " +
-                            "[" + containerName + "] of pod [" + podName + "]." +
-                            " Timed out waiting for container to become ready!", e);
+                    throw new IOException(String.format(
+                            "Failed to execute shell script inside container [%s] of pod [%s]. Timed out (%d seconds) waiting for container to become ready!",
+                            containerName, podName, (System.currentTimeMillis() - start) / 1000), e);
                 }
             }
         };
