@@ -16,19 +16,26 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+
 import hudson.AbortException;
 import hudson.FilePath;
 import hudson.model.Node;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 /**
  * helper class for steps running in a kubernetes `node` context
  */
 class KubernetesNodeContext {
+
+    private static final transient Logger LOGGER = Logger.getLogger(KubernetesNodeContext.class.getName());
+
     private static final transient String HOSTNAME_FILE = "/etc/hostname";
     private StepContext context;
     private FilePath workspace;
@@ -39,7 +46,9 @@ class KubernetesNodeContext {
     }
 
     String getPodName() throws Exception {
-        return workspace.child(HOSTNAME_FILE).readToString().trim();
+        String podName = System.getenv("POD_NAME");
+        LOGGER.log(Level.FINEST, "Detected pod name: {0}", podName);
+        return podName;
     }
 
     public String getNamespace() throws Exception {
