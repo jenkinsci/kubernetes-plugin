@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.0
+------
+* Display Pod log for Kubernetes agents in the node view [#367](https://github.com/jenkinsci/kubernetes-plugin/pull/367)
+
 1.12.9
 ------
 * Declarative pipeline: stdin/stdout/stderr of a remote process are not redirected. Do not wrap the default `jnlp` container calls in `container` steps [#377](https://github.com/jenkinsci/kubernetes-plugin/pull/377) [JENKINS-53422](https://issues.jenkins-ci.org/browse/JENKINS-53422)
