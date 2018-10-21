@@ -196,7 +196,6 @@ public class PodTemplateStep extends Step implements Serializable {
         return nodeUsageMode;
     }
 
-    @DataBoundSetter
     public void setNodeUsageMode(Node.Mode nodeUsageMode) {
         this.nodeUsageMode = nodeUsageMode;
     }
@@ -205,7 +204,7 @@ public class PodTemplateStep extends Step implements Serializable {
     public void setNodeUsageMode(String nodeUsageMode) {
         this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
     }
-    
+
     public String getWorkingDir() {
         return workingDir;
     }

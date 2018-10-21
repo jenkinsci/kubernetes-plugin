@@ -17,12 +17,8 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry title="${%Usage}" help="/help/system-config/master-slave/usage.html">
-    <select class="setting-input" name="nodeUsageMode">
-      <j:forEach var="m" items="${h.getNodeModes()}">
-        <f:option value="${m.name}" selected="${m==instance.nodeUsageMode}">${m.description}</f:option>
-      </j:forEach>
-    </select>
+  <f:entry field="nodeUsageMode" title="${%Usage}" help="/help/system-config/master-slave/usage.html">
+     <f:enum>${it.description}</f:enum>
   </f:entry>
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}"

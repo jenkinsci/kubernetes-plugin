@@ -18,6 +18,9 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="nodeUsageMode" title="${%Usage}" help="/help/system-config/master-slave/usage.html">
+     <f:enum>${it.description}</f:enum>
+  </f:entry>
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
     help="/plugin/kubernetes/help/inheritFrom.html">
@@ -38,6 +41,11 @@
     field="annotations" help="/plugin/kubernetes/help/annotations.html">
     <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
                                 deleteCaption="Delete Annotation" />
+  </f:entry>
+
+  <f:entry field="yaml" title="${%Raw yaml for the Pod}"
+    help="/plugin/kubernetes/help/yaml.html">
+    <f:textarea/>
   </f:entry>
 
   <f:advanced>
