@@ -18,7 +18,9 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
+
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
+    help="/plugin/kubernetes/help/inheritFrom.html">
     <f:textbox/>
   </f:entry>
 
@@ -32,13 +34,15 @@
                                 deleteCaption="Delete Volume" />
   </f:entry>
 
-  <f:entry title="${%Annotations}" description="${%List of annotations to add to the pod metadata}" field="annotations">
+  <f:entry title="${%Annotations}" description="${%List of annotations to add to the pod metadata}"
+    field="annotations" help="/plugin/kubernetes/help/annotations.html">
     <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
                                 deleteCaption="Delete Annotation" />
   </f:entry>
 
-	<f:advanced>
-        <f:entry field="instanceCap" title="${%Max number of instances}">
+  <f:advanced>
+        <f:entry field="instanceCap" title="${%Max number of instances}"
+          help="/plugin/kubernetes/help/instanceCap.html">
           <f:textbox default="0"/>
         </f:entry>
         <f:entry title="${%Pod Retention}">
@@ -47,13 +51,17 @@
         <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
        </f:entry>
-        <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
+        <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}"
+          help="/plugin/kubernetes/help/activeDeadlineSeconds.html">
           <f:number/>
         </f:entry>
-        <f:entry field="serviceAccount" title="${%Service Account}">
+
+        <f:entry field="serviceAccount" title="${%Service Account}"
+          help="/plugin/kubernetes/help/serviceAccount.html">
           <f:textbox/>
         </f:entry>
-        <f:entry field="nodeSelector" title="${%Node Selector}">
+        <f:entry field="nodeSelector" title="${%Node Selector}"
+          help="/plugin/kubernetes/help/nodeSelector.html">
           <f:textbox/>
         </f:entry>
         <f:entry field="workingDir" title="${%Working directory}">
