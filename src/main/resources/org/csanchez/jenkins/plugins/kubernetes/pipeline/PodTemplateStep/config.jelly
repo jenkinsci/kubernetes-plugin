@@ -2,21 +2,25 @@
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry field="cloud" title="The cloud to use">
-      <f:textbox default="kubernetes"/>
-    </f:entry>
-    <f:entry field="inheritFrom" title="The name of the pod template to inherit from">
-      <f:textbox/>
-    </f:entry>
-	<f:entry field="name" title="The name of the template">
-	  <f:textbox/>
-	</f:entry>
-	<f:entry field="namespace" title="The namespace of the template">
-	  <f:textbox/>
-	</f:entry>
-	<f:entry field="label" title="The label">
-      <f:textbox/>
-    </f:entry>
+  <f:entry field="cloud" title="${%Cloud to use}">
+    <f:textbox default="kubernetes"/>
+  </f:entry>
+
+  <f:entry field="name" title="${%Name}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="namespace" title="${%Namespace}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="label" title="${%Labels}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
+    <f:textbox/>
+  </f:entry>
 
   <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
@@ -38,7 +42,7 @@
           <f:textbox default="0"/>
         </f:entry>
         <f:entry title="${%Pod Retention}">
-          <f:dropdownDescriptorSelector field="podRetention"/> 
+          <f:dropdownDescriptorSelector field="podRetention"/>
         </f:entry>
         <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
@@ -46,10 +50,10 @@
         <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
           <f:number/>
         </f:entry>
-        <f:entry field="serviceAccount" title="The service account">
+        <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
         </f:entry>
-        <f:entry field="nodeSelector" title="The node selector">
+        <f:entry field="nodeSelector" title="${%Node Selector}">
           <f:textbox/>
         </f:entry>
         <f:entry field="workingDir" title="${%Working directory}">

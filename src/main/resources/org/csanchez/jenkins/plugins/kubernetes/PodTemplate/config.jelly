@@ -25,14 +25,13 @@
     </select>
   </f:entry>
 
-  <f:entry field="inheritFrom" title="${%The name of the pod template to inherit from}">
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
     <f:textbox/>
   </f:entry>
 
   <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="${%Add Container}"
-                                    deleteCaption="${%Delete Container}
-" />
+                                    deleteCaption="${%Delete Container}" />
   </f:entry>
 
   <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
@@ -49,9 +48,9 @@
     <f:textbox/>
   </f:entry>
 
-  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" /> 
+  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" />
 
-  <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
+  <f:entry field="idleMinutesStr" title="${%Time in minutes to retain agent when idle}">
     <f:textbox/>
   </f:entry>
 
