@@ -39,7 +39,8 @@ class KubernetesNodeContext {
     }
 
     public String getNamespace() throws Exception {
-        return getKubernetesSlave().getNamespace();
+        String namespace = getKubernetesSlave().getNamespace();
+        return namespace != null ? namespace : connectToCloud().getNamespace();
     }
 
     KubernetesClient connectToCloud() throws Exception {
