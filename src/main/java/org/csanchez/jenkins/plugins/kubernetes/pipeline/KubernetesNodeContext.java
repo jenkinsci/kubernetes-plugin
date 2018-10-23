@@ -18,7 +18,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 import hudson.AbortException;
@@ -35,12 +34,11 @@ class KubernetesNodeContext {
     }
 
     String getPodName() throws Exception {
-        return PodTemplateUtils.substituteEnv(getKubernetesSlave().getNodeName());
+        return getKubernetesSlave().getPodName();
     }
 
     public String getNamespace() throws Exception {
-        String namespace = getKubernetesSlave().getNamespace();
-        return namespace != null ? namespace : connectToCloud().getNamespace();
+        return getKubernetesSlave().getNamespace();
     }
 
     KubernetesClient connectToCloud() throws Exception {
