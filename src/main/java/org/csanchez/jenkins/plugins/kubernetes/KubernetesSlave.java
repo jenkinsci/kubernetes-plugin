@@ -180,7 +180,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public KubernetesComputer createComputer() {
-        return new KubernetesComputer(this);
+        return KubernetesComputerFactory.createInstance(this);
     }
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
