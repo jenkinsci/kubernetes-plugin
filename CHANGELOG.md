@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.1
+------
+* Allow adding jenkins job metadata to the pods using the KubernetesComputer extenion point [#383](https://github.com/jenkinsci/kubernetes-plugin/pull/383)
+
 1.13.0
 ------
 * Display Pod log for Kubernetes agents in the node view [#367](https://github.com/jenkinsci/kubernetes-plugin/pull/367)
