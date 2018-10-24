@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.2
+------
+* Pod name is detected as `localhost` in Bluemix IKS [#388](https://github.com/jenkinsci/kubernetes-plugin/pull/388) [JENKINS-53297](https://issues.jenkins-ci.org/browse/JENKINS-53297)
+
 1.13.1
 ------
 * Allow adding jenkins job metadata to the pods using the KubernetesComputer extenion point [#383](https://github.com/jenkinsci/kubernetes-plugin/pull/383)
