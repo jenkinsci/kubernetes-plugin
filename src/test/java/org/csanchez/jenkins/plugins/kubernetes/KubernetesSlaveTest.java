@@ -89,8 +89,9 @@ public class KubernetesSlaveTest {
                     createPodRetentionTestCase(new Always(), new OnFailure(), new OnFailure()),
                     createPodRetentionTestCase(new Always(), new Never(), new Never())
                     );
+            KubernetesCloud cloud = new KubernetesCloud("test");
+            r.jenkins.clouds.add(cloud);
             for (KubernetesSlaveTestCase<PodRetention> testCase : cases) {
-                KubernetesCloud cloud = new KubernetesCloud("test");
                 cloud.setPodRetention(testCase.getCloudPodRetention());
                 KubernetesSlave testSlave = testCase.buildSubject(cloud);
                 assertEquals(testCase.getExpectedResult(), testSlave.getPodRetention(cloud));
