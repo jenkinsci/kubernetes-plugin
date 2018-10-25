@@ -472,7 +472,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
-                    computerLauncher == null ? new KubernetesLauncher() : computerLauncher,
+                    computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher,
                     retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
         }
     }
