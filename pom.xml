@@ -50,7 +50,7 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
-      <version>4.0.0</version>
+      <version>4.1.0</version>
       <exclusions>
         <!-- Jackson logic comes from plugins -->
         <exclusion>
