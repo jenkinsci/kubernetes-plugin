@@ -448,6 +448,30 @@ pipeline {
 }
 ```
 
+Run the Pipeline or individual stage within a custom workspace - not required unless explicitly stated.
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      customWorkspace 'some/other/path'
+      defaultContainer 'maven'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+
+  stages {
+    stage('Run maven') {
+      steps {
+        sh 'mvn -version'
+        sh "echo Workspace dir is ${pwd()}"
+      }
+    }
+  }
+}
+```
+
 ## Accessing container logs from the pipeline
 
 If you use the `containerTemplate` to run some service in the background
