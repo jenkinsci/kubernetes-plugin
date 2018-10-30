@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.3
+------
+* Upgrade kubernetes-client to 4.1.0 [#391](https://github.com/jenkinsci/kubernetes-plugin/pull/391) [JENKINS-52593](https://issues.jenkins-ci.org/browse/JENKINS-52593)
+
 1.13.2
 ------
 * Pod name is detected as `localhost` in Bluemix IKS [#388](https://github.com/jenkinsci/kubernetes-plugin/pull/388) [JENKINS-53297](https://issues.jenkins-ci.org/browse/JENKINS-53297)
