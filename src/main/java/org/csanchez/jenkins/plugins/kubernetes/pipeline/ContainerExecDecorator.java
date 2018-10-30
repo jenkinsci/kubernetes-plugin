@@ -25,6 +25,7 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -396,19 +397,23 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException {
+                StringBuilder envVars = new StringBuilder();
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            watch.getInput().write(
-                                    String.format(
-                                            "export %s='%s'%s",
-                                            entry.getKey(),
-                                            entry.getValue().replace("'", "'\\''"),
-                                            NEWLINE
-                                    ).getBytes(StandardCharsets.UTF_8)
-                            );
-                        }
+                        envVars.append(String.format(
+                            "%s='%s' ",
+                            entry.getKey(),
+                            entry.getValue().replace("'", "'\\''")
+                        ));
                     }
+                }
+                
+                if(envVars.Length > 0) {
+                    watch.getInput().write(
+                        String.format("export %s%s", envVars.toString(), NEWLINE).getBytes(StandardCharsets.UTF_8)
+                    );
+                }
             }
 
             private void waitUntilContainerIsReady() throws IOException {
