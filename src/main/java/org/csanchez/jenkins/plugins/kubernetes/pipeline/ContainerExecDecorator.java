@@ -409,9 +409,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 }
                 
-                if(envVars.Length > 0) {
+                if(envVars.length() > 0) {
                     watch.getInput().write(
-                        String.format("export %s%s", envVars.toString(), NEWLINE).getBytes(StandardCharsets.UTF_8)
+                        envVars.insert(0, "export ").append(NEWLINE).toString().getBytes(StandardCharsets.UTF_8)
                     );
                 }
             }
