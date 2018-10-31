@@ -642,6 +642,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
+        
+        if (podRetention == null) {
+            // https://issues.jenkins-ci.org/browse/JENKINS-53260
+            // various legacy paths for injecting pod templates can 
+            // bypass the defaulting paths and the
+            // value can still be null, so check for it here so 
+            // as to not blow up things like termination path
+            podRetention = PodRetention.getPodTemplateDefault();
+        }
 
         if (annotations == null) {
             annotations = new ArrayList<>();
@@ -682,11 +691,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             }
             sb.append("\n");
         }
+        if (StringUtils.isNotBlank(getYaml())) {
+            sb.append("yaml:\n")
+                    .append(getYaml())
+                    .append("\n");
+        }
         return sb.toString();
     }
 
     private void optionalField(StringBuilder builder, String label, String value) {
-        if (value != null) {
+        if (StringUtils.isNotBlank(value)) {
             if (builder.length() > 0) {
                 builder.append(", ");
             }

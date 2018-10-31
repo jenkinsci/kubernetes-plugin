@@ -25,14 +25,14 @@
     </select>
   </f:entry>
 
-  <f:entry field="inheritFrom" title="${%The name of the pod template to inherit from}">
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
+    help="/plugin/kubernetes/help/inheritFrom.html">
     <f:textbox/>
   </f:entry>
 
   <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="${%Add Container}"
-                                    deleteCaption="${%Delete Container}
-" />
+                                    deleteCaption="${%Delete Container}" />
   </f:entry>
 
   <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
@@ -45,17 +45,19 @@
                                 deleteCaption="${%Delete Volume}" />
   </f:entry>
 
-  <f:entry field="instanceCapStr" title="${%Max number of instances}">
+  <f:entry field="instanceCapStr" title="${%Max number of instances}"
+    help="/plugin/kubernetes/help/instanceCap.html">
     <f:textbox/>
   </f:entry>
 
-  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" /> 
+  <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" />
 
-  <f:entry field="idleMinutesStr" title="${%Time in minutes to retain slave when idle}">
+  <f:entry field="idleMinutesStr" title="${%Time in minutes to retain agent when idle}">
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="activeDeadlineSecondsStr" title="${%Time in seconds for Pod deadline}">
+  <f:entry field="activeDeadlineSecondsStr" title="${%Time in seconds for Pod deadline}"
+    help="/plugin/kubernetes/help/activeDeadlineSeconds.html">
     <f:number/>
   </f:entry>
 
@@ -63,27 +65,31 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}" field="annotations">
+  <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}"
+    field="annotations" help="/plugin/kubernetes/help/annotations.html">
     <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="${%Add Annotation}"
                                 deleteCaption="${%Delete annotation Variable}" />
   </f:entry>
 
-  <f:entry field="yaml" title="${%Raw yaml for the Pod}">
+  <f:entry field="yaml" title="${%Raw yaml for the Pod}" help="/plugin/kubernetes/help/yaml.html">
     <f:textarea/>
   </f:entry>
 
   <f:advanced>
 
-    <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}">
+    <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}"
+      help="/plugin/kubernetes/help/imagePullSecrets.html">
       <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="${%Add Image Pull Secret}"
                                   deleteCaption="${%Delete Image Pull Secret}" />
     </f:entry>
 
-    <f:entry field="serviceAccount" title="${%Service Account}">
+    <f:entry field="serviceAccount" title="${%Service Account}"
+      help="/plugin/kubernetes/help/serviceAccount.html">
           <f:textbox/>
     </f:entry>
 
-    <f:entry field="nodeSelector" title="${%Node Selector}">
+    <f:entry field="nodeSelector" title="${%Node Selector}"
+      help="/plugin/kubernetes/help/nodeSelector.html">
       <f:textbox/>
     </f:entry>
 

@@ -12,6 +12,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 import java.util.Collections;
@@ -26,6 +27,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
 
     private String label;
+    private String customWorkspace;
 
     private String cloud;
     private String inheritFrom;
@@ -60,6 +62,16 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    @CheckForNull
+    public String getCustomWorkspace() {
+        return customWorkspace;
+    }
+
+    @DataBoundSetter
+    public void setCustomWorkspace(String customWorkspace) {
+        this.customWorkspace = customWorkspace;
     }
 
     public String getCloud() {
@@ -188,10 +200,14 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         argMap.put("label", label);
         argMap.put("name", label);
 
+        if (!StringUtils.isEmpty(customWorkspace)) {
+            argMap.put("customWorkspace", customWorkspace);
+        }
+
         List<ContainerTemplate> containerTemplates = getContainerTemplates();
         if (containerTemplate != null) {
             LOGGER.log(Level.WARNING,
-                    "containerTemplate option in declarative pipeline is deprecated, use containerTemplates");
+                    "containerTemplate option in declarative pipeline is deprecated, use yaml syntax to define containers");
             if (containerTemplates.isEmpty()) {
                 containerTemplates = Collections.singletonList(containerTemplate);
             } else {

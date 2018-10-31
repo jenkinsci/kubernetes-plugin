@@ -67,7 +67,7 @@ public class PortMapping extends AbstractDescribableImpl<PortMapping> implements
     }
 
     public String toString() {
-        return String.format("%s,%d", name, containerPort);
+        return String.format("%s,%d,%d", name, containerPort, hostPort);
     }
 
     @Override

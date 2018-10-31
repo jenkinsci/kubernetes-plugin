@@ -3,9 +3,52 @@ CHANGELOG
 
 Known issues
 ------------
-* Nested pod templates and inheritance issues [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196) [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
+* Nested pod templates and inheritance issues [JENKINS-49700](https://issues.jenkins-ci.org/browse/JENKINS-49700)
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
+
+1.13.4
+------
+* Upgrade kubernetes-client to 4.1.0 [#380](https://github.com/jenkinsci/kubernetes-plugin/pull/380) [JENKINS-53817](https://issues.jenkins-ci.org/browse/JENKINS-53817)
+
+1.13.3
+------
+* Upgrade kubernetes-client to 4.1.0 [#391](https://github.com/jenkinsci/kubernetes-plugin/pull/391) [JENKINS-52593](https://issues.jenkins-ci.org/browse/JENKINS-52593)
+
+1.13.2
+------
+* Pod name is detected as `localhost` in Bluemix IKS [#388](https://github.com/jenkinsci/kubernetes-plugin/pull/388) [JENKINS-53297](https://issues.jenkins-ci.org/browse/JENKINS-53297)
+
+1.13.1
+------
+* Allow adding jenkins job metadata to the pods using the KubernetesComputer extenion point [#383](https://github.com/jenkinsci/kubernetes-plugin/pull/383)
+
+1.13.0
+------
+* Display Pod log for Kubernetes agents in the node view [#367](https://github.com/jenkinsci/kubernetes-plugin/pull/367)
+
+1.12.9
+------
+* Declarative pipeline: stdin/stdout/stderr of a remote process are not redirected. Do not wrap the default `jnlp` container calls in `container` steps [#377](https://github.com/jenkinsci/kubernetes-plugin/pull/377) [JENKINS-53422](https://issues.jenkins-ci.org/browse/JENKINS-53422)
+
+1.12.8
+------
+* Handle null retention policy resulting from direct xml pod template injection (seen during agent termination) [#381](https://github.com/jenkinsci/kubernetes-plugin/pull/381)
+
+1.12.7
+------
+* Fix nested Pod Templates support [#382](https://github.com/jenkinsci/kubernetes-plugin/pull/382) [JENKINS-50196](https://issues.jenkins-ci.org/browse/JENKINS-50196)
+* Fix pod spec display in build logs [#384](https://github.com/jenkinsci/kubernetes-plugin/pull/384)
+
+1.12.6
+------
+
+* Container and instance cap are not honored when requesting lots of slaves [#374](https://github.com/jenkinsci/kubernetes-plugin/pull/374) [JENKINS-53313](https://issues.jenkins-ci.org/browse/JENKINS-53313)
+
+1.12.5
+------
+
+* Check for nulls in older kubernetes versions, fixes some NPEs in Kubernetes 1.5 [#378](https://github.com/jenkinsci/kubernetes-plugin/pull/378) [JENKINS-53370](https://issues.jenkins-ci.org/browse/JENKINS-53370)
 
 1.12.4
 ------
@@ -26,7 +69,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 1.12.1
 ------
 
-* Upgrade kubernetes-client to 4.0.0. Drops support for Kubernetes <1.6 [#358](https://github.com/jenkinsci/kubernetes-plugin/pull/358) [JENKINS-53363](https://issues.jenkins-ci.org/browse/JENKINS-53363)
+* Upgrade kubernetes-client to 4.0.0. Drops support for OpenShift <1.6 [#358](https://github.com/jenkinsci/kubernetes-plugin/pull/358) [JENKINS-53363](https://issues.jenkins-ci.org/browse/JENKINS-53363)
 * Fix defaults for Pod Retention on Pod templates [#363](https://github.com/jenkinsci/kubernetes-plugin/pull/363) [JENKINS-48149](https://issues.jenkins-ci.org/browse/JENKINS-48149)
 
 1.12.0
