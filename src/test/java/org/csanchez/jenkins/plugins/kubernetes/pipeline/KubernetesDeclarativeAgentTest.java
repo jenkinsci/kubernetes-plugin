@@ -98,4 +98,16 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Outside container: GIT_BRANCH is origin/master", b);
         r.assertLogContains("In container: GIT_BRANCH is origin/master", b);
     }
+
+    @Issue("JENKINS-53817")
+    @Test
+    public void declarativeUseCustomWorkspace() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeCustomWorkspace.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("Workspace dir is", b);
+    }
 }

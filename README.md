@@ -28,6 +28,13 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
+### Restricting what jobs can use your configured cloud
+
+Clouds can be configured to only allow certain jobs to use them.
+
+To enable this, in your cloud's advanced configuration check the
+`Restrict pipeline support to authorized folders` box. For a job to then
+use this cloud configuration you will need to add it in the jobs folder's configuration.
 
 # Pipeline support
 
@@ -66,6 +73,18 @@ The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
 containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+```
+
+or with the yaml syntax
+
+```
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'jenkins/jnlp-slave:3.10-1-alpine'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
 ### Container Group Support
@@ -426,6 +445,30 @@ pipeline {
     }
   }
   stages { ... }
+}
+```
+
+Run the Pipeline or individual stage within a custom workspace - not required unless explicitly stated.
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      label 'mypod'
+      customWorkspace 'some/other/path'
+      defaultContainer 'maven'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+
+  stages {
+    stage('Run maven') {
+      steps {
+        sh 'mvn -version'
+        sh "echo Workspace dir is ${pwd()}"
+      }
+    }
+  }
 }
 ```
 

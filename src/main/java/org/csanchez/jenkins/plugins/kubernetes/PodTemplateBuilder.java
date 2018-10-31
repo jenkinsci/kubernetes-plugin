@@ -153,7 +153,7 @@ public class PodTemplateBuilder {
 
         MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadata();
         if (slave != null) {
-            metadataBuilder.withName(substituteEnv(slave.getNodeName()));
+            metadataBuilder.withName(slave.getPodName());
         }
 
         Map<String, String> labels = new HashMap<>();

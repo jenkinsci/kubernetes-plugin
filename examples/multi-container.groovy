@@ -2,12 +2,25 @@
  * This pipeline describes a multi container job, running Maven and Golang builds
  */
 
-podTemplate(label: 'maven-golang', containers: [
-  containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
-  containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
-  ]) {
+def label = "maven-golang-${UUID.randomUUID().toString()}"
 
-  node('maven-golang') {
+podTemplate(label: label, yaml: """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: maven
+    image: maven:3.3.9-jdk-8-alpine
+    command: ['cat']
+    tty: true
+  - name: golang
+    image: golang:1.8.0
+    command: ['cat']
+    tty: true
+"""
+  ) {
+
+  node(label) {
     stage('Build a Maven project') {
       git 'https://github.com/jenkinsci/kubernetes-plugin.git'
       container('maven') {

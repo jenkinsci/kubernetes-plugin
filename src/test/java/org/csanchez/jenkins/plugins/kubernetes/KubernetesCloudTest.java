@@ -1,9 +1,17 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -12,13 +20,27 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.LoggerRule;
+import org.mockito.Mockito;
 
+import hudson.model.Label;
+import hudson.slaves.NodeProvisioner;
+import io.fabric8.kubernetes.api.model.DoneablePod;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
 
     @Rule
     public JenkinsRule j = new JenkinsRule();
+
+    @Rule
+    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
+            Level.ALL);
 
     @After
     public void tearDown() {
@@ -83,4 +105,74 @@ public class KubernetesCloudTest {
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
     }
 
+    @Test
+    public void testInstanceCap() {
+        KubernetesCloud cloud = new KubernetesCloud("name") {
+            @Override
+            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
+                Mockito.when(mockClient.getNamespace()).thenReturn("default");
+                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
+                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
+                PodList podList = Mockito.mock(PodList.class);
+                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
+                Mockito.when(operation.list()).thenReturn(podList);
+                Mockito.when(mockClient.pods()).thenReturn(operation);
+                return mockClient;
+            }
+        };
+
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test");
+        podTemplate.setLabel("test");
+
+        cloud.addTemplate(podTemplate);
+
+        Label test = Label.get("test");
+        assertTrue(cloud.canProvision(test));
+
+        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+        assertEquals(200, plannedNodes.size());
+
+        podTemplate.setInstanceCap(5);
+        plannedNodes = cloud.provision(test, 200);
+        assertEquals(5, plannedNodes.size());
+    }
+
+    @Test
+    public void testContainerCap() {
+        KubernetesCloud cloud = new KubernetesCloud("name") {
+            @Override
+            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
+                Mockito.when(mockClient.getNamespace()).thenReturn("default");
+                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
+                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
+                PodList podList = Mockito.mock(PodList.class);
+                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
+                Mockito.when(operation.list()).thenReturn(podList);
+                Mockito.when(mockClient.pods()).thenReturn(operation);
+                return mockClient;
+            }
+        };
+
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test");
+        podTemplate.setLabel("test");
+
+        cloud.addTemplate(podTemplate);
+
+        Label test = Label.get("test");
+        assertTrue(cloud.canProvision(test));
+
+        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
+        assertEquals(200, plannedNodes.size());
+
+        cloud.setContainerCapStr("10");
+        podTemplate.setInstanceCap(20);
+        plannedNodes = cloud.provision(test, 200);
+        assertEquals(10, plannedNodes.size());
+    }
 }

@@ -129,8 +129,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getNodeProperties());
 
         this.cloudName = cloudName;
-        this.namespace = Util.fixEmpty(template.getNamespace());
+        this.namespace = determineNamespace(getKubernetesCloud(cloudName), Util.fixEmpty(template.getNamespace()));
         this.template = template;
+    }
+
+    private static String determineNamespace(KubernetesCloud cloud, String namespace) throws IOException {
+        try {
+            return namespace == null ? cloud.connect().getNamespace() : namespace;
+        } catch (UnrecoverableKeyException|NoSuchAlgorithmException|KeyStoreException|CertificateEncodingException e) {
+            throw new IOException(e);
+        }
     }
 
     public String getCloudName() {
@@ -139,6 +147,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     public String getNamespace() {
         return namespace;
+    }
+
+    public String getPodName() {
+        return PodTemplateUtils.substituteEnv(getNodeName());
     }
 
     /**
@@ -157,11 +169,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     @Nonnull
     public KubernetesCloud getKubernetesCloud() {
-        Cloud cloud = Jenkins.getInstance().getCloud(getCloudName());
+        return getKubernetesCloud(getCloudName());
+    }
+
+    private static KubernetesCloud getKubernetesCloud(String cloudName) {
+        Cloud cloud = Jenkins.get().getCloud(cloudName);
         if (cloud instanceof KubernetesCloud) {
             return (KubernetesCloud) cloud;
         } else {
-            throw new IllegalStateException(getClass().getName() + " can be launched only by instances of " + KubernetesCloud.class.getName());
+            throw new IllegalStateException(KubernetesSlave.class.getName() + " can be launched only by instances of " + KubernetesCloud.class.getName());
         }
     }
 
@@ -180,13 +196,24 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public KubernetesComputer createComputer() {
-        return new KubernetesComputer(this);
+        return KubernetesComputerFactory.createInstance(this);
     }
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
         PodRetention retentionPolicy = cloud.getPodRetention();
         if (template != null) {
-            retentionPolicy = template.getPodRetention();
+            PodRetention pr = template.getPodRetention();
+            // https://issues.jenkins-ci.org/browse/JENKINS-53260
+            // even though we default the pod template's retention
+            // strategy, there are various legacy paths for injecting
+            // pod templates where the
+            // value can still be null, so check for it here so 
+            // as to not blow up termination path
+            //if (pr != null) {
+                retentionPolicy = pr;
+            //} else {
+            //    LOGGER.fine("Template pod retention policy was null");
+            //}
         }
         return retentionPolicy;
     }
@@ -218,8 +245,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         // Prior to termination, determine if we should delete the slave pod based on
         // the slave pod's current state and the pod retention policy.
         // Healthy slave pods should still have a JNLP agent running at this point.
-        String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
-        Pod pod = client.pods().inNamespace(actualNamespace).withName(name).get();
+        Pod pod = client.pods().inNamespace(getNamespace()).withName(name).get();
         boolean deletePod = getPodRetention(cloud).shouldDeletePod(cloud, pod);
         
         Computer computer = toComputer();

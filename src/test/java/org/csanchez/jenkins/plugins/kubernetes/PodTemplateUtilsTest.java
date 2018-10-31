@@ -36,20 +36,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import hudson.model.Node;
-import hudson.slaves.NodeProperty;
-import hudson.tools.ToolLocationNodeProperty;
-
-import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
-import org.jenkinsci.plugins.pipeline.modeldefinition.shaded.com.google.common.collect.Lists;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
+import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -60,7 +55,6 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.QuantityBuilder;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
@@ -519,6 +513,23 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void shouldCombineAllPorts() {
+        ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
+        PortMapping port1 = new PortMapping("port-1", 1000, 1000);
+        template1.setPorts(Arrays.asList(port1));
+
+        ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
+
+        assertThat(combine(template1, template2).getPorts(), contains(port1));
+
+        PortMapping port2 = new PortMapping("port-2", 2000, 2000);
+        template2.setPorts(Arrays.asList(port2));
+        assertThat(combine(template1, template2).getPorts(), containsInAnyOrder(port1, port2));
+
+        port2.setName("port-1");
+        assertThat(combine(template1, template2).getPorts(), contains(port2));
+    }
+
     public void shouldCombineAllResources() {
         Container container1 = new Container();
         container1.setResources(new ResourceRequirementsBuilder() //

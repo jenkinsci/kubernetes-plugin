@@ -69,15 +69,14 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             checkAccess(run, kubernetesCloud);
         }
 
-        PodTemplateAction podTemplateAction = run.getAction(PodTemplateAction.class);
-        NamespaceAction namespaceAction = run.getAction(NamespaceAction.class);
-        String parentTemplates = podTemplateAction != null ? podTemplateAction.getParentTemplates() : null;
+        PodTemplateContext podTemplateContext = getContext().get(PodTemplateContext.class);
+        String parentTemplates = podTemplateContext != null ? podTemplateContext.getName() : null;
 
         //Let's generate a random name based on the user specified to make sure that we don't have
         //issues with concurrent builds, or messing with pre-existing configuration
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = String.format(NAME_FORMAT, step.getName(), randString);
-        String namespace = checkNamespace(kubernetesCloud, namespaceAction);
+        String namespace = checkNamespace(kubernetesCloud, podTemplateContext);
 
         newTemplate = new PodTemplate();
         newTemplate.setName(name);
@@ -120,16 +119,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
 
         kubernetesCloud.addDynamicTemplate(newTemplate);
-        getContext().newBodyInvoker().withContext(step).withCallback(new PodTemplateCallback(newTemplate)).start();
+        getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate)).start();
 
-        PodTemplateAction.push(run, name);
-        NamespaceAction.push(run, namespace);
         return false;
-    }
-
-    @Override
-    public void stop(Throwable cause) throws Exception {
-        new PodTemplateAction(getContext().get(Run.class)).pop();
     }
 
     /**
@@ -152,12 +144,12 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
-    private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull NamespaceAction namespaceAction) {
+    private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull PodTemplateContext podTemplateContext) {
         String namespace = null;
         if (!Strings.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
-        } else if ((namespaceAction != null) && (!Strings.isNullOrEmpty(namespaceAction.getNamespace()))) {
-            namespace = namespaceAction.getNamespace();
+        } else if (podTemplateContext != null && !Strings.isNullOrEmpty(podTemplateContext.getNamespace())) {
+            namespace = podTemplateContext.getNamespace();
         } else {
             namespace = kubernetesCloud.getNamespace();
         }
