@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.5
+------
+* Populate jnlp tunnel in the jnlp endpoint to launch agent whether Jenkins is behind load balancer or not [#389](https://github.com/jenkinsci/kubernetes-plugin/pull/389)
+* Combine parent pod template ports with children [#340](https://github.com/jenkinsci/kubernetes-plugin/pull/340) [JENKINS-50932](https://issues.jenkins-ci.org/browse/JENKINS-50932)
+
 1.13.4
 ------
 * Upgrade kubernetes-client to 4.1.0 [#380](https://github.com/jenkinsci/kubernetes-plugin/pull/380) [JENKINS-53817](https://issues.jenkins-ci.org/browse/JENKINS-53817)
