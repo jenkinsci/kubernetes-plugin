@@ -14,7 +14,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 1.13.4
 ------
-* Upgrade kubernetes-client to 4.1.0 [#380](https://github.com/jenkinsci/kubernetes-plugin/pull/380) [JENKINS-53817](https://issues.jenkins-ci.org/browse/JENKINS-53817)
+* Allow custom workspace in declarative pipeline [#380](https://github.com/jenkinsci/kubernetes-plugin/pull/380) [JENKINS-53817](https://issues.jenkins-ci.org/browse/JENKINS-53817)
 
 1.13.3
 ------
