@@ -40,8 +40,8 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 if ((describable.getYamlFile() != null) && (describable.hasScmContext(script))) {
                     describable.setYaml(script.readTrusted(describable.getYamlFile()))
                 }
-                if (describable.getYamlVar() != null) {
-                    describable.setYaml(describable.getYamlVar())
+                if (describable.yamlVar != null) {
+                    describable.setYaml(describable.yamlVar)
                 }                
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
