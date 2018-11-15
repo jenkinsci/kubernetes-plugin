@@ -44,6 +44,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String defaultContainer;
     private String yaml;
     private String yamlFile;
+    private String yamlVar;
 
     @DataBoundConstructor
     public KubernetesDeclarativeAgent() {
@@ -189,9 +190,18 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         return yamlFile;
     }
 
+    public String getYamlVar() {
+        return yamlVar;
+    }
+    
     @DataBoundSetter
     public void setYamlFile(String yamlFile) {
         this.yamlFile = yamlFile;
+    }
+
+    @DataBoundSetter
+    public void setYamlVar(String yamlVar) {
+        this.yamlVar = yamlVar;
     }
 
     public Map<String, Object> getAsArgs() {
