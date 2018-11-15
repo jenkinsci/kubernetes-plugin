@@ -69,7 +69,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 }
             } catch (Exception e) {
                 script.getProperty("currentBuild").result = Result.FAILURE
-                throw e
+                throw e + "33333"
             }
         }
     }
