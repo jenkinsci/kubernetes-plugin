@@ -41,7 +41,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                     describable.setYaml(script.readTrusted(describable.getYamlFile()))
                 }
                 if (describable.getYamlVar() != null) {
-                    describable.setYaml(describable.getYamlFile())
+                    describable.setYaml(describable.getYamlVar())
                 }                
                 script.podTemplate(describable.asArgs) {
                     script.node(describable.label) {
