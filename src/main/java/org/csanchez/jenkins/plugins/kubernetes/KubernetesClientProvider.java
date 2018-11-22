@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Manages the Kubernetes client creation per cloud
  */
-public final class KubernetesClientHelper {
+final class KubernetesClientProvider {
 
     private static final Cache<String, Client> clients;
 
@@ -33,10 +33,10 @@ public final class KubernetesClientHelper {
                 .build();
     }
 
-    private KubernetesClientHelper() {
+    private KubernetesClientProvider() {
     }
 
-    public static KubernetesClient createClient(final String cloudName, final String serviceAddress, final String namespace, @CheckForNull final String caCertData,
+    static KubernetesClient createClient(final String cloudName, final String serviceAddress, final String namespace, @CheckForNull final String caCertData,
                                                 @CheckForNull final String credentials, final boolean skipTlsVerify, final int connectTimeout, final int readTimeout, final int maxRequestsPerHost) throws NoSuchAlgorithmException, UnrecoverableKeyException,
             KeyStoreException, IOException, CertificateEncodingException, ExecutionException {
 
