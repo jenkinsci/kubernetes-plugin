@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.12</version>
+    <version>3.28</version>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -42,7 +42,7 @@
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost />
     <java.level>8</java.level>
-    <jenkins.version>2.121.2</jenkins.version>
+    <jenkins.version>2.152</jenkins.version>
     <no-test-jar>false</no-test-jar>
   </properties>
 
@@ -67,7 +67,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
-      <version>2.8.11.3</version>
+      <version>2.9.7.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -77,19 +77,19 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.3.1</version>
+      <version>0.4.0</version>
     </dependency>
 
     <dependency> <!-- Requires Permission -->
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>cloudbees-folder</artifactId>
-      <version>6.5.1</version>
+      <version>6.7</version>
     </dependency>
 
     <dependency> <!-- OnceRetentionStrategy -->
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>1.22</version>
+      <version>1.28</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -104,7 +104,7 @@
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
-      <version>1.3.1</version>
+      <version>1.3.2</version>
       <optional>true</optional>
     </dependency>
 
@@ -112,13 +112,13 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>2.23</version>
+      <version>2.29</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>2.9</version>
+      <version>2.12</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- StepConfigTester -->
@@ -131,56 +131,56 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>2.19</version>
+      <version>2.22</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>2.19</version>
+      <version>2.26</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>2.19</version>
+      <version>2.22</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-scm-step</artifactId>
-      <version>2.6</version>
+      <version>2.7</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>scm-api</artifactId>
-      <version>2.2.7</version>
+      <version>2.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>1.3.1</version>
+      <version>1.3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>2.29</version>
+      <version>2.33</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>2.54</version>
+      <version>2.60</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>2.21.0</version>
+      <version>2.23.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -199,29 +199,29 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>scm-api</artifactId>
-      <version>2.2.7</version>
+      <version>2.3.0</version>
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
-    <dependency>
+    <!-- <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-scm-step</artifactId>
-      <version>2.6</version>
+      <version>2.7</version>
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
-
+ -->
     <!-- for ContainerExecDecoratorPipelineTest -->
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>ssh-agent</artifactId>
-      <version>1.16</version>
+      <version>1.17</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.16.3</version>
+      <version>2.17</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -243,27 +243,27 @@
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>script-security</artifactId>
-        <version>1.42</version>
+        <version>1.48</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>git-client</artifactId>
-        <version>2.7.0</version>
+        <version>3.0.0-beta5</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>credentials-binding</artifactId>
-        <version>1.16</version>
+        <version>1.17</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>structs</artifactId>
-        <version>1.14</version>
+        <version>1.17</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>script-security</artifactId>
-        <version>1.44</version>
+        <version>1.48</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
@@ -273,7 +273,7 @@
       <dependency>
         <groupId>org.apache.sshd</groupId>
         <artifactId>sshd-core</artifactId>
-        <version>2.0.0</version>
+        <version>2.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci</groupId>
@@ -283,12 +283,17 @@
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>mailer</artifactId>
-        <version>1.21</version>
+        <version>1.22</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>junit</artifactId>
-        <version>1.24</version>
+        <version>1.26.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.7</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
