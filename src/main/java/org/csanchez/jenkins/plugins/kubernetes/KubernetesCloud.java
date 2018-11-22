@@ -116,7 +116,6 @@ public class KubernetesCloud extends Cloud {
     private Map<String, String> labels;
     private boolean usageRestricted;
 
-    private transient KubernetesClient client;
     private int maxRequestsPerHost;
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
@@ -426,7 +425,7 @@ public class KubernetesCloud extends Cloud {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
-        client = KubernetesClientProvider.createClient(name, serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
+        KubernetesClient client = KubernetesClientProvider.createClient(name, serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
                 connectTimeout, readTimeout, maxRequestsPerHost);
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
