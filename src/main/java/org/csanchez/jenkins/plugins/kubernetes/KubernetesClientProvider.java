@@ -3,6 +3,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
+
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 import javax.annotation.CheckForNull;
@@ -30,6 +32,9 @@ final class KubernetesClientProvider {
         clients = CacheBuilder.newBuilder()
                 .maximumSize(CACHE_SIZE)
                 .expireAfterWrite(CACHE_TTL, TimeUnit.MINUTES)
+                .removalListener((RemovalListener<String, Client>) removalNotification -> {
+                    removalNotification.getValue().getClient().close();
+                })
                 .build();
     }
 
