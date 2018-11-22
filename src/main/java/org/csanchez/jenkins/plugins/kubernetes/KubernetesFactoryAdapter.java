@@ -46,6 +46,7 @@ import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
+@Deprecated
 public class KubernetesFactoryAdapter {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesFactoryAdapter.class.getName());
