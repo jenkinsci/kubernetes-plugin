@@ -45,6 +45,7 @@ final class KubernetesClientProvider {
                                                 @CheckForNull final String credentials, final boolean skipTlsVerify, final int connectTimeout, final int readTimeout, final int maxRequestsPerHost) throws NoSuchAlgorithmException, UnrecoverableKeyException,
             KeyStoreException, IOException, CertificateEncodingException, ExecutionException {
 
+        // expire tha cache if any of these config options have changed
         final int validity = Objects.hashCode(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, maxRequestsPerHost);
         final Client c = clients.getIfPresent(cloudName);
         if (c != null && validity == c.getValidity()) {
