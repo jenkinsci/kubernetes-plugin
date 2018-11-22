@@ -11,12 +11,11 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by fbelzunc on 22/11/2018.
+ * Manages the Kubernetes client creation per cloud
  */
 public final class KubernetesClientHelper {
 

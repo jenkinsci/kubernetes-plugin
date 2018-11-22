@@ -23,6 +23,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,7 +59,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Exported
-    public List<Container> getContainers() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public List<Container> getContainers() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException, ExecutionException {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         KubernetesSlave slave = getNode();
         if(slave == null) {
@@ -75,7 +76,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     public void doContainerLog(@QueryParameter String containerId,
-                               StaplerRequest req, StaplerResponse rsp) throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+                               StaplerRequest req, StaplerResponse rsp) throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException, ExecutionException {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         ByteBuffer outputStream = new ByteBuffer();

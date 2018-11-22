@@ -7,6 +7,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -136,7 +137,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static String determineNamespace(KubernetesCloud cloud, String namespace) throws IOException {
         try {
             return namespace == null ? cloud.connect().getNamespace() : namespace;
-        } catch (UnrecoverableKeyException|NoSuchAlgorithmException|KeyStoreException|CertificateEncodingException e) {
+        } catch (UnrecoverableKeyException|NoSuchAlgorithmException|KeyStoreException|CertificateEncodingException|ExecutionException e) {
             throw new IOException(e);
         }
     }
@@ -235,7 +236,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         try {
             client = cloud.connect();
         } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
-                | KeyStoreException e) {
+                | KeyStoreException | ExecutionException e) {
             String msg = String.format("Failed to connect to cloud %s. There may be leftover resources on the Kubernetes cluster.", getCloudName());
             e.printStackTrace(listener.fatalError(msg));
             LOGGER.log(Level.SEVERE, msg);
