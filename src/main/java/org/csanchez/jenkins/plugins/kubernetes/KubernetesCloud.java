@@ -115,7 +115,6 @@ public class KubernetesCloud extends Cloud {
     private Map<String, String> labels;
     private boolean usageRestricted;
 
-    private transient KubernetesClient client;
     private int maxRequestsPerHost;
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
@@ -390,6 +389,10 @@ public class KubernetesCloud extends Cloud {
         return String.valueOf(maxRequestsPerHost);
     }
 
+    public int getMaxRequestsPerHost() {
+        return maxRequestsPerHost;
+    }
+
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }
@@ -425,8 +428,8 @@ public class KubernetesCloud extends Cloud {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
-        client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
-                connectTimeout, readTimeout, maxRequestsPerHost).createClient();
+        KubernetesClient client = KubernetesClientProvider.createClient(this);
+
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
@@ -636,13 +639,11 @@ public class KubernetesCloud extends Cloud {
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
 
-            try {
-                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
+            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient();
-
-                // test listing pods
-                client.pods().list();
+                        connectionTimeout, readTimeout).createClient()) {
+                    // test listing pods
+                    client.pods().list();
                 return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
