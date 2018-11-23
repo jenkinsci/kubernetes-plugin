@@ -7,7 +7,6 @@ import com.google.common.cache.RemovalListener;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 
-import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;

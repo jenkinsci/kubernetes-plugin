@@ -47,6 +47,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
+ *
+ * This class has been deprecated. You should use KubernetesClientProvider
  */
 @Restricted(NoExternalUse.class)
 @Deprecated
