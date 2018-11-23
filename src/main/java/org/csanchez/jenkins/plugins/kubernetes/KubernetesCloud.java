@@ -640,13 +640,12 @@ public class KubernetesCloud extends Cloud {
                 return FormValidation.error("name is required");
 
             try {
-                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
+                try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient();
-
-                // test listing pods
-                client.pods().list();
-                client.close();
+                        connectionTimeout, readTimeout).createClient()) {
+                    // test listing pods
+                    client.pods().list();
+                }
                 return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
