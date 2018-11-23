@@ -54,6 +54,10 @@
         <f:textbox default="32"/>
     </f:entry>
 
+    <f:entry title="Seconds to wait for pod to be running" field="waitForPodSec">
+        <f:number clazz="required number" min="0" step="1" default="600"/>
+    </f:entry>
+
     <f:advanced>
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
         <f:textbox default="5"/>
