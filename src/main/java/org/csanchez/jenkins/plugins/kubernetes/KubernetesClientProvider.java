@@ -51,9 +51,11 @@ final class KubernetesClientProvider {
                 cloud.getCredentialsId(), cloud.isSkipTlsVerify(), cloud.getConnectTimeout(), cloud.getReadTimeout(),
                 cloud.getMaxRequestsPerHostStr());
         final Client c = clients.getIfPresent(cloud.getDisplayName());
+
         if (c != null && validity == c.getValidity()) {
             return c.getClient();
         } else {
+            // expire tha cache if any of these config options have changed
             c.client.close();
             KubernetesClient client = new KubernetesFactoryAdapter(cloud.getServerUrl(), cloud.getNamespace(),
                     cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
