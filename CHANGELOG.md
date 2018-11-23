@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.6
+------
+* Prevent multiple instances of KubernetesClient that can cause memory leaks with multiple API http connections [#397](https://github.com/jenkinsci/kubernetes-plugin/pull/397) [JENKINS-54770](https://issues.jenkins-ci.org/browse/JENKINS-54770)
+
 1.13.5
 ------
 * Populate jnlp tunnel in the jnlp endpoint to launch agent whether Jenkins is behind load balancer or not [#389](https://github.com/jenkinsci/kubernetes-plugin/pull/389)
