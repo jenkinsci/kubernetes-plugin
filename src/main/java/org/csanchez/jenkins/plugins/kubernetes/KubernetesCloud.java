@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -390,6 +389,10 @@ public class KubernetesCloud extends Cloud {
         return String.valueOf(maxRequestsPerHost);
     }
 
+    public int getMaxRequestsPerHost() {
+        return maxRequestsPerHost;
+    }
+
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }
@@ -421,12 +424,12 @@ public class KubernetesCloud extends Cloud {
      */
     @SuppressFBWarnings({ "IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK" })
     public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
-            IOException, CertificateEncodingException, ExecutionException {
+            IOException, CertificateEncodingException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
-        KubernetesClient client = KubernetesClientProvider.createClient(name, serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
-                connectTimeout, readTimeout, maxRequestsPerHost);
+        KubernetesClient client = KubernetesClientProvider.createClient(this);
+
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
@@ -643,6 +646,7 @@ public class KubernetesCloud extends Cloud {
 
                 // test listing pods
                 client.pods().list();
+                client.close();
                 return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);

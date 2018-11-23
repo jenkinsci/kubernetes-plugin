@@ -34,7 +34,6 @@ import java.security.cert.CertificateEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -73,7 +72,7 @@ public class KubernetesTestUtil {
             BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
 
     public static KubernetesCloud setupCloud(Object test) throws UnrecoverableKeyException,
-            CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException, ExecutionException {
+            CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
         cloud.setLabels(getLabels(cloud, test));

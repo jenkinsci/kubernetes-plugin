@@ -13,7 +13,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,7 +32,11 @@ final class KubernetesClientProvider {
                 .maximumSize(CACHE_SIZE)
                 .expireAfterWrite(CACHE_TTL, TimeUnit.MINUTES)
                 .removalListener((RemovalListener<String, Client>) removalNotification -> {
-                    removalNotification.getValue().getClient().close();
+                    // https://google.github.io/guava/releases/23.0/api/docs/com/google/common/cache/RemovalNotification.html
+                    // A notification of the removal of a single entry. The key and/or value may be null if they were already garbage collected.
+                    if (removalNotification.getValue() != null) {
+                        removalNotification.getValue().getClient().close();
+                    }
                 })
                 .build();
     }
@@ -41,18 +44,21 @@ final class KubernetesClientProvider {
     private KubernetesClientProvider() {
     }
 
-    static KubernetesClient createClient(final String cloudName, final String serviceAddress, final String namespace, @CheckForNull final String caCertData,
-                                                @CheckForNull final String credentials, final boolean skipTlsVerify, final int connectTimeout, final int readTimeout, final int maxRequestsPerHost) throws NoSuchAlgorithmException, UnrecoverableKeyException,
-            KeyStoreException, IOException, CertificateEncodingException, ExecutionException {
+    static KubernetesClient createClient(KubernetesCloud cloud) throws NoSuchAlgorithmException, UnrecoverableKeyException,
+            KeyStoreException, IOException, CertificateEncodingException {
 
-        final int validity = Objects.hashCode(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, maxRequestsPerHost);
-        final Client c = clients.getIfPresent(cloudName);
+        final int validity = Objects.hashCode(cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
+                cloud.getCredentialsId(), cloud.isSkipTlsVerify(), cloud.getConnectTimeout(), cloud.getReadTimeout(),
+                cloud.getMaxRequestsPerHostStr());
+        final Client c = clients.getIfPresent(cloud.getDisplayName());
         if (c != null && validity == c.getValidity()) {
             return c.getClient();
         } else {
-            KubernetesClient client = new KubernetesFactoryAdapter(serviceAddress, namespace, caCertData, credentials, skipTlsVerify,
-                    connectTimeout, readTimeout, maxRequestsPerHost).createClient();
-            clients.put(cloudName, new Client(validity, client));
+            c.client.close();
+            KubernetesClient client = new KubernetesFactoryAdapter(cloud.getServerUrl(), cloud.getNamespace(),
+                    cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
+                    cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost()).createClient();
+            clients.put(cloud.getDisplayName(), new Client(validity, client));
 
             return client;
         }
