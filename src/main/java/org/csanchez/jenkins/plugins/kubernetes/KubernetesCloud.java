@@ -79,6 +79,7 @@ import jenkins.model.JenkinsLocationConfiguration;
  */
 public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
+    public static final Integer DEFAULT_WAIT_FOR_POD_SEC = 600;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
 
@@ -117,6 +118,10 @@ public class KubernetesCloud extends Cloud {
     private boolean usageRestricted;
 
     private int maxRequestsPerHost;
+
+    // Integer to differentiate null from 0
+    private Integer waitForPodSec;
+
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
@@ -150,6 +155,7 @@ public class KubernetesCloud extends Cloud {
         this.usageRestricted = source.usageRestricted;
         this.maxRequestsPerHost = source.maxRequestsPerHost;
         this.podRetention = source.podRetention;
+        this.waitForPodSec = source.waitForPodSec;
     }
 
     @Deprecated
@@ -633,12 +639,22 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(jenkinsTunnel, that.jenkinsTunnel) &&
                 Objects.equals(credentialsId, that.credentialsId) &&
                 Objects.equals(labels, that.labels) &&
-                Objects.equals(podRetention, that.podRetention);
+                Objects.equals(podRetention, that.podRetention) &&
+                Objects.equals(waitForPodSec, that.waitForPodSec);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
+    }
+
+        public Integer getWaitForPodSec() {
+        return waitForPodSec;
+    }
+
+    @DataBoundSetter
+    public void setWaitForPodSec(Integer waitForPodSec) {
+        this.waitForPodSec = waitForPodSec;
     }
 
     @Extension
@@ -758,6 +774,10 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        if (waitForPodSec == null) {
+            waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
+        }
+
         return this;
     }
 
