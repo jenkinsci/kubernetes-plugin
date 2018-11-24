@@ -53,6 +53,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
@@ -250,12 +251,17 @@ public class PodTemplateBuilder {
         HashMap<String, String> env = new HashMap<>();
 
         if (slave != null) {
-            // Add some default env vars for Jenkins
-            env.put("JENKINS_SECRET", slave.getComputer().getJnlpMac());
-            // JENKINS_AGENT_NAME is default in jnlp-slave
-            // JENKINS_NAME only here for backwords compatability
-            env.put("JENKINS_NAME", slave.getComputer().getName());
-            env.put("JENKINS_AGENT_NAME", slave.getComputer().getName());
+            SlaveComputer computer = slave.getComputer();
+            if (computer != null) {
+                // Add some default env vars for Jenkins
+                env.put("JENKINS_SECRET", computer.getJnlpMac());
+                // JENKINS_AGENT_NAME is default in jnlp-slave
+                // JENKINS_NAME only here for backwords compatability
+                env.put("JENKINS_NAME", computer.getName());
+                env.put("JENKINS_AGENT_NAME", computer.getName());
+            } else {
+                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", slave.getNodeName());
+            }
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
@@ -319,8 +325,11 @@ public class PodTemplateBuilder {
 
         String cmd = containerTemplate.getArgs();
         if (slave != null && cmd != null) {
-            cmd = cmd.replaceAll(JNLPMAC_REF, slave.getComputer().getJnlpMac()) //
-                    .replaceAll(NAME_REF, slave.getComputer().getName());
+            SlaveComputer computer = slave.getComputer();
+            if (computer != null) {
+                cmd = cmd.replaceAll(JNLPMAC_REF, computer.getJnlpMac()) //
+                        .replaceAll(NAME_REF, computer.getName());
+            }
         }
         List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(cmd);

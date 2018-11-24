@@ -172,18 +172,19 @@ public class KubernetesLauncher extends JNLPLauncher {
             j = unwrappedTemplate.getSlaveConnectTimeout();
 
             // now wait for agent to be online
+            SlaveComputer slaveComputer = slave.getComputer();
+            if (slaveComputer == null) {
+                throw new IllegalStateException("Node was deleted, computer is null");
+            }
             for (; i < j; i++) {
-                if (slave.getComputer() == null) {
-                    throw new IllegalStateException("Node was deleted, computer is null");
-                }
-                if (slave.getComputer().isOnline()) {
+                if (slaveComputer.isOnline()) {
                     break;
                 }
                 LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
                 logger.printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podId, i, j);
                 Thread.sleep(1000);
             }
-            if (!slave.getComputer().isOnline()) {
+            if (!slaveComputer.isOnline()) {
                 if (containerStatuses != null) {
                     logLastLines(containerStatuses, podId, namespace, slave, null, client);
                 }
