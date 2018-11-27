@@ -51,7 +51,7 @@
         descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" /> 
 
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
-        <f:textbox default="32"/>
+        <f:textbox default="32" checkMethod="post"/>
     </f:entry>
 
     <f:advanced>
