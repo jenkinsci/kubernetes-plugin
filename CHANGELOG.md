@@ -10,6 +10,8 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 1.13.6
 ------
 * Prevent multiple instances of KubernetesClient that can cause memory leaks with multiple API http connections [#397](https://github.com/jenkinsci/kubernetes-plugin/pull/397) [JENKINS-54770](https://issues.jenkins-ci.org/browse/JENKINS-54770)
+  * Note that this will enforce the limit of connections to the Kubernetes API and you may need to increase the value of *Max connections to Kubernetes API* if you see errors like [`JENKINS-40825`](https://issues.jenkins-ci.org/browse/JENKINS-40825)`: interrupted while waiting for websocket connection`
+
 
 1.13.5
 ------
