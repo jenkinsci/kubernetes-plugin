@@ -120,7 +120,7 @@ public class KubernetesCloud extends Cloud {
     private int maxRequestsPerHost;
 
     // Integer to differentiate null from 0
-    private Integer waitForPodSec;
+    private Integer waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
@@ -648,7 +648,7 @@ public class KubernetesCloud extends Cloud {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
     }
 
-        public Integer getWaitForPodSec() {
+    public Integer getWaitForPodSec() {
         return waitForPodSec;
     }
 
