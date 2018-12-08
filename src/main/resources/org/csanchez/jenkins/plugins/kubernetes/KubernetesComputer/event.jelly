@@ -1,7 +1,7 @@
 <!--
 The MIT License
 
-Copyright (c) 2018，Alauda
+Copyright (c) 2018, Alauda
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,28 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
-  <l:isAdmin>
-  <l:task icon="icon-clipboard icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${it.CONNECT}" />
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}podLog" title="${%PodLog}"/>
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}event" title="${%Event}"/>
-  </l:isAdmin>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+  <l:layout title="${it.displayName} log" secured="true">
+    <st:include page="sidepanel.jelly" />
+    <l:main-panel>
+      <table class="sortable pane bigtable">
+        <tr>
+          <th>${%Type}</th><th>${%Reason}</th><th>${%Count}</th>
+          <th>${%FirstTime}</th><th>${%LastTime}</th><th>${%From}</th><th>${%Message}</th>
+        </tr>
+
+        <j:forEach var="v" items="${it.podEvents}">
+          <tr>
+            <td>${v.type}</td>
+            <td>${v.reason}</td>
+            <td>${v.count}</td>
+            <td>${v.firstTimestamp}</td>
+            <td>${v.lastTimestamp}</td>
+            <td>${v.source.component}</td>
+            <td>${v.message}</td>
+          </tr>
+        </j:forEach>
+      </table>
+    </l:main-panel>
+  </l:layout>
 </j:jelly>
