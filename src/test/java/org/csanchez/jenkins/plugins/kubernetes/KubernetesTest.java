@@ -81,6 +81,7 @@ public class KubernetesTest {
         assertEquals(new Never(), cloud.getPodRetention());
         PodTemplate template = templates.get(0);
         assertEquals(new Default(), template.getPodRetention());
+        assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     @Test
@@ -95,6 +96,7 @@ public class KubernetesTest {
         StringCredentialsImpl cred2 = (StringCredentialsImpl) credentials.get(2);
         assertEquals("mytoken", Secret.toString(cred2.getSecret()));
         assertThat(cloud.getLabels(), hasEntry("jenkins", "slave"));
+        assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     @Test
@@ -104,6 +106,7 @@ public class KubernetesTest {
         assertPodTemplates(templates);
         assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
                 new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
+        assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     @Test
@@ -119,6 +122,7 @@ public class KubernetesTest {
         assertEquals("Default", location.getName());
         assertEquals("/custom/path", location.getHome());
         assertEquals(GitTool.class, location.getType().clazz);
+        assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     @Test
@@ -126,6 +130,7 @@ public class KubernetesTest {
     public void upgradeFrom_0_8() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
+        assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     private void assertPodTemplates(List<PodTemplate> templates) {
