@@ -100,6 +100,10 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             String podId = pod.getMetadata().getName();
             String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+            // JENKINS-51610 the namespace must keep same or will cause an exception
+            if(pod.getMetadata() != null && StringUtils.isNotBlank(pod.getMetadata().getNamespace())) {
+                namespace = pod.getMetadata().getNamespace();
+            }
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
