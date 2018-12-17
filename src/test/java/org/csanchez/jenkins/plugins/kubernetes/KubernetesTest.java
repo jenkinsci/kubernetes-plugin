@@ -71,6 +71,7 @@ public class KubernetesTest {
     public void before() throws Exception {
         r.configRoundtrip();
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
+        assertNotNull(cloud);
     }
 
     @Test
