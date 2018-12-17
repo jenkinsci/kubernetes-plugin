@@ -8,15 +8,15 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.13.6-SNAPSHOT</version>
+  <version>1.13.9-SNAPSHOT</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Kubernetes+Plugin</url>
 
   <scm>
-    <connection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
+    <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
     <tag>HEAD</tag>
   </scm>
@@ -298,6 +298,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0-M1</version>
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>

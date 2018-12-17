@@ -7,6 +7,21 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.8
+------
+* Don't close kubernetes client upon cache removal [#407](https://github.com/jenkinsci/kubernetes-plugin/pull/407) [JENKINS-55138] (https://issues.jenkins-ci.org/browse/JENKINS-55138)
+
+1.13.7
+------
+* Add missing field maxRequestsPerHost to copy constructor [#403](https://github.com/jenkinsci/kubernetes-plugin/pull/403)
+* Fix maxRequestsPerHost form validation [#400](https://github.com/jenkinsci/kubernetes-plugin/pull/400)
+
+1.13.6
+------
+* Prevent multiple instances of KubernetesClient that can cause memory leaks with multiple API http connections [#397](https://github.com/jenkinsci/kubernetes-plugin/pull/397) [JENKINS-54770](https://issues.jenkins-ci.org/browse/JENKINS-54770)
+  * Note that this will enforce the limit of connections to the Kubernetes API and you may need to increase the value of *Max connections to Kubernetes API* if you see errors like [`JENKINS-40825`](https://issues.jenkins-ci.org/browse/JENKINS-40825)`: interrupted while waiting for websocket connection`
+
+
 1.13.5
 ------
 * Populate jnlp tunnel in the jnlp endpoint to launch agent whether Jenkins is behind load balancer or not [#389](https://github.com/jenkinsci/kubernetes-plugin/pull/389)

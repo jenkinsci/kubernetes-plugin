@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,6 +79,7 @@ import jenkins.model.JenkinsLocationConfiguration;
  */
 public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
+    public static final Integer DEFAULT_WAIT_FOR_POD_SEC = 600;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesCloud.class.getName());
 
@@ -115,8 +117,11 @@ public class KubernetesCloud extends Cloud {
     private Map<String, String> labels;
     private boolean usageRestricted;
 
-    private transient KubernetesClient client;
     private int maxRequestsPerHost;
+
+    // Integer to differentiate null from 0
+    private Integer waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
+
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
@@ -148,7 +153,9 @@ public class KubernetesCloud extends Cloud {
         this.retentionTimeout = source.retentionTimeout;
         this.connectTimeout = source.connectTimeout;
         this.usageRestricted = source.usageRestricted;
+        this.maxRequestsPerHost = source.maxRequestsPerHost;
         this.podRetention = source.podRetention;
+        this.waitForPodSec = source.waitForPodSec;
     }
 
     @Deprecated
@@ -390,6 +397,10 @@ public class KubernetesCloud extends Cloud {
         return String.valueOf(maxRequestsPerHost);
     }
 
+    public int getMaxRequestsPerHost() {
+        return maxRequestsPerHost;
+    }
+
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }
@@ -425,8 +436,8 @@ public class KubernetesCloud extends Cloud {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
-        client = new KubernetesFactoryAdapter(serverUrl, namespace, serverCertificate, credentialsId, skipTlsVerify,
-                connectTimeout, readTimeout, maxRequestsPerHost).createClient();
+        KubernetesClient client = KubernetesClientProvider.createClient(this);
+
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
         return client;
     }
@@ -605,6 +616,47 @@ public class KubernetesCloud extends Cloud {
         PodTemplateMap.get().removeTemplate(this, t);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        KubernetesCloud that = (KubernetesCloud) o;
+        return skipTlsVerify == that.skipTlsVerify &&
+                addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
+                capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
+                containerCap == that.containerCap &&
+                retentionTimeout == that.retentionTimeout &&
+                connectTimeout == that.connectTimeout &&
+                readTimeout == that.readTimeout &&
+                usageRestricted == that.usageRestricted &&
+                maxRequestsPerHost == that.maxRequestsPerHost &&
+                Objects.equals(defaultsProviderTemplate, that.defaultsProviderTemplate) &&
+                templates.equals(that.templates) &&
+                Objects.equals(serverUrl, that.serverUrl) &&
+                Objects.equals(serverCertificate, that.serverCertificate) &&
+                Objects.equals(namespace, that.namespace) &&
+                Objects.equals(jenkinsUrl, that.jenkinsUrl) &&
+                Objects.equals(jenkinsTunnel, that.jenkinsTunnel) &&
+                Objects.equals(credentialsId, that.credentialsId) &&
+                Objects.equals(labels, that.labels) &&
+                Objects.equals(podRetention, that.podRetention) &&
+                Objects.equals(waitForPodSec, that.waitForPodSec);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
+    }
+
+    public Integer getWaitForPodSec() {
+        return waitForPodSec;
+    }
+
+    @DataBoundSetter
+    public void setWaitForPodSec(Integer waitForPodSec) {
+        this.waitForPodSec = waitForPodSec;
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<Cloud> {
         @Override
@@ -636,13 +688,11 @@ public class KubernetesCloud extends Cloud {
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
 
-            try {
-                KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
+            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient();
-
-                // test listing pods
-                client.pods().list();
+                        connectionTimeout, readTimeout).createClient()) {
+                    // test listing pods
+                    client.pods().list();
                 return FormValidation.ok("Connection test successful");
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
@@ -724,6 +774,10 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        if (waitForPodSec == null) {
+            waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
+        }
+
         return this;
     }
 
