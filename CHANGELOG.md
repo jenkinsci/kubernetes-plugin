@@ -7,6 +7,15 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.8
+------
+* Don't close kubernetes client upon cache removal [#407](https://github.com/jenkinsci/kubernetes-plugin/pull/407) [JENKINS-55138] (https://issues.jenkins-ci.org/browse/JENKINS-55138)
+
+1.13.7
+------
+* Add missing field maxRequestsPerHost to copy constructor [#403](https://github.com/jenkinsci/kubernetes-plugin/pull/403)
+* Fix maxRequestsPerHost form validation [#400](https://github.com/jenkinsci/kubernetes-plugin/pull/400)
+
 1.13.6
 ------
 * Prevent multiple instances of KubernetesClient that can cause memory leaks with multiple API http connections [#397](https://github.com/jenkinsci/kubernetes-plugin/pull/397) [JENKINS-54770](https://issues.jenkins-ci.org/browse/JENKINS-54770)
