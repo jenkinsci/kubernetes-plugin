@@ -27,6 +27,6 @@ THE SOFTWARE.
   <l:isAdmin>
   <l:task icon="icon-clipboard icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${it.CONNECT}" />
   <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}podLog" title="${%PodLog}"/>
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}event" title="${%Event}"/>
+  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}events" title="${%Events}"/>
   </l:isAdmin>
 </j:jelly>
