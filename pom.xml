@@ -8,7 +8,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.13.9-SNAPSHOT</version>
+  <version>1.13.9</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -18,7 +18,7 @@
     <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
     <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
-    <tag>HEAD</tag>
+    <tag>kubernetes-1.13.9</tag>
   </scm>
 
   <licenses>
