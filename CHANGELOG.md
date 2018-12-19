@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.13.9
+------
+* Require Jenkins 2.150.1 [#411](https://github.com/jenkinsci/kubernetes-plugin/pull/411)
+* Do not wait for pod if it has been deleted or if it has failed [#410](https://github.com/jenkinsci/kubernetes-plugin/pull/410) [#412](https://github.com/jenkinsci/kubernetes-plugin/pull/412)
+
 1.13.8
 ------
 * Don't close kubernetes client upon cache removal [#407](https://github.com/jenkinsci/kubernetes-plugin/pull/407) [JENKINS-55138] (https://issues.jenkins-ci.org/browse/JENKINS-55138)
