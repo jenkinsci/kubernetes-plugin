@@ -4,7 +4,7 @@ pipeline {
       label 'declarativefromyaml-pod'
       yaml """
 metadata:
-  namespace: test
+  namespace: kubernetes-plugin-test-overridden-namespace
   labels:
     some-label: some-label-value
     class: KubernetesDeclarativeAgentTest
