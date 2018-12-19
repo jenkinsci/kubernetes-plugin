@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.0
+------
+* Add page to Kubernetes nodes to show pod events [#408](https://github.com/jenkinsci/kubernetes-plugin/pull/408)
+
 1.13.9
 ------
 * Require Jenkins 2.150.1 [#411](https://github.com/jenkinsci/kubernetes-plugin/pull/411)
