@@ -177,7 +177,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         if (cloud instanceof KubernetesCloud) {
             return (KubernetesCloud) cloud;
         } else {
-            throw new IllegalStateException(KubernetesSlave.class.getName() + " can be launched only by instances of " + KubernetesCloud.class.getName());
+            throw new IllegalStateException(KubernetesSlave.class.getName() + " can be launched only by instances of " + KubernetesCloud.class.getName() + ". Cloud is " + cloud.getClass().getName());
         }
     }
 
