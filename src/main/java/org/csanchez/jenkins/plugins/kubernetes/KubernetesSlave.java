@@ -67,7 +67,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
     private final String cloudName;
-    private final String namespace;
+    private String namespace;
     private final PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
 
@@ -129,23 +129,22 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getNodeProperties());
 
         this.cloudName = cloudName;
-        this.namespace = determineNamespace(getKubernetesCloud(cloudName), Util.fixEmpty(template.getNamespace()));
         this.template = template;
-    }
-
-    private static String determineNamespace(KubernetesCloud cloud, String namespace) throws IOException {
-        try {
-            return namespace == null ? cloud.connect().getNamespace() : namespace;
-        } catch (UnrecoverableKeyException|NoSuchAlgorithmException|KeyStoreException|CertificateEncodingException e) {
-            throw new IOException(e);
-        }
     }
 
     public String getCloudName() {
         return cloudName;
     }
 
+    public void setNamespace(@Nonnull String namespace) {
+        this.namespace = namespace;
+    }
+
+    @Nonnull
     public String getNamespace() {
+        if (namespace == null) {
+            throw new IllegalStateException("Namespace has not been set yet");
+        }
         return namespace;
     }
 

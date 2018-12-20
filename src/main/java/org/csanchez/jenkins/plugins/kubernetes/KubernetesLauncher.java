@@ -29,6 +29,7 @@ import static java.util.logging.Level.*;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -99,11 +100,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             Pod pod = getPodTemplate(client, slave, unwrappedTemplate);
 
             String podId = pod.getMetadata().getName();
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
-            // JENKINS-51610 the namespace must keep same or will cause an exception
-            if(pod.getMetadata() != null && StringUtils.isNotBlank(pod.getMetadata().getNamespace())) {
-                namespace = pod.getMetadata().getNamespace();
-            }
+
+            String namespace = Arrays.asList( //
+                    pod.getMetadata() != null ? pod.getMetadata().getNamespace() : null,
+                    unwrappedTemplate.getNamespace(), client.getNamespace()) //
+                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
+            slave.setNamespace(namespace);
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
