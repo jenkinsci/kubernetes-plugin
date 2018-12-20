@@ -293,24 +293,23 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
-        String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
         try {
-            Boolean deleted = client.pods().inNamespace(actualNamespace).withName(name).delete();
+            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).delete();
             if (!Boolean.TRUE.equals(deleted)) {
-                String msg = String.format("Failed to delete pod for agent %s/%s: not found", actualNamespace, name);
+                String msg = String.format("Failed to delete pod for agent %s/%s: not found", getNamespace(), name);
                 LOGGER.log(Level.WARNING, msg);
                 listener.error(msg);
                 return;
             }
         } catch (KubernetesClientException e) {
-            String msg = String.format("Failed to delete pod for agent %s/%s: %s", actualNamespace, name,
+            String msg = String.format("Failed to delete pod for agent %s/%s: %s", getNamespace(), name,
                     e.getMessage());
             LOGGER.log(Level.WARNING, msg, e);
             listener.error(msg);
             return;
         }
 
-        String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
+        String msg = String.format("Terminated Kubernetes instance for agent %s/%s", getNamespace(), name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
     }
