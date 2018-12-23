@@ -142,9 +142,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Nonnull
     public String getNamespace() {
-        if (namespace == null) {
-            throw new IllegalStateException("Namespace has not been set yet");
-        }
         return namespace;
     }
 
