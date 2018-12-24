@@ -67,7 +67,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private static final ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
     private final String cloudName;
-    private final String namespace;
+    private String namespace;
     private final PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
 
@@ -129,22 +129,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getNodeProperties());
 
         this.cloudName = cloudName;
-        this.namespace = determineNamespace(getKubernetesCloud(cloudName), Util.fixEmpty(template.getNamespace()));
         this.template = template;
-    }
-
-    private static String determineNamespace(KubernetesCloud cloud, String namespace) throws IOException {
-        try {
-            return namespace == null ? cloud.connect().getNamespace() : namespace;
-        } catch (UnrecoverableKeyException|NoSuchAlgorithmException|KeyStoreException|CertificateEncodingException e) {
-            throw new IOException(e);
-        }
     }
 
     public String getCloudName() {
         return cloudName;
     }
 
+    public void setNamespace(@Nonnull String namespace) {
+        this.namespace = namespace;
+    }
+
+    @Nonnull
     public String getNamespace() {
         return namespace;
     }
@@ -294,24 +290,23 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
-        String actualNamespace = getNamespace() == null ? client.getNamespace() : getNamespace();
         try {
-            Boolean deleted = client.pods().inNamespace(actualNamespace).withName(name).delete();
+            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).delete();
             if (!Boolean.TRUE.equals(deleted)) {
-                String msg = String.format("Failed to delete pod for agent %s/%s: not found", actualNamespace, name);
+                String msg = String.format("Failed to delete pod for agent %s/%s: not found", getNamespace(), name);
                 LOGGER.log(Level.WARNING, msg);
                 listener.error(msg);
                 return;
             }
         } catch (KubernetesClientException e) {
-            String msg = String.format("Failed to delete pod for agent %s/%s: %s", actualNamespace, name,
+            String msg = String.format("Failed to delete pod for agent %s/%s: %s", getNamespace(), name,
                     e.getMessage());
             LOGGER.log(Level.WARNING, msg, e);
             listener.error(msg);
             return;
         }
 
-        String msg = String.format("Terminated Kubernetes instance for agent %s/%s", actualNamespace, name);
+        String msg = String.format("Terminated Kubernetes instance for agent %s/%s", getNamespace(), name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
     }
@@ -330,7 +325,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
         KubernetesSlave that = (KubernetesSlave) o;
 
         if (cloudName != null ? !cloudName.equals(that.cloudName) : that.cloudName != null) return false;
-        if (namespace != null ? !namespace.equals(that.namespace) : that.namespace != null) return false;
         return template != null ? template.equals(that.template) : that.template == null;
     }
 
@@ -338,7 +332,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (cloudName != null ? cloudName.hashCode() : 0);
-        result = 31 * result + (namespace != null ? namespace.hashCode() : 0);
         result = 31 * result + (template != null ? template.hashCode() : 0);
         return result;
     }

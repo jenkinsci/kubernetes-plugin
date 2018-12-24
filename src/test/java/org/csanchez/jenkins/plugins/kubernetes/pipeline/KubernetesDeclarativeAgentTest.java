@@ -67,6 +67,20 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
     }
 
+    @Issue("JENKINS-51610")
+    @Test
+    public void declarativeFromYamlWithNamespace() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeWithNamespaceFromYaml.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = jnlp\n", b);
+        r.assertLogContains("MAVEN_CONTAINER_ENV_VAR = maven\n", b);
+        r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
+    }
+
     @Issue("JENKINS-52259")
     @Test
     public void declarativeFromYamlFile() throws Exception {

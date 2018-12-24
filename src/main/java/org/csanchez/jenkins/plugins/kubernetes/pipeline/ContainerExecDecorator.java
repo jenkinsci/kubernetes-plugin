@@ -420,6 +420,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private void waitUntilContainerIsReady() throws IOException {
+                LOGGER.log(Level.FINEST, "Waiting until container is ready: {0}/{1}",
+                        new String[] { namespace, podName });
                 try {
                     Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
