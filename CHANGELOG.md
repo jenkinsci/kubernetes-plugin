@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.1
+------
+* Allow setting namespace from Pod yaml [#405](https://github.com/jenkinsci/kubernetes-plugin/pull/405) [JENKINS-51610] (https://issues.jenkins-ci.org/browse/JENKINS-51610)
+
 1.14.0
 ------
 * Add page to Kubernetes nodes to show pod events [#408](https://github.com/jenkinsci/kubernetes-plugin/pull/408)
