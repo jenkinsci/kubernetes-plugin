@@ -9,7 +9,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 1.14.1
 ------
-* Allow setting namespace from Pod yaml [#405](https://github.com/jenkinsci/kubernetes-plugin/pull/405) [JENKINS-51610] (https://issues.jenkins-ci.org/browse/JENKINS-51610)
+* Allow setting namespace from Pod yaml [#405](https://github.com/jenkinsci/kubernetes-plugin/pull/405) [JENKINS-51610](https://issues.jenkins-ci.org/browse/JENKINS-51610)
 
 1.14.0
 ------
@@ -22,7 +22,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 1.13.8
 ------
-* Don't close kubernetes client upon cache removal [#407](https://github.com/jenkinsci/kubernetes-plugin/pull/407) [JENKINS-55138] (https://issues.jenkins-ci.org/browse/JENKINS-55138)
+* Don't close kubernetes client upon cache removal [#407](https://github.com/jenkinsci/kubernetes-plugin/pull/407) [JENKINS-55138](https://issues.jenkins-ci.org/browse/JENKINS-55138)
 
 1.13.7
 ------
