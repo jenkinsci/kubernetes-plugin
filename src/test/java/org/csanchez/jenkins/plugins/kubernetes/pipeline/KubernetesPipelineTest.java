@@ -68,7 +68,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        deletePods(cloud.connect(), getLabels(cloud, this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this, name), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
@@ -78,17 +78,21 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(b);
 
         List<PodTemplate> templates = null;
-        while ((templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates())).isEmpty()) {
+        while (b.isBuilding() && (templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates())).isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for runInPod template to be created");
             Thread.sleep(1000);
         }
+
+        // check if build failed
+        assertTrue("Build has failed early: " + b.getResult(), b.isBuilding() || Result.SUCCESS.equals(b.getResult()));
+
         LOGGER.log(Level.INFO, "Found templates with label runInPod: {0}", templates);
         for (PodTemplate template : cloud.getAllTemplates()) {
             LOGGER.log(Level.INFO, "Cloud template \"{0}\" labels: {1}",
                     new Object[] { template.getName(), template.getLabelSet() });
         }
 
-        Map<String, String> labels = getLabels(cloud, this);
+        Map<String, String> labels = getLabels(cloud, this, name);
         PodList pods = new PodListBuilder().withItems(Collections.emptyList()).build();
         while (pods.getItems().isEmpty()) {
             LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
@@ -105,8 +109,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
-        assertThat("Expected one pod with labels " + labels + " but got: " + pods.getItems(), pods.getItems(),
-                hasSize(1));
+        assertThat(
+                "Expected one pod with labels " + labels + " but got: "
+                        + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
+                pods.getItems(), hasSize(1));
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
@@ -115,12 +121,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(cloud, this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
     @Test
     public void runIn2Pods() throws Exception {
-        deletePods(cloud.connect(), getLabels(cloud, this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this, name), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
@@ -132,7 +138,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEquals(Integer.MAX_VALUE, template1.getInstanceCap());
         assertThat(template1.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
         SemaphoreStep.waitForStart("pod1/1", b);
-        Map<String, String> labels1 = getLabels(cloud, this);
+        Map<String, String> labels1 = getLabels(cloud, this, name);
         labels1.put("jenkins/mypod", "true");
         PodList pods = cloud.connect().pods().withLabels(labels1).list();
         assertTrue(!pods.getItems().isEmpty());
@@ -145,7 +151,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertThat(template2.getLabelsMap(), hasEntry("jenkins/mypod2", "true"));
         assertNull("mypod2 should not inherit from anything", template2.getInheritFrom());
         SemaphoreStep.waitForStart("pod2/1", b);
-        Map<String, String> labels2 = getLabels(cloud, this);
+        Map<String, String> labels2 = getLabels(cloud, this, name);
         labels1.put("jenkins/mypod2", "true");
         PodList pods2 = cloud.connect().pods().withLabels(labels2).list();
         assertTrue(!pods2.getItems().isEmpty());
@@ -153,7 +159,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(cloud, this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
     private List<PodTemplate> podTemplatesWithLabel(String label, List<PodTemplate> templates) {
@@ -162,7 +168,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPodFromYaml() throws Exception {
-        deletePods(cloud.connect(), getLabels(cloud, this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this, name), false);
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodFromYaml.groovy"), true));
@@ -180,7 +186,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
-                deletePods(cloud.connect(), getLabels(cloud, this), true));
+                deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
     public void runInPodWithDifferentShell() throws Exception {
@@ -433,11 +439,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPodWithRetention() throws Exception {
-        deletePods(cloud.connect(), getLabels(cloud, this), false);
+        deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with retention");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodWithRetention.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        assertTrue(deletePods(cloud.connect(), getLabels(this), true));
+        assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
 }

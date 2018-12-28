@@ -44,6 +44,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.junit.rules.TestName;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
@@ -84,8 +85,8 @@ public class AbstractKubernetesPipelineTest {
     }
 
     @Before
-    public void configureCloud() throws Exception {
-        cloud = setupCloud(this);
+    public void configureCloud(TestName name) throws Exception {
+        cloud = setupCloud(this, name);
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
