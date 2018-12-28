@@ -258,19 +258,21 @@ Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
 package com.foo.utils
 
 public void dockerTemplate(body) {
+  def label = "worker-${UUID.randomUUID().toString()}"
   podTemplate(label: label,
         containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
         volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
-    body()
+    body.call(label)
 }
 }
 
 public void mavenTemplate(body) {
+  def label = "worker-${UUID.randomUUID().toString()}"
   podTemplate(label: label,
         containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
         volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
                   persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
-    body()
+    body.call(label)
 }
 }
 
@@ -279,14 +281,16 @@ return this
 
 Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
 
+Note that you **must** use the innermost generated label in order get a node which has all the outer pods available on the node as shown in this example:
+
 ```groovy
 import com.foo.utils.PodTemplates
 
 slaveTemplates = new PodTemplates()
 
 slaveTemplates.dockerTemplate {
-  slaveTemplates.mavenTemplate {
-    node('label') {
+  slaveTemplates.mavenTemplate { label ->
+    node(label) {
       container('docker') {
         sh 'echo hello from docker'
       }
