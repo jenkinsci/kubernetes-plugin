@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -318,17 +319,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     watch = execable.exec(getShell());
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
-                        throw new IOException("JENKINS-40825: interrupted while starting websocket connection", e);
+                        throw new IOException(
+                                "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
+                                e);
                     } else {
                         throw e;
                     }
+                } catch (RejectedExecutionException e) {
+                    throw new IOException(
+                            "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
 
                 try {
                     started.await();
                 } catch (InterruptedException e) {
                     closeWatch(watch);
-                    throw new IOException("JENKINS-40825: interrupted while waiting for websocket connection", e);
+                    throw new IOException(
+                            "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
+                            e);
                 }
 
                 try {
@@ -412,6 +420,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private void waitUntilContainerIsReady() throws IOException {
+                LOGGER.log(Level.FINEST, "Waiting until container is ready: {0}/{1}",
+                        new String[] { namespace, podName });
                 try {
                     Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);

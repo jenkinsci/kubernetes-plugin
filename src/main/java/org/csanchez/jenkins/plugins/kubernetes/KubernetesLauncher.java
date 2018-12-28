@@ -29,6 +29,7 @@ import static java.util.logging.Level.*;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -99,7 +100,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             Pod pod = getPodTemplate(client, slave, unwrappedTemplate);
 
             String podId = pod.getMetadata().getName();
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+
+            String namespace = Arrays.asList( //
+                    pod.getMetadata() != null ? pod.getMetadata().getNamespace() : null,
+                    unwrappedTemplate.getNamespace(), client.getNamespace()) //
+                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
+            slave.setNamespace(namespace);
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
@@ -110,17 +116,19 @@ public class KubernetesLauncher extends JNLPLauncher {
             // otherwise this method keeps being called multiple times
             List<String> validStates = ImmutableList.of("Running");
 
-            int i = 0;
-            int j = 100; // wait 600 seconds
+            int waitForPodSec = cloud.getWaitForPodSec().intValue();
+            int waitedSec = 0;
 
             List<ContainerStatus> containerStatuses = null;
 
             // wait for Pod to be running
-            for (; i < j; i++) {
-                LOGGER.log(INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}", new Object[]{podId, i, j});
-                logger.printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s%n", podId, i, j);
+            do {
+                LOGGER.log(INFO, "Waiting for Pod to be scheduled ({1}/{2}): {0}",
+                        new Object[]{podId, waitedSec, waitForPodSec});
+                logger.printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s%n", podId, waitedSec, waitForPodSec);
 
-                Thread.sleep(6000);
+                Thread.sleep(1000);
+                ++waitedSec;
                 pod = client.pods().inNamespace(namespace).withName(podId).get();
                 if (pod == null) {
                     throw new IllegalStateException("Pod no longer exists: " + podId);
@@ -163,31 +171,48 @@ public class KubernetesLauncher extends JNLPLauncher {
                 if (validStates.contains(pod.getStatus().getPhase())) {
                     break;
                 }
-            }
+
+            } while (waitedSec < waitForPodSec);
             String status = pod.getStatus().getPhase();
             if (!validStates.contains(status)) {
-                throw new IllegalStateException("Container is not running after " + j + " attempts, status: " + status);
+                throw new IllegalStateException(
+                        "Container is not running after " + waitForPodSec + " seconds, status: " + status);
             }
 
-            j = unwrappedTemplate.getSlaveConnectTimeout();
+            int waitForSlaveToConnect = unwrappedTemplate.getSlaveConnectTimeout();
+            int waitedForSlave;
 
             // now wait for agent to be online
-            for (; i < j; i++) {
-                if (slave.getComputer() == null) {
+            SlaveComputer slaveComputer = null;
+            for (waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
+                slaveComputer = slave.getComputer();
+                if (slaveComputer == null) {
                     throw new IllegalStateException("Node was deleted, computer is null");
                 }
-                if (slave.getComputer().isOnline()) {
+                if (slaveComputer.isOnline()) {
                     break;
                 }
-                LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}", new Object[]{podId, i, j});
-                logger.printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podId, i, j);
+
+                // Check that the pod hasn't failed already
+                pod = client.pods().inNamespace(namespace).withName(podId).get();
+                if (pod == null) {
+                    throw new IllegalStateException("Pod no longer exists: " + podId);
+                }
+                status = pod.getStatus().getPhase();
+                if (!validStates.contains(status)) {
+                    break;
+                }
+
+                LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
+                        new Object[]{podId, waitedForSlave, waitForSlaveToConnect});
+                logger.printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n",
+                        podId, waitedForSlave, waitForSlaveToConnect);
                 Thread.sleep(1000);
             }
-            if (!slave.getComputer().isOnline()) {
-                if (containerStatuses != null) {
-                    logLastLines(containerStatuses, podId, namespace, slave, null, client);
-                }
-                throw new IllegalStateException("Agent is not connected after " + j + " attempts, status: " + status);
+            if (slaveComputer == null || slaveComputer.isOffline()) {
+                logLastLines(containerStatuses, podId, namespace, slave, null, client);
+                throw new IllegalStateException(
+                        "Agent is not connected after " + waitedForSlave + " seconds, status: " + status);
             }
             computer.setAcceptingTasks(true);
         } catch (Throwable ex) {

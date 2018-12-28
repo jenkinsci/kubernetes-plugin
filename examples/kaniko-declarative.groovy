@@ -23,7 +23,7 @@ metadata:
 spec:
   containers:
   - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
+    image: gcr.io/kaniko-project/executor:debug-539ddefcae3fd6b411a95982a830d987f4214251
     imagePullPolicy: Always
     command:
     - /busybox/cat
@@ -46,7 +46,7 @@ spec:
   stages {
     stage('Build with Kaniko') {
       environment {
-        PATH = "/busybox:$PATH"
+        PATH = "/busybox:/kaniko:$PATH"
       }
       steps {
         git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
