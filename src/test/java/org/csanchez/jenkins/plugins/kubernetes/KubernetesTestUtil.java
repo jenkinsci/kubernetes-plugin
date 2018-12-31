@@ -122,6 +122,9 @@ public class KubernetesTestUtil {
         return getLabels(null, o, name);
     }
 
+    /**
+     * Labels to add to the pods so we can match them to a specific build run, test class and method
+     */
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
         if (cloud != null) {

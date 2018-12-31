@@ -66,6 +66,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TestName name = new TestName();
 
+    @Override
+    protected TestName getTestName() {
+        return name;
+    }
+
     @Test
     public void runInPod() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);

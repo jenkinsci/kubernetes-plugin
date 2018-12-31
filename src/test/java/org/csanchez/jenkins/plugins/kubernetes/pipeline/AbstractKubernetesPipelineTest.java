@@ -61,7 +61,7 @@ import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.JenkinsLocationConfiguration;
 
-public class AbstractKubernetesPipelineTest {
+public abstract class AbstractKubernetesPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
     protected static final String SECRET_KEY = "password";
@@ -84,9 +84,11 @@ public class AbstractKubernetesPipelineTest {
         assumeKubernetes();
     }
 
+    protected abstract TestName getTestName();
+
     @Before
-    public void configureCloud(TestName name) throws Exception {
-        cloud = setupCloud(this, name);
+    public void configureCloud() throws Exception {
+        cloud = setupCloud(this, getTestName());
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
