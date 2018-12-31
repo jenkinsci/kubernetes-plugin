@@ -7,6 +7,12 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.2
+------
+* Require Jenkins 2.128.4 instead of 2.150.1 [#413](https://github.com/jenkinsci/kubernetes-plugin/pull/413)
+* Combine env vars into a single set before writing once in container shell execution [#393](https://github.com/jenkinsci/kubernetes-plugin/pull/393) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
+* Fail faster if a pod enters in error state during provisioning [#414](https://github.com/jenkinsci/kubernetes-plugin/pull/414) 
+
 1.14.1
 ------
 * Allow setting namespace from Pod yaml [#405](https://github.com/jenkinsci/kubernetes-plugin/pull/405) [JENKINS-51610](https://issues.jenkins-ci.org/browse/JENKINS-51610)
