@@ -45,6 +45,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 
 import com.google.common.collect.ImmutableMap;
@@ -72,6 +73,9 @@ public class ContainerExecDecoratorTest {
     private ContainerExecDecorator decorator;
     private Pod pod;
 
+    @Rule
+    public TestName name = new TestName();
+
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
         assumeKubernetes();
@@ -79,14 +83,14 @@ public class ContainerExecDecoratorTest {
 
     @Before
     public void configureCloud() throws Exception {
-        client = setupCloud(this).connect();
-        deletePods(client, getLabels(this), false);
+        client = setupCloud(this, name).connect();
+        deletePods(client, getLabels(this, name), false);
 
         String image = "busybox";
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(getLabels(this))
+        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(getLabels(this, name))
                 .endMetadata().withNewSpec().withContainers(c).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
@@ -96,7 +100,7 @@ public class ContainerExecDecoratorTest {
 
     @After
     public void after() throws Exception {
-        deletePods(client, getLabels(this), false);
+        deletePods(client, getLabels(this, name), false);
     }
 
     /**

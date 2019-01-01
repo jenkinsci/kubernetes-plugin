@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import hudson.Extension;
+import hudson.model.Computer;
 import hudson.model.Label;
 import hudson.model.Node;
 
@@ -16,9 +17,10 @@ public class DefaultInProvisioning extends InProvisioning {
     private static final Logger LOGGER = Logger.getLogger(DefaultInProvisioning.class.getName());
 
     private static boolean isNotAcceptingTasks(Node n) {
-        return n.toComputer().isLaunchSupported() // Launcher hasn't been called yet
-                || !n.isAcceptingTasks() // node is not ready yet
-                ;
+        Computer computer = n.toComputer();
+        return computer != null && (computer.isLaunchSupported() // Launcher hasn't been called yet
+                || !n.isAcceptingTasks()) // node is not ready yet
+        ;
     }
 
     @Override

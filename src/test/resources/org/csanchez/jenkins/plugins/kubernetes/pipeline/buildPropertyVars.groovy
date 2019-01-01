@@ -2,7 +2,7 @@ pipeline {
 	agent {
 
         kubernetes{
-                label 'openjdk'
+                label 'buildPropertyVars'
                 containerTemplate{
                         name 'openjdk'
                         image 'openjdk'

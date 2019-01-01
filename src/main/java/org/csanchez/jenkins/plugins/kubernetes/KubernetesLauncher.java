@@ -29,6 +29,7 @@ import static java.util.logging.Level.*;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -99,7 +100,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             Pod pod = getPodTemplate(client, slave, unwrappedTemplate);
 
             String podId = pod.getMetadata().getName();
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+
+            String namespace = Arrays.asList( //
+                    pod.getMetadata() != null ? pod.getMetadata().getNamespace() : null,
+                    unwrappedTemplate.getNamespace(), client.getNamespace()) //
+                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
+            slave.setNamespace(namespace);
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
@@ -122,6 +128,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 logger.printf("Waiting for Pod to be scheduled (%2$s/%3$s): %1$s%n", podId, waitedSec, waitForPodSec);
 
                 Thread.sleep(1000);
+                ++waitedSec;
                 pod = client.pods().inNamespace(namespace).withName(podId).get();
                 if (pod == null) {
                     throw new IllegalStateException("Pod no longer exists: " + podId);
@@ -148,14 +155,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                     }
                 }
 
-                if (!terminatedContainers.isEmpty()) {
-                    Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors
-                            .toMap(ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
-
-                    // Print the last lines of failed containers
-                    logLastLines(terminatedContainers, podId, namespace, slave, errors, client);
-                    throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
-                }
+                checkTerminatedContainers(terminatedContainers, podId, namespace, slave, client);
 
                 if (!allContainersAreReady) {
                     continue;
@@ -165,7 +165,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                     break;
                 }
 
-                ++waitedSec;
             } while (waitedSec < waitForPodSec);
             String status = pod.getStatus().getPhase();
             if (!validStates.contains(status)) {
@@ -174,26 +173,56 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
 
             int waitForSlaveToConnect = unwrappedTemplate.getSlaveConnectTimeout();
+            int waitedForSlave;
 
             // now wait for agent to be online
-            SlaveComputer slaveComputer = slave.getComputer();
-            if (slaveComputer == null) {
-                throw new IllegalStateException("Node was deleted, computer is null");
-            }
-            for (int waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
+            SlaveComputer slaveComputer = null;
+            for (waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
+                slaveComputer = slave.getComputer();
+                if (slaveComputer == null) {
+                    throw new IllegalStateException("Node was deleted, computer is null");
+                }
                 if (slaveComputer.isOnline()) {
                     break;
                 }
+
+                // Check that the pod hasn't failed already
+                pod = client.pods().inNamespace(namespace).withName(podId).get();
+                if (pod == null) {
+                    throw new IllegalStateException("Pod no longer exists: " + podId);
+                }
+                status = pod.getStatus().getPhase();
+                if (!validStates.contains(status)) {
+                    break;
+                }
+
+                containerStatuses = pod.getStatus().getContainerStatuses();
+                List<ContainerStatus> terminatedContainers = new ArrayList<>();
+                for (ContainerStatus info : containerStatuses) {
+                    if (info != null) {
+                        if (info.getState().getTerminated() != null) {
+                            // Container has errored
+                            LOGGER.log(INFO, "Container is terminated {0} [{2}]: {1}",
+                                    new Object[]{podId, info.getState().getTerminated(), info.getName()});
+                            logger.printf("Container is terminated %1$s [%3$s]: %2$s%n",
+                                    podId, info.getState().getTerminated(), info.getName());
+                            terminatedContainers.add(info);
+                        }
+                    }
+                }
+
+                checkTerminatedContainers(terminatedContainers, podId, namespace, slave, client);
+
                 LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
                         new Object[]{podId, waitedForSlave, waitForSlaveToConnect});
                 logger.printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n",
                         podId, waitedForSlave, waitForSlaveToConnect);
                 Thread.sleep(1000);
             }
-            if (!slaveComputer.isOnline()) {
+            if (slaveComputer == null || slaveComputer.isOffline()) {
                 logLastLines(containerStatuses, podId, namespace, slave, null, client);
                 throw new IllegalStateException(
-                        "Agent is not connected after " + waitForSlaveToConnect + " seconds, status: " + status);
+                        "Agent is not connected after " + waitedForSlave + " seconds, status: " + status);
             }
             computer.setAcceptingTasks(true);
         } catch (Throwable ex) {
@@ -212,6 +241,18 @@ public class KubernetesLauncher extends JNLPLauncher {
             slave.save();
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Could not save() agent: " + e.getMessage(), e);
+        }
+    }
+
+    private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
+            KubernetesSlave slave, KubernetesClient client) {
+        if (!terminatedContainers.isEmpty()) {
+            Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors
+                    .toMap(ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
+
+            // Print the last lines of failed containers
+            logLastLines(terminatedContainers, podId, namespace, slave, errors, client);
+            throw new IllegalStateException("Containers are terminated with exit codes: " + errors);
         }
     }
 

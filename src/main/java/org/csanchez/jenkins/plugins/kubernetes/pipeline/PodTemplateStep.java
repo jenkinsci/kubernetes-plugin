@@ -63,7 +63,7 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {
         this.label = label;
-        this.name = name == null ? "jenkins-slave" : name;
+        this.name = name == null ? label : name;
     }
 
     public String getLabel() {
