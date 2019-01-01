@@ -34,11 +34,21 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 
 public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
+
+    @Rule
+    public TestName name = new TestName();
+
+    @Override
+    protected TestName getTestName() {
+        return name;
+    }
 
     @Issue("JENKINS-41758")
     @Test

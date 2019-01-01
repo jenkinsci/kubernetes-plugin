@@ -50,6 +50,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
@@ -84,6 +85,9 @@ public class RestartPipelineTest {
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
            Level.ALL);
     //.record("org.jenkinsci.plugins.durabletask", Level.ALL).record("org.jenkinsci.plugins.workflow.support.concurrent", Level.ALL).record("org.csanchez.jenkins.plugins.kubernetes.pipeline", Level.ALL);
+
+    @Rule
+    public TestName name = new TestName();
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
@@ -126,7 +130,7 @@ public class RestartPipelineTest {
     }
 
     public void configureCloud() throws Exception {
-        cloud = setupCloud(this);
+        cloud = setupCloud(this, name);
         createSecret(cloud.connect());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));

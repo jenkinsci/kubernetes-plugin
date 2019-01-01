@@ -438,7 +438,7 @@ public class KubernetesCloud extends Cloud {
                 new String[] { getDisplayName(), serverUrl, namespace });
         KubernetesClient client = KubernetesClientProvider.createClient(this);
 
-        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), serverUrl });
+        LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1}", new String[] { getDisplayName(), client.getMasterUrl().toString() });
         return client;
     }
 

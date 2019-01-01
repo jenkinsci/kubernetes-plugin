@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang.StringUtils;
+import org.junit.rules.TestName;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -71,11 +72,11 @@ public class KubernetesTestUtil {
             BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
             BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
 
-    public static KubernetesCloud setupCloud(Object test) throws UnrecoverableKeyException,
+    public static KubernetesCloud setupCloud(Object test, TestName name) throws UnrecoverableKeyException,
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
-        cloud.setLabels(getLabels(cloud, test));
+        cloud.setLabels(getLabels(cloud, test, name));
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
@@ -117,16 +118,20 @@ public class KubernetesTestUtil {
         }
     }
 
-    public static Map<String, String> getLabels(Object o) {
-        return getLabels(null, o);
+    public static Map<String, String> getLabels(Object o, TestName name) {
+        return getLabels(null, o, name);
     }
 
-    public static Map<String, String> getLabels(KubernetesCloud cloud, Object o) {
+    /**
+     * Labels to add to the pods so we can match them to a specific build run, test class and method
+     */
+    public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
         if (cloud != null) {
             l.putAll(cloud.getLabels());
         }
         l.put("class", o.getClass().getSimpleName());
+        l.put("test", name.getMethodName());
         return l;
     }
 
