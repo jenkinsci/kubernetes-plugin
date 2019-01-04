@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,6 +51,8 @@ import com.google.common.collect.Maps;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -71,6 +74,10 @@ public class KubernetesTestUtil {
     private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME",
             BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
             BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
+
+    public static final String SECRET_KEY = "password";
+    public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
+    public static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
 
     public static KubernetesCloud setupCloud(Object test, TestName name) throws UnrecoverableKeyException,
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
@@ -197,4 +204,17 @@ public class KubernetesTestUtil {
                 .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());
     }
+
+    public static void createSecret(KubernetesClient client, String namespace) {
+        Secret secret = new SecretBuilder()
+                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
+                .withName("container-secret").endMetadata().build();
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
+        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
+                .withNewMetadata().withName("pod-secret").endMetadata().build();
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+    }
+
 }

@@ -24,16 +24,15 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import com.google.common.collect.ImmutableMap;
-import hudson.model.Node;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.JNLPLauncher;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.RetentionStrategy;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.JenkinsLocationConfiguration;
+import static java.util.Arrays.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+
+import java.net.InetAddress;
+import java.net.URL;
+import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -55,15 +54,12 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
 
-import java.net.InetAddress;
-import java.net.URL;
-import java.util.Collections;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static java.util.Arrays.asList;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import hudson.model.Node;
+import hudson.slaves.DumbSlave;
+import hudson.slaves.JNLPLauncher;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.RetentionStrategy;
+import jenkins.model.JenkinsLocationConfiguration;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -94,16 +90,6 @@ public class RestartPipelineTest {
         assumeKubernetes();
     }
 
-    private static void createSecret(KubernetesClient client) {
-        Secret secret = new SecretBuilder()
-                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
-                .withName("container-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
-                .withNewMetadata().withName("pod-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
-    }
-
     private static void setEnvVariables(PodTemplate podTemplate) {
         TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
         TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
@@ -131,7 +117,7 @@ public class RestartPipelineTest {
 
     public void configureCloud() throws Exception {
         cloud = setupCloud(this, name);
-        createSecret(cloud.connect());
+        createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
