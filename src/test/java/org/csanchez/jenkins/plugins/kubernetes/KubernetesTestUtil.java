@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -204,14 +205,16 @@ public class KubernetesTestUtil {
                 .collect(Collectors.toList());
     }
 
-    public static void createSecret(KubernetesClient client) {
+    public static void createSecret(KubernetesClient client, String namespace) {
         Secret secret = new SecretBuilder()
                 .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
-        client.secrets().createOrReplace(secret);
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
     }
 
 }
