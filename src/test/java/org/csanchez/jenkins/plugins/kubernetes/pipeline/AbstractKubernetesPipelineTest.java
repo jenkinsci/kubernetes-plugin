@@ -81,7 +81,7 @@ public abstract class AbstractKubernetesPipelineTest {
     @Before
     public void configureCloud() throws Exception {
         cloud = setupCloud(this, getTestName());
-        createSecret(cloud.connect());
+        createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
