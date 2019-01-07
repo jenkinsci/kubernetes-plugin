@@ -46,6 +46,7 @@
     <java.level>8</java.level>
     <jenkins.version>2.138.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
+    <surefire.rerunFailingTestsCount>1</surefire.rerunFailingTestsCount>
   </properties>
 
   <dependencies>
