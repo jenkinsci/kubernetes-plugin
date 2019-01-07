@@ -205,14 +205,6 @@
       <scope>test</scope>
       <classifier>tests</classifier>
     </dependency>
-    <!-- <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-scm-step</artifactId>
-      <version>2.7</version>
-      <scope>test</scope>
-      <classifier>tests</classifier>
-    </dependency>
- -->
     <!-- for ContainerExecDecoratorPipelineTest -->
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -291,6 +283,12 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.7</version>
+      </dependency>
+      <!-- force kubernetes-client dependency to match jackson2-api plugin version -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.9.7</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
