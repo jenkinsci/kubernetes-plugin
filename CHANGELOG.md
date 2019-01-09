@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.3
+------
+* Use label as pod name when not set [#375](https://github.com/jenkinsci/kubernetes-plugin/pull/375)
+* Upgrade dependencies to latest versions [#417](https://github.com/jenkinsci/kubernetes-plugin/pull/417) [#307](https://github.com/jenkinsci/kubernetes-plugin/pull/307)
+
 1.14.2
 ------
 * Require Jenkins 2.128.4 instead of 2.150.1 [#413](https://github.com/jenkinsci/kubernetes-plugin/pull/413)
