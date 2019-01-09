@@ -332,7 +332,7 @@
         <artifactId>versions-maven-plugin</artifactId>
         <version>2.1</version>
         <configuration>
-          <rulesUri>https://raw.githubusercontent.com/jenkinsci/kubernetes-plugin/master/src/test/resources/rules.xml</rulesUri>
+          <rulesUri>file://${basedir}/src/test/resources/rules.xml</rulesUri>
         </configuration>
       </plugin>
     </plugins>
