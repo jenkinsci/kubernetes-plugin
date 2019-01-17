@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
@@ -47,6 +49,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
@@ -72,6 +75,10 @@ public class ContainerExecDecoratorTest {
 
     private ContainerExecDecorator decorator;
     private Pod pod;
+
+    @Rule
+    public LoggerRule containerExecLogs = new LoggerRule()
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
 
     @Rule
     public TestName name = new TestName();
@@ -241,11 +248,11 @@ public class ContainerExecDecoratorTest {
             Thread t = new Thread(new Runnable() {
                 public void run() {
                     try {
-                        ProcReturn r = execCommand(false, "echo", "test");
                         System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
                                 + " - " + httpClient.connectionPool().idleConnectionCount());
+                        ProcReturn r = execCommand(false, "echo", "test");
                     } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        System.out.println(e.getMessage());;
                     }
                 };
             });
@@ -256,9 +263,9 @@ public class ContainerExecDecoratorTest {
         // but the http client doesn't have knowledge of them
         boolean gracefulClose = KubernetesClientProvider.gracefulClose(client, httpClient);
         // assertFalse(gracefulClose);
-        client.close();
         threads.stream().forEach(t -> {
             try {
+                System.out.println("Waiting for " + t.getName());
                 t.join();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

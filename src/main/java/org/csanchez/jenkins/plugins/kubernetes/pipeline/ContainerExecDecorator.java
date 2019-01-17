@@ -73,6 +73,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
+    /** time to wait in seconds for websocket to connect */
+    private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
+            .getInteger(ContainerExecDecorator.class.getName() + ".websocketConnectionTimeout", 5);
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
@@ -330,13 +333,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
 
+                boolean hasStarted = false;
                 try {
-                    started.await();
+                    // prevent a wait forever if the connection is closed as the listener would never be called
+                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     closeWatch(watch);
                     throw new IOException(
                             "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
                             e);
+                }
+
+                if (!hasStarted) {
+                    closeWatch(watch);
+                    throw new IOException(
+                            "Websocket connection was not established. This probably means the connection was closed already");
                 }
 
                 try {
@@ -424,11 +435,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             }
 
             private void waitUntilContainerIsReady() throws IOException {
-                LOGGER.log(Level.FINEST, "Waiting until container is ready: {0}/{1}",
+                LOGGER.log(Level.FINEST, "Waiting until pod is ready: {0}/{1}",
                         new String[] { namespace, podName });
                 try {
                     Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
+                    LOGGER.log(Level.FINEST, "Pod is ready: {0}/{1}", new String[] { namespace, podName });
 
                     if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
                         throw new IOException("Failed to execute shell script inside container " +
