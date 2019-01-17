@@ -43,6 +43,8 @@ public class KubernetesClientProvider {
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
     private static final Integer CACHE_SIZE = Integer.getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheSize", 10);
+    private static final Integer EXPIRED_CLIENTS_PURGE_MINUTES = Integer
+            .getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.expiredClientsPurgeMinutes", 10);
 
     private static final List<KubernetesClient> expiredClients = Collections.synchronizedList(new ArrayList());
 
@@ -116,7 +118,7 @@ public class KubernetesClientProvider {
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(1);
+            return TimeUnit.MINUTES.toMillis(EXPIRED_CLIENTS_PURGE_MINUTES);
         }
 
         @Override
