@@ -33,12 +33,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,8 +48,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 
-import com.google.common.collect.ImmutableMap;
-
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
@@ -58,7 +56,9 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import okhttp3.OkHttpClient;
 
 /**
  * @author Carlos Sanchez
@@ -212,6 +212,60 @@ public class ContainerExecDecoratorTest {
         exception.expect(IOException.class);
         exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
+    }
+
+    /**
+     * Reproduce JENKINS-55392
+     * 
+     * Caused by: java.util.concurrent.RejectedExecutionException: Task okhttp3.RealCall$AsyncCall@30f55c9f rejected
+     * from java.util.concurrent.ThreadPoolExecutor@25634758[Terminated, pool size = 0, active threads = 0, queued tasks
+     * = 0, completed tasks = 0]
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Issue("JENKINS-55392")
+    public void testRejectedExecutionException() throws Exception {
+        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "busybox", client.getNamespace());
+        assertTrue(client instanceof HttpClientAware);
+        OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
+        // httpClient.dispatcher().setMaxRequests(1);
+        // httpClient.dispatcher().setMaxRequestsPerHost(1);
+        System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
+                + httpClient.dispatcher().getMaxRequestsPerHost());
+        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
+                + httpClient.connectionPool().idleConnectionCount());
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            final String name = "Thread " + i;
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        ProcReturn r = execCommand(false, "echo", "test");
+                        System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
+                                + " - " + httpClient.connectionPool().idleConnectionCount());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                };
+            });
+            threads.add(t);
+        }
+        threads.stream().forEach(t -> t.start());
+        // this should not close the connection because we have execs still pending
+        // but the http client doesn't have knowledge of them
+        boolean gracefulClose = KubernetesClientProvider.gracefulClose(client, httpClient);
+        // assertFalse(gracefulClose);
+        client.close();
+        threads.stream().forEach(t -> {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
+                + httpClient.connectionPool().idleConnectionCount());
     }
 
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {

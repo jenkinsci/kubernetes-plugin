@@ -15,6 +15,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -34,7 +37,8 @@ import jenkins.model.Jenkins;
 /**
  * Manages the Kubernetes client creation per cloud
  */
-final class KubernetesClientProvider {
+@Restricted(NoExternalUse.class) // testing only
+public class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
@@ -137,7 +141,8 @@ final class KubernetesClientProvider {
         }
     }
 
-    private static boolean gracefulClose(KubernetesClient client, OkHttpClient httpClient) {
+    @Restricted(NoExternalUse.class) // testing only
+    public static boolean gracefulClose(KubernetesClient client, OkHttpClient httpClient) {
         Dispatcher dispatcher = httpClient.dispatcher();
         // Remove the client if there are no more users
         int runningCallsCount = dispatcher.runningCallsCount();
