@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
@@ -48,8 +50,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
-
-import com.google.common.collect.ImmutableMap;
+import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
@@ -73,6 +74,10 @@ public class ContainerExecDecoratorTest {
 
     private ContainerExecDecorator decorator;
     private Pod pod;
+
+    @Rule
+    public LoggerRule containerExecLogs = new LoggerRule()
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
 
     @Rule
     public TestName name = new TestName();
