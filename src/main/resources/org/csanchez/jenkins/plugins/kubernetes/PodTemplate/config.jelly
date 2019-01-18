@@ -18,7 +18,7 @@
   </f:entry>
 
   <f:entry field="nodeUsageMode" title="${%Usage}" help="/help/system-config/master-slave/usage.html">
-     <f:enum>${it.description}</f:enum>
+     <f:enum default="EXCLUSIVE">${it.description}</f:enum>
   </f:entry>
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}"

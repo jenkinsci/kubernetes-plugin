@@ -54,7 +54,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private String serviceAccount;
     private String nodeSelector;
-    private Node.Mode nodeUsageMode;
+    private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     private String yaml;

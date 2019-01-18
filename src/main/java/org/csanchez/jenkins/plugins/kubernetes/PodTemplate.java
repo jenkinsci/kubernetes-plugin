@@ -93,7 +93,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String nodeSelector;
 
-    private Node.Mode nodeUsageMode;
+    private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
 
     private String resourceRequestCpu;
 
