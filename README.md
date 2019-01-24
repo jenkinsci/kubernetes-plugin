@@ -534,7 +534,7 @@ The client certificate needs to be converted to PKCS, will need a password
 
 Validate that the certificates work
 
-    curl --cacert ~/.minikube/ca.crt --cert ~/.minikube/minikube.pfx:secret https://$(minikube ip):8443
+    curl --cacert ~/.minikube/ca.crt --cert ~/.minikube/minikube.pfx:secret --cert-type P12 https://$(minikube ip):8443
 
 Add a Jenkins credential of type certificate, upload it from `~/.minikube/minikube.pfx`, password `secret`
 
