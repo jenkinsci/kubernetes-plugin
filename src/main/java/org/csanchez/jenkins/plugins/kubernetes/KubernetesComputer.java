@@ -68,7 +68,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Container> getContainers() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         KubernetesSlave slave = getNode();
         if(slave == null) {
             return new ArrayList<>();
@@ -85,7 +84,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Event> getPodEvents() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         KubernetesSlave slave = getNode();
         if(slave != null) {
