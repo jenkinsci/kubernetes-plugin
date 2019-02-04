@@ -36,8 +36,10 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private int instanceCap;
     private String serviceAccount;
     private String nodeSelector;
+    private String namespace;
     private String workingDir;
     private int activeDeadlineSeconds;
+    private int slaveConnectTimeout;
 
     private ContainerTemplate containerTemplate;
     private List<ContainerTemplate> containerTemplates;
@@ -128,6 +130,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.nodeSelector = nodeSelector;
     }
 
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @DataBoundSetter
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
     public String getWorkingDir() {
         return workingDir;
     }
@@ -185,6 +196,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.activeDeadlineSeconds = activeDeadlineSeconds;
     }
 
+    public int getSlaveConnectTimeout() {
+        return slaveConnectTimeout;
+    }
+
+    @DataBoundSetter
+    public void setSlaveConnectTimeout(int slaveConnectTimeout) {
+        this.slaveConnectTimeout = slaveConnectTimeout;
+    }
+
     public String getYamlFile() {
         return yamlFile;
     }
@@ -235,11 +255,17 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (!StringUtils.isEmpty(nodeSelector)) {
             argMap.put("nodeSelector", nodeSelector);
         }
+        if (!StringUtils.isEmpty(namespace)) {
+            argMap.put("namespace", namespace);
+        }
         if (!StringUtils.isEmpty(workingDir)) {
             argMap.put("workingDir", workingDir);
         }
         if (activeDeadlineSeconds != 0) {
             argMap.put("activeDeadlineSeconds", activeDeadlineSeconds);
+        }
+        if (slaveConnectTimeout != 0) {
+            argMap.put("slaveConnectTimeout", slaveConnectTimeout);
         }
 
         if (instanceCap > 0) {
