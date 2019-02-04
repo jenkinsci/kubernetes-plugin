@@ -443,6 +443,23 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runWithSlaveConnectTimeout() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "Deadline");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runWithSlaveConnectTimeout.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+
+        r.waitForMessage("podTemplate", b);
+
+        PodTemplate timeoutTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "runWithSlaveConnectTimeout").findAny().orElse(null);
+
+        assertNotNull(timeoutTemplate);
+        assertEquals(10, timeoutTemplate.getSlaveConnectTimeout());
+        r.assertLogNotContains("Hello from container!", b);
+    }
+
+    @Test
     public void runInPodWithRetention() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "pod with retention");
