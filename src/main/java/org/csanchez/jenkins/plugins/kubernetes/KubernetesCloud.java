@@ -511,6 +511,13 @@ public class KubernetesCloud extends Cloud {
                     .collect(Collectors.toList());
         }
 
+        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
+            LOGGER.log(Level.INFO,
+                    "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
+                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
+            return false;
+        }
+
         Map<String, String> labelsMap = new HashMap<>(this.getLabels());
         labelsMap.putAll(template.getLabelsMap());
         PodList templateSlaveList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
@@ -521,19 +528,11 @@ public class KubernetesCloud extends Cloud {
                     .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
                     .collect(Collectors.toList());
         }
-
-        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
-            LOGGER.log(Level.INFO,
-                    "Total container cap of {0} reached, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels() });
-            return false;
-        }
-
         if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
-                    "Template instance cap of {0} reached for template {1}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
+                    "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                     new Object[] { template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
-                            templateNamespace, label == null ? "" : label.toString(), labelsMap });
+                            templateNamespace, label == null ? "" : label.toString(), labelsMap, name });
             return false;
         }
         return true;

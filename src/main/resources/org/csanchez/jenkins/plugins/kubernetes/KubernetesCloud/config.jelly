@@ -43,7 +43,7 @@
         <f:textbox default="15"/>
     </f:entry>
 
-    <f:entry title="${%Container Cap}" field="containerCapStr">
+    <f:entry title="${%Concurrency Limit}" field="containerCapStr">
         <f:textbox default="10"/>
     </f:entry>
 

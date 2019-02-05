@@ -45,7 +45,7 @@
                                 deleteCaption="${%Delete Volume}" />
   </f:entry>
 
-  <f:entry field="instanceCapStr" title="${%Max number of instances}"
+  <f:entry field="instanceCapStr" title="${%Concurrency Limit}"
     help="/plugin/kubernetes/help/instanceCap.html">
     <f:textbox/>
   </f:entry>
