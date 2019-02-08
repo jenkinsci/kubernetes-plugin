@@ -71,6 +71,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private final PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
 
+    @Nonnull
     public PodTemplate getTemplate() {
         return template;
     }
@@ -115,7 +116,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, new KubernetesLauncher(), rs);
     }
 
-    protected KubernetesSlave(String name, PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+    protected KubernetesSlave(String name, @Nonnull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         super(name,
