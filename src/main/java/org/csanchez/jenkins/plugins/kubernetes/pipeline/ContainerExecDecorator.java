@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
+import org.apache.commons.lang.reflect.FieldUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -328,6 +329,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 } catch (RejectedExecutionException e) {
                     throw new IOException(
                             "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
+                }
+
+                // To avoid a slowdown due to the 1s wait in java.io.PipedOutputStream's write() method
+                try {
+                    Object sink = FieldUtils.readField(watch.getInput(), "sink", true );
+                    FieldUtils.writeField(sink, "buffer",  new byte[8192 * 1024], true);
+                } catch (IllegalAccessException e) {
+                    throw new IOException("Could not set the size of the PipedOutputStream", e);
                 }
 
                 try {
