@@ -209,6 +209,8 @@ See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod
 
 A podTemplate may or may not inherit from an existing template. This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inheritsFrom.
 
+**yaml** is **never** merged, if is defined in the child pod template that one will be used and not the parent one.
+
 **Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
 
 **Container templates** that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
