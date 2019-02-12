@@ -29,6 +29,7 @@ import hudson.model.Run;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
@@ -95,6 +96,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
         newTemplate.setAnnotations(step.getAnnotations());
+        if(run!=null) {
+            newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", ((KubernetesCloud)cloud).getJenkinsUrlOrDie()+run.getUrl()));
+        }
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
         newTemplate.setYaml(step.getYaml());
@@ -126,7 +130,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     /**
      * Check if the current Job is permitted to use the cloud.
-     * 
+     *
      * @param run
      * @param kubernetesCloud
      * @throws AbortException
