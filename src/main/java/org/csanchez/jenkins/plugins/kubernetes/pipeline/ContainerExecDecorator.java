@@ -81,6 +81,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
     private static final String DEFAULT_SHELL="/bin/sh";
 
+    /**
+     * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
+     * A higher value will consume more memory
+     */
+    private static final int STDIN_BUFFER_SIZE = Integer
+            .getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 2 * 1024);
+
     private transient KubernetesClient client;
 
 
@@ -285,7 +292,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 // JENKINS-50429 Force a bigger buffer
-                PipedInputStream pis = new PipedInputStream(8192 * 1024);
+                PipedInputStream pis = new PipedInputStream(STDIN_BUFFER_SIZE);
                 closables.add(pis);
 
                 Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName) //
