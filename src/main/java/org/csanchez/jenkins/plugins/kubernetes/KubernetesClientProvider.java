@@ -39,12 +39,18 @@ final class KubernetesClientProvider {
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
     private static final Integer CACHE_SIZE = Integer.getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheSize", 10);
+    /**
+     * Client expiration in seconds, default to one day
+     */
+    private static final Integer CACHE_EXPIRATION = Integer
+            .getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheExpiration", 24 * 60 * 60);
 
     private static final List<KubernetesClient> expiredClients = Collections.synchronizedList(new ArrayList());
 
     private static final Cache<String, Client> clients = CacheBuilder
             .newBuilder()
             .maximumSize(CACHE_SIZE)
+            .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
             .removalListener(rl -> {
                 LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}", new Object[] {KubernetesClient.class.getSimpleName(), rl.getKey()});
                 KubernetesClient client = ((Client) rl.getValue()).getClient();
