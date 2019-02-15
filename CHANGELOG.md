@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.4
+------
+* Set `nodeUsageMode` to `EXCLUSIVE` as default [#386](https://github.com/jenkinsci/kubernetes-plugin/pull/386)
+* Add `slaveConnectTimeout` and `namespace` to declarative pipeline [#421](https://github.com/jenkinsci/kubernetes-plugin/pull/421) [JENKINS-55960](https://issues.jenkins-ci.org/browse/JENKINS-55960)
+
 1.14.3
 ------
 * Use label as pod name when not set [#375](https://github.com/jenkinsci/kubernetes-plugin/pull/375)
