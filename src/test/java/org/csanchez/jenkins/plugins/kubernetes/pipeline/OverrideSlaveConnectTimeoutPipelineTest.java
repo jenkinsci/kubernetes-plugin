@@ -54,7 +54,7 @@ public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesP
     }
 
     @Before
-    public static void isKubernetesConfigured() throws Exception {
+    public void setUp() {
         System.setProperty(PodTemplate.class.getName()+".connectionTimeout", "10");
     }
 
