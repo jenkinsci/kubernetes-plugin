@@ -28,7 +28,6 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -53,8 +52,8 @@ public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesP
         return name;
     }
 
-    @Before
-    public void setUp() {
+    @Override
+    protected void overrideSystemProperties() {
         System.setProperty(PodTemplate.class.getName()+".connectionTimeout", "10");
     }
 
