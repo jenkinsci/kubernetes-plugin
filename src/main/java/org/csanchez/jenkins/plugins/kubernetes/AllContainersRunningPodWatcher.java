@@ -1,5 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.stream.Collectors.joining;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +38,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
-        if (areAllContainersRunning(pod)) {
-            reference.set(pod);
-            latch.countDown();
-        }
+        updateState(pod);
     }
 
     @Override
@@ -46,40 +47,63 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         this.podStatus = pod.getStatus();
         switch (action) {
             case MODIFIED:
-                if (areAllContainersRunning(pod)) {
-                    LOGGER.log(Level.FINE, "All containers are running for pod {0}", new Object[] {pod.getMetadata().getName()});
-                    reference.set(pod);
-                    latch.countDown();
-                }
+                updateState(pod);
                 break;
             default:
         }
     }
 
+    private void updateState(Pod pod) {
+        if (areAllContainersRunning(pod)) {
+            LOGGER.log(Level.FINE, "All containers are running for pod {0}", new Object[] {pod.getMetadata().getName()});
+            reference.set(pod);
+            latch.countDown();
+        }
+    }
+
     boolean areAllContainersRunning(Pod pod) {
-        boolean allContainersAreReady = true;
         PodStatus podStatus = pod.getStatus();
         if (podStatus == null) {
             return false;
         }
         List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
         if (containerStatuses.isEmpty()) {
-            allContainersAreReady = false;
+            return false;
         }
         for (ContainerStatus containerStatus : containerStatuses) {
             if (containerStatus != null) {
                 if (containerStatus.getState().getWaiting() != null) {
-                    allContainersAreReady = false;
+                    return false;
                 }
                 if (containerStatus.getState().getTerminated() != null) {
-                    allContainersAreReady = false;
+                    return false;
                 }
                 if (!containerStatus.getReady()) {
-                    allContainersAreReady = false;
+                    return false;
                 }
             }
         }
-        return allContainersAreReady;
+        return true;
+    }
+
+    private List<ContainerStatus> getTerminatedContainers(Pod pod) {
+        PodStatus podStatus = pod.getStatus();
+        if (podStatus == null) {
+            return Collections.emptyList();
+        }
+        List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+        if (containerStatuses.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ContainerStatus> result = new ArrayList<>();
+        for (ContainerStatus containerStatus : containerStatuses) {
+            if (containerStatus != null) {
+                if (containerStatus.getState().getTerminated() != null) {
+                    result.add(containerStatus);
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -119,6 +143,16 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         if (pod == null) {
             throw new IllegalStateException(String.format("Pod is no longer available: %s/%s",
                     this.pod.getMetadata().getNamespace(), this.pod.getMetadata().getName()));
+        }
+        List<ContainerStatus> terminatedContainers = getTerminatedContainers(pod);
+        if (!terminatedContainers.isEmpty()) {
+            throw new IllegalStateException(String.format("Pod has terminated containers: %s/%s (%s)",
+                    this.pod.getMetadata().getNamespace(),
+                    this.pod.getMetadata().getName(),
+                    terminatedContainers.stream()
+                            .map(ContainerStatus::getName)
+                            .collect(joining(", ")
+                            )));
         }
         if (areAllContainersRunning(pod)) {
             return pod;
