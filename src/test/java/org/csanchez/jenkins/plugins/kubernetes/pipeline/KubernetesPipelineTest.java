@@ -468,4 +468,22 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
+
+    @Test
+    public void runInPodValidateOverrideSlaveConnectTimeout() throws Exception {
+        System.setProperty(org.csanchez.jenkins.plugins.kubernetes.PodTemplate.class.getName()+".connectionTimeout", "10");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "Deadline");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodValidateOverrideSlaveConnectTimeout.groovy")
+                , true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+
+        r.waitForMessage("podTemplate", b);
+
+        PodTemplate timeoutTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "runInPodValidateOverrideSlaveConnectTimeout").findAny().orElse(null);
+
+        assertNotNull(timeoutTemplate);
+        assertEquals(10, timeoutTemplate.getSlaveConnectTimeout());
+        r.assertLogNotContains("Hello from container!", b);
+    }
 }
