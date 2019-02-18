@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.5
+------
+* Expire Kubernetes clients after one day and make it configurable [#429](https://github.com/jenkinsci/kubernetes-plugin/pull/429) [JENKINS-56140](https://issues.jenkins-ci.org/browse/JENKINS-56140)
+* Allow non admin to call `getContainers` and `getPodEvents` returning an empty list [#430](https://github.com/jenkinsci/kubernetes-plugin/pull/430) [JENKINS-56155](https://issues.jenkins-ci.org/browse/JENKINS-56155)
+
 1.14.4
 ------
 * Set `nodeUsageMode` to `EXCLUSIVE` as default [#386](https://github.com/jenkinsci/kubernetes-plugin/pull/386)
