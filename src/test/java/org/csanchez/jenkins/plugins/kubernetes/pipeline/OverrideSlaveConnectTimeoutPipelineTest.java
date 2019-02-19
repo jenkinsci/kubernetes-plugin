@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, Carlos Sanchez
+ * Copyright (c) 2019, Carlos Sanchez
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -53,6 +54,7 @@ public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesP
     }
 
     @Override
+    @BeforeClass
     protected void overrideSystemProperties() {
         System.setProperty(PodTemplate.class.getName()+".connectionTimeout", "10");
     }

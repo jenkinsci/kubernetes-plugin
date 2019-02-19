@@ -76,14 +76,13 @@ public abstract class AbstractKubernetesPipelineTest {
         assumeKubernetes();
     }
 
+    @BeforeClass
     protected void overrideSystemProperties() { }
 
     protected abstract TestName getTestName();
 
     @Before
     public void configureCloud() throws Exception {
-        overrideSystemProperties();
-
         cloud = setupCloud(this, getTestName());
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
