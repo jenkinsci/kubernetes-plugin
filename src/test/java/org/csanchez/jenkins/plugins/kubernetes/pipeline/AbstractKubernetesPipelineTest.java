@@ -76,9 +76,6 @@ public abstract class AbstractKubernetesPipelineTest {
         assumeKubernetes();
     }
 
-    @BeforeClass
-    protected void overrideSystemProperties() { }
-
     protected abstract TestName getTestName();
 
     @Before

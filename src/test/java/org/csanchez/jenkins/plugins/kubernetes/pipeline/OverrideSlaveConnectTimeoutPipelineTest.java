@@ -43,8 +43,6 @@ import static org.junit.Assert.assertNotNull;
  */
 public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesPipelineTest {
 
-    private static final Logger LOGGER = Logger.getLogger(OverrideSlaveConnectTimeoutPipelineTest.class.getName());
-
     @Rule
     public TestName name = new TestName();
 
@@ -53,15 +51,14 @@ public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesP
         return name;
     }
 
-    @Override
     @BeforeClass
-    protected void overrideSystemProperties() {
+    public static void overrideSystemProperties() {
         System.setProperty(PodTemplate.class.getName()+".connectionTimeout", "10");
     }
 
     @Test
     public void runInPodValidateOverrideSlaveConnectTimeout() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "Deadline");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "OverrideSlaveConnect");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("runInPodValidateOverrideSlaveConnectTimeout.groovy")
                 , true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -70,9 +67,7 @@ public class OverrideSlaveConnectTimeoutPipelineTest extends AbstractKubernetesP
         r.waitForMessage("podTemplate", b);
 
         PodTemplate timeoutTemplate = cloud.getAllTemplates().stream().filter(x -> x.getLabel() == "runInPodValidateOverrideSlaveConnectTimeout").findAny().orElse(null);
-
         assertNotNull(timeoutTemplate);
         assertEquals(10, timeoutTemplate.getSlaveConnectTimeout());
-        r.assertLogNotContains("Hello from container!", b);
     }
 }
