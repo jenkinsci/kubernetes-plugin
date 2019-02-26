@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -41,6 +42,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -70,6 +72,7 @@ public class ContainerExecDecoratorTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
+    private KubernetesCloud cloud;
     private static KubernetesClient client;
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
@@ -78,7 +81,8 @@ public class ContainerExecDecoratorTest {
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
-            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
+            .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
     @Rule
     public TestName name = new TestName();
@@ -90,15 +94,16 @@ public class ContainerExecDecoratorTest {
 
     @Before
     public void configureCloud() throws Exception {
-        client = setupCloud(this, name).connect();
+        cloud = setupCloud(this, name);
+        client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
 
         String image = "busybox";
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName).withLabels(getLabels(this, name))
-                .endMetadata().withNewSpec().withContainers(c).endSpec().build());
+        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
+                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
@@ -112,6 +117,7 @@ public class ContainerExecDecoratorTest {
 
     /**
      * Test that multiple command execution in parallel works
+     * 
      * @throws Exception
      */
     @Test(timeout = 10000)
@@ -182,7 +188,8 @@ public class ContainerExecDecoratorTest {
 
     @Test
     public void testCommandExecutionWithNohup() throws Exception {
-        ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
+        ProcReturn r = execCommand(false, "nohup", "sh", "-c",
+                "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
         assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
@@ -215,7 +222,8 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-46719")
     public void testContainerDoesNotExist() throws Exception {
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist", client.getNamespace());
+        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist",
+                client.getNamespace());
         exception.expect(IOException.class);
         exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
@@ -236,13 +244,12 @@ public class ContainerExecDecoratorTest {
         decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "busybox", client.getNamespace());
         assertTrue(client instanceof HttpClientAware);
         OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
-        // httpClient.dispatcher().setMaxRequests(1);
-        // httpClient.dispatcher().setMaxRequestsPerHost(1);
         System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
                 + httpClient.dispatcher().getMaxRequestsPerHost());
         System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
                 + httpClient.connectionPool().idleConnectionCount());
         List<Thread> threads = new ArrayList<>();
+        final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
             final String name = "Thread " + i;
             Thread t = new Thread(new Runnable() {
@@ -252,17 +259,23 @@ public class ContainerExecDecoratorTest {
                                 + " - " + httpClient.connectionPool().idleConnectionCount());
                         ProcReturn r = execCommand(false, "echo", "test");
                     } catch (Exception e) {
-                        System.out.println(e.getMessage());;
+                        errors.incrementAndGet();
+                        System.out.println(e.getMessage());
                     }
                 };
             });
             threads.add(t);
         }
-        threads.stream().forEach(t -> t.start());
+
+        // force expiration of client
+        KubernetesClientProvider.invalidate(cloud.getDisplayName());
+        cloud.connect();
+
         // this should not close the connection because we have execs still pending
-        // but the http client doesn't have knowledge of them
-        boolean gracefulClose = KubernetesClientProvider.gracefulClose(client, httpClient);
-        // assertFalse(gracefulClose);
+        boolean expireClients = KubernetesClientProvider.closeExpiredClients();
+        assertFalse(expireClients);
+
+        threads.stream().forEach(t -> t.start());
         threads.stream().forEach(t -> {
             try {
                 System.out.println("Waiting for " + t.getName());
@@ -273,6 +286,7 @@ public class ContainerExecDecoratorTest {
         });
         System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
                 + httpClient.connectionPool().idleConnectionCount());
+        assertEquals("Errors in threads", 0, errors.get());
     }
 
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
