@@ -57,7 +57,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
-    public static final int DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = 100;
+    /**
+     * Connection timeout expiration in seconds, default to 100 seconds
+     */
+    public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = Integer
+            .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 100);
 
     private String inheritFrom;
 
@@ -93,7 +97,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String nodeSelector;
 
-    private Node.Mode nodeUsageMode;
+    private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
 
     private String resourceRequestCpu;
 

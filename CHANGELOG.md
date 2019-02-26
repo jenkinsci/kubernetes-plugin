@@ -7,6 +7,23 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.6
+------
+* Add a system property to override default Slave Connect Timeout in seconds [#432](https://github.com/jenkinsci/kubernetes-plugin/pull/432)
+* Add build url as default annotation [#433](https://github.com/jenkinsci/kubernetes-plugin/pull/433) [JENKINS-56133](https://issues.jenkins-ci.org/browse/JENKINS-56133)
+* Update kubernetes client to 4.1.2 [#434](https://github.com/jenkinsci/kubernetes-plugin/pull/434) [JENKINS-52593](https://issues.jenkins-ci.org/browse/JENKINS-52593)
+* Use a watcher to monitor pod status while launching the agent [#423](https://github.com/jenkinsci/kubernetes-plugin/pull/423)
+
+1.14.5
+------
+* Expire Kubernetes clients after one day and make it configurable [#429](https://github.com/jenkinsci/kubernetes-plugin/pull/429) [JENKINS-56140](https://issues.jenkins-ci.org/browse/JENKINS-56140)
+* Allow non admin to call `getContainers` and `getPodEvents` returning an empty list [#430](https://github.com/jenkinsci/kubernetes-plugin/pull/430) [JENKINS-56155](https://issues.jenkins-ci.org/browse/JENKINS-56155)
+
+1.14.4
+------
+* Set `nodeUsageMode` to `EXCLUSIVE` as default [#386](https://github.com/jenkinsci/kubernetes-plugin/pull/386)
+* Add `slaveConnectTimeout` and `namespace` to declarative pipeline [#421](https://github.com/jenkinsci/kubernetes-plugin/pull/421) [JENKINS-55960](https://issues.jenkins-ci.org/browse/JENKINS-55960)
+
 1.14.3
 ------
 * Use label as pod name when not set [#375](https://github.com/jenkinsci/kubernetes-plugin/pull/375)
@@ -14,7 +31,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 1.14.2
 ------
-* Require Jenkins 2.128.4 instead of 2.150.1 [#413](https://github.com/jenkinsci/kubernetes-plugin/pull/413)
+* Require Jenkins 2.138.4 instead of 2.150.1 [#413](https://github.com/jenkinsci/kubernetes-plugin/pull/413)
 * Combine env vars into a single set before writing once in container shell execution [#393](https://github.com/jenkinsci/kubernetes-plugin/pull/393) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
 * Fail faster if a pod enters in error state during provisioning [#414](https://github.com/jenkinsci/kubernetes-plugin/pull/414) 
 
