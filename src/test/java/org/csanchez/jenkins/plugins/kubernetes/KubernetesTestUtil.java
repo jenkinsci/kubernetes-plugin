@@ -144,7 +144,7 @@ public class KubernetesTestUtil {
 
     /**
      * Delete pods with matching labels
-     * 
+     *
      * @param client
      * @param labels
      * @param wait

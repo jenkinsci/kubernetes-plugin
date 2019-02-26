@@ -52,6 +52,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.PodListBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 
 /**
  * @author Carlos Sanchez
@@ -77,7 +78,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
-
         logs.capture(1000);
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
@@ -111,6 +111,18 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         assertThat(templates, hasSize(1));
         PodTemplate template = templates.get(0);
+        List<PodAnnotation> annotations = template.getAnnotations();
+        assertNotNull(annotations);
+        boolean foundBuildUrl=false;
+        for(PodAnnotation pd : annotations)
+        {
+            if(pd.getKey().equals("buildUrl"))
+            {
+                assertTrue(pd.getValue().contains(p.getUrl()));
+                foundBuildUrl=true;
+            }
+        }
+        assertTrue(foundBuildUrl);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
