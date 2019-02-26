@@ -149,7 +149,7 @@ Either way it provides access to the following fields:
 * **imagePullSecrets** List of pull secret names
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
-* **slaveConnectTimeout** Timeout in seconds for an agent to be online.
+* **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
 * **podRetention** Controls the behavior of keeping slave pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
@@ -166,6 +166,11 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
 * **ports** Expose ports on the container.
+
+#### Specifying a different default agent connection timeout
+
+By default, the agent connection timeout is set to 100 seconds. In some case, you would like to set a different value, if so you can set the system property `org.csanchez.jenkins.plugins.kubernetes.PodTemplate.connectionTimeout` to a different value. Please read [Features controlled by system properties](https://wiki.jenkins.io/display/JENKINS/Features+controlled+by+system+properties) page to know how to setup system properties within Jenkins.
+
 
 #### Using yaml to Define Pod Templates
 
