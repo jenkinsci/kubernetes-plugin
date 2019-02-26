@@ -82,31 +82,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
     private static final String DEFAULT_SHELL="/bin/sh";
 
-    private transient KubernetesClient client;
-
-
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient Map<Integer, ContainerExecProc> processes = new HashMap<Integer, ContainerExecProc>();
 
-    private String podName;
-    private String namespace;
     private String containerName;
     private EnvironmentExpander environmentExpander;
     private EnvVars globalVars;
     private FilePath ws;
     private EnvVars rcEnvVars;
     private String shell;
+    private KubernetesNodeContext nodeContext;
 
     public ContainerExecDecorator() {
     }
 
     @Deprecated
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, FilePath ws) {
-        this.client = client;
-        this.podName = podName;
-        this.namespace = namespace;
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
@@ -138,28 +131,48 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this(client, podName, containerName, (String) null, null, null);
     }
 
+    @Deprecated
     public KubernetesClient getClient() {
-        return client;
+        try {
+            return nodeContext.connectToCloud();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    @Deprecated
     public void setClient(KubernetesClient client) {
-        this.client = client;
+        // NOOP
     }
 
+    @Deprecated
+    // TODO make private
     public String getPodName() {
-        return podName;
+        try {
+            return getNodeContext().getPodName();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    @Deprecated
     public void setPodName(String podName) {
-        this.podName = podName;
+        // NOOP
     }
 
+    @Deprecated
+    // TODO make private
     public String getNamespace() {
-        return namespace;
+        try {
+            return getNodeContext().getNamespace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    @Deprecated
     public void setNamespace(String namespace) {
-        this.namespace = namespace;
+        // NOOP
     }
 
     public String getContainerName() {
@@ -208,6 +221,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public void setShell(String shell) {
         this.shell = shell;
+    }
+
+    public KubernetesNodeContext getNodeContext() {
+        return nodeContext;
+    }
+
+    public void setNodeContext(KubernetesNodeContext nodeContext) {
+        this.nodeContext = nodeContext;
     }
 
     @Override
@@ -277,11 +298,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + podName + "]";
+                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + getPodName() + "]";
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
-                Execable<String, ExecWatch> execable = client.pods().inNamespace(namespace).withName(podName).inContainer(containerName)
+                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
                         .redirectingInput().writingOutput(stream).writingError(stream).writingErrorChannel(error)
                         .usingListener(new ExecListener() {
                             @Override
@@ -391,7 +412,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
 
                     int pid = readPidFromPidFile(commands);
-                    LOGGER.log(Level.INFO, "Created process inside pod: ["+podName+"], container: ["+containerName+"] with pid:["+pid+"]");
+                    LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
+                            + containerName + "] with pid:[" + pid + "]");
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, error);
                     processes.put(pid, proc);
                     closables.add(proc);
@@ -436,15 +458,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private void waitUntilContainerIsReady() throws IOException {
                 LOGGER.log(Level.FINEST, "Waiting until pod is ready: {0}/{1}",
-                        new String[] { namespace, podName });
+                        new String[] { getNamespace(), getPodName() });
                 try {
-                    Pod pod = client.pods().inNamespace(namespace).withName(podName)
+                    Pod pod = getClient().pods().inNamespace(getNamespace()).withName(getPodName())
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
-                    LOGGER.log(Level.FINEST, "Pod is ready: {0}/{1}", new String[] { namespace, podName });
+                    LOGGER.log(Level.FINEST, "Pod is ready: {0}/{1}", new String[] { getNamespace(), getPodName() });
 
                     if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
                         throw new IOException("Failed to execute shell script inside container " +
-                                "[" + containerName + "] of pod [" + podName + "]." +
+                                "[" + containerName + "] of pod [" + getPodName() + "]." +
                                 "Failed to get container status");
                     }
 
@@ -454,14 +476,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 return;
                             } else {
                                 // container died in the meantime
-                                throw new IOException("container [" + containerName + "] of pod [" + podName + "] is not ready, state is " + info.getState());
+                                throw new IOException("container [" + containerName + "] of pod [" + getPodName() + "] is not ready, state is " + info.getState());
                             }
                         }
                     }
-                    throw new IOException("container [" + containerName + "] does not exist in pod [" + podName + "]");
+                    throw new IOException("container [" + containerName + "] does not exist in pod [" + getPodName() + "]");
                 } catch (InterruptedException | KubernetesClientTimeoutException e) {
                     throw new IOException("Failed to execute shell script inside container " +
-                            "[" + containerName + "] of pod [" + podName + "]." +
+                            "[" + containerName + "] of pod [" + getPodName() + "]." +
                             " Timed out waiting for container to become ready!", e);
                 }
             }
@@ -587,7 +609,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
+    @Deprecated
     public void setKubernetesClient(KubernetesClient client) {
-        this.client = client;
+        // NOOP
     }
 }

@@ -151,7 +151,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     /**
-
      * @deprecated Please use the strongly typed getKubernetesCloud() instead.
      */
     @Deprecated

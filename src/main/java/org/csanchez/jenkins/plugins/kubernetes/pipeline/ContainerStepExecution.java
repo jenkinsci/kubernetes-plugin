@@ -25,7 +25,6 @@ import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 
 public class ContainerStepExecution extends StepExecution {
@@ -37,22 +36,7 @@ public class ContainerStepExecution extends StepExecution {
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient ContainerStep step;
 
-    private transient KubernetesClient client;
     private ContainerExecDecorator decorator;
-
-    @Override
-    // TODO Revisit for JENKINS-40161
-    public void onResume() {
-        super.onResume();
-        LOGGER.log(Level.FINE, "onResume");
-        try {
-            KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
-            client = nodeContext.connectToCloud();
-            decorator.setKubernetesClient(client);
-        } catch (Exception e) {
-            ContainerStepExecution.this.getContext().onFailure(e);
-        }
-    }
 
     ContainerStepExecution(ContainerStep step, StepContext context) {
         super(context);
@@ -66,7 +50,6 @@ public class ContainerStepExecution extends StepExecution {
         String shell = step.getShell();
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
-        client = nodeContext.connectToCloud();
 
         EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
         EnvVars globalVars = null;
@@ -87,10 +70,8 @@ public class ContainerStepExecution extends StepExecution {
         }
 
         decorator = new ContainerExecDecorator();
-        decorator.setClient(client);
-        decorator.setPodName(nodeContext.getPodName());
+        decorator.setNodeContext(nodeContext);
         decorator.setContainerName(containerName);
-        decorator.setNamespace(nodeContext.getNamespace());
         decorator.setEnvironmentExpander(env);
         decorator.setWs(getContext().get(FilePath.class));
         decorator.setGlobalVars(globalVars);
@@ -107,7 +88,7 @@ public class ContainerStepExecution extends StepExecution {
     @Override
     public void stop(@Nonnull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
-        closeQuietly(getContext(), client, decorator);
+        closeQuietly(getContext(), decorator);
     }
 
     private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
