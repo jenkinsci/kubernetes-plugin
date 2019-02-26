@@ -67,7 +67,7 @@ public class KubernetesClientProvider {
     private static final Integer CACHE_EXPIRATION = Integer.getInteger(
             KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 24 * 60 * 60);
 
-    private static final Queue<ExpiredKubernetesClient> expiredClients = new ConcurrentLinkedQueue<>();
+    private static final Queue<Client> expiredClients = new ConcurrentLinkedQueue<>();
 
     private static final Cache<String, Client> clients = CacheBuilder.newBuilder() //
             .maximumSize(CACHE_SIZE) //
@@ -75,9 +75,10 @@ public class KubernetesClientProvider {
             .removalListener(rl -> {
                 LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}",
                         new Object[] { KubernetesClient.class.getSimpleName(), rl.getKey() });
-                KubernetesClient client = ((Client) rl.getValue()).getClient();
+                Client client = (Client) rl.getValue();
                 if (client != null) {
-                    expiredClients.add(new ExpiredKubernetesClient(client));
+                    client.expired = Instant.now();
+                    expiredClients.add(client);
                 }
 
             }) //
@@ -110,6 +111,7 @@ public class KubernetesClientProvider {
     private static class Client {
         private final KubernetesClient client;
         private final int validity;
+        private Instant expired;
 
         public Client(int validity, KubernetesClient client) {
             this.client = client;
@@ -122,6 +124,10 @@ public class KubernetesClientProvider {
 
         public int getValidity() {
             return validity;
+        }
+
+        public Instant getExpired() {
+            return expired;
         }
     }
 
@@ -165,10 +171,11 @@ public class KubernetesClientProvider {
             LOGGER.log(Level.WARNING, "High number of expired clients, may cause memory leaks: ({0}) {1}",
                     new Object[] { expiredClients.size(), expiredClients });
         }
-        for (Iterator<ExpiredKubernetesClient> it = expiredClients.iterator(); it.hasNext();) {
-            ExpiredKubernetesClient expiredClient = it.next();
+        for (Iterator<Client> it = expiredClients.iterator(); it.hasNext();) {
+            Client expiredClient = it.next();
             // only purge it if the EXPIRED_CLIENTS_PURGE time has elapsed
-            if (Instant.now().minus(EXPIRED_CLIENTS_PURGE_TIME, ChronoUnit.SECONDS).isBefore(expiredClient.timestamp)) {
+            if (Instant.now().minus(EXPIRED_CLIENTS_PURGE_TIME, ChronoUnit.SECONDS)
+                    .isBefore(expiredClient.getExpired())) {
                 break;
             }
             KubernetesClient client = expiredClient.client;
@@ -233,20 +240,4 @@ public class KubernetesClientProvider {
             super.onChange(o, file);
         }
     }
-
-    static class ExpiredKubernetesClient {
-        public Instant timestamp;
-        public KubernetesClient client;
-
-        public ExpiredKubernetesClient(KubernetesClient client) {
-            this.timestamp = Instant.now();
-            this.client = client;
-        }
-
-        @Override
-        public String toString() {
-            return "ExpiredKubernetesClient [timestamp=" + timestamp + ", client=" + client + "]";
-        }
-    }
-
 }
