@@ -7,6 +7,13 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.6
+------
+* Add a system property to override default Slave Connect Timeout in seconds [#432](https://github.com/jenkinsci/kubernetes-plugin/pull/432)
+* Add build url as default annotation [#433](https://github.com/jenkinsci/kubernetes-plugin/pull/433) [JENKINS-56133](https://issues.jenkins-ci.org/browse/JENKINS-56133)
+* Update kubernetes client to 4.1.2 [#434](https://github.com/jenkinsci/kubernetes-plugin/pull/434) [JENKINS-52593](https://issues.jenkins-ci.org/browse/JENKINS-52593)
+* Use a watcher to monitor pod status while launching the agent [#423](https://github.com/jenkinsci/kubernetes-plugin/pull/423)
+
 1.14.5
 ------
 * Expire Kubernetes clients after one day and make it configurable [#429](https://github.com/jenkinsci/kubernetes-plugin/pull/429) [JENKINS-56140](https://issues.jenkins-ci.org/browse/JENKINS-56140)
