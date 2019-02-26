@@ -42,9 +42,10 @@ public class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
-    private static final Integer CACHE_SIZE = Integer.getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheSize", 10);
-    private static final Integer EXPIRED_CLIENTS_PURGE_MINUTES = Integer
-            .getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.expiredClientsPurgeMinutes", 10);
+    private static final Integer CACHE_SIZE = Integer
+            .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
+    private static final Integer EXPIRED_CLIENTS_PURGE = Integer.getInteger(
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.purgeExpiredClientsPeriod", 10 * 60);
 
     /**
      * Client expiration in seconds, default to one day
@@ -62,14 +63,7 @@ public class KubernetesClientProvider {
                 LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}", new Object[] {KubernetesClient.class.getSimpleName(), rl.getKey()});
                 KubernetesClient client = ((Client) rl.getValue()).getClient();
                 if (client != null) {
-                    if (client instanceof HttpClientAware) {
-                        if (!gracefulClose(client, ((HttpClientAware) client).getHttpClient())) {
-                            expiredClients.add(client);
-                        }
-                    } else {
-                        LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close", new Object[] {client.toString(), HttpClientAware.class.getSimpleName()});
-                        client.close();
-                    }
+                    expiredClients.add(client);
                 }
 
             })
@@ -125,16 +119,20 @@ public class KubernetesClientProvider {
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(EXPIRED_CLIENTS_PURGE_MINUTES);
+            return TimeUnit.SECONDS.toMillis(EXPIRED_CLIENTS_PURGE);
         }
 
         @Override
         protected Level getNormalLoggingLevel() {
-            return Level.FINE;
+            return Level.FINEST;
         }
 
         @Override
         protected void execute(TaskListener listener) {
+            if (expiredClients.isEmpty()) {
+                return;
+            }
+            LOGGER.log(Level.FINE, "Purging expired clients: {0}", expiredClients);
             for (Iterator<KubernetesClient> it = expiredClients.iterator(); it.hasNext();) {
                 KubernetesClient client = it.next();
                 if (client instanceof HttpClientAware) {
@@ -142,7 +140,8 @@ public class KubernetesClientProvider {
                         it.remove();
                     }
                 } else {
-                    LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close", new Object[] {client.toString(), HttpClientAware.class.getSimpleName()});
+                    LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close",
+                            new Object[] { client.toString(), HttpClientAware.class.getSimpleName() });
                     client.close();
                     it.remove();
                 }
