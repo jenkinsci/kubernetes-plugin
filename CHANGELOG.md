@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.7
+------
+* Use a bigger buffer for stdin on kubernetes exec [#427](https://github.com/jenkinsci/kubernetes-plugin/pull/427) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
+* Improve labels and help text for cloud and pod templates cap [#422](https://github.com/jenkinsci/kubernetes-plugin/pull/422)
+
 1.14.6
 ------
 * Add a system property to override default Slave Connect Timeout in seconds [#432](https://github.com/jenkinsci/kubernetes-plugin/pull/432)

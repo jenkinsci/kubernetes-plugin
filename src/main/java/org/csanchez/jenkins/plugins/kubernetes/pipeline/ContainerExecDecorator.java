@@ -23,6 +23,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -81,6 +83,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
     private static final String DEFAULT_SHELL="/bin/sh";
+
+    /**
+     * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
+     * A higher value will consume more memory
+     */
+    private static final int STDIN_BUFFER_SIZE = Integer
+            .getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 2 * 1024);
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
@@ -302,8 +311,18 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
-                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
-                        .redirectingInput().writingOutput(stream).writingError(stream).writingErrorChannel(error)
+                if (closables == null) {
+                    closables = new ArrayList<>();
+                }
+
+                // JENKINS-50429 Force a bigger buffer
+                PipedInputStream pis = new PipedInputStream(STDIN_BUFFER_SIZE);
+                closables.add(pis);
+
+                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName) //
+                        .readingInput(pis)
+                        // .redirectingInput() // JENKINS-50429
+                        .writingOutput(stream).writingError(stream).writingErrorChannel(error)
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
@@ -342,6 +361,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 try {
                     watch = execable.exec(getShell());
                 } catch (KubernetesClientException e) {
+                    close();
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException(
                                 "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
@@ -350,6 +370,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         throw e;
                     }
                 } catch (RejectedExecutionException e) {
+                    close();
                     throw new IOException(
                             "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
@@ -359,6 +380,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     // prevent a wait forever if the connection is closed as the listener would never be called
                     hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
+                    close();
                     closeWatch(watch);
                     throw new IOException(
                             "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
@@ -371,13 +393,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             "Websocket connection was not established. This probably means the connection was closed already");
                 }
 
-                try {
+                try (OutputStream stdin = new PipedOutputStream(pis);) {
+                    // OutputStream stdin = watch.getInput();
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        watch.getInput().write(
-                                String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
-
+                        stdin.write(String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -404,23 +425,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    this.setupEnvironmentVariable(envVars, watch);
+                    this.setupEnvironmentVariable(envVars, stdin);
 
-                    doExec(watch, printStream, masks, commands);
-                    if (closables == null) {
-                        closables = new ArrayList<>();
-                    }
+                    doExec(stdin, printStream, masks, commands);
 
                     int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "] with pid:[" + pid + "]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, error);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
                     processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
                 } catch (InterruptedException ie) {
+                    close();
                     throw new InterruptedIOException(ie.getMessage());
                 } catch (Exception e) {
+                    close();
                     closeWatch(watch);
                     throw e;
                 }
@@ -440,11 +460,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, ExecWatch watch) throws IOException {
+            private void setupEnvironmentVariable(EnvVars vars, OutputStream out) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            watch.getInput().write(
+                            out.write(
                                     String.format(
                                             "export %s='%s'%s",
                                             entry.getKey(),
@@ -503,7 +523,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(ExecWatch watch, PrintStream out, boolean[] masks, String... statements) {
+    private static void doExec(OutputStream stdin, PrintStream out, boolean[] masks, String... statements) {
         try {
             out.print("Executing command: ");
             StringBuilder sb = new StringBuilder();
@@ -516,21 +536,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     sb.append(s);
                     out.print(s);
                 }
-                watch.getInput().write(s.getBytes(StandardCharsets.UTF_8));
+                stdin.write(s.getBytes(StandardCharsets.UTF_8));
             }
             sb.append(NEWLINE);
             out.println();
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            stdin.write(NEWLINE.getBytes(StandardCharsets.UTF_8));
 
             // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
             // We need to exit so that we know when the command has finished.
             sb.append(EXIT + NEWLINE);
             out.print(EXIT + NEWLINE);
             LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-            watch.getInput().write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
+            stdin.write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
 
             out.flush();
-            watch.getInput().flush();
+            stdin.flush();
         } catch (IOException e) {
             e.printStackTrace(out);
             throw new RuntimeException(e);

@@ -33,7 +33,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -303,14 +305,26 @@ public class ContainerExecDecoratorTest {
         assertEquals("Errors in threads", 0, errors.get());
     }
 
+    @Test(timeout=10000)
+    @Issue("JENKINS-50429")
+    public void testContainerExecPerformance() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            ProcReturn r = execCommand(false, "ls");
+        }
+    }
+
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Launcher launcher = decorator
                 .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
+        Map<String, String> envs = new HashMap<>(100);
+        for (int i = 0; i < 50; i++) {
+            envs.put("aaaaaaaa" + i, "bbbbbbbb");
+        }
         ContainerExecProc proc = (ContainerExecProc) launcher
-                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).quiet(quiet));
+                .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).envs(envs).quiet(quiet));
         // wait for proc to finish (shouldn't take long)
-        while (proc.isAlive()) {
+        for (int i = 0; proc.isAlive() && i < 200; i++) {
             Thread.sleep(100);
         }
         assertFalse("proc is alive", proc.isAlive());
