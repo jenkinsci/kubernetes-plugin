@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,6 +44,9 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -56,6 +60,7 @@ import org.jvnet.hudson.test.LoggerRule;
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
+import hudson.model.Node;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -107,7 +112,18 @@ public class ContainerExecDecoratorTest {
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image, client.getNamespace());
+        PodTemplate template = new PodTemplate();
+        template.setName(pod.getMetadata().getName());
+        KubernetesSlave agent = mock(KubernetesSlave.class);
+        when(agent.getNamespace()).thenReturn(client.getNamespace());
+        when(agent.getPodName()).thenReturn(pod.getMetadata().getName());
+        when(agent.getKubernetesCloud()).thenReturn(cloud);
+        StepContext context = mock(StepContext.class);
+        when(context.get(Node.class)).thenReturn(agent);
+
+        decorator = new ContainerExecDecorator();
+        decorator.setNodeContext(new KubernetesNodeContext(context));
+        decorator.setContainerName(image);
     }
 
     @After
@@ -222,8 +238,7 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-46719")
     public void testContainerDoesNotExist() throws Exception {
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist",
-                client.getNamespace());
+        decorator.setContainerName("doesNotExist");
         exception.expect(IOException.class);
         exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
@@ -241,7 +256,6 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-55392")
     public void testRejectedExecutionException() throws Exception {
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "busybox", client.getNamespace());
         assertTrue(client instanceof HttpClientAware);
         OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
         System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"

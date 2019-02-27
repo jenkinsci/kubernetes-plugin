@@ -98,16 +98,6 @@ public class KubernetesClientProvider {
             clients.put(displayName, new Client(getValidity(cloud), client));
             LOGGER.log(Level.INFO, "Created new Kubernetes client: {0} {1}", new Object[] { displayName, client });
             return client;
-        } else {
-            if (c.getClient() instanceof HttpClientAware) {
-                OkHttpClient httpClient = ((HttpClientAware) c.getClient()).getHttpClient();
-                if (httpClient.connectionPool().connectionCount() == 0) {
-                    // I think this should never happen
-                    throw new IllegalStateException(
-                            "Client was closed but not evicted from cache, please raise an issue at https://issues.jenkins-ci.org/browse/JENKINS: "
-                                    + c.getClient());
-                }
-            }
         }
         return c.getClient();
     }
