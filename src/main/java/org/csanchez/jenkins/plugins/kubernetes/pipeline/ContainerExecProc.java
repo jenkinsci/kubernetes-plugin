@@ -31,17 +31,25 @@ public class ContainerExecProc extends Proc implements Closeable {
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
     private final ExecWatch watch;
+    private final OutputStream stdin;
     private final ByteArrayOutputStream error;
 
     @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             Callable<Integer> exitCode) {
-        this(watch, alive, finished, new ByteArrayOutputStream());
+        this(watch, alive, finished, null, new ByteArrayOutputStream());
     }
 
+    @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             ByteArrayOutputStream error) {
+        this(watch, alive, finished, null, error);
+    }
+
+    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin,
+            ByteArrayOutputStream error) {
         this.watch = watch;
+        this.stdin = stdin == null ? watch.getInput() : stdin;
         this.alive = alive;
         this.finished = finished;
         this.error = error;
@@ -56,10 +64,10 @@ public class ContainerExecProc extends Proc implements Closeable {
     public void kill() throws IOException, InterruptedException {
         try {
             // What we actually do is send a ctrl-c to the current process and then exit the shell.
-            watch.getInput().write(CTRL_C);
-            watch.getInput().write(EXIT.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().write(NEWLINE.getBytes(StandardCharsets.UTF_8));
-            watch.getInput().flush();
+            stdin.write(CTRL_C);
+            stdin.write(EXIT.getBytes(StandardCharsets.UTF_8));
+            stdin.write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+            stdin.flush();
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Proc kill failed, ignoring", e);
         } finally {
@@ -125,7 +133,7 @@ public class ContainerExecProc extends Proc implements Closeable {
 
     @Override
     public OutputStream getStdin() {
-        return watch.getInput();
+        return stdin;
     }
 
     @Override
