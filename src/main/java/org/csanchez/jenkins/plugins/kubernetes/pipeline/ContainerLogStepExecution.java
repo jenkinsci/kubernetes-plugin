@@ -105,18 +105,12 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             logger().println(message);
             LOGGER.log(Level.WARNING, message, e);
             return "";
-        } finally {
-            closeQuietly(getContext(), client);
         }
     }
 
     @Override
     public void stop(Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container log step.");
-        try {
-            super.stop(cause);
-        } finally {
-            closeQuietly(getContext(), client);
-        }
+        super.stop(cause);
     }
 }
