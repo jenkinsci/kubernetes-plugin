@@ -20,7 +20,7 @@ For that some environment variables are automatically injected:
 Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
 
-It is not required to run the jenkins master inside kubernetes. 
+It is not required to run the Jenkins master inside Kubernetes. 
 
 # Kubernetes Cloud Configuration
 
@@ -29,7 +29,7 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
-If running the jenkins master outside of kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for jenkins in the cluster the agents will run on.
+When running the Jenkins master outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
 
 ### Restricting what jobs can use your configured cloud
 
