@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.8
+------
+* Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
+
+
 1.14.7
 ------
 * Use a bigger buffer for stdin on kubernetes exec [#427](https://github.com/jenkinsci/kubernetes-plugin/pull/427) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
