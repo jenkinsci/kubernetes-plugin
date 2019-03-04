@@ -20,6 +20,7 @@ For that some environment variables are automatically injected:
 Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
 
+It is not required to run the Jenkins master inside Kubernetes. 
 
 # Kubernetes Cloud Configuration
 
@@ -27,6 +28,8 @@ In Jenkins settings click on add cloud, select `Kubernetes` and fill the informa
 _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
+
+When running the Jenkins master outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
 
 ### Restricting what jobs can use your configured cloud
 
@@ -146,7 +149,7 @@ Either way it provides access to the following fields:
 * **envVars** Environment variables that are applied to **ALL** containers.
     * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
-* **imagePullSecrets** List of pull secret names
+* **imagePullSecrets** List of pull secret names, to [pull images from a private Docker registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
@@ -529,7 +532,6 @@ you can use these flags during Jenkins startup:
     -Dhudson.slaves.NodeProvisioner.initialDelay=0
     -Dhudson.slaves.NodeProvisioner.MARGIN=50
     -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
-
 
 # Configuration on minikube
 

@@ -229,6 +229,9 @@ public class KubernetesClientProvider {
                     Client client = clients.getIfPresent(displayName);
                     if (client != null && client.getValidity() == getValidity(cloud)) {
                         cloudDisplayNames.remove(displayName);
+                    } else {
+                        LOGGER.log(Level.INFO, "Invalidating Kubernetes client: {0} {1}",
+                                new Object[] { displayName, client });
                     }
                 }
                 // Remove missing / invalid clients
