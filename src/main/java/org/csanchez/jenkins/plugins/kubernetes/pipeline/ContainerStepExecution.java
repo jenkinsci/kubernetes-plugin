@@ -107,7 +107,7 @@ public class ContainerStepExecution extends StepExecution {
     @Override
     public void stop(@Nonnull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
-        closeQuietly(getContext(), client, decorator);
+        closeQuietly(getContext(), decorator);
     }
 
     private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
