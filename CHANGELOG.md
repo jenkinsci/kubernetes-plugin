@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.8
+------
+* Do not close Kubernetes client after `containerLog` step [#435](https://github.com/jenkinsci/kubernetes-plugin/pull/435) [JENKINS-55392](https://issues.jenkins-ci.org/browse/JENKINS-55392)
+* Upgrade kubernetes-client to 4.1.3. Pass `exec` buffer size using new method [#431](https://github.com/jenkinsci/kubernetes-plugin/pull/431) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
+
 1.14.7
 ------
 * Use a bigger buffer for stdin on kubernetes exec [#427](https://github.com/jenkinsci/kubernetes-plugin/pull/427) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
