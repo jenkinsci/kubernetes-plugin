@@ -1,16 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.stream.Collectors.joining;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import hudson.model.Job;
+import hudson.model.Label;
+import hudson.model.Queue;
+import hudson.model.Run;
+import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -18,6 +12,24 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import jenkins.model.Jenkins;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
+import static java.util.stream.Collectors.joining;
+
 
 /**
  * A pod watcher reporting when all containers are running
@@ -72,8 +84,42 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         for (ContainerStatus containerStatus : containerStatuses) {
             if (containerStatus != null) {
-                if (containerStatus.getState().getWaiting() != null) {
+                ContainerStateWaiting waitingState = containerStatus.getState().getWaiting();
+                if (waitingState != null) {
+                    String waitingStateMsg = waitingState.getMessage();
+                    if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
+                        LOGGER.log(Level.INFO, "Unable to pull Docker image");
+
+                        Jenkins jenkins = Jenkins.getInstanceOrNull();
+                        if (jenkins != null) {
+                            Queue q = jenkins.getQueue();
+                            for (Queue.Item item : q.getItems()) {
+                                Label itemLabel = item.getAssignedLabel();
+                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName(), LOGGER)) {
+                                    String itemTaskName = item.task.getFullDisplayName();
+                                    String jobName = getJobName(itemTaskName);
+                                    if (jobName.equals("")) {
+                                        LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
+                                        break;
+                                    }
+                                    Run run = getCorrespondingJobBuild(jenkins.allItems(Job.class).iterator(), jobName, getBuildNumber(itemTaskName));
+                                    if (run != null) {
+                                        try {
+                                            writeStream(run, "ERROR: Unable to pull Docker image. Check if image name is spelled correctly");
+                                        }
+                                        catch (IOException e) {
+                                            LOGGER.log(Level.WARNING, "ERROR: Unable to print bad Docker image error message to build console");
+                                        }
+                                    }
+                                    q.cancel(item);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     return false;
+
+
                 }
                 if (containerStatus.getState().getTerminated() != null) {
                     return false;
@@ -190,5 +236,62 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     public PodStatus getPodStatus() {
         return podStatus;
+    }
+
+    private boolean isCorrespondingLabels(String taskLabel, String podId, Logger logger) {
+        int taskLabelLen = taskLabel.length();
+        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
+        podId = podId.substring(0, podId.lastIndexOf("-"));
+        //logger.log(INFO,"Comparing: " + taskLabel + " | " + podId);
+        return taskLabel.equals(podId);
+    }
+
+    private String extractLogRecord(List<LogRecord> logs) {
+        StringBuffer msg = new StringBuffer("");
+        for (LogRecord l : logs) {
+            msg.append(l.getLoggerName() + ", ");
+        }
+        return msg.toString();
+    }
+
+    private void writeStream(Run<?, ?> run, String msg) throws IOException {
+        String writeMsg = msg + " \n";
+        FileOutputStream writer = null;
+        try {
+            writer = new FileOutputStream(run.getLogFile().getAbsolutePath(), true);
+            writer.write(writeMsg.getBytes(StandardCharsets.UTF_8));
+            writer.close();
+        }
+        catch (IOException e) {
+            if (writer != null) {
+                writer.close();
+            }
+            throw e;
+        }
+    }
+
+    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
+    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
+    private String getJobName(String itemTaskName) {
+        final String partOfStr = "part of ";
+        int begin = partOfStr.length();
+        int end = itemTaskName.lastIndexOf(" #");
+        if (end < 0)
+            return "";
+        return itemTaskName.substring(begin, end);
+    }
+
+    private int getBuildNumber(String itemTaskName) {
+        return Integer.parseInt(itemTaskName.substring(itemTaskName.lastIndexOf(" #") + 2));
+    }
+
+    private Run getCorrespondingJobBuild(Iterator<Job> jobIter, String jobName, int build) {
+        while (jobIter.hasNext()) {
+            Job job = jobIter.next();
+            if (job.getFullDisplayName().compareTo(jobName) == 0) {
+                return job.getBuildByNumber(build);
+            }
+        }
+        return null;
     }
 }
