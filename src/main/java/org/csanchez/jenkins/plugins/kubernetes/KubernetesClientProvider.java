@@ -38,19 +38,24 @@ final class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
-    private static final Integer CACHE_SIZE = Integer.getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheSize", 10);
+    /**
+     * How many clouds can we connect to, default to 10
+     */
+    private static final Integer CACHE_SIZE = Integer
+            .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
+
     /**
      * Client expiration in seconds, default to one day
      */
-    private static final Integer CACHE_EXPIRATION = Integer
-            .getInteger("org.csanchez.jenkins.plugins.kubernetes.clients.cacheExpiration", 24 * 60 * 60);
+    private static final Integer CACHE_EXPIRATION = Integer.getInteger(
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 24 * 60 * 60);
 
     private static final List<KubernetesClient> expiredClients = Collections.synchronizedList(new ArrayList());
 
     private static final Cache<String, Client> clients = CacheBuilder
-            .newBuilder()
-            .maximumSize(CACHE_SIZE)
-            .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
+            .newBuilder() //
+            .maximumSize(CACHE_SIZE) //
+            .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS) //
             .removalListener(rl -> {
                 LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}", new Object[] {KubernetesClient.class.getSimpleName(), rl.getKey()});
                 KubernetesClient client = ((Client) rl.getValue()).getClient();
@@ -65,7 +70,7 @@ final class KubernetesClientProvider {
                     }
                 }
 
-            })
+            }) //
             .build();
 
     private KubernetesClientProvider() {
@@ -80,6 +85,7 @@ final class KubernetesClientProvider {
                     cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
                     cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost()).createClient();
             clients.put(displayName, new Client(getValidity(cloud), client));
+            LOGGER.log(Level.INFO, "Created new Kubernetes client: {0} {1}", new Object[] { displayName, client });
             return client;
         }
         return c.getClient();
@@ -123,7 +129,7 @@ final class KubernetesClientProvider {
 
         @Override
         protected Level getNormalLoggingLevel() {
-            return Level.FINE;
+            return Level.FINEST;
         }
 
         @Override
@@ -170,6 +176,9 @@ final class KubernetesClientProvider {
                     Client client = clients.getIfPresent(displayName);
                     if (client != null && client.getValidity() == getValidity(cloud)) {
                         cloudDisplayNames.remove(displayName);
+                    } else {
+                        LOGGER.log(Level.INFO, "Invalidating Kubernetes client: {0} {1}",
+                                new Object[] { displayName, client });
                     }
                 }
                 // Remove missing / invalid clients
