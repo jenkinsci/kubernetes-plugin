@@ -42,6 +42,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -54,23 +55,8 @@ import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.slaves.SlaveComputer;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.ExecAction;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
-import io.fabric8.kubernetes.api.model.Probe;
-import io.fabric8.kubernetes.api.model.ProbeBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -113,6 +99,54 @@ public class PodTemplateBuilder {
         return this.build();
     }
 
+    private String getMountPath(String path) {
+        return substituteEnv(
+                Paths.get(path).normalize().toString().replace("\\", "/")
+        );
+    }
+
+    public ArrayList<String> getPVCNames() {
+        Map<String, String> claims = new HashMap<>();
+        if (slave != null) {
+            int i = 0;
+            for (final PvcTemplate pvc_template : template.getPvcTemplates()) {
+                //We need to normalize the path or we can end up in really hard to debug issues.
+                final String mountPath = getMountPath(pvc_template.getMountPath());
+                if (!claims.containsKey(mountPath)) {
+                    assert slave != null;
+                    claims.put(mountPath, pvc_template.getClaimName() + "-claim-" + i + "-" + slave.getPodName() + "-pvc");
+                    i++;
+                }
+            }
+        }
+        return new ArrayList<>(claims.values());
+    }
+
+    public ArrayList<PersistentVolumeClaim> buildPVC() {
+        Map<String, PersistentVolumeClaim> claims = new HashMap<>();
+        int i = 0;
+        for (final PvcTemplate pvc_template : template.getPvcTemplates()) {
+            String pvc_name = "claim-" + i;
+            if (slave != null) {
+                pvc_name += "-" + slave.getPodName();
+            }
+            //We need to normalize the path or we can end up in really hard to debug issues.
+            final String mountPath = getMountPath(pvc_template.getMountPath());
+            if (!claims.containsKey(mountPath)) {
+                claims.put(mountPath, pvc_template.buildPVC(pvc_name));
+                i++;
+            }
+        }
+        return new ArrayList<>(claims.values());
+    }
+
+    private VolumeMount buildVolumeMount(String path, String name) {
+        return new VolumeMountBuilder()
+            .withMountPath(path)
+            .withName(name)
+            .withReadOnly(false)
+            .build();
+    }
     /**
      * Create a Pod object from a PodTemplate
      */
@@ -123,14 +157,28 @@ public class PodTemplateBuilder {
         Map<String, VolumeMount> volumeMounts = new HashMap<>();
 
         int i = 0;
+
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
             //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
+            final String mountPath = getMountPath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMountBuilder() //
-                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
+                volumeMounts.put(mountPath, buildVolumeMount(mountPath, volumeName));
                 volumes.put(volumeName, volume.buildVolume(volumeName));
+                i++;
+            }
+        }
+
+        for (final PvcTemplate pvc : template.getPvcTemplates()) {
+            String pvc_name = "claim-" + i;
+            if (slave != null) {
+                pvc_name += "-" + slave.getPodName();
+            }
+            //We need to normalize the path or we can end up in really hard to debug issues.
+            final String mountPath = getMountPath(pvc.getMountPath());
+            if (!volumeMounts.containsKey(mountPath)) {
+                volumeMounts.put(mountPath, buildVolumeMount(mountPath, pvc_name));
+                volumes.put(pvc_name, pvc.buildVolume(pvc_name));
                 i++;
             }
         }
