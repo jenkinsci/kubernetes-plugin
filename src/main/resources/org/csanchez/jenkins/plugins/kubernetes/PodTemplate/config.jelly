@@ -36,6 +36,16 @@
                                     deleteCaption="${%Delete Environment Variable}" />
   </f:entry>
 
+  <f:entry
+      title="${%Dynamic PVC}"
+      description="${%PVC that will be created for an agent and teardown with it}">
+      <f:repeatableHeteroProperty
+        field="pvcTemplates"
+        hasHeader="true"
+        addCaption="${%Add Dynamic PVC}"
+        deleteCaption="${%Delete Dynamic PVC}" />
+  </f:entry>
+
   <f:entry title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
     <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="${%Add Volume}"
                                 deleteCaption="${%Delete Volume}" />

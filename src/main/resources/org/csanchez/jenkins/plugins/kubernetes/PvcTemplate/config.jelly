@@ -1,0 +1,33 @@
+<?jelly escape-by-default='true'?>
+<j:jelly
+        xmlns:j="jelly:core"
+        xmlns:st="jelly:stapler"
+        xmlns:d="jelly:define"
+        xmlns:l="/lib/layout"
+        xmlns:t="/lib/hudson"
+        xmlns:f="/lib/form">
+
+  <f:entry title="${%Base claim Name}" field="claimName">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry title="${%Storage Class}" field="storageClass">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry field="accessMode" title="${%Access mode}">
+     <f:enum default="ReadWriteOnce">${it.name}</f:enum>
+  </f:entry>
+  <f:entry title="${%Capacity}" field="storageCapacity">
+    <f:number clazz="required number" min="0" step="1" default="50"/>
+  </f:entry>
+
+  <f:entry title="${%Unit}" field="storageUnit">
+    <f:enum default="Gi">${it.name}</f:enum>
+  </f:entry>
+
+  <f:entry title="${%Mount path}" field="mountPath">
+    <f:textbox />
+  </f:entry>
+
+</j:jelly>
