@@ -16,6 +16,8 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
+
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -112,6 +114,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
+    private List<PvcTemplate> pvcTemplates = new ArrayList<PvcTemplate>();
+
     private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
 
     private List<TemplateEnvVar> envVars = new ArrayList<>();
@@ -146,6 +150,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
+        this.setPvcTemplates(from.getPvcTemplates());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYaml(from.getYaml());
         this.setNodeProperties(from.getNodeProperties());
@@ -574,6 +579,22 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return volumes;
     }
 
+    @DataBoundSetter
+    public void setPvcTemplates(@Nonnull List<PvcTemplate> items) {
+        synchronized (this.pvcTemplates) {
+            this.pvcTemplates.clear();
+            this.pvcTemplates.addAll(items);
+        }
+    }
+
+    @Nonnull
+    public List<PvcTemplate> getPvcTemplates() {
+        if (pvcTemplates == null) {
+            return Collections.emptyList();
+        }
+        return pvcTemplates;
+    }
+
     public boolean isCustomWorkspaceVolumeEnabled() {
         return customWorkspaceVolumeEnabled;
     }
@@ -673,6 +694,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return new PodTemplateBuilder(this).withSlave(slave).build();
     }
 
+    public ArrayList<String> getPVCName(KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).withSlave(slave).getPVCNames();
+    }
+
+    public ArrayList<PersistentVolumeClaim> buildPVC(KubernetesClient client, KubernetesSlave slave) {
+        return new PodTemplateBuilder(this).withSlave(slave).buildPVC();
+    }
+
     public String getDescriptionForLogging() {
         return String.format("Agent specification [%s] (%s): %n%s",
                 getDisplayName(),
@@ -731,6 +760,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         public List<? extends Descriptor> getEnvVarsDescriptors() {
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
+
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public List<? extends Descriptor> getPvcTemplateDescriptors() {
+            return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(PvcTemplate.class));
+        }
+
 
         @SuppressWarnings("rawtypes")
         public Descriptor getDefaultPodRetention() {
