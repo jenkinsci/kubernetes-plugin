@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.logging.Level.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -34,6 +35,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.client.Watch;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -100,6 +102,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         final PodTemplate template = slave.getTemplate();
         try {
             KubernetesClient client = slave.getKubernetesCloud().connect();
+
+            ArrayList<PersistentVolumeClaim> pvcs = template.buildPVC(client, slave);
             Pod pod = template.build(client, slave);
 
             String podId = pod.getMetadata().getName();
@@ -109,6 +113,16 @@ public class KubernetesLauncher extends JNLPLauncher {
                     template.getNamespace(), client.getNamespace()) //
                     .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
             slave.setNamespace(namespace);
+
+            if (pvcs != null) {
+                for (int i = 0; i < pvcs.size(); i++) {
+                    PersistentVolumeClaim pvc = pvcs.get(i);
+                    String pvcId = pvc.getMetadata().getName();
+                    LOGGER.log(Level.FINE, "Creating PVC: {0} in namespace {1}", new Object[]{pvcId, namespace});
+                    client.persistentVolumeClaims().inNamespace(namespace).create(pvc);
+                    LOGGER.log(INFO, "Created PVC: {0} in namespace {1}", new Object[]{pvcId, namespace});
+                }
+            }
 
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);

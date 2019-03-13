@@ -280,6 +280,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         if (deletePod) {
             deleteSlavePod(listener, client);
+            deleteSlavePvc(listener, client);
+
         } else {
             // Log warning, as the slave pod may still be running
             LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
@@ -288,6 +290,26 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String msg = String.format("Disconnected computer %s", name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
+    }
+
+    private void deleteSlavePvc(TaskListener listener, KubernetesClient client) throws IOException {
+        try {
+            for (String pvc_name : this.template.getPVCName(this)) {
+                Boolean deleted = client.persistentVolumeClaims().inNamespace(getNamespace()).withName(pvc_name).delete();
+                if (!Boolean.TRUE.equals(deleted)) {
+                    String msg = String.format("Failed to delete pvc %s/%s: not found", getNamespace(), pvc_name);
+                    LOGGER.log(Level.WARNING, msg);
+                    listener.error(msg);
+                    return;
+                }
+            }
+
+        } catch (KubernetesClientException e) {
+            String msg = String.format("Failed to delete pvc for agent %s/%s", getNamespace(), name);
+            LOGGER.log(Level.WARNING, msg);
+            listener.error(msg);
+            return;
+        }
     }
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
