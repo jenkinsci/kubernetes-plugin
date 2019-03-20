@@ -326,14 +326,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
         KubernetesSlave that = (KubernetesSlave) o;
 
         if (cloudName != null ? !cloudName.equals(that.cloudName) : that.cloudName != null) return false;
-        return template != null ? template.equals(that.template) : that.template == null;
+        return name != null ? name.equals(that.name) : that.name == null;
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (cloudName != null ? cloudName.hashCode() : 0);
-        result = 31 * result + (template != null ? template.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
     }
 
