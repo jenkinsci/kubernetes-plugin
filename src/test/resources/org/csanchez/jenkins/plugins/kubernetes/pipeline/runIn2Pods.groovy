@@ -11,7 +11,7 @@ podTemplate(label: 'mypod', containers: [
             ##
             echo "script file: \$(find ../../.. -iname script.sh))"
             echo "script file contents: \$(find ../../.. -iname script.sh -exec cat {} \\;)"
-            test -n "\$(cat \$(find ../../.. -iname script.sh))"
+            test -n "\$(cat \"\$(find ../../.. -iname script.sh)\")"
               """
             }
         }
@@ -32,7 +32,7 @@ podTemplate(label: 'mypod2', containers: [
             ##
             echo "script file: \$(find ../../.. -iname script.sh))"
             echo "script file contents: \$(find ../../.. -iname script.sh -exec cat {} \\;)"
-            test -n "\$(cat \$(find ../../.. -iname script.sh))"
+            test -n "\$(cat \"\$(find ../../.. -iname script.sh)\")"
           """
             }
         }

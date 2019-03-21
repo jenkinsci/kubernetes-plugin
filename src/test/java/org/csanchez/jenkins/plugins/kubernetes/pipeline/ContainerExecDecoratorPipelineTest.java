@@ -44,14 +44,6 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
     public LoggerRule containerExecLogs = new LoggerRule()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
 
-    @Rule
-    public TestName name = new TestName();
-
-    @Override
-    protected TestName getTestName() {
-        return name;
-    }
-
     @Issue({ "JENKINS-47225", "JENKINS-42582" })
     @Test
     public void sshagent() throws Exception {

@@ -76,11 +76,24 @@ public abstract class AbstractKubernetesPipelineTest {
         assumeKubernetes();
     }
 
-    protected abstract TestName getTestName();
+    @Rule
+    public TestName name = new TestName();
+
+    private String projectName;
+
+    @Before
+    public void defineProjectName() {
+        // Add spaces before uppercases
+        this.projectName = name.getMethodName().replaceAll("([A-Z])", " $1");
+    }
+
+    protected String getProjectName() {
+        return projectName;
+    }
 
     @Before
     public void configureCloud() throws Exception {
-        cloud = setupCloud(this, getTestName());
+        cloud = setupCloud(this, name);
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
