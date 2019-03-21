@@ -191,6 +191,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
+    @Test
     public void runInPodWithDifferentShell() throws Exception {
         r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
         r.assertLogContains("/bin/bash: no such file or directory", b);
