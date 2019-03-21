@@ -28,10 +28,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang.StringUtils;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.NodePropertyDescriptor;
-import hudson.util.DescribableList;
-import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -44,7 +40,6 @@ import com.google.common.collect.Lists;
 import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
-import hudson.tools.ToolLocationNodeProperty;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvFromSource;
@@ -186,6 +181,22 @@ public class PodTemplateUtils {
     }
 
     /**
+     * Combines all given pods together in order.
+     * @param pods the pods to combine
+     */
+    public static Pod combine(List<Pod> pods) {
+        Pod result = null;
+        for (Pod p: pods) {
+            if (result != null) {
+                result = combine(result, p);
+            } else {
+                result = p;
+            }
+        }
+        return result;
+    }
+
+    /**
      * Combines a Pod with its parent.
      * @param parent        The parent Pod (nullable).
      * @param template      The child Pod
@@ -222,9 +233,7 @@ public class PodTemplateUtils {
                 .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
 
         // Volumes
-        List<Volume> combinedVolumes = Lists.newLinkedList();
-        Optional.ofNullable(parent.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
-        Optional.ofNullable(template.getSpec().getVolumes()).ifPresent(combinedVolumes::addAll);
+        List<Volume> combinedVolumes = combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
 
         // Tolerations
         List<Toleration> combinedTolerations = Lists.newLinkedList();
@@ -266,6 +275,12 @@ public class PodTemplateUtils {
         Pod pod = specBuilder.endSpec().build();
         LOGGER.log(Level.FINE, "Pods combined: {0}", pod);
         return pod;
+    }
+
+    private static List<Volume> combineVolumes(@Nonnull List<Volume> volumes1, @Nonnull List<Volume> volumes2) {
+        Map<String, Volume> volumesByName = volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
+        volumes2.forEach(v -> volumesByName.put(v.getName(), v));
+        return new ArrayList<>(volumesByName.values());
     }
 
     /**
@@ -353,7 +368,9 @@ public class PodTemplateUtils {
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
         podTemplate.setPodRetention(template.getPodRetention());
 
-        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
+        List<String> yamls = new ArrayList<>(parent.getYamls());
+        yamls.addAll(template.getYamls());
+        podTemplate.setYamls(yamls);
 
         LOGGER.log(Level.FINEST, "Pod templates combined: {0}", podTemplate);
         return podTemplate;
@@ -501,6 +518,14 @@ public class PodTemplateUtils {
             }
             return podFromYaml;
         }
+    }
+
+    public static Collection<String> validateYamlContainerNames(List<String> yamls) {
+        Collection<String> errors = new ArrayList<>();
+        for (String yaml : yamls) {
+            errors.addAll(validateYamlContainerNames(yaml));
+        }
+        return errors;
     }
 
     public static Collection<String> validateYamlContainerNames(String yaml) {
