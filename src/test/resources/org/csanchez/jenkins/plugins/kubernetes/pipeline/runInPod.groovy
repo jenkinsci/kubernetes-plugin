@@ -1,8 +1,9 @@
 podTemplate(label: 'runInPod', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
-
+    semaphore 'podTemplate'
     node ('runInPod') {
+      semaphore 'pod'
       stage('Run') {
         container('busybox') {
           sh """

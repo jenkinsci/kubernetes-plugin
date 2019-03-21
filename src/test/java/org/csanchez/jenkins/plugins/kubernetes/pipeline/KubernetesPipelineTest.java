@@ -25,33 +25,31 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.PodListBuilder;
-import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 
 /**
  * @author Carlos Sanchez
@@ -79,11 +77,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPod() throws Exception {
-        List<PodTemplate> templates = null;
-        while (b.isBuilding() && (templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates())).isEmpty()) {
-            LOGGER.log(Level.INFO, "Waiting for runInPod template to be created");
-            Thread.sleep(1000);
-        }
+        SemaphoreStep.waitForStart("podTemplate/1", b);
+        List<PodTemplate> templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates());
+        assertThat(templates, hasSize(1));
+        SemaphoreStep.success("podTemplate/1", null);
 
         // check if build failed
         assertTrue("Build has failed early: " + b.getResult(), b.isBuilding() || Result.SUCCESS.equals(b.getResult()));
@@ -95,18 +92,18 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
 
         Map<String, String> labels = getLabels(cloud, this, name);
-        PodList pods = new PodListBuilder().withItems(Collections.emptyList()).build();
-        while (pods.getItems().isEmpty()) {
-            LOGGER.log(Level.INFO, "Waiting for pods to be created with labels: {0}", labels);
-            pods = cloud.connect().pods().withLabels(labels).list();
-            Thread.sleep(1000);
-        }
+        SemaphoreStep.waitForStart("pod/1", b);
+        PodList pods = cloud.connect().pods().withLabels(labels).list();
+        assertThat(
+                "Expected one pod with labels " + labels + " but got: "
+                        + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
+                pods.getItems(), hasSize(1));
+        SemaphoreStep.success("pod/1", null);
 
         for (String msg : logs.getMessages()) {
             System.out.println(msg);
         }
 
-        assertThat(templates, hasSize(1));
         PodTemplate template = templates.get(0);
         List<PodAnnotation> annotations = template.getAnnotations();
         assertNotNull(annotations);
@@ -123,10 +120,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
 
-        assertThat(
-                "Expected one pod with labels " + labels + " but got: "
-                        + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
-                pods.getItems(), hasSize(1));
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
@@ -317,11 +310,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runWithActiveDeadlineSeconds() throws Exception {
-        r.waitForMessage("podTemplate", b);
-
+        SemaphoreStep.waitForStart("podTemplate/1", b);
         PodTemplate deadlineTemplate = cloud.getAllTemplates().stream().filter(x -> name.getMethodName().equals(x.getLabel())).findAny().orElse(null);
-
         assertNotNull(deadlineTemplate);
+        SemaphoreStep.success("podTemplate/1", null);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
         r.assertLogNotContains("Hello from container!", b);
     }
