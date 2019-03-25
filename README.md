@@ -75,7 +75,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax
@@ -86,7 +86,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.10-1-alpine'
+    image: 'jenkins/jnlp-slave:3.27-1-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
