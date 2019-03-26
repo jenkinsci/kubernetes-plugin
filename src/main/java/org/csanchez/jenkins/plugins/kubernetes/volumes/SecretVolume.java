@@ -24,30 +24,36 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class SecretVolume extends PodVolume {
+    private static final String DEFAULT_MODE = "420";
 
     private String mountPath;
     private String secretName;
+    private String defaultMode;
 
     @DataBoundConstructor
-    public SecretVolume(String mountPath, String secretName) {
+    public SecretVolume(String mountPath, String secretName, String defaultMode) {
         this.mountPath = mountPath;
         this.secretName = secretName;
+        this.defaultMode = defaultMode;
+    }
+
+    public SecretVolume(String mountPath, String secretName) {
+        this(mountPath, secretName, DEFAULT_MODE);
     }
 
     @Override
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder()
                 .withName(volumeName)
-                .withNewSecret().withSecretName(getSecretName()).endSecret()
+                .withNewSecret().withSecretName(getSecretName()).withDefaultMode(Integer.parseInt(defaultMode)).endSecret()
                 .build();
     }
 
@@ -60,9 +66,13 @@ public class SecretVolume extends PodVolume {
         return mountPath;
     }
 
+    public String getDefaultMode() {
+        return defaultMode;
+    }
+
     @Override
     public String toString() {
-        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName + "]";
+        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName + ", defaultMode=" + defaultMode + "]";
     }
 
     @Extension
