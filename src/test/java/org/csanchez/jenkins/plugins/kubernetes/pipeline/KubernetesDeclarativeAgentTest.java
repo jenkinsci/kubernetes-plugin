@@ -42,14 +42,6 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
-    @Rule
-    public TestName name = new TestName();
-
-    @Override
-    protected TestName getTestName() {
-        return name;
-    }
-
     @Issue("JENKINS-41758")
     @Test
     public void declarative() throws Exception {
