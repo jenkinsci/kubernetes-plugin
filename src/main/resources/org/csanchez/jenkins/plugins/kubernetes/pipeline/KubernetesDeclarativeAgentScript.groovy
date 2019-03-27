@@ -36,37 +36,32 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
     @Override
     public Closure run(Closure body) {
         return {
-            try {
-                if ((describable.getYamlFile() != null) && (describable.hasScmContext(script))) {
-                    describable.setYaml(script.readTrusted(describable.getYamlFile()))
-                }
-                script.podTemplate(describable.asArgs) {
-                    script.node(describable.label) {
-                        CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
-                            // what container to use for the main body
-                            def container = describable.defaultContainer ?: 'jnlp'
+            if ((describable.getYamlFile() != null) && (describable.hasScmContext(script))) {
+                describable.setYaml(script.readTrusted(describable.getYamlFile()))
+            }
+            script.podTemplate(describable.asArgs) {
+                script.node(describable.label) {
+                    CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
+                        // what container to use for the main body
+                        def container = describable.defaultContainer ?: 'jnlp'
 
-                            if (describable.containerTemplate != null) {
-                                // run inside the container declared for backwards compatibility
-                                container = describable.containerTemplate.asArgs
-                            }
+                        if (describable.containerTemplate != null) {
+                            // run inside the container declared for backwards compatibility
+                            container = describable.containerTemplate.asArgs
+                        }
 
-                            // call the main body
-                            if (container == 'jnlp') {
-                                // If default container is not changed by the pipeline user,
-                                // do not enclose the body with a `container` statement.
+                        // call the main body
+                        if (container == 'jnlp') {
+                            // If default container is not changed by the pipeline user,
+                            // do not enclose the body with a `container` statement.
+                            body.call()
+                        } else {
+                            script.container(container) {
                                 body.call()
-                            } else {
-                                script.container(container) {
-                                    body.call()
-                                }
                             }
-                        }.call()
-                    }
+                        }
+                    }.call()
                 }
-            } catch (Exception e) {
-                script.getProperty("currentBuild").result = Result.FAILURE
-                throw e
             }
         }
     }

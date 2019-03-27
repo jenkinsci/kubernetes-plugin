@@ -75,6 +75,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
+
+    private static final String WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+            + ".websocketConnectionTimeout";
+    /** time to wait in seconds for websocket to connect */
+    private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
+            .getInteger(WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY, 30);
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
@@ -262,7 +268,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     return new CachedProc(processes.get(p));
                 }
 
-                waitUntilContainerIsReady();
+                waitUntilPodContainersAreReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
@@ -344,13 +350,23 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
 
+                boolean hasStarted = false;
                 try {
-                    started.await();
+                    // prevent a wait forever if the connection is closed as the listener would never be called
+                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     closeWatch(watch);
                     throw new IOException(
                             "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
                             e);
+                }
+
+                if (!hasStarted) {
+                    closeWatch(watch);
+                    throw new IOException("Timed out waiting for websocket connection. "
+                            + "You should increase the value of system property "
+                            + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                            + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
                 }
 
                 try {
@@ -433,12 +449,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
             }
 
-            private void waitUntilContainerIsReady() throws IOException {
-                LOGGER.log(Level.FINEST, "Waiting until container is ready: {0}/{1}",
+            private void waitUntilPodContainersAreReady() throws IOException {
+                LOGGER.log(Level.FINEST, "Waiting until pod containers are ready: {0}/{1}",
                         new String[] { namespace, podName });
                 try {
                     Pod pod = client.pods().inNamespace(namespace).withName(podName)
                             .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
+                    LOGGER.log(Level.FINEST, "Pod is ready: {0}/{1}", new String[] { namespace, podName });
 
                     if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
                         throw new IOException("Failed to execute shell script inside container " +

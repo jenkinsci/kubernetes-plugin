@@ -359,6 +359,7 @@ public class KubernetesCloud extends Cloud {
         return readTimeout;
     }
 
+    @DataBoundSetter
     public void setReadTimeout(int readTimeout) {
         this.readTimeout = readTimeout;
     }
@@ -401,6 +402,7 @@ public class KubernetesCloud extends Cloud {
         return maxRequestsPerHost;
     }
 
+    @DataBoundSetter
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = connectTimeout;
     }

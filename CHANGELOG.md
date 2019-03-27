@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.14.9
+------
+* Fix `connectTimeout` and `readTimeout` not being persisted [#439](https://github.com/jenkinsci/kubernetes-plugin/pull/439) [#442](https://github.com/jenkinsci/kubernetes-plugin/pull/442) [JENKINS-53532](https://issues.jenkins-ci.org/browse/JENKINS-53532)
+
 1.14.8
 ------
 * Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
