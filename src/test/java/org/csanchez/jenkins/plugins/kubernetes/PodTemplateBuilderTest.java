@@ -118,6 +118,33 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void testBuildWithPVCTemplates() throws Exception {
+        PodTemplate template = new PodTemplate();
+        PvcTemplate pvc_template = new PvcTemplate(
+            "/home/jenkins", "pvc-claim", "default",
+            50, PvcTemplate.StorageUnit.Gi, PvcTemplate.AccessMode.ReadWriteOnce
+        );
+        template.getPvcTemplates().add(pvc_template);
+        ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
+        containerTemplate.setWorkingDir("");
+        template.getContainers().add(containerTemplate);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        List<Container> containers = pod.getSpec().getContainers();
+        assertEquals(2, containers.size());
+        Container container0 = containers.get(0);
+        Container container1 = containers.get(0);
+
+        String pod_name = pod.getMetadata().getName();
+
+        ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
+            .withMountPath("/home/jenkins").withName("claim-0-" + pod_name).withReadOnly(false).build()
+        );
+        assertEquals(volumeMounts, container0.getVolumeMounts());
+        assertEquals(volumeMounts, container1.getVolumeMounts());
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
