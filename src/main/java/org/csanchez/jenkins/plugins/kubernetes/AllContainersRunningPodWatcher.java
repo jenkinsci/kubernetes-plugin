@@ -25,7 +25,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.joining;
@@ -226,14 +225,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         podId = podId.substring(0, podId.lastIndexOf("-"));
         //logger.log(INFO,"Comparing: " + taskLabel + " | " + podId);
         return taskLabel.equals(podId);
-    }
-
-    private String extractLogRecord(List<LogRecord> logs) {
-        StringBuffer msg = new StringBuffer("");
-        for (LogRecord l : logs) {
-            msg.append(l.getLoggerName() + ", ");
-        }
-        return msg.toString();
     }
 
     private void writeStream(Run<?, ?> run, String msg) throws IOException {
