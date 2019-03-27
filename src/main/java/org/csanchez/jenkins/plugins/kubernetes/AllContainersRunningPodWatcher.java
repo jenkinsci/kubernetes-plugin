@@ -1,9 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.model.Job;
-import hudson.model.Label;
-import hudson.model.Queue;
-import hudson.model.Run;
+import hudson.model.*;
 import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -13,6 +10,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,6 +26,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.joining;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 
 /**
@@ -45,10 +46,14 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private PodStatus podStatus;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
+    @Nonnull
+    private final TaskListener runListener;
+
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
+        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 
@@ -87,8 +92,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                 if (waitingState != null) {
                     String waitingStateMsg = waitingState.getMessage();
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
-                        LOGGER.log(Level.INFO, "Unable to pull Docker image");
-
+                        runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
                         Jenkins jenkins = Jenkins.getInstanceOrNull();
                         if (jenkins != null) {
                             Queue q = jenkins.getQueue();
@@ -101,15 +105,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                                         LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
                                         break;
                                     }
-                                    Run run = getCorrespondingJobBuild(jenkins.allItems(Job.class).iterator(), jobName, getBuildNumber(itemTaskName));
-                                    if (run != null) {
-                                        try {
-                                            writeStream(run, "ERROR: Unable to pull Docker image. Check if image name is spelled correctly");
-                                        }
-                                        catch (IOException e) {
-                                            LOGGER.log(Level.WARNING, "ERROR: Unable to print bad Docker image error message to build console");
-                                        }
-                                    }
                                     q.cancel(item);
                                     break;
                                 }
@@ -117,8 +112,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                         }
                     }
                     return false;
-
-
                 }
                 if (containerStatus.getState().getTerminated() != null) {
                     return false;
@@ -156,15 +149,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     }
 
-    /**
-     * Wait until all pod containers are running
-     * 
-     * @return the pod
-     * @throws IllegalStateException
-     *             if pod or containers are no longer running
-     * @throws KubernetesClientTimeoutException
-     *             if time ran out
-     */
     public Pod await(long amount, TimeUnit timeUnit) {
         long started = System.currentTimeMillis();
         long alreadySpent = System.currentTimeMillis() - started;
@@ -191,15 +175,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
     }
 
-    /**
-     * Wait until all pod containers are running
-     * 
-     * @return the pod
-     * @throws IllegalStateException
-     *             if pod or containers are no longer running
-     * @throws KubernetesClientTimeoutException
-     *             if time ran out
-     */
     private Pod periodicAwait(int i, long started, long interval, long amount) {
         Pod pod = client.pods().inNamespace(this.pod.getMetadata().getNamespace())
                 .withName(this.pod.getMetadata().getName()).get();
