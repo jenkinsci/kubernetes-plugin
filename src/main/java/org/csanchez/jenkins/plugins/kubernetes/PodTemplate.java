@@ -124,6 +124,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String yaml;
 
+    private boolean showRawYaml;
+
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
 
@@ -148,6 +150,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYaml(from.getYaml());
+        this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
         this.setPodRetention(from.getPodRetention());
     }
@@ -680,6 +683,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getContainersDescriptionForLogging());
     }
 
+    public boolean isShowRawYaml() {
+        return showRawYaml;
+    }
+
+    @DataBoundSetter
+    public void setShowRawYaml(boolean showRawYaml) {
+        this.showRawYaml = showRawYaml;
+    }
+
     private String getContainersDescriptionForLogging() {
         List<ContainerTemplate> containers = getContainers();
         StringBuilder sb = new StringBuilder();
@@ -695,10 +707,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             }
             sb.append("\n");
         }
-        if (StringUtils.isNotBlank(getYaml())) {
+        if (StringUtils.isNotBlank(getYaml()) && isShowRawYaml()) {
             sb.append("yaml:\n")
-                    .append(getYaml())
-                    .append("\n");
+              .append(getYaml())
+              .append("\n");
         }
         return sb.toString();
     }
