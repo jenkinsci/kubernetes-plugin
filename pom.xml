@@ -43,6 +43,7 @@
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost />
+    <jenkins.host.address/>
     <java.level>8</java.level>
     <jenkins.version>2.138.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
@@ -307,6 +308,8 @@
             <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
+            <!-- have pods connect to this address for Jenkins -->
+            <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -353,5 +356,15 @@
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <profiles>
+    <profile>
+      <id>microk8s</id>
+      <properties>
+        <connectorHost>10.1.1.1</connectorHost>
+        <jenkins.host.address>10.1.1.1</jenkins.host.address>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

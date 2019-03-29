@@ -632,6 +632,13 @@ system property to the (host-only or NAT) IP of your host:
 
     mvn clean install -Djenkins.host.address=192.168.99.1
 
+### Integration Tests with Microk8s
+
+If [Microk8s](https://microk8s.io/) is running and is the default context in your `~/.kube/config`,
+just run as
+
+    mvn clean install -Pmicrok8s
+
 ### Integration Tests in a Different Cluster
 
 Ensure you create the namespaces and roles with the following commands, then run the tests

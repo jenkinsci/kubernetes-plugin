@@ -105,6 +105,7 @@ public abstract class AbstractKubernetesPipelineTest {
         if (hostAddress == null) {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         }
+        System.err.println("Calling home to address: " + hostAddress);
         URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
                 url.getFile());
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
