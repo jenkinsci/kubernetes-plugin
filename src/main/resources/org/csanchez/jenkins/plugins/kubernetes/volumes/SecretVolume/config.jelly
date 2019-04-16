@@ -10,4 +10,8 @@
     <f:textbox />
   </f:entry>
 
+  <f:entry title="${%Default mode}" field="defaultMode">
+    <f:textbox />
+  </f:entry>
+
 </j:jelly>
