@@ -7,6 +7,13 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+
+1.15.0
+------
+* Allow Setting Default Mode In Secret Volumes [#452](https://github.com/jenkinsci/kubernetes-plugin/pull/452)
+* Prevent a wait forever if websocket is not connected [#436](https://github.com/jenkinsci/kubernetes-plugin/pull/436)
+* Don't set build result in Declarative agent blocks [#445](https://github.com/jenkinsci/kubernetes-plugin/pull/445) [JENKINS-56544](https://issues.jenkins-ci.org/browse/JENKINS-56544)
+
 1.14.9
 ------
 * Fix `connectTimeout` and `readTimeout` not being persisted [#439](https://github.com/jenkinsci/kubernetes-plugin/pull/439) [#442](https://github.com/jenkinsci/kubernetes-plugin/pull/442) [JENKINS-53532](https://issues.jenkins-ci.org/browse/JENKINS-53532)
