@@ -48,13 +48,14 @@
     <no-test-jar>false</no-test-jar>
     <surefire.rerunFailingTestsCount>1</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
+    <slf4jVersion>1.7.26</slf4jVersion>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
-      <version>4.1.3</version>
+      <version>4.2.1</version>
       <exclusions>
         <!-- Jackson logic comes from plugins -->
         <exclusion>
