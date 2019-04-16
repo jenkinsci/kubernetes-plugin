@@ -1,1 +1,1 @@
-buildPlugin(configurations: buildPlugin.recommendedConfigurations())
+buildPlugin(configurations: buildPlugin.recommendedConfigurations().findAll { it.platform == 'linux' })
