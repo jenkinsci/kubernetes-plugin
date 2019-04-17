@@ -359,6 +359,13 @@
 
   <profiles>
     <profile>
+      <id>docker</id>
+      <properties>
+        <connectorHost>192.168.1.27</connectorHost>
+        <jenkins.host.address>192.168.1.27</jenkins.host.address>
+      </properties>
+    </profile>
+    <profile>
       <id>microk8s</id>
       <properties>
         <connectorHost>10.1.1.1</connectorHost>
