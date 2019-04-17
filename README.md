@@ -75,7 +75,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax
@@ -86,7 +86,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.10-1-alpine'
+    image: 'jenkins/jnlp-slave:3.27-1-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -167,7 +167,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **command** The command the container will execute.
 * **args** The arguments passed to the command.
 * **ttyEnabled** Flag to mark that tty should be enabled.
-* **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not suppot httpGet liveness probes)
+* **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not support httpGet liveness probes)
 * **ports** Expose ports on the container.
 
 #### Specifying a different default agent connection timeout

@@ -75,9 +75,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final long serialVersionUID = 4419929753433397655L;
     private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
     private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
+
+    private static final String WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+            + ".websocketConnectionTimeout";
     /** time to wait in seconds for websocket to connect */
     private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
-            .getInteger(ContainerExecDecorator.class.getName() + ".websocketConnectionTimeout", 5);
+            .getInteger(WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY, 30);
     private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
@@ -286,7 +289,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     return new CachedProc(processes.get(p));
                 }
 
-                waitUntilContainerIsReady();
+                waitUntilPodContainersAreReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
@@ -381,8 +384,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 if (!hasStarted) {
                     closeWatch(watch);
-                    throw new IOException(
-                            "Websocket connection was not established. This probably means the connection was closed already");
+                    throw new IOException("Timed out waiting for websocket connection. "
+                            + "You should increase the value of system property "
+                            + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                            + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
                 }
 
                 try {
@@ -466,8 +471,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
             }
 
-            private void waitUntilContainerIsReady() throws IOException {
-                LOGGER.log(Level.FINEST, "Waiting until pod is ready: {0}/{1}",
+            private void waitUntilPodContainersAreReady() throws IOException {
+                LOGGER.log(Level.FINEST, "Waiting until pod containers are ready: {0}/{1}",
                         new String[] { getNamespace(), getPodName() });
                 try {
                     Pod pod = getClient().pods().inNamespace(getNamespace()).withName(getPodName())

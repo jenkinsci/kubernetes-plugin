@@ -24,30 +24,45 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.SecretVolumeSource;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 public class SecretVolume extends PodVolume {
-
     private String mountPath;
     private String secretName;
+    private String defaultMode;
 
     @DataBoundConstructor
-    public SecretVolume(String mountPath, String secretName) {
+    public SecretVolume(String mountPath, String secretName, String defaultMode) {
         this.mountPath = mountPath;
         this.secretName = secretName;
+        this.defaultMode = defaultMode;
+    }
+
+    public SecretVolume(String mountPath, String secretName) {
+        this(mountPath, secretName, null);
     }
 
     @Override
     public Volume buildVolume(String volumeName) {
+        SecretVolumeSource secretVolumeSource = new SecretVolumeSource();
+        secretVolumeSource.setSecretName(getSecretName());
+
+        if (StringUtils.isNotBlank(defaultMode)) {
+            secretVolumeSource.setDefaultMode(Integer.parseInt(getDefaultMode()));
+        }
+
         return new VolumeBuilder()
                 .withName(volumeName)
-                .withNewSecret().withSecretName(getSecretName()).endSecret()
+                .withNewSecretLike(secretVolumeSource)
+                .endSecret()
                 .build();
     }
 
@@ -60,9 +75,14 @@ public class SecretVolume extends PodVolume {
         return mountPath;
     }
 
+    public String getDefaultMode() {
+        return defaultMode;
+    }
+
     @Override
     public String toString() {
-        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName + "]";
+        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName
+                + ", defaultMode=" + defaultMode + "]";
     }
 
     @Extension
