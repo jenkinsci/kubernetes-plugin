@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -125,7 +126,7 @@ public class RestartPipelineTest {
         URL url = story.j.getURL();
 
         String hostAddress = System.getProperty("jenkins.host.address");
-        if (hostAddress == null) {
+        if (StringUtils.isBlank(hostAddress)) {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         }
         System.err.println("Calling home to address: " + hostAddress);
