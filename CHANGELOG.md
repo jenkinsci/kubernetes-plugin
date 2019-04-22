@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.15.2
+------
+* Merge pod templates definitions from yaml, fix issue with missing yaml in UI [#456](https://github.com/jenkinsci/kubernetes-plugin/pull/456) [JENKINS-57112](https://issues.jenkins-ci.org/browse/JENKINS-57112)
+
 1.15.1
 ------
 * Merge pod templates definitions from yaml [#449](https://github.com/jenkinsci/kubernetes-plugin/pull/449) [JENKINS-56082](https://issues.jenkins-ci.org/browse/JENKINS-56082)
