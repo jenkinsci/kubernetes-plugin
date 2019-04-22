@@ -93,7 +93,9 @@ public class PodTemplateBuilderTest {
     public void testBuildWithoutSlave() throws Exception {
         slave = null;
         PodTemplate template = new PodTemplate();
-        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        String yaml = loadYamlFile("pod-busybox.yaml");
+        template.setYaml(yaml);
+        assertEquals(yaml,template.getYaml());
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod);
     }

@@ -615,12 +615,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * @deprecated Use getYamls instead.
-     * @return
+     * @return The first yaml fragment for this pod template
      */
-    @Deprecated
+    @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
-        return yaml;
+        return yamls.isEmpty() ? null : yamls.get(0);
     }
 
     @DataBoundSetter
@@ -821,7 +820,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
-                (yaml == null ? "" : ", yaml=" + yaml) +
+                (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls) +
                 '}';
     }
 }
