@@ -113,7 +113,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 throw new AbortException(Messages.RFC1123_error(container.getName()));
             }
         }
-        Collection<String> errors = PodTemplateUtils.validateYamlContainerNames(newTemplate.getYaml());
+        Collection<String> errors = PodTemplateUtils.validateYamlContainerNames(newTemplate.getYamls());
         if (!errors.isEmpty()) {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }

@@ -206,17 +206,21 @@ public class PodTemplateUtilsTest {
         parent.setServiceAccount("sa");
         parent.setNodeSelector("key:value");
         parent.setImagePullSecrets(asList(SECRET_1));
+        parent.setYaml("Yaml");
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
         template1.setInheritFrom("parent");
         template1.setServiceAccount("sa1");
         template1.setImagePullSecrets(asList(SECRET_2, SECRET_3));
+        template1.setYaml("Yaml2");
 
         PodTemplate result = unwrap(template1, asList(parent, template1));
         assertEquals(3, result.getImagePullSecrets().size());
         assertEquals("sa1", result.getServiceAccount());
         assertEquals("key:value", result.getNodeSelector());
+        assertThat(result.getYamls(), hasSize(2));
+        assertThat(result.getYamls(), contains("Yaml", "Yaml2"));
     }
 
     @Test
@@ -240,21 +244,21 @@ public class PodTemplateUtilsTest {
 
         PodTemplate selfCombined = combine(podTemplate, podTemplate);
 
-        assertEquals("Name", podTemplate.getName());
-        assertEquals("NameSpace", podTemplate.getNamespace());
-        assertEquals("Label", podTemplate.getLabel());
-        assertEquals("ServiceAccount", podTemplate.getServiceAccount());
-        assertEquals("NodeSelector", podTemplate.getNodeSelector());
-        assertEquals(Node.Mode.EXCLUSIVE, podTemplate.getNodeUsageMode());
-        assertEquals(asList(SECRET_1), podTemplate.getImagePullSecrets());
-        assertEquals("Inherit", podTemplate.getInheritFrom());
-        assertEquals(99, podTemplate.getInstanceCap());
-        assertEquals(99, podTemplate.getSlaveConnectTimeout());
-        assertEquals(99, podTemplate.getIdleMinutes());
-        assertEquals(99, podTemplate.getActiveDeadlineSeconds());
-        assertEquals("ServiceAccount", podTemplate.getServiceAccount());
-        assertEquals(true, podTemplate.isCustomWorkspaceVolumeEnabled());
-        assertEquals("Yaml", podTemplate.getYaml());
+        assertEquals("Name", selfCombined.getName());
+        assertEquals("NameSpace", selfCombined.getNamespace());
+        assertEquals("Label", selfCombined.getLabel());
+        assertEquals("ServiceAccount", selfCombined.getServiceAccount());
+        assertEquals("NodeSelector", selfCombined.getNodeSelector());
+        assertEquals(Node.Mode.EXCLUSIVE, selfCombined.getNodeUsageMode());
+        assertEquals(asList(SECRET_1), selfCombined.getImagePullSecrets());
+        assertEquals("Inherit", selfCombined.getInheritFrom());
+        assertEquals(99, selfCombined.getInstanceCap());
+        assertEquals(99, selfCombined.getSlaveConnectTimeout());
+        assertEquals(99, selfCombined.getIdleMinutes());
+        assertEquals(99, selfCombined.getActiveDeadlineSeconds());
+        assertEquals("ServiceAccount", selfCombined.getServiceAccount());
+        assertEquals(true, selfCombined.isCustomWorkspaceVolumeEnabled());
+        assertThat(selfCombined.getYamls(), hasItems("Yaml", "Yaml"));
     }
 
     @Test
