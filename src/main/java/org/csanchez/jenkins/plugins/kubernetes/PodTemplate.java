@@ -127,7 +127,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     private transient String yaml;
 
-    @Nonnull
     private List<String> yamls = new ArrayList<>();
 
     @CheckForNull
