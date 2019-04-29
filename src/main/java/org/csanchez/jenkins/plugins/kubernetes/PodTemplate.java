@@ -27,7 +27,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -128,7 +127,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     private transient String yaml;
 
-    private List<String> yamls;
+    @Nonnull
+    private List<String> yamls = new ArrayList<>();
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -512,7 +512,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.getNodeProperties().addAll(properties);
     }
 
-    @NonNull
+    @Nonnull
     public PodTemplateToolLocation getNodeProperties(){
         if( this.nodeProperties == null)
             this.nodeProperties = new PodTemplateToolLocation(this);
@@ -619,7 +619,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
-        return yamls.isEmpty() ? null : yamls.get(0);
+        return yamls == null || yamls.isEmpty() ? null : yamls.get(0);
     }
 
     @DataBoundSetter
@@ -632,6 +632,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
+    @Nonnull
     public List<String> getYamls() {
         if (yamls ==null) {
             return Collections.emptyList();
