@@ -3,7 +3,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.42</version>
+    <version>3.43</version>
+    <relativePath />
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
