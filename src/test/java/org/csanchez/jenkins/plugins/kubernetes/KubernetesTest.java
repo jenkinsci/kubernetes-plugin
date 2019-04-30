@@ -106,8 +106,10 @@ public class KubernetesTest {
     public void upgradeFrom_0_12() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
         assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
-                new KeyValueEnvVar("pod_b_key", "pod_b_value")), templates.get(0).getEnvVars());
+                new KeyValueEnvVar("pod_b_key", "pod_b_value")), template.getEnvVars());
+        assertEquals(Collections.emptyList(), template.getYamls());
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
