@@ -50,6 +50,7 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jvnet.hudson.test.Issue;
 
 /**
@@ -341,8 +342,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void terminatedPod() throws Exception {
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.assertLogContains(" was removed", b);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
 }
