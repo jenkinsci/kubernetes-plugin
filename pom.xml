@@ -50,6 +50,7 @@
     <surefire.rerunFailingTestsCount>1</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
     <workflow-support-plugin.version>3.1</workflow-support-plugin.version>
+    <workflow-step-api-plugin.version>2.18</workflow-step-api-plugin.version>
   </properties>
 
   <dependencies>
@@ -105,7 +106,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>2.18</version>
+      <version>${workflow-step-api-plugin.version}</version>
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -130,7 +131,7 @@
     <dependency> <!-- StepConfigTester -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>2.17</version>
+      <version>${workflow-step-api-plugin.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
