@@ -39,6 +39,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.base.Throwables;
+import hudson.model.Slave;
 
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
@@ -46,6 +47,7 @@ import hudson.slaves.SlaveComputer;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -157,6 +159,22 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     public AllContainersRunningPodWatcher getWatcher() {
         return watcher;
+    }
+
+    @Override
+    public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
+        // TODO can this be done only if the pod is dead?
+        Slave node = computer.getNode();
+        if (node != null) {
+            try {
+                Jenkins.get().removeNode(node);
+                LOGGER.info(() -> "Removed disconnected agent " + node.getNodeName());
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, x, () -> "Unable to remove Jenkins node " + node.getNodeName());
+            }
+        } else {
+            LOGGER.fine(() -> "Could not find disconnected agent " + computer.getName() + " to remove");
+        }
     }
 
 }
