@@ -24,6 +24,7 @@ import hudson.slaves.Cloud;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
@@ -76,7 +77,10 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             String name = ks.getPodName();
             try {
                 // TODO more efficient to do a single (or paged) list request, but tricky since there may be multiple clouds,
-                // and even within a single cloud an agent pod is permitted to use a nondefault namespace
+                // and even within a single cloud an agent pod is permitted to use a nondefault namespace,
+                // yet we do not want to do an unnamespaced pod list for RBAC reasons.
+                // Could use a hybrid approach: first list all pods in the configured namespace for all clouds;
+                // then go back and individually check any unmatched agents with their configured namespace.
                 if (ks.getKubernetesCloud().connect().pods().inNamespace(ns).withName(name).get() == null) {
                     LOGGER.info(() -> ns + "/" + name + " seems to have been deleted, so removing corresponding Jenkins agent");
                     Jenkins.get().removeNode(ks);
@@ -94,7 +98,8 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             }
             KubernetesCloud kc = (KubernetesCloud) c;
             try {
-                kc.connect().pods().inAnyNamespace().watch(this);
+                KubernetesClient client = kc.connect();
+                client.pods().inNamespace(client.getNamespace()).watch(this);
             } catch (Exception x) {
                 LOGGER.log(Level.WARNING, "failed to set up watcher on " + kc.getDisplayName(), x);
             }
