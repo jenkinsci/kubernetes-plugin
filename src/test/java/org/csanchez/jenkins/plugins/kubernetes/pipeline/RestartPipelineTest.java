@@ -56,11 +56,15 @@ import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
 
 import hudson.model.Node;
+import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
 import jenkins.model.JenkinsLocationConfiguration;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -184,6 +188,37 @@ public class RestartPipelineTest {
         story.then(r -> {
             WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+        });
+    }
+
+    @Issue("JENKINS-49707")
+    @Test
+    public void terminatedPodAfterRestart() throws Exception {
+        story.then(r -> {
+            configureCloud();
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            p.setDefinition(new CpsFlowDefinition(loadPipelineScript("terminatedPodAfterRestart.groovy"), true));
+            WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+            r.waitForMessage("+ sleep", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
+            r.waitForMessage("Ready to run", b);
+            // Note that the test is cheating here slightly.
+            // The watch in Reaper is still running across the in-JVM restarts,
+            // whereas in production it would have been cancelled during the shutdown.
+            // But it does not matter since we are waiting for the agent to come back online after the restart,
+            // which is sufficient trigger to reactivate the reaper.
+            // Indeed we get two Reaper instances running, which independently remove the node.
+            deletePods(cloud.connect(), getLabels(this, name), false);
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+            while (!JenkinsRule.getLog(b).contains(new ExecutorStepExecution.RemovedNodeCause().getShortDescription())) {
+                // TODO JenkinsRule.waitForMessage has a race condition w.r.t. the termination cause printed by WorkflowRun.finish
+                Thread.sleep(100);
+            }
+            // Currently the logic in ExecutorStepExecution cannot handle a Jenkins restart so it prints the following.
+            // It does not matter since DurableTaskStep redundantly implements the same check.
+            r.assertLogContains(" was deleted, but do not have a node body to cancel", b);
         });
     }
 
