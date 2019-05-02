@@ -285,7 +285,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.8.1</version>
+        <version>3.9</version>
       </dependency>
       <!-- force kubernetes-client dependency to match jackson2-api plugin version -->
       <dependency>
