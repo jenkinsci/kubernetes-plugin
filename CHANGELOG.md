@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.15.3
+------
+* Wait for agent to connect on provisioning to avoid multiple Pod launches [#455](https://github.com/jenkinsci/kubernetes-plugin/pull/455) [JENKINS-56347](https://issues.jenkins-ci.org/browse/JENKINS-56347)
+* Always initialize `yamls` field [#460](https://github.com/jenkinsci/kubernetes-plugin/pull/460) [JENKINS-57214](https://issues.jenkins-ci.org/browse/JENKINS-57214)
+
 1.15.2
 ------
 * Merge pod templates definitions from yaml, fix issue with missing yaml in UI [#456](https://github.com/jenkinsci/kubernetes-plugin/pull/456) [JENKINS-57112](https://issues.jenkins-ci.org/browse/JENKINS-57112)
