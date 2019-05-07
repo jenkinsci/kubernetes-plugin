@@ -111,6 +111,15 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     }
 
+    /**
+     * Wait until all pod containers are running
+     * 
+     * @return the pod
+     * @throws IllegalStateException
+     *             if pod or containers are no longer running
+     * @throws KubernetesClientTimeoutException
+     *             if time ran out
+     */
     public Pod await(long amount, TimeUnit timeUnit) {
         long started = System.currentTimeMillis();
         long alreadySpent = System.currentTimeMillis() - started;
@@ -137,6 +146,15 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
     }
 
+    /**
+     * Wait until all pod containers are running
+     * 
+     * @return the pod
+     * @throws IllegalStateException
+     *             if pod or containers are no longer running
+     * @throws KubernetesClientTimeoutException
+     *             if time ran out
+     */
     private Pod periodicAwait(int i, long started, long interval, long amount) {
         Pod pod = client.pods().inNamespace(this.pod.getMetadata().getNamespace())
                 .withName(this.pod.getMetadata().getName()).get();
