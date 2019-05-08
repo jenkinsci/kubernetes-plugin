@@ -130,7 +130,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<String> yamls;
 
-    private boolean showRawYaml;
+    private Boolean showRawYaml;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -708,6 +708,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             yamls.add(yaml);
             yaml = null;
         }
+
+        if (showRawYaml == null) {
+            showRawYaml = Boolean.TRUE;
+        }
         return this;
     }
 
@@ -729,12 +733,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean isShowRawYaml() {
-        return showRawYaml;
+        return showRawYaml == null ? true : showRawYaml.booleanValue();
     }
 
     @DataBoundSetter
     public void setShowRawYaml(boolean showRawYaml) {
-        this.showRawYaml = showRawYaml;
+        this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
     private String getContainersDescriptionForLogging() {
