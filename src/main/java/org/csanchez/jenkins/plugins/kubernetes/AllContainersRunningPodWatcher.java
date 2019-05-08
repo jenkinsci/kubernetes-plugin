@@ -1,8 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.model.Job;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -11,6 +9,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import jenkins.model.Jenkins;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,13 +42,13 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private PodStatus podStatus;
 
-    private TaskListener k8sLauncherTaskListener;
+//    private TaskListener k8sLauncherTaskListener;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, TaskListener listener) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
-        this.k8sLauncherTaskListener = listener;
+//        this.k8sLauncherTaskListener = listener;
         updateState(pod);
     }
 
@@ -90,8 +89,8 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
                         LOGGER.log(Level.INFO, "Unable to pull Docker image");
 
-                        k8sLauncherTaskListener.error("Unable to pull Docker image. Check if image name is spelled correctly").flush();
-                        /*
+//                        k8sLauncherTaskListener.error("Unable to pull Docker image. Check if image name is spelled correctly").flush();
+
                         Jenkins jenkins = Jenkins.getInstanceOrNull();
                         if (jenkins != null) {
                             Queue q = jenkins.getQueue();
@@ -118,7 +117,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                                 }
                             }
                         }
-                        */
+
                     }
                     return false;
                 }
