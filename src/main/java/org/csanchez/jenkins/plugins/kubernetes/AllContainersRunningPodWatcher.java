@@ -10,7 +10,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
 import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
