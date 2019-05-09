@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.15.4
+------
+* Wait for some time before closing the Kubernetes expired clients [#418](https://github.com/jenkinsci/kubernetes-plugin/pull/418) [JENKINS-55392](https://issues.jenkins-ci.org/browse/JENKINS-55392)
+* Add `showRawYaml` option to (not) show raw yaml in console [#459](https://github.com/jenkinsci/kubernetes-plugin/pull/459) [JENKINS-56121](https://issues.jenkins-ci.org/browse/JENKINS-56121)
+
 1.15.3
 ------
 * Wait for agent to connect on provisioning to avoid multiple Pod launches [#455](https://github.com/jenkinsci/kubernetes-plugin/pull/455) [JENKINS-56347](https://issues.jenkins-ci.org/browse/JENKINS-56347)
