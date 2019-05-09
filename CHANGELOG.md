@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.15.5
+------
+* Fix empty yamls introduced on upgrade to 1.15.1 [#462](https://github.com/jenkinsci/kubernetes-plugin/pull/462) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57116)
+
 1.15.4
 ------
 * Wait for some time before closing the Kubernetes expired clients [#418](https://github.com/jenkinsci/kubernetes-plugin/pull/418) [JENKINS-55392](https://issues.jenkins-ci.org/browse/JENKINS-55392)
