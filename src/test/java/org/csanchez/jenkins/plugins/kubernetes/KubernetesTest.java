@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
@@ -40,6 +41,7 @@ import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
@@ -69,9 +71,19 @@ public class KubernetesTest {
 
     @Before
     public void before() throws Exception {
-        r.configRoundtrip();
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
+    }
+
+    @Test
+    @LocalData()
+    @Issue("JENKINS-57116")
+    public void upgradeFrom_1_15_1() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
+        assertEquals(Collections.emptyList(), template.getYamls());
+        assertNull(template.getYaml());
     }
 
     @Test
@@ -84,6 +96,8 @@ public class KubernetesTest {
         assertEquals(new Default(), template.getPodRetention());
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
         assertTrue(template.isShowRawYaml());
+        assertEquals(Collections.emptyList(), template.getYamls());
+        assertNull(template.getYaml());
     }
 
     @Test
