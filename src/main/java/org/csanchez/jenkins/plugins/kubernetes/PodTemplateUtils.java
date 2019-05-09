@@ -6,6 +6,8 @@ import static java.util.stream.Collectors.*;
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,6 +60,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 
 public class PodTemplateUtils {
 
@@ -505,9 +508,19 @@ public class PodTemplateUtils {
     }
 
     public static Pod parseFromYaml(String yaml) {
+        String s = yaml;
         try (KubernetesClient client = new DefaultKubernetesClient()) {
-            Pod podFromYaml = client.pods().load(new ByteArrayInputStream((yaml == null ? "" : yaml).getBytes(UTF_8)))
-                    .get();
+            // JENKINS-57116
+            if (StringUtils.isBlank(s)) {
+                LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);
+                s = "{}";
+            }
+            Pod podFromYaml;
+            try (InputStream is = new ByteArrayInputStream(s.getBytes(UTF_8))) {
+                podFromYaml = client.pods().load(is).get();
+            } catch (IOException | KubernetesClientException e) {
+                throw new RuntimeException(String.format("Failed to parse yaml: \"%s\"", yaml), e);
+            }
             LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
             // yaml can be just a fragment, avoid NPEs
             if (podFromYaml.getMetadata() == null) {

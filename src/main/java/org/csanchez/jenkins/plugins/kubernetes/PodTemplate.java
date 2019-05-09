@@ -13,9 +13,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -26,6 +23,9 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
@@ -709,9 +709,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             yaml = null;
         }
 
+        // JENKINS-57116 remove empty items from yamls
+        if (!yamls.isEmpty() && StringUtils.isBlank(yamls.get(0))) {
+            setYamls(yamls);
+        }
+
         if (showRawYaml == null) {
             showRawYaml = Boolean.TRUE;
         }
+
         return this;
     }
 
