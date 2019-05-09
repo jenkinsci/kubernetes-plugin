@@ -83,6 +83,7 @@ public class KubernetesTest {
         PodTemplate template = templates.get(0);
         assertEquals(new Default(), template.getPodRetention());
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
+        assertTrue(template.isShowRawYaml());
     }
 
     @Test

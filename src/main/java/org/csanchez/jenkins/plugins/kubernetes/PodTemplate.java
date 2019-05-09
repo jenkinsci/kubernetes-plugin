@@ -129,6 +129,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private List<String> yamls = new ArrayList<>();
 
+    private Boolean showRawYaml;
+
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
 
@@ -153,6 +155,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.setYamls(from.getYamls());
+        this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
         this.setPodRetention(from.getPodRetention());
     }
@@ -705,6 +708,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             yamls.add(yaml);
             yaml = null;
         }
+
+        if (showRawYaml == null) {
+            showRawYaml = Boolean.TRUE;
+        }
         return this;
     }
 
@@ -725,6 +732,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getContainersDescriptionForLogging());
     }
 
+    public boolean isShowRawYaml() {
+        return showRawYaml == null ? true : showRawYaml.booleanValue();
+    }
+
+    @DataBoundSetter
+    public void setShowRawYaml(boolean showRawYaml) {
+        this.showRawYaml = Boolean.valueOf(showRawYaml);
+    }
+
     private String getContainersDescriptionForLogging() {
         List<ContainerTemplate> containers = getContainers();
         StringBuilder sb = new StringBuilder();
@@ -740,10 +756,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             }
             sb.append("\n");
         }
-        for (String yaml : getYamls()) {
-            sb.append("yaml:\n")
-                .append(yaml)
-                .append("\n");
+        if (isShowRawYaml()) {
+            for (String yaml : getYamls()) {
+                sb.append("yaml:\n")
+                    .append(yaml)
+                    .append("\n");
+            }
         }
         return sb.toString();
     }
