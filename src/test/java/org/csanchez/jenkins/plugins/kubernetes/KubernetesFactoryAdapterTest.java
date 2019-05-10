@@ -41,8 +41,21 @@ import io.fabric8.kubernetes.client.KubernetesClient;
  */
 public class KubernetesFactoryAdapterTest {
 
-    private static final String[] SYSTEM_PROPERTY_NAMES = new String[] { KUBERNETES_KUBECONFIG_FILE,
-            KUBERNETES_NAMESPACE_FILE };
+    private static final String[] SYSTEM_PROPERTY_NAMES = new String[] { //
+            KUBERNETES_KUBECONFIG_FILE, //
+            KUBERNETES_NAMESPACE_FILE, //
+            KUBERNETES_HTTP_PROXY, //
+            KUBERNETES_HTTPS_PROXY, //
+            KUBERNETES_NO_PROXY, //
+            KUBERNETES_PROXY_USERNAME, //
+            KUBERNETES_PROXY_PASSWORD //
+    };
+
+    private static final String HTTP_PROXY = "http://example.com:123";
+    private static final String HTTPS_PROXY = "https://example.com:123";
+    private static final String NO_PROXY = "noproxy";
+    private static final String PROXY_USERNAME = "proxy_username";
+    private static final String PROXY_PASSWORD = "proxy_password";
 
     private Map<String, String> systemProperties = new HashMap<>();
 
@@ -53,6 +66,13 @@ public class KubernetesFactoryAdapterTest {
             // use bogus values to avoid influence from environment
             System.setProperty(key, "src/test/resources/void");
         }
+
+        // proxy system properties
+        System.setProperty(KUBERNETES_HTTP_PROXY, HTTP_PROXY);
+        System.setProperty(KUBERNETES_HTTPS_PROXY, HTTPS_PROXY);
+        System.setProperty(KUBERNETES_NO_PROXY, NO_PROXY);
+        System.setProperty(KUBERNETES_PROXY_USERNAME, PROXY_USERNAME);
+        System.setProperty(KUBERNETES_PROXY_PASSWORD, PROXY_PASSWORD);
     }
 
     @After
@@ -75,10 +95,26 @@ public class KubernetesFactoryAdapterTest {
     }
 
     @Test
-    public void autoConfigNamespace() throws Exception {
+    public void autoConfig() throws Exception {
         System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter(null, null, null, false);
         KubernetesClient client = factory.createClient();
         assertEquals("test-namespace", client.getNamespace());
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+    }
+
+    @Test
+    public void autoConfigWithMasterUrl() throws Exception {
+        KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://example.com", null, null, false);
+        KubernetesClient client = factory.createClient();
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
     }
 }
