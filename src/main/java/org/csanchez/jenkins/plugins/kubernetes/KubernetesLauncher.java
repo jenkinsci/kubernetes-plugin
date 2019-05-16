@@ -109,10 +109,11 @@ public class KubernetesLauncher extends JNLPLauncher {
             LOGGER.log(Level.FINE, "Creating Pod: {0} in namespace {1}", new Object[]{podId, namespace});
             pod = client.pods().inNamespace(namespace).create(pod);
             LOGGER.log(INFO, "Created Pod: {0} in namespace {1}", new Object[]{podId, namespace});
-            listener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
+            TaskListener runListener = template.getListener();
+            runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
-            watcher = new AllContainersRunningPodWatcher(client, pod); //listener);
+            watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch _ = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)){
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }

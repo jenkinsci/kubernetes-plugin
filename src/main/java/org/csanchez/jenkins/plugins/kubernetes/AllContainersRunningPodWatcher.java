@@ -42,13 +42,13 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private PodStatus podStatus;
 
-//    private TaskListener k8sLauncherTaskListener;
+    private TaskListener runListener;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, TaskListener runListener) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
-//        this.k8sLauncherTaskListener = listener;
+        this.runListener = runListener;
         updateState(pod);
     }
 
@@ -87,37 +87,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                 if (waitingState != null) {
                     String waitingStateMsg = waitingState.getMessage();
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
-                        LOGGER.log(Level.INFO, "Unable to pull Docker image");
-
-//                        k8sLauncherTaskListener.error("Unable to pull Docker image. Check if image name is spelled correctly").flush();
-
-                        Jenkins jenkins = Jenkins.getInstanceOrNull();
-                        if (jenkins != null) {
-                            Queue q = jenkins.getQueue();
-                            for (Queue.Item item : q.getItems()) {
-                                Label itemLabel = item.getAssignedLabel();
-                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName(), LOGGER)) {
-                                    String itemTaskName = item.task.getFullDisplayName();
-                                    String jobName = getJobName(itemTaskName);
-                                    if (jobName.equals("")) {
-                                        LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-                                        break;
-                                    }
-                                    Run run = getCorrespondingJobBuild(jenkins.allItems(Job.class).iterator(), jobName, getBuildNumber(itemTaskName));
-                                    if (run != null) {
-                                        try {
-                                            writeStream(run, "ERROR: Unable to pull Docker image. Check if image name is spelled correctly");
-                                        }
-                                        catch (IOException e) {
-                                            LOGGER.log(Level.WARNING, "ERROR: Unable to print bad Docker image error message to build console");
-                                        }
-                                    }
-                                    q.cancel(item);
-                                    break;
-                                }
-                            }
-                        }
-
+                        runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
                     }
                     return false;
                 }
