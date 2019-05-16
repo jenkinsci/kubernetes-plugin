@@ -26,6 +26,9 @@ import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.joining;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 
 /**
  * A pod watcher reporting when all containers are running
@@ -42,13 +45,14 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private PodStatus podStatus;
 
-    private TaskListener runListener;
+    @Nonnull
+    private final TaskListener runListener;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, TaskListener runListener) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
-        this.runListener = runListener;
+        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 
