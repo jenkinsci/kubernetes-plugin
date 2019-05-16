@@ -26,6 +26,7 @@ import hudson.AbortException;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -96,6 +97,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
         newTemplate.setAnnotations(step.getAnnotations());
+        newTemplate.setListener(getContext().get(TaskListener.class));
         if(run!=null) {
             newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", ((KubernetesCloud)cloud).getJenkinsUrlOrDie()+run.getUrl()));
         }

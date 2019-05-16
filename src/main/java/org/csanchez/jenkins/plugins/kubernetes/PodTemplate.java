@@ -31,6 +31,16 @@ import org.kohsuke.stapler.DataBoundSetter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
+<<<<<<< HEAD
+=======
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.Saveable;
+import hudson.model.TaskListener;
+>>>>>>> Provide current TaskListener to PodTemplate instance created using the pipeline DSL
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -126,6 +136,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private List<String> yamls = new ArrayList<>();
 
     private Boolean showRawYaml;
+
+    /**
+     * Listener of the run that created this pod template, if applicable
+     */
+    @CheckForNull
+    private transient TaskListener listener;
 
     /**
      * Listener of the run that created this pod template, if applicable
