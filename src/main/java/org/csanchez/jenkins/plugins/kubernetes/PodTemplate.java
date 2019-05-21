@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
+import hudson.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -30,13 +31,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.Saveable;
-import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -130,6 +124,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @CheckForNull
     private transient TaskListener listener;
+    /**
+     * Run that created this pod, used for canceling the Run if issues with creating the Pod
+     */
+    private transient Run run;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
