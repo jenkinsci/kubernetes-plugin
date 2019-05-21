@@ -36,6 +36,7 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Saveable;
+import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -123,6 +124,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private PodTemplateToolLocation nodeProperties;
 
     private String yaml;
+
+    /**
+     * Listener of the run that created this pod template, if applicable
+     */
+    @CheckForNull
+    private transient TaskListener listener;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -627,6 +634,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             podRetention = PodRetention.getPodTemplateDefault();
         }
         this.podRetention = podRetention;
+    }
+
+    @Nonnull
+    public TaskListener getListener() {
+        return listener == null ? TaskListener.NULL : listener;
+    }
+
+    public void setListener(@CheckForNull TaskListener listener) {
+        this.listener = listener;
     }
 
     protected Object readResolve() {
