@@ -96,6 +96,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                         if (jenkins != null) {
                             Queue q = jenkins.getQueue();
                             for (Queue.Item item : q.getItems()) {
+                                runListener.error("QueueItem: " + item.toString());
                                 Label itemLabel = item.getAssignedLabel();
                                 if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName(), LOGGER)) {
                                     String itemTaskName = item.task.getFullDisplayName();
