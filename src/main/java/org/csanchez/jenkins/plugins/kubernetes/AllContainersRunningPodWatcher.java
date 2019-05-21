@@ -48,11 +48,15 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     @Nonnull
     private final TaskListener runListener;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
+    @Nonnull
+    private final Run run;
+
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener, @CheckForNull Run run) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
         this.runListener = runListener == null ? TaskListener.NULL : runListener;
+        this.run = run;
         updateState(pod);
     }
 
@@ -95,10 +99,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                         Jenkins jenkins = Jenkins.getInstanceOrNull();
                         if (jenkins != null) {
                             Queue q = jenkins.getQueue();
-                            runListener.error("Pod: " + pod.toString());
-                            runListener.error("Queue: " + q.toString());
                             for (Queue.Item item : q.getItems()) {
-                                runListener.error("QueueItem: " + item.toString());
                                 Label itemLabel = item.getAssignedLabel();
                                 if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName(), LOGGER)) {
                                     String itemTaskName = item.task.getFullDisplayName();
