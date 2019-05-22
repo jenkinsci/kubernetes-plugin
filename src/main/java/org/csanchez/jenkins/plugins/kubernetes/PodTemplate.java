@@ -124,10 +124,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @CheckForNull
     private transient TaskListener listener;
-    /**
-     * Run that created this pod, used for canceling the Run if issues with creating the Pod
-     */
-    private transient Run run;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
