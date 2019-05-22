@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -48,15 +49,11 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     @Nonnull
     private final TaskListener runListener;
 
-    @Nonnull
-    private final Run run;
-
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener, @CheckForNull Run run) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
         this.runListener = runListener == null ? TaskListener.NULL : runListener;
-        this.run = run;
         updateState(pod);
     }
 
@@ -108,7 +105,10 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                                         LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
                                         break;
                                     }
+                                    runListener.error("QueueItem[Manual]: " + item.toString());
+                                    runListener.error("QueueItem[PassRu]: " + q.getItem(this.run.getQueueId()));
                                     q.cancel(item);
+                                    ExecutorStepExecution
                                     break;
                                 }
                             }
