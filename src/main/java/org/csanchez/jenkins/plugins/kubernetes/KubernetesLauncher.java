@@ -45,7 +45,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-<<<<<<< HEAD
 import javax.annotation.CheckForNull;
 
 import org.apache.commons.lang.StringUtils;
@@ -63,8 +62,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
-=======
->>>>>>> 5273fa6cac78f528bc5d6c7f5570c16497d5bd1b
 import static java.util.logging.Level.INFO;
 
 /**
