@@ -45,6 +45,7 @@ Check on ContainerWaitingState if the Docker image can't be found, prints messag
 
 1.14.8
 ------
+* Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
 * Do not close Kubernetes client after `containerLog` step [#435](https://github.com/jenkinsci/kubernetes-plugin/pull/435) [JENKINS-55392](https://issues.jenkins-ci.org/browse/JENKINS-55392)
 * Upgrade kubernetes-client to 4.1.3. Pass `exec` buffer size using new method [#431](https://github.com/jenkinsci/kubernetes-plugin/pull/431) [JENKINS-50429](https://issues.jenkins-ci.org/browse/JENKINS-50429)
 

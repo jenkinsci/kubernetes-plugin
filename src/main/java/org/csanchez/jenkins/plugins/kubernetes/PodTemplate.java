@@ -31,6 +31,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
+<<<<<<< HEAD
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -38,6 +39,8 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Saveable;
 import hudson.model.TaskListener;
+=======
+>>>>>>> 5273fa6cac78f528bc5d6c7f5570c16497d5bd1b
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.Pod;

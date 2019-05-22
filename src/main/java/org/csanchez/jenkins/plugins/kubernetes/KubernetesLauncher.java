@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+<<<<<<< HEAD
 import javax.annotation.CheckForNull;
 
 import org.apache.commons.lang.StringUtils;
@@ -62,6 +63,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+=======
+>>>>>>> 5273fa6cac78f528bc5d6c7f5570c16497d5bd1b
 import static java.util.logging.Level.INFO;
 
 /**
@@ -129,22 +132,14 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podId });
             pod = client.pods().inNamespace(namespace).create(pod);
-<<<<<<< HEAD
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podId });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
-=======
-            LOGGER.log(INFO, "Created Pod: {0} in namespace {1}", new Object[]{podId, namespace});
->>>>>>> Provide current TaskListener to PodTemplate instance created using the pipeline DSL
             TaskListener runListener = template.getListener();
             runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
-<<<<<<< HEAD
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
-=======
-            try (Watch _ = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)){
->>>>>>> Provide current TaskListener to PodTemplate instance created using the pipeline DSL
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
