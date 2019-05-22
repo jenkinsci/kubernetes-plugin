@@ -97,7 +97,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                             Queue q = jenkins.getQueue();
                             for (Queue.Item item : q.getItems()) {
                                 Label itemLabel = item.getAssignedLabel();
-                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName(), LOGGER)) {
+                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName())) {
                                     String itemTaskName = item.task.getFullDisplayName();
                                     String jobName = getJobName(itemTaskName);
                                     if (jobName.equals("")) {
@@ -211,28 +211,11 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         return podStatus;
     }
 
-    private boolean isCorrespondingLabels(String taskLabel, String podId, Logger logger) {
+    private boolean isCorrespondingLabels(String taskLabel, String podId) {
         int taskLabelLen = taskLabel.length();
         taskLabel = taskLabel.substring(0, taskLabelLen - 2);
         podId = podId.substring(0, podId.lastIndexOf("-"));
-        //logger.log(INFO,"Comparing: " + taskLabel + " | " + podId);
         return taskLabel.equals(podId);
-    }
-
-    private void writeStream(Run<?, ?> run, String msg) throws IOException {
-        String writeMsg = msg + " \n";
-        FileOutputStream writer = null;
-        try {
-            writer = new FileOutputStream(run.getLogFile().getAbsolutePath(), true);
-            writer.write(writeMsg.getBytes(StandardCharsets.UTF_8));
-            writer.close();
-        }
-        catch (IOException e) {
-            if (writer != null) {
-                writer.close();
-            }
-            throw e;
-        }
     }
 
     /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
