@@ -105,10 +105,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                                         LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
                                         break;
                                     }
-                                    runListener.error("QueueItem[Manual]: " + item.toString());
-                                    runListener.error("QueueItem[PassRu]: " + q.getItem(this.run.getQueueId()));
                                     q.cancel(item);
-                                    ExecutorStepExecution
                                     break;
                                 }
                             }
