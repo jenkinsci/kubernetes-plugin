@@ -7,6 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+Unreleased
+----------
+* Explicit inheritance should override implicit inheritance. Declarative k8s template do not inherit from parent pod template by default. [#480](https://github.com/jenkinsci/kubernetes-plugin/pull/480) [JENKINS-57548](https://issues.jenkins-ci.org/browse/JENKINS-57548)
+
 1.15.6
 ------
 * Fix databinding of ContainerTemplate DescribableModel.uninstantiate2 works. [#486](https://github.com/jenkinsci/kubernetes-plugin/pull/486) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57827)
