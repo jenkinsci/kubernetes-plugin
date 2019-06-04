@@ -143,4 +143,16 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("Workspace dir is", b);
     }
+
+    @Issue("JENKINS-57548")
+    @Test
+    public void declarativeWithNestedExplicitInheritance() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with explicit nested inherit");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeWithNestedExplicitInheritance.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogNotContains("go version go1.6.3", b);
+    }
 }
