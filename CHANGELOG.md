@@ -7,6 +7,11 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+1.15.6
+------
+* Fix databinding of ContainerTemplate DescribableModel.uninstantiate2 works. [#486](https://github.com/jenkinsci/kubernetes-plugin/pull/486) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57827)
+* Update jackson dependency to 2.9.9 to address CVE-2019-12086 [#483](https://github.com/jenkinsci/kubernetes-plugin/pull/483)
+
 1.15.5
 ------
 * Fix empty yamls introduced on upgrade to 1.15.1 [#462](https://github.com/jenkinsci/kubernetes-plugin/pull/462) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57116)
