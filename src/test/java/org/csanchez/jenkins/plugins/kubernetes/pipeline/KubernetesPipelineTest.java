@@ -192,6 +192,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void bourneShellElsewhereInPath() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("+ ls -la /", b);
+    }
+
+    @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("[jnlp] jenkins/jnlp-slave:3.10-1-alpine", b);
