@@ -101,7 +101,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.setLivenessProbe(from.getLivenessProbe());
     }
 
-    @DataBoundSetter
     public void setName(String name) {
         this.name = name;
     }
@@ -110,7 +109,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return name;
     }
 
-    @DataBoundSetter
     public void setImage(String image) {
         this.image = image;
     }

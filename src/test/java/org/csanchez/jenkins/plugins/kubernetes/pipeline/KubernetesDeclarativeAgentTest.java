@@ -24,17 +24,25 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import com.google.common.base.Predicates;
+import java.util.List;
+import java.util.Map;
 import static org.junit.Assert.*;
 
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
+import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.FlowScanningUtils;
+import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 
 public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
@@ -42,7 +50,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
-    @Issue("JENKINS-41758")
+    @Issue({"JENKINS-41758", "JENKINS-57827"})
     @Test
     public void declarative() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
@@ -53,6 +61,15 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
+        FlowNode podTemplateNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("podTemplate"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
+        assertNotNull("recorded arguments for podTemplate", podTemplateNode);
+        Map<String, Object> arguments = podTemplateNode.getAction(ArgumentsAction.class).getArguments();
+        @SuppressWarnings("unchecked")
+        List<UninstantiatedDescribable> containers = (List<UninstantiatedDescribable>) arguments.get("containers");
+        assertNotNull(containers);
+        assertFalse("no junk in arguments: " + arguments, containers.get(0).getArguments().containsKey("alwaysPullImage"));
+        FlowNode containerNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("container"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
+        assertNotNull("recorded arguments for container", containerNode);
     }
 
     @Issue("JENKINS-48135")
