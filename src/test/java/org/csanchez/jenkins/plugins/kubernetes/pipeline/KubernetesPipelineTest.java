@@ -47,6 +47,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
@@ -210,6 +211,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("[golang] golang:1.6.3-alpine", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("go version go1.6.3", b);
+    }
+
+    @Issue("JENKINS-57548")
+    @Test
+    public void runInPodNestedExplicitInherit() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
+        r.assertLogNotContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        r.assertLogNotContains("go version go1.6.3", b);
     }
 
     @Test

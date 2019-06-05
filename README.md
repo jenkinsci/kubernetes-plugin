@@ -156,6 +156,7 @@ Either way it provides access to the following fields:
 * **podRetention** Controls the behavior of keeping slave pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
+* **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -310,6 +311,18 @@ slaveTemplates.dockerTemplate {
      }
   }
 }
+```
+
+There are cases where this implicit inheritance via nested declaration is not wanted or another explicit inheritance is preferred.
+In this case, use `inheritFrom ''` to remove any inheritance, or `inheritFrom 'otherParent'` to override it.
+
+```groovy
+    podTemplate(label: 'docker-linux', containers: [containerTemplate(image: 'docker', name: 'docker-linux', command: 'cat', ttyEnabled: true)]) {
+        // Will run on linux node
+        podTemplate(label: 'maven-windows', inheritFrom: '', nodeSelector: 'os:windows', containers: [containerTemplate(image: 'maven-windows-servercore', name: 'maven-windows', command: 'cat', ttyEnabled: true)]) {
+            // Will run on windows node without merging the docker pod
+        }
+    }
 ```
 
 #### Using a different namespace
@@ -484,6 +497,50 @@ pipeline {
     }
   }
 }
+```
+
+### Default inheritance
+Unlike scripted k8s template, declarative templates do not inherit from parent template. You need to explicitly declare the inheritance if necessary.
+In the following example, `nested-pod` will only contain the `maven` container.
+```groovy
+pipeline {
+  agent {
+    kubernetes {
+      label 'parent-pod'
+      yaml """
+spec:
+  containers:
+  - name: golang
+    image: golang:1.6.3-alpine
+    command:
+    - cat
+    tty: true
+"""
+    }
+  }
+  stages {
+    stage('Run maven') {
+        agent {
+            kubernetes {
+                label 'nested-pod'
+                yaml """
+spec:
+  containers:
+  - name: maven
+    image: maven:3.3.9-jdk-8-alpine
+    command:
+    - cat
+    tty: true
+"""
+            }
+        }
+      steps {
+        ...
+      }
+    }
+  }
+}
+
 ```
 
 ## Accessing container logs from the pipeline

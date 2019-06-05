@@ -246,7 +246,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (idleMinutes != 0) {
             argMap.put("idleMinutes", idleMinutes);
         }
-        if (!StringUtils.isEmpty(inheritFrom)) {
+        if (inheritFrom != null) {
             argMap.put("inheritFrom", inheritFrom);
         }
         if (!StringUtils.isEmpty(serviceAccount)) {

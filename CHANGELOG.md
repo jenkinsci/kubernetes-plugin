@@ -7,6 +7,29 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
+Unreleased
+----------
+* Explicit inheritance should override implicit inheritance. Declarative k8s template do not inherit from parent pod template by default. [#480](https://github.com/jenkinsci/kubernetes-plugin/pull/480) [JENKINS-57548](https://issues.jenkins-ci.org/browse/JENKINS-57548)
+
+1.15.6
+------
+* Fix databinding of ContainerTemplate DescribableModel.uninstantiate2 works. [#486](https://github.com/jenkinsci/kubernetes-plugin/pull/486) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57827)
+* Update jackson dependency to 2.9.9 to address CVE-2019-12086 [#483](https://github.com/jenkinsci/kubernetes-plugin/pull/483)
+
+1.15.5
+------
+* Fix empty yamls introduced on upgrade to 1.15.1 [#462](https://github.com/jenkinsci/kubernetes-plugin/pull/462) [JENKINS-57116](https://issues.jenkins-ci.org/browse/JENKINS-57116)
+
+1.15.4
+------
+* Wait for some time before closing the Kubernetes expired clients [#418](https://github.com/jenkinsci/kubernetes-plugin/pull/418) [JENKINS-55392](https://issues.jenkins-ci.org/browse/JENKINS-55392)
+* Add `showRawYaml` option to (not) show raw yaml in console [#459](https://github.com/jenkinsci/kubernetes-plugin/pull/459) [JENKINS-56121](https://issues.jenkins-ci.org/browse/JENKINS-56121)
+
+1.15.3
+------
+* Wait for agent to connect on provisioning to avoid multiple Pod launches [#455](https://github.com/jenkinsci/kubernetes-plugin/pull/455) [JENKINS-56347](https://issues.jenkins-ci.org/browse/JENKINS-56347)
+* Always initialize `yamls` field [#460](https://github.com/jenkinsci/kubernetes-plugin/pull/460) [JENKINS-57214](https://issues.jenkins-ci.org/browse/JENKINS-57214)
+
 1.15.2
 ------
 * Merge pod templates definitions from yaml, fix issue with missing yaml in UI [#456](https://github.com/jenkinsci/kubernetes-plugin/pull/456) [JENKINS-57112](https://issues.jenkins-ci.org/browse/JENKINS-57112)

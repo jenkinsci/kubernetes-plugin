@@ -71,6 +71,10 @@
     <f:textarea/>
   </f:entry>
 
+  <f:entry field="showRawYaml" title="${%Show raw yaml in console}" >
+    <f:checkbox default="true"/>
+  </f:entry>
+
   <f:advanced>
 
     <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}"
