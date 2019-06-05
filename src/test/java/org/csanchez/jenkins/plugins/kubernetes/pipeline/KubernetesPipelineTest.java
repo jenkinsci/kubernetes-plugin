@@ -194,7 +194,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void bourneShellElsewhereInPath() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("+ ls -la /", b);
+        r.assertLogContains("/kaniko:/busybox", b);
     }
 
     @Test
