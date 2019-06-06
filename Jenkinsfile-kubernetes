@@ -24,8 +24,6 @@ spec:
     - cat
     tty: true
     env:
-    - name: MAVEN_OPTS
-      value: -ntp
     - name: BUILD_NUMBER
       value: ${env.BUILD_NUMBER}
     - name: BRANCH_NAME
@@ -48,7 +46,7 @@ spec:
       stage('Package') {
         try {
           container('maven') {
-            sh 'mvn -B clean install -Dmaven.test.skip=true'
+            sh 'mvn -B -ntp clean install -Dmaven.test.skip=true'
           }
         } finally {
           archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.hpi,**/target/*.jpi'
@@ -58,7 +56,7 @@ spec:
       stage('Test') {
         try {
           container('maven') {
-            sh 'mvn -B test -DconnectorHost=0.0.0.0'
+            sh 'mvn -B -ntp test -DconnectorHost=0.0.0.0'
           }
         } finally {
           junit '**/target/surefire-reports/**/*.xml'
