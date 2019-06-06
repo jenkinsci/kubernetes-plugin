@@ -54,13 +54,17 @@ public class PodTemplateMap {
      * @param podTemplate The pod template to add.
      */
     public void addTemplate(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate) {
-        List<PodTemplate> list = getOrCreateTemplateList(cloud);
-        list.add(podTemplate);
-        map.put(cloud.name, list);
+        synchronized (this.map) {
+            List<PodTemplate> list = getOrCreateTemplateList(cloud);
+            list.add(podTemplate);
+            map.put(cloud.name, list);
+        }
     }
 
     public void removeTemplate(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate) {
-        getOrCreateTemplateList(cloud).remove(podTemplate);
+        synchronized (this.map) {
+            getOrCreateTemplateList(cloud).remove(podTemplate);
+        }
     }
 
     @Extension
