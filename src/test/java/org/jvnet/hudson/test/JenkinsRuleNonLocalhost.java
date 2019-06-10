@@ -86,6 +86,7 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
+        System.err.println("Listening on host address: " + HOST);
         connector.setHost(HOST);
 
         if (System.getProperty("port")!=null) {

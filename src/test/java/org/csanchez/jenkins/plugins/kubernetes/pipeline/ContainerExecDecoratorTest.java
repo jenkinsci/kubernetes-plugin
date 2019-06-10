@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,12 +37,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -55,12 +62,15 @@ import org.jvnet.hudson.test.LoggerRule;
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
+import hudson.model.Node;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import okhttp3.OkHttpClient;
 
 /**
  * @author Carlos Sanchez
@@ -69,6 +79,7 @@ public class ContainerExecDecoratorTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
+    private KubernetesCloud cloud;
     private static KubernetesClient client;
     private static final Pattern PID_PATTERN = Pattern.compile("^(pid is \\d+)$", Pattern.MULTILINE);
 
@@ -77,7 +88,8 @@ public class ContainerExecDecoratorTest {
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
-            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
+            .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
     @Rule
     public TestName name = new TestName();
@@ -89,7 +101,8 @@ public class ContainerExecDecoratorTest {
 
     @Before
     public void configureCloud() throws Exception {
-        client = setupCloud(this, name).connect();
+        cloud = setupCloud(this, name);
+        client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
 
         String image = "busybox";
@@ -101,7 +114,18 @@ public class ContainerExecDecoratorTest {
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), image, client.getNamespace());
+        PodTemplate template = new PodTemplate();
+        template.setName(pod.getMetadata().getName());
+        KubernetesSlave agent = mock(KubernetesSlave.class);
+        when(agent.getNamespace()).thenReturn(client.getNamespace());
+        when(agent.getPodName()).thenReturn(pod.getMetadata().getName());
+        when(agent.getKubernetesCloud()).thenReturn(cloud);
+        StepContext context = mock(StepContext.class);
+        when(context.get(Node.class)).thenReturn(agent);
+
+        decorator = new ContainerExecDecorator();
+        decorator.setNodeContext(new KubernetesNodeContext(context));
+        decorator.setContainerName(image);
     }
 
     @After
@@ -216,11 +240,69 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-46719")
     public void testContainerDoesNotExist() throws Exception {
-        decorator = new ContainerExecDecorator(client, pod.getMetadata().getName(), "doesNotExist",
-                client.getNamespace());
+        decorator.setContainerName("doesNotExist");
         exception.expect(IOException.class);
         exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
+    }
+
+    /**
+     * Reproduce JENKINS-55392
+     * 
+     * Caused by: java.util.concurrent.RejectedExecutionException: Task okhttp3.RealCall$AsyncCall@30f55c9f rejected
+     * from java.util.concurrent.ThreadPoolExecutor@25634758[Terminated, pool size = 0, active threads = 0, queued tasks
+     * = 0, completed tasks = 0]
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Issue("JENKINS-55392")
+    public void testRejectedExecutionException() throws Exception {
+        assertTrue(client instanceof HttpClientAware);
+        OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
+        System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
+                + httpClient.dispatcher().getMaxRequestsPerHost());
+        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
+                + httpClient.connectionPool().idleConnectionCount());
+        List<Thread> threads = new ArrayList<>();
+        final AtomicInteger errors = new AtomicInteger(0);
+        for (int i = 0; i < 10; i++) {
+            final String name = "Thread " + i;
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
+                                + " - " + httpClient.connectionPool().idleConnectionCount());
+                        ProcReturn r = execCommand(false, "echo", "test");
+                    } catch (Exception e) {
+                        errors.incrementAndGet();
+                        System.out.println(e.getMessage());
+                    }
+                };
+            });
+            threads.add(t);
+        }
+
+        // force expiration of client
+        KubernetesClientProvider.invalidate(cloud.getDisplayName());
+        cloud.connect();
+
+        // this should not close the connection because we have execs still pending
+        boolean expireClients = KubernetesClientProvider.closeExpiredClients();
+        assertFalse(expireClients);
+
+        threads.stream().forEach(t -> t.start());
+        threads.stream().forEach(t -> {
+            try {
+                System.out.println("Waiting for " + t.getName());
+                t.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
+                + httpClient.connectionPool().idleConnectionCount());
+        assertEquals("Errors in threads", 0, errors.get());
     }
 
     @Test(timeout=10000)

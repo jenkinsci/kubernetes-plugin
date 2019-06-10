@@ -5,23 +5,23 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import io.fabric8.kubernetes.client.HttpClientAware;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import okhttp3.Dispatcher;
-import okhttp3.OkHttpClient;
 
 import hudson.Extension;
 import hudson.XmlFile;
@@ -29,12 +29,17 @@ import hudson.model.AsyncPeriodicWork;
 import hudson.model.Saveable;
 import hudson.model.TaskListener;
 import hudson.model.listeners.SaveableListener;
+import io.fabric8.kubernetes.client.HttpClientAware;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
+import okhttp3.Dispatcher;
+import okhttp3.OkHttpClient;
 
 /**
  * Manages the Kubernetes client creation per cloud
  */
-final class KubernetesClientProvider {
+@Restricted(NoExternalUse.class) // testing only
+public class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
@@ -45,29 +50,35 @@ final class KubernetesClientProvider {
             .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
 
     /**
+     * Time in seconds after which we will close the unused clients, default to one hour
+     */
+    private static final Long EXPIRED_CLIENTS_PURGE_TIME = Long.getLong(
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", 1 * 60 * 60);
+    /**
+     * How often to check if we need to close clients, default to {@link #EXPIRED_CLIENTS_PURGE_TIME}/2
+     */
+    private static final Long EXPIRED_CLIENTS_PURGE_PERIOD = Long.getLong(
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgePeriod",
+            EXPIRED_CLIENTS_PURGE_TIME / 2);
+
+    /**
      * Client expiration in seconds, default to one day
      */
     private static final Integer CACHE_EXPIRATION = Integer.getInteger(
             KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 24 * 60 * 60);
 
-    private static final List<KubernetesClient> expiredClients = Collections.synchronizedList(new ArrayList());
+    private static final Queue<Client> expiredClients = new ConcurrentLinkedQueue<>();
 
-    private static final Cache<String, Client> clients = CacheBuilder
-            .newBuilder() //
+    private static final Cache<String, Client> clients = CacheBuilder.newBuilder() //
             .maximumSize(CACHE_SIZE) //
             .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS) //
             .removalListener(rl -> {
-                LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}", new Object[] {KubernetesClient.class.getSimpleName(), rl.getKey()});
-                KubernetesClient client = ((Client) rl.getValue()).getClient();
+                LOGGER.log(Level.FINE, "{0} cache : Removing entry for {1}",
+                        new Object[] { KubernetesClient.class.getSimpleName(), rl.getKey() });
+                Client client = (Client) rl.getValue();
                 if (client != null) {
-                    if (client instanceof HttpClientAware) {
-                        if (!gracefulClose(client, ((HttpClientAware) client).getHttpClient())) {
-                            expiredClients.add(client);
-                        }
-                    } else {
-                        LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close", new Object[] {client.toString(), HttpClientAware.class.getSimpleName()});
-                        client.close();
-                    }
+                    client.expired = Instant.now();
+                    expiredClients.add(client);
                 }
 
             }) //
@@ -76,8 +87,8 @@ final class KubernetesClientProvider {
     private KubernetesClientProvider() {
     }
 
-    static KubernetesClient createClient(KubernetesCloud cloud) throws NoSuchAlgorithmException, UnrecoverableKeyException,
-            KeyStoreException, IOException, CertificateEncodingException {
+    static KubernetesClient createClient(KubernetesCloud cloud) throws NoSuchAlgorithmException,
+            UnrecoverableKeyException, KeyStoreException, IOException, CertificateEncodingException {
         String displayName = cloud.getDisplayName();
         final Client c = clients.getIfPresent(displayName);
         if (c == null) {
@@ -100,6 +111,7 @@ final class KubernetesClientProvider {
     private static class Client {
         private final KubernetesClient client;
         private final int validity;
+        private Instant expired;
 
         public Client(int validity, KubernetesClient client) {
             this.client = client;
@@ -113,6 +125,10 @@ final class KubernetesClientProvider {
         public int getValidity() {
             return validity;
         }
+
+        public Instant getExpired() {
+            return expired;
+        }
     }
 
     @Extension
@@ -124,7 +140,7 @@ final class KubernetesClientProvider {
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(1);
+            return TimeUnit.SECONDS.toMillis(EXPIRED_CLIENTS_PURGE_PERIOD);
         }
 
         @Override
@@ -134,22 +150,53 @@ final class KubernetesClientProvider {
 
         @Override
         protected void execute(TaskListener listener) {
-            for (Iterator<KubernetesClient> it = expiredClients.iterator(); it.hasNext();) {
-                KubernetesClient client = it.next();
-                if (client instanceof HttpClientAware) {
-                    if (gracefulClose(client, ((HttpClientAware) client).getHttpClient())) {
-                        it.remove();
-                    }
-                } else {
-                    LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close", new Object[] {client.toString(), HttpClientAware.class.getSimpleName()});
-                    client.close();
-                    it.remove();
-                }
-            }
+            closeExpiredClients();
         }
     }
 
-    private static boolean gracefulClose(KubernetesClient client, OkHttpClient httpClient) {
+    /**
+     * Gracefully close expired clients
+     * 
+     * @return whether some clients have been closed or not
+     */
+    @Restricted(NoExternalUse.class) // testing only
+    public static boolean closeExpiredClients() {
+        boolean b = false;
+        if (expiredClients.isEmpty()) {
+            return b;
+        }
+        LOGGER.log(Level.FINE, "Closing expired clients: ({0}) {1}",
+                new Object[] { expiredClients.size(), expiredClients });
+        if (expiredClients.size() > 10) {
+            LOGGER.log(Level.WARNING, "High number of expired clients, may cause memory leaks: ({0}) {1}",
+                    new Object[] { expiredClients.size(), expiredClients });
+        }
+        for (Iterator<Client> it = expiredClients.iterator(); it.hasNext();) {
+            Client expiredClient = it.next();
+            // only purge it if the EXPIRED_CLIENTS_PURGE time has elapsed
+            if (Instant.now().minus(EXPIRED_CLIENTS_PURGE_TIME, ChronoUnit.SECONDS)
+                    .isBefore(expiredClient.getExpired())) {
+                break;
+            }
+            KubernetesClient client = expiredClient.client;
+            if (client instanceof HttpClientAware) {
+                if (gracefulClose(client, ((HttpClientAware) client).getHttpClient())) {
+                    it.remove();
+                    b = true;
+                }
+            } else {
+                LOGGER.log(Level.WARNING, "{0} is not {1}, forcing close",
+                        new Object[] { client.toString(), HttpClientAware.class.getSimpleName() });
+                client.close();
+                it.remove();
+                b = true;
+            }
+        }
+        return b;
+    }
+
+    @Restricted(NoExternalUse.class) // testing only
+    public static boolean gracefulClose(KubernetesClient client, OkHttpClient httpClient) {
         Dispatcher dispatcher = httpClient.dispatcher();
         // Remove the client if there are no more users
         int runningCallsCount = dispatcher.runningCallsCount();
@@ -159,9 +206,15 @@ final class KubernetesClientProvider {
             client.close();
             return true;
         } else {
-            LOGGER.log(Level.INFO, "Not closing {0}: there are still running ({1}) or queued ({2}) calls", new Object[] {client.toString(), runningCallsCount, queuedCallsCount});
+            LOGGER.log(Level.INFO, "Not closing {0}: there are still running ({1}) or queued ({2}) calls",
+                    new Object[] { client.toString(), runningCallsCount, queuedCallsCount });
             return false;
         }
+    }
+
+    @Restricted(NoExternalUse.class) // testing only
+    public static void invalidate(String displayName) {
+        clients.invalidate(displayName);
     }
 
     @Extension
@@ -183,11 +236,11 @@ final class KubernetesClientProvider {
                 }
                 // Remove missing / invalid clients
                 for (String displayName : cloudDisplayNames) {
-                    clients.invalidate(displayName);
+                    LOGGER.log(Level.INFO, "Invalidating Kubernetes client: {0}", displayName);
+                    invalidate(displayName);
                 }
             }
             super.onChange(o, file);
         }
     }
-
 }

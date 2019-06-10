@@ -13,9 +13,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -27,7 +24,9 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -122,7 +121,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private PodTemplateToolLocation nodeProperties;
 
-    private String yaml;
+    /**
+     * @deprecated Stored as a list of yaml fragments
+     */
+    @Deprecated
+    private transient String yaml;
+
+    private List<String> yamls = new ArrayList<>();
+
+    private Boolean showRawYaml;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -147,7 +154,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
-        this.setYaml(from.getYaml());
+        this.setYamls(from.getYamls());
+        this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
         this.setPodRetention(from.getPodRetention());
     }
@@ -506,7 +514,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.getNodeProperties().addAll(properties);
     }
 
-    @NonNull
+    @Nonnull
     public PodTemplateToolLocation getNodeProperties(){
         if( this.nodeProperties == null)
             this.nodeProperties = new PodTemplateToolLocation(this);
@@ -608,13 +616,45 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return containers;
     }
 
+    /**
+     * @return The first yaml fragment for this pod template
+     */
+    @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
-        return yaml;
+        return yamls == null || yamls.isEmpty() ? null : yamls.get(0);
     }
 
     @DataBoundSetter
     public void setYaml(String yaml) {
-        this.yaml = yaml;
+        String trimmed = Util.fixEmpty(yaml);
+        if (trimmed != null) {
+            this.yamls = Collections.singletonList(yaml);
+        } else {
+            this.yamls = Collections.emptyList();
+        }
+    }
+
+    @Nonnull
+    public List<String> getYamls() {
+        if (yamls ==null) {
+            return Collections.emptyList();
+        }
+        return yamls;
+    }
+
+    public void setYamls(List<String> yamls) {
+        if (yamls != null) {
+            List<String> ys = new ArrayList<>();
+            for (String y : yamls) {
+                String trimmed = Util.fixEmpty(y);
+                if (trimmed != null) {
+                    ys.add(trimmed);
+                }
+            }
+            this.yamls = ys;
+        } else {
+            this.yamls = Collections.emptyList();
+        }
     }
 
     public PodRetention getPodRetention() {
@@ -660,6 +700,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             annotations = new ArrayList<>();
         }
 
+        if (yamls == null) {
+            yamls = new ArrayList<>();
+        }
+
+        if (yaml != null) {
+            yamls.add(yaml);
+            yaml = null;
+        }
+
+        // JENKINS-57116 remove empty items from yamls
+        if (!yamls.isEmpty() && StringUtils.isBlank(yamls.get(0))) {
+            setYamls(yamls);
+        }
+
+        if (showRawYaml == null) {
+            showRawYaml = Boolean.TRUE;
+        }
+
         return this;
     }
 
@@ -680,6 +738,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getContainersDescriptionForLogging());
     }
 
+    public boolean isShowRawYaml() {
+        return showRawYaml == null ? true : showRawYaml.booleanValue();
+    }
+
+    @DataBoundSetter
+    public void setShowRawYaml(boolean showRawYaml) {
+        this.showRawYaml = Boolean.valueOf(showRawYaml);
+    }
+
     private String getContainersDescriptionForLogging() {
         List<ContainerTemplate> containers = getContainers();
         StringBuilder sb = new StringBuilder();
@@ -695,10 +762,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             }
             sb.append("\n");
         }
-        if (StringUtils.isNotBlank(getYaml())) {
-            sb.append("yaml:\n")
-                    .append(getYaml())
+        if (isShowRawYaml()) {
+            for (String yaml : getYamls()) {
+                sb.append("yaml:\n")
+                    .append(yaml)
                     .append("\n");
+            }
         }
         return sb.toString();
     }
@@ -775,7 +844,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
-                (yaml == null ? "" : ", yaml=" + yaml) +
+                (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls) +
                 '}';
     }
 }

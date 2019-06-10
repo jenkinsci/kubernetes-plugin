@@ -39,6 +39,10 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
             if ((describable.getYamlFile() != null) && (describable.hasScmContext(script))) {
                 describable.setYaml(script.readTrusted(describable.getYamlFile()))
             }
+            if (describable.getInheritFrom() == null) {
+                // Do not implicitly inherit from parent template context for declarative Kubernetes agent declaration
+                describable.setInheritFrom("")
+            }
             script.podTemplate(describable.asArgs) {
                 script.node(describable.label) {
                     CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {

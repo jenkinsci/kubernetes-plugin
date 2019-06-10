@@ -6,10 +6,12 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,7 +93,9 @@ public class PodTemplateBuilderTest {
     public void testBuildWithoutSlave() throws Exception {
         slave = null;
         PodTemplate template = new PodTemplate();
-        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-busybox.yaml"))));
+        String yaml = loadYamlFile("pod-busybox.yaml");
+        template.setYaml(yaml);
+        assertEquals(yaml,template.getYaml());
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod);
     }
@@ -99,7 +103,7 @@ public class PodTemplateBuilderTest {
     @Test
     public void testBuildFromYaml() throws Exception {
         PodTemplate template = new PodTemplate();
-        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-busybox.yaml"))));
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         validatePod(pod);
@@ -253,7 +257,7 @@ public class PodTemplateBuilderTest {
     @Test
     public void testOverridesFromYaml() throws Exception {
         PodTemplate template = new PodTemplate();
-        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-overrides.yaml"))));
+        template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
@@ -285,7 +289,7 @@ public class PodTemplateBuilderTest {
         parent.setContainers(Arrays.asList(container1));
 
         PodTemplate template = new PodTemplate();
-        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-overrides.yaml"))));
+        template.setYaml(loadYamlFile("pod-overrides.yaml"));
         template.setInheritFrom("parent");
         setupStubs();
 
@@ -304,11 +308,163 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void yamlMergeContainers() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: container1\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: container2\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+        child.setInheritFrom("parent");
+        setupStubs();
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
+        assertThat(pod.getSpec().getContainers(), hasSize(3));
+        Optional<Container> container1 = pod.getSpec().getContainers().stream().filter(c -> "container1".equals(c.getName())).findFirst();
+        assertTrue(container1.isPresent());
+        Optional<Container> container2 = pod.getSpec().getContainers().stream().filter(c -> "container2".equals(c.getName())).findFirst();
+        assertTrue(container2.isPresent());
+    }
+
+    @Test
+    public void yamlOverrideContainer() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    image: busybox2\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+        child.setInheritFrom("parent");
+        setupStubs();
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
+        assertThat(pod.getSpec().getContainers(), hasSize(2));
+        Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
+        assertTrue(container.isPresent());
+        assertEquals("busybox2", container.get().getImage());
+    }
+
+    @Test
+    public void yamlOverrideVolume() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  volumes:\n" +
+                "  - name: host-volume\n" +
+                "    hostPath:\n" +
+                "      path: /host/data\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  volumes:\n" +
+                "  - name: host-volume\n" +
+                "    hostPath:\n" +
+                "      path: /host/data2\n"
+        );
+        child.setInheritFrom("parent");
+        setupStubs();
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
+        assertThat(pod.getSpec().getVolumes(), hasSize(2));
+        Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
+        assertTrue(hostVolume.isPresent());
+        assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+    }
+
+    @Test
+    public void yamlMergeVolumes() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  volumes:\n" +
+                "  - name: host-volume\n" +
+                "    hostPath:\n" +
+                "      path: /host/data\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  volumes:\n" +
+                "  - name: host-volume2\n" +
+                "    hostPath:\n" +
+                "      path: /host/data2\n"
+        );
+        child.setInheritFrom("parent");
+        setupStubs();
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
+        assertThat(pod.getSpec().getVolumes(), hasSize(3));
+        Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
+        assertTrue(hostVolume.isPresent());
+        assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data")); // parent value
+        Optional<Volume> hostVolume2 = pod.getSpec().getVolumes().stream().filter(v -> "host-volume2".equals(v.getName())).findFirst();
+        assertTrue(hostVolume2.isPresent());
+        assertThat(hostVolume2.get().getHostPath().getPath(), equalTo("/host/data2")); // child value
+    }
+
+    @Test
     public void testOverridesContainerSpec() throws Exception {
         PodTemplate template = new PodTemplate();
         ContainerTemplate cT = new ContainerTemplate("jnlp", "jenkinsci/jnlp-slave:latest");
         template.setContainers(Lists.newArrayList(cT));
-        template.setYaml(new String(IOUtils.toByteArray(getClass().getResourceAsStream("pod-overrides.yaml"))));
+        template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
@@ -318,5 +474,9 @@ public class PodTemplateBuilderTest {
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         validateJnlpContainer(jnlp, slave);
+    }
+
+    private String loadYamlFile(String s) throws IOException {
+        return new String(IOUtils.toByteArray(getClass().getResourceAsStream(s)));
     }
 }
