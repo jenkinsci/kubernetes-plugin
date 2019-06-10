@@ -11,8 +11,6 @@
 
 def label = UUID.randomUUID().toString()
 
-timestamps {
-
   podTemplate(label: label, yaml: """
 apiVersion: v1
 kind: Pod
@@ -64,5 +62,3 @@ spec:
       }
     }
   }
-
-}
