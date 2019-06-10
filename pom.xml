@@ -104,7 +104,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>2.17</version>
+      <version>2.19</version>
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -117,7 +117,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>2.31</version>
+      <version>2.33-rc969.225d87e67c2d</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/131 -->
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -136,7 +136,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-      <version>3.0</version>
+      <version>3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
