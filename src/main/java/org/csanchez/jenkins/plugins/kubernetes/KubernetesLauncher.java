@@ -44,6 +44,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
+import com.google.common.base.Throwables;
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
@@ -53,6 +54,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+import static java.util.logging.Level.INFO;
+
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -121,9 +124,11 @@ public class KubernetesLauncher extends JNLPLauncher {
             pod = client.pods().inNamespace(namespace).create(pod);
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podId });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
+            TaskListener runListener = template.getListener();
+            runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
-            watcher = new AllContainersRunningPodWatcher(client, pod);
+            watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }

@@ -1,18 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.*;
+import hudson.model.labels.LabelAtom;
+import hudson.slaves.NodeProperty;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -24,22 +21,12 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.Saveable;
-import hudson.model.labels.LabelAtom;
-import hudson.slaves.NodeProperty;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import jenkins.model.Jenkins;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import java.io.Serializable;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Kubernetes Pod Template
@@ -130,6 +117,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private List<String> yamls = new ArrayList<>();
 
     private Boolean showRawYaml;
+
+    /**
+     * Listener of the run that created this pod template, if applicable
+     */
+    @CheckForNull
+    private transient TaskListener listener;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -667,6 +660,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             podRetention = PodRetention.getPodTemplateDefault();
         }
         this.podRetention = podRetention;
+    }
+
+    @Nonnull
+    public TaskListener getListener() {
+        return listener == null ? TaskListener.NULL : listener;
+    }
+
+    public void setListener(@CheckForNull TaskListener listener) {
+        this.listener = listener;
     }
 
     protected Object readResolve() {

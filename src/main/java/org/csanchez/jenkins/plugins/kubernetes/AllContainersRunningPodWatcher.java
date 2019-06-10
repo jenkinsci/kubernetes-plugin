@@ -11,6 +11,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.model.Label;
+import hudson.model.Queue;
+import hudson.model.TaskListener;
+import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -18,6 +22,10 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import jenkins.model.Jenkins;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * A pod watcher reporting when all containers are running
@@ -34,10 +42,14 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private PodStatus podStatus;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
+    @Nonnull
+    private final TaskListener runListener;
+
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
         this.client = client;
         this.pod = pod;
         this.podStatus = pod.getStatus();
+        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 
@@ -72,7 +84,29 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         for (ContainerStatus containerStatus : containerStatuses) {
             if (containerStatus != null) {
-                if (containerStatus.getState().getWaiting() != null) {
+                ContainerStateWaiting waitingState = containerStatus.getState().getWaiting();
+                if (waitingState != null) {
+                    String waitingStateMsg = waitingState.getMessage();
+                    if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
+                        runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
+                        Jenkins jenkins = Jenkins.getInstanceOrNull();
+                        if (jenkins != null) {
+                            Queue q = jenkins.getQueue();
+                            for (Queue.Item item : q.getItems()) {
+                                Label itemLabel = item.getAssignedLabel();
+                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName())) {
+                                    String itemTaskName = item.task.getFullDisplayName();
+                                    String jobName = getJobName(itemTaskName);
+                                    if (jobName.equals("")) {
+                                        LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
+                                        break;
+                                    }
+                                    q.cancel(item);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     return false;
                 }
                 if (containerStatus.getState().getTerminated() != null) {
@@ -190,5 +224,23 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     public PodStatus getPodStatus() {
         return podStatus;
+    }
+
+    private boolean isCorrespondingLabels(String taskLabel, String podId) {
+        int taskLabelLen = taskLabel.length();
+        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
+        podId = podId.substring(0, podId.lastIndexOf("-"));
+        return taskLabel.equals(podId);
+    }
+
+    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
+    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
+    private String getJobName(String itemTaskName) {
+        final String partOfStr = "part of ";
+        int begin = partOfStr.length();
+        int end = itemTaskName.lastIndexOf(" #");
+        if (end < 0)
+            return "";
+        return itemTaskName.substring(begin, end);
     }
 }
