@@ -51,6 +51,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 /**
@@ -362,7 +363,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+        // TODO could use waitForMessage after #496
+        while (!JenkinsRule.getLog(b).contains(new ExecutorStepExecution.RemovedNodeCause().getShortDescription())) {
+            Thread.sleep(100);
+        }
     }
 
 }
