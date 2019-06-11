@@ -9,7 +9,7 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
-*
+* Update kubernetes-client to 4.3.0 [#454](https://github.com/jenkinsci/kubernetes-plugin/pull/454)
 
 1.15.7
 ------
