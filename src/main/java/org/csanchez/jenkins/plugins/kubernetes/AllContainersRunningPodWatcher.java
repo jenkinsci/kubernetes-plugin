@@ -89,21 +89,19 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                     String waitingStateMsg = waitingState.getMessage();
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
                         runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
-                        Jenkins jenkins = Jenkins.getInstanceOrNull();
-                        if (jenkins != null) {
-                            Queue q = jenkins.getQueue();
-                            for (Queue.Item item : q.getItems()) {
-                                Label itemLabel = item.getAssignedLabel();
-                                if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName())) {
-                                    String itemTaskName = item.task.getFullDisplayName();
-                                    String jobName = getJobName(itemTaskName);
-                                    if (jobName.equals("")) {
-                                        LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-                                        break;
-                                    }
-                                    q.cancel(item);
+                        Jenkins jenkins = Jenkins.get();
+                        Queue q = jenkins.getQueue();
+                        for (Queue.Item item : q.getItems()) {
+                            Label itemLabel = item.getAssignedLabel();
+                            if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName())) {
+                                String itemTaskName = item.task.getFullDisplayName();
+                                String jobName = getJobName(itemTaskName);
+                                if (jobName.equals("")) {
+                                    LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
                                     break;
                                 }
+                                q.cancel(item);
+                                break;
                             }
                         }
                     }
