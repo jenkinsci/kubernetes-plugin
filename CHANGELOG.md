@@ -9,7 +9,12 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
+* Update kubernetes-client to 4.3.0 [#454](https://github.com/jenkinsci/kubernetes-plugin/pull/454)
 * Do not display secrets in build logs [JENKINS-57893](https://issues.jenkins-ci.org/browse/JENKINS-57893)
+
+1.15.7
+------
+* Fix a thread safety issue when handling dynamic podtemplates [#489](https://github.com/jenkinsci/kubernetes-plugin/pull/489)
 * Explicit inheritance should override implicit inheritance. Declarative k8s template do not inherit from parent pod template by default. [#480](https://github.com/jenkinsci/kubernetes-plugin/pull/480) [JENKINS-57548](https://issues.jenkins-ci.org/browse/JENKINS-57548)
 
 1.15.6
