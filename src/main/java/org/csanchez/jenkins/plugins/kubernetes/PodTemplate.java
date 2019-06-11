@@ -723,13 +723,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return this;
     }
 
+    @Deprecated
+    public Pod build(KubernetesClient client, KubernetesSlave slave) {
+        return build(slave);
+    }
+
     /**
      * Build a Pod object from a PodTemplate
      *
-     * @param client
      * @param slave
      */
-    public Pod build(KubernetesClient client, KubernetesSlave slave) {
+    public Pod build(KubernetesSlave slave) {
         return new PodTemplateBuilder(this).withSlave(slave).build();
     }
 
