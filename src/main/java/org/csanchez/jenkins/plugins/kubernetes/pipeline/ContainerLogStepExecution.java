@@ -72,9 +72,9 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
 
             String podName = nodeContext.getPodName();
             ContainerResource<String, LogWatch, InputStream, PipedOutputStream, OutputStream, PipedInputStream,
-                    String, ExecWatch> container = client.pods()
-                    .inNamespace(nodeContext.getNamespace())
-                    .withName(podName)
+                    String, ExecWatch, Boolean, InputStream> container = client.pods() //
+                    .inNamespace(nodeContext.getNamespace()) //
+                    .withName(podName) //
                     .inContainer(containerName);
 
             TimeTailPrettyLoggable<String, LogWatch> limited = limitBytes > 0 ? container.limitBytes(limitBytes) : container;
