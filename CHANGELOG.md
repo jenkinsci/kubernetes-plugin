@@ -10,9 +10,6 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 Unreleased
 ----------
 * Explicit inheritance should override implicit inheritance. Declarative k8s template do not inherit from parent pod template by default. [#480](https://github.com/jenkinsci/kubernetes-plugin/pull/480) [JENKINS-57548](https://issues.jenkins-ci.org/browse/JENKINS-57548)
-
-1.15.7
-------
 * Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [#497](https://github.com/jenkinsci/kubernetes-plugin/pull/497) [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
 
 1.15.6
