@@ -9,7 +9,11 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
+
+1.16.0
+----------
 * Update kubernetes-client to 4.3.0 [#454](https://github.com/jenkinsci/kubernetes-plugin/pull/454)
+* Do not display secrets in build logs [JENKINS-57893](https://issues.jenkins-ci.org/browse/JENKINS-57893)
 
 1.15.7
 ------
