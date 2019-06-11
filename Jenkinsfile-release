@@ -18,10 +18,7 @@ podTemplate(label: label, containers: [
     }
     stage('Release perform') {
       container('maven') {
-          sh """
-          apk update && apk add git
-          mvn -B ${mvnOpts} release:perform
-          """
+          sh "mvn -B ${mvnOpts} release:perform"
       }
     }
   }
