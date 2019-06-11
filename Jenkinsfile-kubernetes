@@ -11,8 +11,6 @@
 
 def label = UUID.randomUUID().toString()
 
-timestamps {
-
   podTemplate(label: label, yaml: """
 apiVersion: v1
 kind: Pod
@@ -24,15 +22,13 @@ spec:
     - cat
     tty: true
     env:
-    - name: MAVEN_OPTS
-      value: -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
     - name: BUILD_NUMBER
       value: ${env.BUILD_NUMBER}
     - name: BRANCH_NAME
       value: ${env.BRANCH_NAME}
     - name: _JAVA_OPTIONS
       value: -Xmx300M
-    image: maven:3.5.4-jdk-8
+    image: maven:3.6.1-jdk-8
     resources:
       limits:
         memory: 1500Mi
@@ -48,7 +44,7 @@ spec:
       stage('Package') {
         try {
           container('maven') {
-            sh 'mvn -B clean install -Dmaven.test.skip=true'
+            sh 'mvn -B -ntp clean install -Dmaven.test.skip=true'
           }
         } finally {
           archiveArtifacts allowEmptyArchive: true, artifacts: '**/target/*.hpi,**/target/*.jpi'
@@ -58,7 +54,7 @@ spec:
       stage('Test') {
         try {
           container('maven') {
-            sh 'mvn -B test -DconnectorHost=0.0.0.0'
+            sh 'mvn -B -ntp test -DconnectorHost=0.0.0.0'
           }
         } finally {
           junit '**/target/surefire-reports/**/*.xml'
@@ -66,5 +62,3 @@ spec:
       }
     }
   }
-
-}

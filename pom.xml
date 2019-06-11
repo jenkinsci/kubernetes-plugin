@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.15.7</revision>
+    <revision>1.16.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -48,17 +48,19 @@
     <java.level>8</java.level>
     <jenkins.version>2.150.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
+    <useBeta>true</useBeta>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
     <workflow-support-plugin.version>3.3</workflow-support-plugin.version>
     <workflow-step-api-plugin.version>2.20</workflow-step-api-plugin.version>
+    <slf4jVersion>1.7.26</slf4jVersion>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
-      <version>4.1.3</version>
+      <version>4.3.0</version>
       <exclusions>
         <!-- Jackson logic comes from plugins -->
         <exclusion>
@@ -102,12 +104,17 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>variant</artifactId>
-      <version>1.1</version>
+      <version>1.2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
       <version>${workflow-step-api-plugin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-api</artifactId>
+      <version>2.33</version>
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -171,12 +178,6 @@
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
       <version>${pipeline-model-definition.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-api</artifactId>
-      <version>2.33</version>
       <scope>test</scope>
     </dependency>
     <dependency>
