@@ -25,8 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.List;
@@ -49,6 +48,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
@@ -64,6 +64,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
+    @Rule
+    public LoggerRule warnings = new LoggerRule();
+
     WorkflowJob p;
 
     WorkflowRun b;
@@ -71,13 +74,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Before
     public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
-        logs.capture(1000);
+        warnings.record("", Level.WARNING).capture(1000);
         p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
         b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
     }
 
+    @Issue("JENKINS-57993")
     @Test
     public void runInPod() throws Exception {
         SemaphoreStep.waitForStart("podTemplate/1", b);
@@ -102,10 +106,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                         + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
                 pods.getItems(), hasSize(1));
         SemaphoreStep.success("pod/1", null);
-
-        for (String msg : logs.getMessages()) {
-            System.out.println(msg);
-        }
 
         PodTemplate template = templates.get(0);
         List<PodAnnotation> annotations = template.getAnnotations();
@@ -132,6 +132,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+        assertThat("routine build should not issue warnings",
+            warnings.getRecords().stream().
+                filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue()). // TODO .record(…, WARNING) does not accomplish this
+                map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage()).collect(Collectors.toList()), // LogRecord does not override toString
+            emptyIterable());
     }
 
     @Test
