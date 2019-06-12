@@ -125,7 +125,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>2.33-rc969.225d87e67c2d</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/131 -->
+      <version>2.33-rc970.e82d4fa96516</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/131 -->
       <scope>test</scope>
     </dependency>
     <dependency>
