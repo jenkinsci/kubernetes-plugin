@@ -190,6 +190,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
+    @Issue("JENKINS-56375")
+    @Test
+    public void runWithCustomJnlpContainer() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.", b);
+    }
+
     @Test
     public void runInPodWithDifferentShell() throws Exception {
         r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
