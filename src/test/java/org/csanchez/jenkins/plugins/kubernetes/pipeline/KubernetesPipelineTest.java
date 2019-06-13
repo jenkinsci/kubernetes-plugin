@@ -34,8 +34,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import hudson.model.Computer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -100,6 +102,22 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
+        for (Computer c : r.jenkins.getComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+            new Thread(() -> {
+                long pos = 0;
+                try {
+                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
+                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                            pos = c.getLogText().writeLogTo(pos, System.out);
+                        }
+                        Thread.sleep(100);
+                    }
+                } catch (Exception x) {
+                    x.printStackTrace();
+                }
+            }, "watching logs for " + c.getDisplayName()).start();
+            System.out.println(c.getLog());
+        }
         PodList pods = cloud.connect().pods().withLabels(labels).list();
         assertThat(
                 "Expected one pod with labels " + labels + " but got: "
