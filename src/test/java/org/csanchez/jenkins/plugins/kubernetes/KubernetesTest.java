@@ -87,11 +87,12 @@ public class KubernetesTest {
     }
 
     @Test
-    @LocalData()
+    @LocalData
     public void upgradeFrom_1_10() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         assertEquals(new Never(), cloud.getPodRetention());
+        assertTrue(cloud.isEnsureHomeIsValid());
         PodTemplate template = templates.get(0);
         assertEquals(new Default(), template.getPodRetention());
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());

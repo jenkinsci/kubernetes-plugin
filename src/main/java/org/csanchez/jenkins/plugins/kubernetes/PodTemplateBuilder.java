@@ -286,12 +286,14 @@ public class PodTemplateBuilder {
                 	env.put("http_proxy", httpProxy);
                 }
             }
-        }
 
-        // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
-        // As a result, container is running without a home set for user, resulting into using `/` for some tools,
-        // and `?` for java build tools. So we force HOME to a safe location.
-        env.put("HOME", workingDir);
+            if (slave.getKubernetesCloud().isEnsureHomeIsValid()) {
+                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
+                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
+                // and `?` for java build tools. So we force HOME to a safe location.
+                env.put("HOME", workingDir);
+            }
+        }
 
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 

@@ -67,6 +67,10 @@
         <f:checkbox />
       </f:entry>
 
+      <f:entry title="${%Ensure HOME is valid}" field="ensureHomeIsValid">
+        <f:checkbox />
+      </f:entry>
+
       <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
         <f:checkbox />
       </f:entry>

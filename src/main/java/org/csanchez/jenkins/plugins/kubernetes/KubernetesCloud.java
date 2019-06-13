@@ -101,6 +101,7 @@ public class KubernetesCloud extends Cloud {
 
     private boolean skipTlsVerify;
     private boolean addMasterProxyEnvVars;
+    private Boolean ensureHomeIsValid;
 
     private boolean capOnlyOnAlivePods;
 
@@ -145,6 +146,7 @@ public class KubernetesCloud extends Cloud {
         this.serverUrl = source.serverUrl;
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
+        this.ensureHomeIsValid = source.ensureHomeIsValid;
         this.namespace = source.namespace;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
@@ -256,6 +258,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setAddMasterProxyEnvVars(boolean addMasterProxyEnvVars) {
     	this.addMasterProxyEnvVars = addMasterProxyEnvVars;
+    }
+
+    public boolean isEnsureHomeIsValid() {
+        return ensureHomeIsValid == null || ensureHomeIsValid;
+    }
+
+    @DataBoundSetter
+    public void setEnsureHomeIsValid(Boolean ensureHomeIsValid) {
+        this.ensureHomeIsValid = ensureHomeIsValid;
     }
 
     public String getNamespace() {
@@ -624,6 +635,7 @@ public class KubernetesCloud extends Cloud {
         KubernetesCloud that = (KubernetesCloud) o;
         return skipTlsVerify == that.skipTlsVerify &&
                 addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
+                ensureHomeIsValid == that.ensureHomeIsValid &&
                 capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
                 containerCap == that.containerCap &&
                 retentionTimeout == that.retentionTimeout &&
@@ -646,7 +658,7 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
+        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, ensureHomeIsValid, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
     }
 
     public Integer getWaitForPodSec() {
@@ -777,6 +789,10 @@ public class KubernetesCloud extends Cloud {
         }
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
+        }
+        if (ensureHomeIsValid == null) {
+            // Legacy compatibility (1.16 or older)
+            ensureHomeIsValid = true;
         }
 
         return this;

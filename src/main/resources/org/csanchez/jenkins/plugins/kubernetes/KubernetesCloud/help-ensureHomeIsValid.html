@@ -1,0 +1,8 @@
+With this option enabled, the <code>HOME</code> environment variable is set to
+the Jenkins working directory. This is useful for Kubernetes environments,
+where pods are run with arbritary user IDs (for security reasons) which don't
+have an entry in the passwd file of the pod (this seems to be the case in
+OpenShift Enterprise).
+<p>
+For compatibility reasons, this is enabled for systems updated from
+kubernetes-plugin 1.16 or older. It is disabled by default.

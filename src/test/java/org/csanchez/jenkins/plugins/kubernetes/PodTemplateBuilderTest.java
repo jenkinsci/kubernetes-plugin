@@ -231,11 +231,10 @@ public class PodTemplateBuilderTest {
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave) {
         assertThat(jnlp.getCommand(), empty());
-        List<EnvVar> envVars = Lists.newArrayList( //
-                new EnvVar("HOME", "/home/jenkins", null) //
-        );
+        List<EnvVar> envVars = Lists.newArrayList();
         if (slave != null) {
             assertThat(jnlp.getArgs(), empty());
+            envVars.add(new EnvVar("HOME", "/home/jenkins", null));
             envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
