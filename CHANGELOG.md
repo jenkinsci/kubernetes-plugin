@@ -9,6 +9,12 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
+* Update parent POM to 3.44 [#505](https://github.com/jenkinsci/kubernetes-plugin/pull/505)
+* Update plugin dependencies
+  * structs 1.19 [#494](https://github.com/jenkinsci/kubernetes-plugin/pull/494)
+  * variant 1.2 [#464](https://github.com/jenkinsci/kubernetes-plugin/pull/464)
+  * cloudbees-folder 6.8 [#471](https://github.com/jenkinsci/kubernetes-plugin/pull/471)
+  * credentials 2.2.0 / ssh-credentials 1.17 [#499](https://github.com/jenkinsci/kubernetes-plugin/pull/499)
 
 1.16.0
 ----------
