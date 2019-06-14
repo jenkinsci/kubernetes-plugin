@@ -73,7 +73,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
     }
 
-    boolean areAllContainersRunning(Pod pod) {
+    boolean areAllContainersRunning(Pod pod) throws IllegalStateException {
         PodStatus podStatus = pod.getStatus();
         if (podStatus == null) {
             return false;
@@ -89,21 +89,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                     String waitingStateMsg = waitingState.getMessage();
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
                         runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
-                        Jenkins jenkins = Jenkins.get();
-                        Queue q = jenkins.getQueue();
-                        for (Queue.Item item : q.getItems()) {
-                            Label itemLabel = item.getAssignedLabel();
-                            if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), pod.getMetadata().getName())) {
-                                String itemTaskName = item.task.getFullDisplayName();
-                                String jobName = getJobName(itemTaskName);
-                                if (jobName.equals("")) {
-                                    LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-                                    break;
-                                }
-                                q.cancel(item);
-                                break;
-                            }
-                        }
+                        throw new IllegalStateException("BAD_DOCKER_IMAGE");
                     }
                     return false;
                 }
@@ -222,23 +208,5 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     public PodStatus getPodStatus() {
         return podStatus;
-    }
-
-    private boolean isCorrespondingLabels(String taskLabel, String podId) {
-        int taskLabelLen = taskLabel.length();
-        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
-        podId = podId.substring(0, podId.lastIndexOf("-"));
-        return taskLabel.equals(podId);
-    }
-
-    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
-    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
-    private String getJobName(String itemTaskName) {
-        final String partOfStr = "part of ";
-        int begin = partOfStr.length();
-        int end = itemTaskName.lastIndexOf(" #");
-        if (end < 0)
-            return "";
-        return itemTaskName.substring(begin, end);
     }
 }

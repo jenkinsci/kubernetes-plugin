@@ -38,6 +38,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
+import hudson.model.Label;
+import hudson.model.Queue;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -131,6 +134,25 @@ public class KubernetesLauncher extends JNLPLauncher {
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+            } catch (IllegalStateException e) {
+                if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
+                    Jenkins jenkins = Jenkins.get();
+                    Queue q = jenkins.getQueue();
+                    for (Queue.Item item : q.getItems()) {
+                        Label itemLabel = item.getAssignedLabel();
+                        if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), podName)) {
+                            String itemTaskName = item.task.getFullDisplayName();
+                            String jobName = getJobName(itemTaskName);
+                            if (jobName.isEmpty()) {
+                                LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
+                                break;
+                            }
+                            q.cancel(item);
+                            break;
+                        }
+                    }
+                }
+                return;
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
 
@@ -212,6 +234,24 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw Throwables.propagate(ex);
         }
+    }
+
+    private boolean isCorrespondingLabels(String taskLabel, String podId) {
+        int taskLabelLen = taskLabel.length();
+        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
+        podId = podId.substring(0, podId.lastIndexOf("-"));
+        return taskLabel.equals(podId);
+    }
+
+    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
+    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
+    private String getJobName(String itemTaskName) {
+        final String partOfStr = "part of ";
+        int begin = partOfStr.length();
+        int end = itemTaskName.lastIndexOf(" #");
+        if (end < 0)
+            return "";
+        return itemTaskName.substring(begin, end);
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
