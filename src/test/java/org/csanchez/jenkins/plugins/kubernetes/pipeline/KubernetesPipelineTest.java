@@ -364,17 +364,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void runWithSlaveConnectTimeout() throws Exception {
-        r.waitForMessage("podTemplate", b);
-
-        PodTemplate timeoutTemplate = cloud.getAllTemplates().stream().filter(x -> name.getMethodName().equals(x.getLabel())).findAny().orElse(null);
-
-        assertNotNull(timeoutTemplate);
-        assertEquals(10, timeoutTemplate.getSlaveConnectTimeout());
-        r.assertLogNotContains("Hello from container!", b);
-    }
-
-    @Test
     public void runInPodWithRetention() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
