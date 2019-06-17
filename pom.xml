@@ -45,7 +45,7 @@
     <connectorHost />
     <jenkins.host.address />
     <java.level>8</java.level>
-    <jenkins.version>2.181-rc28393.b4aa9d7dbe00</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/4066 -->
+    <jenkins.version>2.181</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
