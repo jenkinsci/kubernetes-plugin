@@ -305,7 +305,7 @@ public class ContainerExecDecoratorTest {
         assertEquals("Errors in threads", 0, errors.get());
     }
 
-    @Test(timeout=10000)
+    @Test
     @Issue("JENKINS-50429")
     public void testContainerExecPerformance() throws Exception {
         for (int i = 0; i < 10; i++) {
