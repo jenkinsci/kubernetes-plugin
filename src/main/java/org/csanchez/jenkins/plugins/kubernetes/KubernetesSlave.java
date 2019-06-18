@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
 
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
@@ -47,6 +48,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -193,6 +195,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @Override
     public KubernetesComputer createComputer() {
         return KubernetesComputerFactory.createInstance(this);
+    }
+
+    @Override
+    public Node reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        // This is not meant to be reconfigured through UI.
+        return this;
     }
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
