@@ -9,6 +9,9 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
+
+1.16.1
+------
 * Update parent POM to 3.44 [#505](https://github.com/jenkinsci/kubernetes-plugin/pull/505)
 * Update plugin dependencies
   * structs 1.19 [#494](https://github.com/jenkinsci/kubernetes-plugin/pull/494)
