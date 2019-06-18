@@ -14,7 +14,7 @@ spec:
 """
 ) {
 
-    node ('mypod') {
+    node ('badlabel') {
       stage('Run') {
         container('busybox') {
           sh """
