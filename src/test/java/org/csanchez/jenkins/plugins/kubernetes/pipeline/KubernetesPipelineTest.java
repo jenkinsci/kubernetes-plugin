@@ -25,18 +25,16 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -51,8 +49,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
-import java.util.Locale;
-import org.jvnet.hudson.test.Issue;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 
 /**
  * @author Carlos Sanchez
@@ -173,15 +171,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57893")
     @Test
     public void runInPodFromYaml() throws Exception {
-        List<PodTemplate> templates = cloud.getTemplates();
-        while (templates.isEmpty()) {
-            LOGGER.log(Level.INFO, "Waiting for template to be created");
-            templates = cloud.getTemplates();
-            Thread.sleep(1000);
-        }
-        assertFalse(templates.isEmpty());
-        PodTemplate template = templates.get(0);
-        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
