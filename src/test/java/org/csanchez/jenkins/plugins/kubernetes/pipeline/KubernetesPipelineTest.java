@@ -180,6 +180,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodFromYamlCustomJnlp() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("running", b);
+    }
+
+    @Test
     public void runInPodWithDifferentShell() throws Exception {
         r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
         /* TODO instead the program fails with a IOException: Pipe closed from ContainerExecDecorator.doExec:
