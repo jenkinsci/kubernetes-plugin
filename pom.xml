@@ -374,6 +374,13 @@
         <jenkins.host.address>10.1.1.1</jenkins.host.address>
       </properties>
     </profile>
+    <profile>
+      <id>docker-desktop</id>
+      <properties>
+        <connectorHost>127.0.0.1</connectorHost>
+        <jenkins.host.address>host.docker.internal</jenkins.host.address>
+      </properties>
+    </profile>
   </profiles>
 
 </project>
