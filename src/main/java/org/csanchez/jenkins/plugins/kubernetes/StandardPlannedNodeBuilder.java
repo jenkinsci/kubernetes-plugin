@@ -5,6 +5,7 @@ import hudson.model.Descriptor;
 import hudson.slaves.NodeProvisioner;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
 
 /**
  * The default {@link PlannedNodeBuilder} implementation, in case there is other registered.
@@ -14,16 +15,17 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
     public NodeProvisioner.PlannedNode build() {
         KubernetesCloud cloud = getCloud();
         PodTemplate t = getTemplate();
+        Future f;
         try {
-            return new NodeProvisioner.PlannedNode(t.getDisplayName(),
-                    Futures.immediateFuture(KubernetesSlave
-                            .builder()
-                            .podTemplate(cloud.getUnwrappedTemplate(t))
-                            .cloud(cloud)
-                            .build()),
-                    getNumExecutors());
+            KubernetesSlave agent = KubernetesSlave
+                    .builder()
+                    .podTemplate(cloud.getUnwrappedTemplate(t))
+                    .cloud(cloud)
+                    .build();
+            f = Futures.immediateFuture(agent);
         } catch (IOException | Descriptor.FormException e) {
-            throw new RuntimeException(e);
+            f = Futures.immediateFailedFuture(e);
         }
+        return new NodeProvisioner.PlannedNode(t.getDisplayName(), f, getNumExecutors());
     }
 }
