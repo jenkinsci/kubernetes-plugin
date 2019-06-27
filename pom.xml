@@ -38,7 +38,7 @@
   </developers>
 
   <properties>
-    <revision>1.16.2</revision>
+    <revision>1.16.3</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -125,7 +125,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>2.31</version>
+      <version>2.33</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -306,8 +306,6 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
-            <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->

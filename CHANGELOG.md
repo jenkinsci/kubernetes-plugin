@@ -10,6 +10,10 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 Unreleased
 ----------
 
+1.16.2
+------
+* Fixed an issue where only the last PodTemplateFilter would be applied [#521](https://github.com/jenkinsci/kubernetes-plugin/pull/521)
+
 1.16.1
 ------
 * Update parent POM to 3.44 [#505](https://github.com/jenkinsci/kubernetes-plugin/pull/505)
