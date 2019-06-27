@@ -52,6 +52,7 @@ import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.Issue;
 
 /**
@@ -345,4 +346,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
+
+    @Ignore("TODO for interactive evaluation")
+    @Test
+    public void manyLaunchers() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
 }
