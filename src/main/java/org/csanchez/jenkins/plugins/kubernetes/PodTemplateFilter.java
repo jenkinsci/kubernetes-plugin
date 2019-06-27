@@ -33,9 +33,9 @@ public abstract class PodTemplateFilter implements ExtensionPoint {
     public static List<PodTemplate> applyAll(@Nonnull KubernetesCloud cloud, @Nonnull List<PodTemplate> podTemplates, @CheckForNull Label label) {
         List<PodTemplate> result = new ArrayList<>();
         for (PodTemplate t : podTemplates) {
-            PodTemplate output = null;
+            PodTemplate output = t;
             for (PodTemplateFilter f : all()) {
-                output = f.transform(cloud, t, label);
+                output = f.transform(cloud, output, label);
                 if (output == null) {
                     break;
                 }
