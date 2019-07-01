@@ -95,10 +95,10 @@
       <version>6.8</version>
     </dependency>
 
-    <dependency> <!-- OnceRetentionStrategy -->
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>1.29</version>
+      <version>1.30-rc421.8a00737f12b2</version> <!-- TODO https://github.com/jenkinsci/durable-task-plugin/pull/98 -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

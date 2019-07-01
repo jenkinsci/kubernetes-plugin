@@ -89,6 +89,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
                 containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains("secret_password")));
     }
 
+    @Issue("JENKINS-58290")
     @Test
     public void websocket() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "websocket");
