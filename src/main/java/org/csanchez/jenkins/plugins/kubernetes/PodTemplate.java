@@ -752,9 +752,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     private String getContainersDescriptionForLogging() {
-        List<ContainerTemplate> containers = getContainers();
         StringBuilder sb = new StringBuilder();
-        for (ContainerTemplate ct : containers) {
+        for (ContainerTemplate ct : getContainers()) {
             sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
             StringBuilder optional = new StringBuilder();
             optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
