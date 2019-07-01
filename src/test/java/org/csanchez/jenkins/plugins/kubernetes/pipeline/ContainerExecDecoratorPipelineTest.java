@@ -36,12 +36,14 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import org.jenkinsci.plugins.durabletask.BourneShellScript;
 
 public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
-            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL);
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL)
+            .record(BourneShellScript.class, Level.ALL);
 
     @Issue({ "JENKINS-47225", "JENKINS-42582" })
     @Test
@@ -94,7 +96,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         containerExecLogs.capture(1000);
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         r.waitForMessage("have started user process", b);
-        assertTrue(containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")));
+        assertTrue("WebSocket was closed in a timely fashion", containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")));
         b.getExecutor().interrupt();
         r.waitForCompletion(b);
     }
