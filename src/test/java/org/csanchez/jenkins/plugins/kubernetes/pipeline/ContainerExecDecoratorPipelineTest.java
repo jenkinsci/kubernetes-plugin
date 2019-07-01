@@ -27,7 +27,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
@@ -87,4 +86,17 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         assertFalse("credential leaked to log",
                 containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains("secret_password")));
     }
+
+    @Test
+    public void websocket() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "websocket");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("websocket.groovy"), true));
+        containerExecLogs.capture(1000);
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        r.waitForMessage("have started user process", b);
+        assertTrue(containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")));
+        b.getExecutor().interrupt();
+        r.waitForCompletion(b);
+    }
+
 }
