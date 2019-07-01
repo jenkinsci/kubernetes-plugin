@@ -15,11 +15,10 @@ public class PodTemplateTest {
         PodTemplate pt = new PodTemplate();
         ContainerTemplate ct1 = new ContainerTemplate("foo", "image");
         pt.setContainers(Collections.singletonList(ct1));
-        String yaml = new StringBuilder()
-                .append("metadata:").append("\n")
-                .append("  annotations:").append("\n")
-                .append("    foo: bar").append("\n")
-                .toString();
+        String yaml =
+                "metadata:\n" +
+                "  annotations:\n" +
+                "    foo: bar\n";
         pt.setYamls(Collections.singletonList(yaml));
         String description = pt.getDescriptionForLogging();
         assertThat(description, containsString("[foo] image"));
