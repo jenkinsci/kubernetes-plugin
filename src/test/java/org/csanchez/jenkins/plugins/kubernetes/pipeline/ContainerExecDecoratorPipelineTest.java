@@ -22,9 +22,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -54,10 +51,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
                 "ContainerExecDecoratorPipelineTest-sshagent", "bob", source, "secret_passphrase", "test credentials");
         SystemCredentialsProvider.getInstance().getCredentials().add(credentials);
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "sshagent");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("sshagent.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
         r.waitForCompletion(b);
         r.assertLogContains("Identity added:", b);
         //Assert that ssh-agent provided envVar is now properly contributed and set.
@@ -74,11 +68,8 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
                 "ContainerExecDecoratorPipelineTest-docker", "bob", "myusername", "secret_password");
         SystemCredentialsProvider.getInstance().getCredentials().add(credentials);
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "docker");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("docker.groovy"), true));
         containerExecLogs.capture(1000);
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
         r.waitForCompletion(b);
         // docker login will fail but we can check that it runs the correct command
         r.assertLogContains("Executing command: \"docker\" \"login\" \"-u\" \"myusername\" \"-p\" ******** \"https://index.docker.io/v1/\"", b);
@@ -92,10 +83,8 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
     @Issue("JENKINS-58290")
     @Test
     public void websocket() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "websocket");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("websocket.groovy"), true));
+        assertNotNull(createJobThenScheduleRun());
         containerExecLogs.capture(1000);
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         r.waitForMessage("have started user process", b);
         assertTrue("WebSocket was closed in a timely fashion", containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")));
         b.getExecutor().interrupt();

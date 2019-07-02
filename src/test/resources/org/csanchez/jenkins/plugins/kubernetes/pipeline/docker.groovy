@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'docker'
+      label '$NAME'
       containerTemplate {
         name 'docker'
         image 'docker:1.11'

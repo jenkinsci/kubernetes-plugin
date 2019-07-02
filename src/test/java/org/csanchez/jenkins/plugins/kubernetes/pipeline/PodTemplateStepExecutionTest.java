@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.junit.Assert.*;
 
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -52,7 +53,7 @@ public class PodTemplateStepExecutionTest {
     }
 
     private String loadPipelineScript(String name) {
-        return AbstractKubernetesPipelineTest.loadPipelineScript(getClass(), name);
+        return KubernetesTestUtil.loadPipelineScript(getClass(), name);
     }
 
     @Test
