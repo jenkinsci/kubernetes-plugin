@@ -30,7 +30,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -69,8 +68,7 @@ public abstract class AbstractKubernetesPipelineTest {
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
     @Rule
-    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
-            Level.ALL);
+    public LoggerRule logs = new LoggerRule().recordPackage(KubernetesCloud.class, Level.ALL);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
