@@ -33,14 +33,12 @@ import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.FlowScanningUtils;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -53,10 +51,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue({"JENKINS-41758", "JENKINS-57827"})
     @Test
     public void declarative() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarative.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
@@ -75,10 +70,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-48135")
     @Test
     public void declarativeFromYaml() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeFromYaml.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = jnlp\n", b);
@@ -88,11 +80,8 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-51610")
     @Test
-    public void declarativeFromYamlWithNamespace() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeWithNamespaceFromYaml.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+    public void declarativeWithNamespaceFromYaml() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR = jnlp\n", b);
@@ -104,15 +93,15 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Test
     public void declarativeFromYamlFile() throws Exception {
         repoRule.init();
-        repoRule.write("Jenkinsfile", loadPipelineScript("declarativeFromYamlFile.groovy"));
+        repoRule.write("Jenkinsfile", loadPipelineDefinition());
         repoRule.write("declarativeYamlFile.yml", loadPipelineScript("declarativeYamlFile.yml"));
         repoRule.git("add", "Jenkinsfile");
         repoRule.git("add", "declarativeYamlFile.yml");
         repoRule.git("commit", "--message=files");
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
+        p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
         p.setDefinition(new CpsScmFlowDefinition(new GitStep(repoRule.toString()).createSCM(), "Jenkinsfile"));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        b = p.scheduleBuild2(0).waitForStart();
         assertNotNull(b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -124,21 +113,18 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-52623")
     @Test
     public void declarativeSCMVars() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with repo");
+        p = r.jenkins.createProject(WorkflowJob.class, "job with repo");
         // We can't use a local GitSampleRepoRule for this because the repo has to be accessible from within the container.
         p.setDefinition(new CpsScmFlowDefinition(new GitStep("https://github.com/abayer/jenkins-52623.git").createSCM(), "Jenkinsfile"));
-        WorkflowRun b = r.buildAndAssertSuccess(p);
+        b = r.buildAndAssertSuccess(p);
         r.assertLogContains("Outside container: GIT_BRANCH is origin/master", b);
         r.assertLogContains("In container: GIT_BRANCH is origin/master", b);
     }
 
     @Issue("JENKINS-53817")
     @Test
-    public void declarativeUseCustomWorkspace() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with dir");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeCustomWorkspace.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+    public void declarativeCustomWorkspace() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("Workspace dir is", b);
@@ -147,10 +133,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-57548")
     @Test
     public void declarativeWithNestedExplicitInheritance() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "job with explicit nested inherit");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("declarativeWithNestedExplicitInheritance.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);

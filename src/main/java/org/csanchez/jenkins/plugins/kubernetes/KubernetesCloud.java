@@ -31,6 +31,7 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -718,7 +719,8 @@ public class KubernetesCloud extends Cloud {
                                     CredentialsMatchers.instanceOf(
                                             org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(StringCredentials.class)), //
+                                    CredentialsMatchers.instanceOf(StringCredentials.class),//
+                                    CredentialsMatchers.instanceOf(DockerServerCredentials.class)),
                             CredentialsProvider.lookupCredentials(StandardCredentials.class, //
                                     Jenkins.getInstance(), //
                                     ACL.SYSTEM, //

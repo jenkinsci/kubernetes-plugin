@@ -1,18 +1,19 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Queue;
+import hudson.security.ACL;
+import hudson.security.Permission;
 import hudson.slaves.AbstractCloudComputer;
-import io.fabric8.kubernetes.api.model.ComponentStatus;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.EventList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watcher;
 import jenkins.model.Jenkins;
+import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -22,12 +23,10 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.framework.io.LargeText;
 
 import java.io.IOException;
-
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -145,4 +144,14 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         return String.format("KubernetesComputer name: %s slave: %s", getName(), getNode());
     }
 
+    @Override
+    public ACL getACL() {
+        final ACL base = super.getACL();
+        return new ACL() {
+            @Override
+            public boolean hasPermission(Authentication a, Permission permission) {
+                return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
+            }
+        };
+    }
 }

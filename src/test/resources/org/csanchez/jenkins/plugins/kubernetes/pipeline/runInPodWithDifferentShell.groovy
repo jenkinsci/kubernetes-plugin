@@ -1,8 +1,8 @@
-podTemplate(label: 'runInPodWithDifferentShell', containers: [
+podTemplate(label: '$NAME', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
 
-    node ('runInPodWithDifferentShell') {
+    node ('$NAME') {
       stage('Run') {
         container(name:'busybox', shell: '/bin/bash') {
           sh """

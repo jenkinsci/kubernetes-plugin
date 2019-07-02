@@ -31,16 +31,20 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
@@ -48,11 +52,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
 import java.util.Locale;
-import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
  * @author Carlos Sanchez
@@ -64,18 +69,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    WorkflowJob p;
-
-    WorkflowRun b;
-
     @Before
     public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         logs.capture(1000);
-        p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
-        b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
     }
 
     @Test
@@ -137,26 +135,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runIn2Pods() throws Exception {
         SemaphoreStep.waitForStart("podTemplate1/1", b);
-        PodTemplate template1 = podTemplatesWithLabel("mypod", cloud.getAllTemplates()).get(0);
+        String label1 = name.getMethodName() + "-1";
+        PodTemplate template1 = podTemplatesWithLabel(label1, cloud.getAllTemplates()).get(0);
         SemaphoreStep.success("podTemplate1/1", null);
         assertEquals(Integer.MAX_VALUE, template1.getInstanceCap());
-        assertThat(template1.getLabelsMap(), hasEntry("jenkins/mypod", "true"));
+        assertThat(template1.getLabelsMap(), hasEntry("jenkins/" + label1, "true"));
         SemaphoreStep.waitForStart("pod1/1", b);
         Map<String, String> labels1 = getLabels(cloud, this, name);
-        labels1.put("jenkins/mypod", "true");
+        labels1.put("jenkins/"+label1, "true");
         PodList pods = cloud.connect().pods().withLabels(labels1).list();
         assertTrue(!pods.getItems().isEmpty());
         SemaphoreStep.success("pod1/1", null);
 
         SemaphoreStep.waitForStart("podTemplate2/1", b);
-        PodTemplate template2 = podTemplatesWithLabel("mypod2", cloud.getAllTemplates()).get(0);
+        String label2 = name.getMethodName() + "-2";
+        PodTemplate template2 = podTemplatesWithLabel(label2, cloud.getAllTemplates()).get(0);
         SemaphoreStep.success("podTemplate2/1", null);
         assertEquals(Integer.MAX_VALUE, template2.getInstanceCap());
-        assertThat(template2.getLabelsMap(), hasEntry("jenkins/mypod2", "true"));
-        assertNull("mypod2 should not inherit from anything", template2.getInheritFrom());
+        assertThat(template2.getLabelsMap(), hasEntry("jenkins/" + label2, "true"));
+        assertNull(label2 + " should not inherit from anything", template2.getInheritFrom());
         SemaphoreStep.waitForStart("pod2/1", b);
         Map<String, String> labels2 = getLabels(cloud, this, name);
-        labels1.put("jenkins/mypod2", "true");
+        labels1.put("jenkins/" + label2, "true");
         PodList pods2 = cloud.connect().pods().withLabels(labels2).list();
         assertTrue(!pods2.getItems().isEmpty());
         SemaphoreStep.success("pod2/1", null);
@@ -346,6 +346,30 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
 
+    @Test
+    public void computerCantBeConfigured() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+                grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+        SemaphoreStep.waitForStart("pod/1", b);
+        Optional<KubernetesSlave> optionalNode = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).map(KubernetesSlave.class::cast).findAny();
+        assertTrue(optionalNode.isPresent());
+        KubernetesSlave node = optionalNode.get();
+
+        JenkinsRule.WebClient wc = r.createWebClient().login("admin");
+        wc.getOptions().setPrintContentOnFailingStatusCode(false);
+
+        HtmlPage nodeIndex = wc.getPage(node);
+        assertNotXPath(nodeIndex, "//*[text() = 'configure']");
+        wc.assertFails(node.toComputer().getUrl()+"configure", 403);
+        SemaphoreStep.success("pod/1", null);
+    }
+
+    private void assertNotXPath(HtmlPage page, String xpath) {
+        HtmlElement documentElement = page.getDocumentElement();
+        assertNull("There should not be an object that matches XPath:" + xpath, DomNodeUtil.selectSingleNode(documentElement, xpath));
+    }
+  
     @Issue("JENKINS-57717")
     @Test
     public void runInPodWithShowRawYamlFalse() throws Exception {
