@@ -30,22 +30,19 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
-import hudson.Util;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
@@ -95,7 +92,7 @@ public abstract class AbstractKubernetesPipelineTest {
     @Before
     public void defineProjectName() {
         // Add spaces before uppercases
-        this.projectName = name.getMethodName().replaceAll("([A-Z])", " $1");
+        this.projectName = generateProjectName(name.getMethodName());
     }
 
     protected String getProjectName() {
@@ -115,13 +112,30 @@ public abstract class AbstractKubernetesPipelineTest {
      * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
      */
     protected final WorkflowRun createJobThenScheduleRun() throws IOException, ExecutionException, InterruptedException {
-        p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
-        Map<String, String> env = new HashMap<>();
-        env.put("NAME", name.getMethodName());
-        String script = Util.replaceMacro(loadPipelineScript(name.getMethodName() + ".groovy"), env);
-        p.setDefinition(new CpsFlowDefinition(script, true));
-        b = p.scheduleBuild2(0).waitForStart();
+        return createJobThenScheduleRun(null);
+    }
+
+    /**
+     * Creates a pipeline job using <methodName>.groovy as pipeline definition,
+     * then schedule it and wait for it to start.
+     *
+     * Resolves $NAME to the method name in order to avoid any hard-coded reference
+     * to the method name within the pipeline definition. Also resolves any reference provided in the given env map.
+     *
+     * @param env an environment map to resolve in the pipeline script
+     * @return The scheduled pipeline run
+     * @throws IOException If something gets wrong when creating the pipeline job
+     * @throws ExecutionException If something went wrong while retrieving the run object
+     * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
+     */
+    protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env) throws IOException, ExecutionException, InterruptedException {
+        b = createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName(), env);
+        p = b.getParent();
         return b;
+    }
+
+    protected final String loadPipelineDefinition() {
+        return KubernetesTestUtil.loadPipelineDefinition(getClass(), name.getMethodName(), null);
     }
 
     @Before
@@ -167,15 +181,7 @@ public abstract class AbstractKubernetesPipelineTest {
     }
 
     protected String loadPipelineScript(String name) {
-        return loadPipelineScript(getClass(), name);
-    }
-
-    public static String loadPipelineScript(Class<?> clazz, String name) {
-        try {
-            return new String(IOUtils.toByteArray(clazz.getResourceAsStream(name)));
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not read resource:[" + name + "].");
-        }
+        return KubernetesTestUtil.loadPipelineScript(getClass(), name);
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {

@@ -34,6 +34,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,7 +43,12 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import hudson.Util;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.rules.TestName;
 
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +67,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
 
@@ -217,4 +224,31 @@ public class KubernetesTestUtil {
         LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
     }
 
+    public static String generateProjectName(String name) {
+        return name.replaceAll("([A-Z])", " $1");
+    }
+
+    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName) throws InterruptedException, ExecutionException, IOException {
+        return createPipelineJobThenScheduleRun(r, cls, methodName, null);
+    }
+
+    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName, Map<String, String> env) throws IOException, ExecutionException, InterruptedException {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, generateProjectName(methodName));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineDefinition(cls, methodName, env), true));
+        return p.scheduleBuild2(0).waitForStart();
+    }
+
+    public static String loadPipelineDefinition(Class cls, String name, Map<String, String> providedEnv) {
+        Map<String, String> env = providedEnv == null ? new HashMap<>() : new HashMap<>(providedEnv);
+        env.put("NAME", name);
+        return Util.replaceMacro(loadPipelineScript(cls, name + ".groovy"), env);
+    }
+
+    public static String loadPipelineScript(Class<?> clazz, String name) {
+        try {
+            return new String(IOUtils.toByteArray(clazz.getResourceAsStream(name)));
+        } catch (Throwable t) {
+            throw new RuntimeException("Could not read resource:[" + name + "].");
+        }
+    }
 }
