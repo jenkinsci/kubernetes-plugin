@@ -150,9 +150,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         return new ACL() {
             @Override
             public boolean hasPermission(Authentication a, Permission permission) {
-                if (permission== Computer.CONFIGURE)
-                    return false;
-                return base.hasPermission(a,permission);
+                return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
             }
         };
     }
