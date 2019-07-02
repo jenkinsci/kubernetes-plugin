@@ -334,9 +334,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void runInPodWithRetention() throws Exception {
-        logs.capture(1000);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        logs.getMessages().stream().anyMatch(msg -> msg.contains("was not deleted due to retention policy Always"));
-        assertTrue(deletePods(cloud.connect(), getLabels(this, name), false));
+        assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
 }
