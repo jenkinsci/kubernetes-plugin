@@ -1,7 +1,7 @@
-podTemplate(label: 'terminatedPod', containers: [
+podTemplate(label: '$NAME', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
-    node ('terminatedPod') {
+    node ('$NAME') {
         container('busybox') {
             sh 'sleep 9999999'
         }

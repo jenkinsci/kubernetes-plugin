@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'declarative-custom-workspace-pod'
+      label '$NAME'
       customWorkspace 'some/other/path'
       defaultContainer 'maven'
       yaml """

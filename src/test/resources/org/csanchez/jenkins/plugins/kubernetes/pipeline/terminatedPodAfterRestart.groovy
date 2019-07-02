@@ -1,9 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
-podTemplate(label: 'terminatedPodAfterRestart', containers: [
+podTemplate(label: '$NAME', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
-    node ('terminatedPodAfterRestart') {
+    node ('$NAME') {
         container('busybox') {
                 sh 'sleep 9999999'
         }

@@ -14,7 +14,7 @@ spec:
 """
 ) {
 
-    node ('mypod') {
+    node ('$NAME') {
       stage('Run') {
         container('busybox') {
           sh """
