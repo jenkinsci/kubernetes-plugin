@@ -2,7 +2,7 @@ podTemplate(label: '$NAME-1', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
     semaphore 'podTemplate1'
-    node ('mypod') {
+    node ('$NAME-1') {
         semaphore 'pod1'
         stage('Run') {
             container('busybox') {
