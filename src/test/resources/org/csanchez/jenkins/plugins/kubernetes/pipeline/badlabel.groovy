@@ -14,7 +14,7 @@ spec:
 """
 ) {
 
-    node ('badlabel') {
+    node ('$NAME') {
       stage('Run') {
         container('busybox') {
           sh """

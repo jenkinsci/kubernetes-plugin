@@ -39,8 +39,6 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
@@ -64,18 +62,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    WorkflowJob p;
-
-    WorkflowRun b;
-
     @Before
     public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         logs.capture(1000);
-        p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName() + ".groovy"), true));
-        b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
     }
 
     @Test

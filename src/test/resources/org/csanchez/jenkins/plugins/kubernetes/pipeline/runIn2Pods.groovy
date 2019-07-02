@@ -1,4 +1,4 @@
-podTemplate(label: 'mypod', containers: [
+podTemplate(label: '$NAME-1', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
     semaphore 'podTemplate1'
@@ -18,11 +18,11 @@ podTemplate(label: 'mypod', containers: [
     }
 }
 
-podTemplate(label: 'mypod2', containers: [
+podTemplate(label: '$NAME-2', containers: [
         containerTemplate(name: 'busybox2', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
     semaphore 'podTemplate2'
-    node ('mypod2') {
+    node ('$NAME-2') {
         semaphore 'pod2'
         stage('Run') {
             container('busybox2') {
