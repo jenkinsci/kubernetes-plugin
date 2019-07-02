@@ -1,7 +1,7 @@
-podTemplate(label: 'sshagent', containers: [
+podTemplate(label: '$NAME', containers: [
         containerTemplate(name: 'ssh-client', image: 'kroniak/ssh-client:3.6', ttyEnabled: true, command: 'cat')
 ]) {
-    node ('sshagent') {
+    node ('$NAME') {
         stage('container log') {
             container('ssh-client') {
                 sshagent (credentials: ['ContainerExecDecoratorPipelineTest-sshagent']) {

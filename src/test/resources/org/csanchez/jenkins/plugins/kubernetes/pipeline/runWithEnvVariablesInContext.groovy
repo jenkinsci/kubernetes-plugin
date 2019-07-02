@@ -1,5 +1,5 @@
 //noinspection GrPackage
-podTemplate(label: 'runWithEnvVarsFromContext',
+podTemplate(label: '$NAME',
     envVars: [
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
     ],
@@ -9,7 +9,7 @@ podTemplate(label: 'runWithEnvVarsFromContext',
 
     //we should expect outer environment variables to show up here.
     env.FROM_ENV_DEFINITION = "ABC"
-    node ('runWithEnvVarsFromContext') {
+    node ('$NAME') {
         stage('Run busybox') {
             sh 'echo before withEnv'
             sh '''

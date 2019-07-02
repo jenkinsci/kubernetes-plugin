@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'declarativeFromYamlFile'
+      label '$NAME'
       yamlFile 'declarativeYamlFile.yml'
     }
   }
