@@ -5,10 +5,10 @@ import static org.junit.Assert.assertNotNull;
 
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetesPipelineTest {
 
@@ -23,11 +23,7 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
                     new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName()+".groovy"), true));
-
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+        assertNotNull(createJobThenScheduleRun());
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(overriddenNamespace, b);
@@ -48,13 +44,9 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
                     new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
         }
 
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, getProjectName());
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript(name.getMethodName()+".groovy")
-                .replace("OVERRIDDEN_NAMESPACE", stepNamespace), true));
-
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-
+        Map<String, String> env = new HashMap<>();
+        env.put("OVERRIDDEN_NAMESPACE", stepNamespace);
+        assertNotNull(createJobThenScheduleRun(env));
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(stepNamespace, b);
     }

@@ -1,7 +1,7 @@
-podTemplate(label: 'runInPod', containers: [
+podTemplate(label: '$NAME', containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
-    node('runInPod') {
+    node('$NAME') {
         semaphore 'pod'
     }
 }
