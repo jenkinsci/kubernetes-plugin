@@ -267,19 +267,19 @@ public class KubernetesClientProvider {
 
         @Override
         protected void doRun() {
-            AtomicInteger runningCallsCount = new AtomicInteger();
-            AtomicInteger queuedCallsCount = new AtomicInteger();
-            KubernetesClientProvider.clients.asMap().forEach((s, client) -> {
+            int runningCallsCount = 0;
+            int queuedCallsCount = 0;
+            for (Client client : KubernetesClientProvider.clients.asMap().values()) {
                 KubernetesClient kClient = client.getClient();
                 if (kClient instanceof HttpClientAware) {
                     OkHttpClient httpClient = ((HttpClientAware) kClient).getHttpClient();
                     Dispatcher dispatcher = httpClient.dispatcher();
-                    runningCallsCount.addAndGet(dispatcher.runningCallsCount());
-                    queuedCallsCount.addAndGet(dispatcher.queuedCallsCount());
+                    runningCallsCount += dispatcher.runningCallsCount();
+                    queuedCallsCount += dispatcher.queuedCallsCount();
                 }
-            });
-            KubernetesClientProvider.runningCallsCount = runningCallsCount.get();
-            KubernetesClientProvider.queuedCallsCount = queuedCallsCount.get();
+            }
+            KubernetesClientProvider.runningCallsCount = runningCallsCount;
+            KubernetesClientProvider.queuedCallsCount = queuedCallsCount;
         }
     }
 }
