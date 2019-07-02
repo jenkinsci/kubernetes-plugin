@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'parent-pod'
+      label '$NAME-parent'
       yaml """
 spec:
   containers:
@@ -17,7 +17,7 @@ spec:
     stage('Run maven') {
         agent {
             kubernetes {
-                label 'nested-pod'
+                label '$NAME-nested'
                 yaml """
 spec:
   containers:
