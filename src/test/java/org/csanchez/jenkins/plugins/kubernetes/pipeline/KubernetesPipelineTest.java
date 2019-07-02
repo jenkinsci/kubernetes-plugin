@@ -345,4 +345,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
+
+    @Issue("JENKINS-57717")
+    @Test
+    public void runInPodWithShowRawYamlFalse() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains("value: container-env-var-value", b);
+    }
 }
