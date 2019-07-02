@@ -10,6 +10,15 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 Unreleased
 ----------
 
+1.16.3
+------
+* **testing** Fixed test flakes [#496](https://github.com/jenkinsci/kubernetes-plugin/pull/496) [JENKINS-46076](https://issues.jenkins-ci.org/browse/JENKINS-46076)
+* **testing** Add a test for the `showRawYaml` option [#525](https://github.com/jenkinsci/kubernetes-plugin/pull/525)
+* Simplify logic to return pod status [#526](https://github.com/jenkinsci/kubernetes-plugin/pull/526)
+* **testing** Simplify testing logic by providing a generic method to load and schedule a pipeline definition [#527](https://github.com/jenkinsci/kubernetes-plugin/pull/527)
+* Prevent save of Kubernetes agent through UI [#514](https://github.com/jenkinsci/kubernetes-plugin/pull/514) [JENKINS-57965](https://issues.jenkins-ci.org/browse/JENKINS-57965)
+* Support "Docker Host Certificates" credentials to authenticate against Kubernetes [#520](https://github.com/jenkinsci/kubernetes-plugin/pull/520)
+
 1.16.2
 ------
 * Fixed an issue where only the last PodTemplateFilter would be applied [#521](https://github.com/jenkinsci/kubernetes-plugin/pull/521)
