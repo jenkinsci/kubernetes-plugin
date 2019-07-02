@@ -9,12 +9,20 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 
 Unreleased
 ----------
+
+1.16.2
+------
+* Fixed an issue where only the last PodTemplateFilter would be applied [#521](https://github.com/jenkinsci/kubernetes-plugin/pull/521)
+
+1.16.1
+------
 * Update parent POM to 3.44 [#505](https://github.com/jenkinsci/kubernetes-plugin/pull/505)
 * Update plugin dependencies
   * structs 1.19 [#494](https://github.com/jenkinsci/kubernetes-plugin/pull/494)
   * variant 1.2 [#464](https://github.com/jenkinsci/kubernetes-plugin/pull/464)
   * cloudbees-folder 6.8 [#471](https://github.com/jenkinsci/kubernetes-plugin/pull/471)
   * credentials 2.2.0 / ssh-credentials 1.17 [#499](https://github.com/jenkinsci/kubernetes-plugin/pull/499)
+* Making ContainerExecProc periodically send a newline to keep a socket alive [#513](https://github.com/jenkinsci/kubernetes-plugin/pull/513)[JENKINS-58065](https://issues.jenkins-ci.org/browse/JENKINS-58065)
 
 1.16.0
 ----------

@@ -32,19 +32,15 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private KubernetesClient client;
 
-    private PodStatus podStatus;
-
     public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
         this.client = client;
         this.pod = pod;
-        this.podStatus = pod.getStatus();
         updateState(pod);
     }
 
     @Override
     public void eventReceived(Action action, Pod pod) {
         LOGGER.log(Level.FINEST, "[{0}] {1}", new Object[]{action, pod.getMetadata().getName()});
-        this.podStatus = pod.getStatus();
         switch (action) {
             case MODIFIED:
                 updateState(pod);
@@ -161,6 +157,9 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         if (pod == null) {
             throw new IllegalStateException(String.format("Pod is no longer available: %s/%s",
                     this.pod.getMetadata().getNamespace(), this.pod.getMetadata().getName()));
+        } else {
+            LOGGER.finest(() -> "Updating pod for " + this.pod.getMetadata().getNamespace() + "/" + this.pod.getMetadata().getName() + " : " + pod);
+            this.pod = pod;
         }
         List<ContainerStatus> terminatedContainers = getTerminatedContainers(pod);
         if (!terminatedContainers.isEmpty()) {
@@ -189,6 +188,6 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     }
 
     public PodStatus getPodStatus() {
-        return podStatus;
+        return this.pod.getStatus();
     }
 }
