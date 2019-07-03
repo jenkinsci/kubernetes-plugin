@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -38,7 +39,12 @@ public class OpenShiftTokenCredentialImpl extends BaseStandardCredentials implem
 
         @Override
         public String getDisplayName() {
-            return "OpenShift OAuth token";
+            return "OpenShift OAuth token (Deprecated)";
+        }
+
+        @Override
+        public boolean isApplicable(CredentialsProvider provider) {
+            return false;
         }
     }
 
