@@ -10,6 +10,12 @@ See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filt
 Unreleased
 ----------
 
+1.16.4
+------
+* Add http connections count [#528](https://github.com/jenkinsci/kubernetes-plugin/pull/528)
+* Hide deprecated credential type [#529](https://github.com/jenkinsci/kubernetes-plugin/pull/529) [JENKINS-49717](https://issues.jenkins-ci.org/browse/JENKINS-49717)
+* Allow option `showRawYaml` in Jenkinsfiles [#519](https://github.com/jenkinsci/kubernetes-plugin/pull/519)
+
 1.16.3
 ------
 * **testing** Fixed test flakes [#496](https://github.com/jenkinsci/kubernetes-plugin/pull/496) [JENKINS-46076](https://issues.jenkins-ci.org/browse/JENKINS-46076)
