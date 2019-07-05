@@ -31,12 +31,18 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -52,6 +58,7 @@ import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
  * @author Carlos Sanchez
@@ -352,4 +359,34 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
     }
 
+    @Test
+    public void computerCantBeConfigured() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+                grant(Jenkins.ADMINISTER).everywhere().to("admin"));
+        SemaphoreStep.waitForStart("pod/1", b);
+        Optional<KubernetesSlave> optionalNode = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).map(KubernetesSlave.class::cast).findAny();
+        assertTrue(optionalNode.isPresent());
+        KubernetesSlave node = optionalNode.get();
+
+        JenkinsRule.WebClient wc = r.createWebClient().login("admin");
+        wc.getOptions().setPrintContentOnFailingStatusCode(false);
+
+        HtmlPage nodeIndex = wc.getPage(node);
+        assertNotXPath(nodeIndex, "//*[text() = 'configure']");
+        wc.assertFails(node.toComputer().getUrl()+"configure", 403);
+        SemaphoreStep.success("pod/1", null);
+    }
+
+    private void assertNotXPath(HtmlPage page, String xpath) {
+        HtmlElement documentElement = page.getDocumentElement();
+        assertNull("There should not be an object that matches XPath:" + xpath, DomNodeUtil.selectSingleNode(documentElement, xpath));
+    }
+  
+    @Issue("JENKINS-57717")
+    @Test
+    public void runInPodWithShowRawYamlFalse() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains("value: container-env-var-value", b);
+    }
 }
