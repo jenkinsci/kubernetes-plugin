@@ -52,13 +52,14 @@
     <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
     <workflow-step-api-plugin.version>2.20</workflow-step-api-plugin.version>
     <slf4jVersion>1.7.26</slf4jVersion>
+    <kubernetes-client.version>4.3.0</kubernetes-client.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-client</artifactId>
-      <version>4.3.0</version>
+      <version>${kubernetes-client.version}</version>
       <exclusions>
         <!-- Jackson logic comes from plugins -->
         <exclusion>
@@ -70,6 +71,11 @@
           <artifactId>jackson-databind</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>openshift-client</artifactId>
+      <version>${kubernetes-client.version}</version>
     </dependency>
 
     <dependency>

@@ -169,6 +169,21 @@ public class PodTemplateBuilderTest {
         validatePod(pod, false);
     }
 
+    @Test
+    public void homeIsSetOnOpenShift() {
+        when(slave.getKubernetesCloud()).thenReturn(cloud);
+        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
+        doReturn(true).when(cloud).isOpenShift();
+
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+
+        Map<String, Container> containers = pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Container jnlp = containers.get("jnlp");
+        assertThat(jnlp.getEnv(), hasItems(new EnvVar("HOME", "/home/jenkins", null)));
+    }
+
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -231,9 +246,7 @@ public class PodTemplateBuilderTest {
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave) {
         assertThat(jnlp.getCommand(), empty());
-        List<EnvVar> envVars = Lists.newArrayList( //
-                new EnvVar("HOME", "/home/jenkins", null) //
-        );
+        List<EnvVar> envVars = Lists.newArrayList();
         if (slave != null) {
             assertThat(jnlp.getArgs(), empty());
             envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));

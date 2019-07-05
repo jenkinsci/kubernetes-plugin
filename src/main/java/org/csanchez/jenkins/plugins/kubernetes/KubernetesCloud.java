@@ -26,6 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
@@ -202,6 +203,17 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setDefaultsProviderTemplate(String defaultsProviderTemplate) {
         this.defaultsProviderTemplate = defaultsProviderTemplate;
+    }
+
+    public boolean isOpenShift() {
+        try {
+            if (connect().isAdaptable(OpenShiftClient.class)) {
+                return true;
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
     }
 
     @Nonnull
@@ -780,7 +792,6 @@ public class KubernetesCloud extends Cloud {
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }
-
         return this;
     }
 
