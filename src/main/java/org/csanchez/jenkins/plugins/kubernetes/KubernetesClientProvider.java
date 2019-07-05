@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.model.PeriodicWork;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -38,7 +39,6 @@ import okhttp3.OkHttpClient;
 /**
  * Manages the Kubernetes client creation per cloud
  */
-@Restricted(NoExternalUse.class) // testing only
 public class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
@@ -212,6 +212,17 @@ public class KubernetesClientProvider {
         }
     }
 
+    private static volatile int runningCallsCount;
+    private static volatile int queuedCallsCount;
+
+    public static int getRunningCallsCount() {
+        return runningCallsCount;
+    }
+
+    public static int getQueuedCallsCount() {
+        return queuedCallsCount;
+    }
+
     @Restricted(NoExternalUse.class) // testing only
     public static void invalidate(String displayName) {
         clients.invalidate(displayName);
@@ -241,6 +252,32 @@ public class KubernetesClientProvider {
                 }
             }
             super.onChange(o, file);
+        }
+    }
+
+    @Extension
+    public static class UpdateConnectionCount extends PeriodicWork {
+
+        @Override
+        public long getRecurrencePeriod() {
+            return TimeUnit.SECONDS.toMillis(5);
+        }
+
+        @Override
+        protected void doRun() {
+            int runningCallsCount = 0;
+            int queuedCallsCount = 0;
+            for (Client client : KubernetesClientProvider.clients.asMap().values()) {
+                KubernetesClient kClient = client.getClient();
+                if (kClient instanceof HttpClientAware) {
+                    OkHttpClient httpClient = ((HttpClientAware) kClient).getHttpClient();
+                    Dispatcher dispatcher = httpClient.dispatcher();
+                    runningCallsCount += dispatcher.runningCallsCount();
+                    queuedCallsCount += dispatcher.queuedCallsCount();
+                }
+            }
+            KubernetesClientProvider.runningCallsCount = runningCallsCount;
+            KubernetesClientProvider.queuedCallsCount = queuedCallsCount;
         }
     }
 }

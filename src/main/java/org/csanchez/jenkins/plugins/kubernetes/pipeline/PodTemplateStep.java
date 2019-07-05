@@ -60,6 +60,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private String yaml;
     private PodRetention podRetention;
 
+    private Boolean showRawYaml;
+
     @DataBoundConstructor
     public PodTemplateStep(String label, String name) {
         this.label = label;
@@ -257,6 +259,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setPodRetention(PodRetention podRetention) {
         this.podRetention = podRetention;
+    }
+
+    public boolean isShowRawYaml() {
+        return showRawYaml == null ? true : showRawYaml.booleanValue();
+    }
+
+    @DataBoundSetter
+    public void setShowRawYaml(boolean showRawYaml) {
+        this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
     @Extension
