@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -152,6 +153,10 @@ public class KubernetesFactoryAdapter {
             builder.withClientCertData(Base64.encodeBase64String(certificate.getEncoded()))
                     .withClientKeyData(pemEncodeKey(key))
                     .withClientKeyPassphrase(Secret.toString(certificateCredentials.getPassword()));
+        } else if (credentials instanceof DockerServerCredentials) {
+            DockerServerCredentials certificateCredentials = (DockerServerCredentials) credentials;
+            builder.withClientCertData(certificateCredentials.getClientCertificate())
+                    .withClientKeyData(certificateCredentials.getClientKey());
         }
 
         if (skipTlsVerify) {
