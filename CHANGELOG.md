@@ -7,8 +7,10 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
-Unreleased
-----------
+1.16.5 and newer
+------
+
+No longer tracked in this file. See [GitHub releases](https://github.com/jenkinsci/kubernetes-plugin/releases) instead.
 
 1.16.4
 ------
