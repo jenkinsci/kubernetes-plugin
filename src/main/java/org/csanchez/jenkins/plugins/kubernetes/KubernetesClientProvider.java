@@ -39,7 +39,6 @@ import okhttp3.OkHttpClient;
 /**
  * Manages the Kubernetes client creation per cloud
  */
-@Restricted(NoExternalUse.class) // testing only
 public class KubernetesClientProvider {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
