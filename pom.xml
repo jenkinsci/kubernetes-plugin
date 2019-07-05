@@ -152,7 +152,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>2.32-rc934.23119201f0b5</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/104 -->
+      <version>2.32</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
