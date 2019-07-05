@@ -353,10 +353,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        // TODO could use waitForMessage after #496
-        while (!JenkinsRule.getLog(b).contains(new ExecutorStepExecution.RemovedNodeCause().getShortDescription())) {
-            Thread.sleep(100);
-        }
+        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
     @Test

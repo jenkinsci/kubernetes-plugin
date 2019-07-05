@@ -212,10 +212,7 @@ public class RestartPipelineTest {
             // Indeed we get two Reaper instances running, which independently remove the node.
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-            while (!JenkinsRule.getLog(b).contains(new ExecutorStepExecution.RemovedNodeCause().getShortDescription())) {
-                // TODO JenkinsRule.waitForMessage has a race condition w.r.t. the termination cause printed by WorkflowRun.finish
-                Thread.sleep(100);
-            }
+            r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
             // Currently the logic in ExecutorStepExecution cannot handle a Jenkins restart so it prints the following.
             // It does not matter since DurableTaskStep redundantly implements the same check.
             r.assertLogContains(" was deleted, but do not have a node body to cancel", b);
