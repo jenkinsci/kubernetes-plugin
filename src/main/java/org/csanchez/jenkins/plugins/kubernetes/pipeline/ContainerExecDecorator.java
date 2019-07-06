@@ -79,7 +79,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private static final String DEFAULT_SHELL="/bin/sh";
+    private static final String DEFAULT_SHELL = "sh";
 
     /**
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
