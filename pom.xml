@@ -3,7 +3,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.46</version>
+    <version>3.47</version>
+    <relativePath />
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -94,10 +95,10 @@
       <version>6.8</version>
     </dependency>
 
-    <dependency> <!-- OnceRetentionStrategy -->
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>1.29</version>
+      <version>1.30</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -311,6 +312,7 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
+            <hudson.slaves.NodeProvisioner.recurrencePeriod>1000</hudson.slaves.NodeProvisioner.recurrencePeriod>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->
