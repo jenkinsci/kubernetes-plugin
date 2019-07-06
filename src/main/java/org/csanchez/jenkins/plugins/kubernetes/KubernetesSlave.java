@@ -365,10 +365,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     listener.getLogger().println(Messages.KubernetesSlave_HomeWarning());
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException|InterruptedException e) {
             e.printStackTrace(listener.error("[WARNING] Unable to retrieve HOME environment variable"));
-        } catch (InterruptedException e) {
-            e.printStackTrace(listener.error("[WARNING] Interrupted while retrieving HOME environment variable"));
         }
     }
 
