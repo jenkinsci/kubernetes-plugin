@@ -109,8 +109,7 @@ public class PodTemplateBuilderTest {
         validatePod(pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(2, containers.size());
 
         Container container0 = containers.get("busybox");
@@ -185,8 +184,7 @@ public class PodTemplateBuilderTest {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
 
         // check containers
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
@@ -261,8 +259,7 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
@@ -296,8 +293,7 @@ public class PodTemplateBuilderTest {
         PodTemplate result = combine(parent, template);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
@@ -387,6 +383,37 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void yamlOverrideContainerEnvvar() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml("kind: Pod\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: jnlp\n" +
+                "    env:\n" +
+                "    - name: VAR1\n" +
+                "      value: \"1\"\n" +
+                "    - name: VAR2\n" +
+                "      value: \"1\"\n");
+        PodTemplate child = new PodTemplate();
+        child.setYaml("kind: Pod\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: jnlp\n" +
+                "    env:\n" +
+                "    - name: VAR1\n" +
+                "      value: \"2\"\n");
+        setupStubs();
+
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Map<String, Container> containers = toContainerMap(pod);
+        Container jnlp = containers.get("jnlp");
+        Map<String, EnvVar> env = PodTemplateUtils.envVarstoMap(jnlp.getEnv());
+        assertEquals("2", env.get("VAR1").getValue()); // value from child
+        assertEquals("1", env.get("VAR2").getValue()); // value from parent
+    }
+
+    @Test
     public void yamlOverrideVolume() throws Exception {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
@@ -468,12 +495,16 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         validateJnlpContainer(jnlp, slave);
+    }
+
+    private Map<String, Container> toContainerMap(Pod pod) {
+        return pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
     }
 
     private String loadYamlFile(String s) throws IOException {

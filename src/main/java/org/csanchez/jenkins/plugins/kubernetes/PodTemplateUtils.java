@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -575,24 +576,41 @@ public class PodTemplateUtils {
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
-        List<EnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnv());
-        combinedEnvVars.addAll(template.getEnv());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getName())).collect(toList());
+        Map<String,EnvVar> combinedEnvVars = new HashMap<>();
+        combinedEnvVars.putAll(envVarstoMap(parent.getEnv()));
+        combinedEnvVars.putAll(envVarstoMap(template.getEnv()));
+        return combinedEnvVars.entrySet().stream()
+                .filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(toList());
+    }
+
+    @VisibleForTesting
+    static Map<String, EnvVar> envVarstoMap(List<EnvVar> envVarList) {
+        return envVarList.stream().collect(toMap(EnvVar::getName, Function.identity()));
     }
 
     private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+        return combineEnvVars(parent.getEnvVars(), template.getEnvVars());
     }
 
     private static List<TemplateEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+        return combineEnvVars(parent.getEnvVars(), template.getEnvVars());
+    }
+
+    private static List<TemplateEnvVar> combineEnvVars(List<TemplateEnvVar> parent, List<TemplateEnvVar> child) {
+        Map<String,TemplateEnvVar> combinedEnvVars = new HashMap<>();
+        combinedEnvVars.putAll(templateEnvVarstoMap(parent));
+        combinedEnvVars.putAll(templateEnvVarstoMap(child));
+        return combinedEnvVars.entrySet().stream()
+                .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(toList());
+    }
+
+    @VisibleForTesting
+    static Map<String, TemplateEnvVar> templateEnvVarstoMap(List<TemplateEnvVar> envVarList) {
+        return envVarList.stream().collect(toMap(TemplateEnvVar::getKey, Function.identity()));
     }
 
     private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
