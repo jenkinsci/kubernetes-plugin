@@ -12,12 +12,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -576,9 +578,7 @@ public class PodTemplateUtils {
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
-        Map<String,EnvVar> combinedEnvVars = new HashMap<>();
-        combinedEnvVars.putAll(envVarstoMap(parent.getEnv()));
-        combinedEnvVars.putAll(envVarstoMap(template.getEnv()));
+        Map<String,EnvVar> combinedEnvVars = mergeMaps(envVarstoMap(parent.getEnv()),envVarstoMap(template.getEnv()));
         return combinedEnvVars.entrySet().stream()
                 .filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
                 .map(Map.Entry::getValue)
@@ -599,10 +599,10 @@ public class PodTemplateUtils {
     }
 
     private static List<TemplateEnvVar> combineEnvVars(List<TemplateEnvVar> parent, List<TemplateEnvVar> child) {
-        Map<String,TemplateEnvVar> combinedEnvVars = new HashMap<>();
-        combinedEnvVars.putAll(templateEnvVarstoMap(parent));
-        combinedEnvVars.putAll(templateEnvVarstoMap(child));
-        return combinedEnvVars.entrySet().stream()
+        Map<String,TemplateEnvVar> combinedEnvVars = mergeMaps(templateEnvVarstoMap(parent),templateEnvVarstoMap(child));
+        return combinedEnvVars
+                .entrySet()
+                .stream()
                 .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
                 .map(Map.Entry::getValue)
                 .collect(toList());
@@ -610,7 +610,13 @@ public class PodTemplateUtils {
 
     @VisibleForTesting
     static Map<String, TemplateEnvVar> templateEnvVarstoMap(List<TemplateEnvVar> envVarList) {
-        return envVarList.stream().collect(toMap(TemplateEnvVar::getKey, Function.identity()));
+        return envVarList
+                .stream()
+                .collect(Collectors.toMap(TemplateEnvVar::getKey, Function.identity(), throwingMerger(), LinkedHashMap::new));
+    }
+
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
     }
 
     private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
@@ -624,7 +630,7 @@ public class PodTemplateUtils {
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
-        Map<K, V> m = new HashMap<>();
+        Map<K, V> m = new LinkedHashMap<>();
         if (m1 != null)
             m.putAll(m1);
         if (m2 != null)
