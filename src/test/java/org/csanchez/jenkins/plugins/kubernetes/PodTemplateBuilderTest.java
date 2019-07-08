@@ -382,6 +382,7 @@ public class PodTemplateBuilderTest {
         assertEquals("busybox2", container.get().getImage());
     }
 
+    @Issue("JENKINS-58374")
     @Test
     public void yamlOverrideContainerEnvvar() throws Exception {
         PodTemplate parent = new PodTemplate();
