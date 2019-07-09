@@ -13,6 +13,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -58,6 +59,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     private String yaml;
+    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
     private PodRetention podRetention;
 
     @DataBoundConstructor
@@ -120,6 +122,15 @@ public class PodTemplateStep extends Step implements Serializable {
             this.envVars.clear();
             this.envVars.addAll(envVars);
         }
+    }
+
+    public YamlMergeStrategy getYamlMergeStrategy() {
+        return yamlMergeStrategy;
+    }
+
+    @DataBoundSetter
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+        this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
     public List<PodVolume> getVolumes() {
