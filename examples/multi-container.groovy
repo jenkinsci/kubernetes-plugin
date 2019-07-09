@@ -2,9 +2,7 @@
  * This pipeline describes a multi container job, running Maven and Golang builds
  */
 
-def label = "maven-golang-${UUID.randomUUID().toString()}"
-
-podTemplate(label: label, yaml: """
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 spec:
@@ -20,7 +18,7 @@ spec:
 """
   ) {
 
-  node(label) {
+  node(POD_LABEL) {
     stage('Build a Maven project') {
       git 'https://github.com/jenkinsci/kubernetes-plugin.git'
       container('maven') {

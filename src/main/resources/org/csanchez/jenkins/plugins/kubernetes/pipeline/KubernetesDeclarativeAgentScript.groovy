@@ -44,7 +44,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 describable.setInheritFrom("")
             }
             script.podTemplate(describable.asArgs) {
-                script.node(describable.label) {
+                script.node(describable.label ?: script.POD_LABEL) {
                     CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
                         // what container to use for the main body
                         def container = describable.defaultContainer ?: 'jnlp'

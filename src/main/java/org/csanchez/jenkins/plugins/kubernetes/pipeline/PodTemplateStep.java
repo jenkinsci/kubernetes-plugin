@@ -23,9 +23,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import javax.annotation.CheckForNull;
 
 public class PodTemplateStep extends Step implements Serializable {
 
@@ -36,8 +38,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private String cloud = DEFAULT_CLOUD;
     private String inheritFrom;
 
-    private final String label;
-    private final String name;
+    private String label;
+    private String name;
 
     private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
@@ -63,17 +65,24 @@ public class PodTemplateStep extends Step implements Serializable {
     private Boolean showRawYaml;
 
     @DataBoundConstructor
-    public PodTemplateStep(String label, String name) {
-        this.label = label;
-        this.name = name == null ? label : name;
-    }
+    public PodTemplateStep() {}
 
     public String getLabel() {
         return label;
     }
 
-    public String getName() {
+    @DataBoundSetter
+    public void setLabel(String label) {
+        this.label = Util.fixEmpty(label);
+    }
+
+    public @CheckForNull String getName() {
         return name;
+    }
+
+    @DataBoundSetter
+    public void setName(String name) {
+        this.name = Util.fixEmpty(name);
     }
 
     public String getNamespace() {

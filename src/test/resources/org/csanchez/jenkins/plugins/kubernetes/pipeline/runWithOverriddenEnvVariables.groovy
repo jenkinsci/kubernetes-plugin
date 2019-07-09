@@ -1,4 +1,4 @@
-podTemplate(label: '$NAME',
+podTemplate(
         envVars: [
                 envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value-first'),
                 envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value')
@@ -13,7 +13,7 @@ podTemplate(label: '$NAME',
                 ),
         ]) {
 
-    node ('$NAME') {
+    node(POD_LABEL) {
         sh '''
         echo OUTSIDE_CONTAINER_HOME_ENV_VAR = $HOME
         echo OUTSIDE_CONTAINER_POD_ENV_VAR = $POD_ENV_VAR

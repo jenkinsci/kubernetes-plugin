@@ -8,9 +8,7 @@
  * kubectl create secret generic kaniko-secret --from-file=kaniko-secret.json
  */
 
-def label = "kaniko-gcr-${UUID.randomUUID().toString()}"
-
-podTemplate(name: 'kaniko', label: label, yaml: """
+podTemplate(yaml: """
 kind: Pod
 metadata:
   name: kaniko
@@ -35,7 +33,7 @@ spec:
 """
   ) {
 
-  node(label) {
+  node(POD_LABEL) {
     stage('Build with Kaniko') {
       git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
       container(name: 'kaniko', shell: '/busybox/sh') {

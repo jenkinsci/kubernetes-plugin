@@ -14,6 +14,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Util;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +64,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     @DataBoundSetter
     public void setLabel(String label) {
-        this.label = label;
+        this.label = Util.fixEmpty(label);
     }
 
     @CheckForNull
@@ -217,8 +218,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     public Map<String, Object> getAsArgs() {
         Map<String, Object> argMap = new TreeMap<>();
 
-        argMap.put("label", label);
-        argMap.put("name", label);
+        if (label != null) {
+            argMap.put("label", label);
+        }
 
         if (!StringUtils.isEmpty(customWorkspace)) {
             argMap.put("customWorkspace", customWorkspace);

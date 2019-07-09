@@ -1,4 +1,4 @@
-podTemplate(label: '$NAME',
+podTemplate(
     envVars: [
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
         secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password')
@@ -15,7 +15,7 @@ podTemplate(label: '$NAME',
         containerTemplate(name: 'java8', image: 'openjdk:8u151-jre-alpine', ttyEnabled: true, command: '/bin/cat')
     ]) {
 
-    node ('$NAME') {
+    node(POD_LABEL) {
 
         sh '''set +x
         echo OUTSIDE_CONTAINER_BUILD_NUMBER = $BUILD_NUMBER

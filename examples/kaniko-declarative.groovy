@@ -15,7 +15,6 @@ pipeline {
   agent {
     kubernetes {
       //cloud 'kubernetes'
-      label 'kaniko'
       yaml """
 kind: Pod
 metadata:

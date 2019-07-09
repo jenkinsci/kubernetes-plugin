@@ -1,6 +1,6 @@
 //noinspection GrPackage
-podTemplate(label: '$NAME') {
-    node ('$NAME') {
+podTemplate {
+    node(POD_LABEL) {
         stage('container log') {
             containerLog 'jnlp'
         }

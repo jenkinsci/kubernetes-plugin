@@ -1,7 +1,6 @@
 pipeline {
   agent {
     kubernetes {
-      label '$NAME'
       yaml """
 metadata:
   namespace: kubernetes-plugin-test-overridden-namespace

@@ -1,7 +1,6 @@
 pipeline {
   agent {
     kubernetes {
-      label '$NAME'
       yaml """
 metadata:
   labels:

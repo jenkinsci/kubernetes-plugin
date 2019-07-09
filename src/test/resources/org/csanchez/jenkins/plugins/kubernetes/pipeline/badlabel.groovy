@@ -14,7 +14,7 @@ spec:
 """
 ) {
 
-    node ('$NAME') {
+    node(POD_LABEL) {
       stage('Run') {
         container('busybox') {
           sh """

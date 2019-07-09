@@ -3,9 +3,7 @@
  * and in parallel
  */
 
-def label = "maven-selenium-${UUID.randomUUID().toString()}"
-
-podTemplate(label: label, yaml: """
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 spec:
@@ -45,7 +43,7 @@ spec:
 """
   ) {
 
-  node(label) {
+  node(POD_LABEL) {
     stage('Checkout') {
       git 'https://github.com/carlossg/selenium-example.git'
       parallel (

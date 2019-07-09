@@ -1,4 +1,4 @@
-def label = "maven-${UUID.randomUUID().toString()}"
+def label = "maven-${UUID.randomUUID().toString()}" // TODO use POD_LABEL when available
 def mvnOpts = '-DskipTests -ntp -Darguments="-DskipTests -ntp"'
 
 podTemplate(label: label, containers: [
