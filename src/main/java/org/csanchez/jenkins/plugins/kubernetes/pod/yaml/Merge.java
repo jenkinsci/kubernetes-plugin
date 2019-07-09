@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 
-public class Merge extends YamlMergeStrategy implements Serializable {
+public class Merge extends YamlMergeStrategy {
     private static final long serialVersionUID = 6562610892063268131L;
 
     @DataBoundConstructor

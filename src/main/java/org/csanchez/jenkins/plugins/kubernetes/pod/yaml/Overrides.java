@@ -12,7 +12,7 @@ import java.util.List;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;
 
-public class Overrides extends YamlMergeStrategy implements Serializable {
+public class Overrides extends YamlMergeStrategy {
     private static final long serialVersionUID = 4510341864619338164L;
 
     @DataBoundConstructor

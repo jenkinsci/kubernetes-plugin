@@ -833,15 +833,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
-        public Descriptor getDefaultYamlMergeStrategy() {
-            Jenkins jenkins = Jenkins.getInstanceOrNull();
-            if (jenkins == null) {
-                return null;
-            }
-            return jenkins.getDescriptor(YamlMergeStrategy.defaultStrategy().getClass());
+        public YamlMergeStrategy getDefaultYamlMergeStrategy() {
+            return YamlMergeStrategy.defaultStrategy();
         }
-
-
     }
 
     @Override
