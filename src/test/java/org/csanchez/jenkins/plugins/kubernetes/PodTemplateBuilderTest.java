@@ -386,10 +386,6 @@ public class PodTemplateBuilderTest {
         assertEquals("busybox2", container.get().getImage());
     }
 
-    public YamlMergeStrategy merge() {
-        return new Merge();
-    }
-
     @Issue("JENKINS-58374")
     @Test
     public void yamlOverrideContainerEnvvar() throws Exception {
@@ -404,7 +400,7 @@ public class PodTemplateBuilderTest {
                 "    - name: VAR2\n" +
                 "      value: \"1\"\n");
         PodTemplate child = new PodTemplate();
-        child.setYamlMergeStrategy(new Merge());
+        child.setYamlMergeStrategy(merge());
         child.setYaml("kind: Pod\n" +
                 "spec:\n" +
                 "  containers:\n" +
@@ -521,5 +517,9 @@ public class PodTemplateBuilderTest {
 
     private String loadYamlFile(String s) throws IOException {
         return new String(IOUtils.toByteArray(getClass().getResourceAsStream(s)));
+    }
+
+    private YamlMergeStrategy merge() {
+        return new Merge();
     }
 }
