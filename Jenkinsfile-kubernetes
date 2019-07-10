@@ -9,9 +9,7 @@
  * two concurrent jobs with this pipeline. Or change readOnly: true after the first run
  */
 
-def label = UUID.randomUUID().toString() // TODO use POD_LABEL when available
-
-  podTemplate(label: label, yaml: """
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 spec:
@@ -37,7 +35,7 @@ spec:
         memory: 1500Mi
     """) {
 
-    node(label) {
+    node(POD_LABEL) {
       stage('Checkout') {
         checkout scm
       }
