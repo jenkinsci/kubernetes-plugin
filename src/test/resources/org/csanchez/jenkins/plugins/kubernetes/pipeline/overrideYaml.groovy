@@ -1,4 +1,4 @@
-podTemplate(label: 'mergeYaml-parent', yaml: """
+podTemplate(yaml: """
 spec:
     containers:
     - name: jnlp
@@ -6,7 +6,7 @@ spec:
     - name: VAR1
       value: 1
 """) {
-    podTemplate(label: 'mergeYaml-child',
+    podTemplate(
             yaml: """
     containers:
     - name: jnlp
@@ -14,7 +14,7 @@ spec:
     - name: VAR2
       value: 1
 """) {
-        node('mergeYaml-child'){
+        node(POD_LABEL){
             sh '["$VAR1" != "$VAR2"]'
         }
     }
