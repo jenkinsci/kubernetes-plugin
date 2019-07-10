@@ -6,9 +6,8 @@ spec:
     - name: VAR1
       value: 1
 """) {
-    podTemplate(
-            yamlMergeStrategy: merge(),
-            yaml: """
+    podTemplate(yamlMergeStrategy: merge(),
+                yaml: """
     containers:
     - name: jnlp
     env:

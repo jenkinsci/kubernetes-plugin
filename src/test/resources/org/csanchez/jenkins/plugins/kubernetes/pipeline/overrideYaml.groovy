@@ -6,8 +6,7 @@ spec:
     - name: VAR1
       value: 1
 """) {
-    podTemplate(
-            yaml: """
+    podTemplate(yaml: """
     containers:
     - name: jnlp
     env:
