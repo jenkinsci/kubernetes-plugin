@@ -392,4 +392,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogNotContains("value: container-env-var-value", b);
     }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void overrideYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void mergeYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
 }
