@@ -338,6 +338,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public Launcher createLauncher(TaskListener listener) {
+        Launcher launcher = super.createLauncher(listener);
         if (template != null) {
             Executor executor = Executor.currentExecutor();
             if (executor != null) {
@@ -348,10 +349,25 @@ public class KubernetesSlave extends AbstractCloudSlave {
                             getTemplate().getDisplayName())
                     );
                     listener.getLogger().println(getTemplate().getDescriptionForLogging());
+                    checkHomeAndWarnIfNeeded(listener);
                 }
             }
         }
-        return super.createLauncher(listener);
+        return launcher;
+    }
+
+    private void checkHomeAndWarnIfNeeded(TaskListener listener) {
+        try {
+            Computer computer = toComputer();
+            if (computer != null) {
+                String home = computer.getEnvironment().get("HOME");
+                if ("/".equals(home)) {
+                    listener.getLogger().println(Messages.KubernetesSlave_HomeWarning());
+                }
+            }
+        } catch (IOException|InterruptedException e) {
+            e.printStackTrace(listener.error("[WARNING] Unable to retrieve HOME environment variable"));
+        }
     }
 
     protected Object readResolve() {
