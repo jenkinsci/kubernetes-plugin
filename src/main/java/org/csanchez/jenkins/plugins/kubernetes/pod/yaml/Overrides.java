@@ -7,7 +7,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
-import java.io.Serializable;
 import java.util.List;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;

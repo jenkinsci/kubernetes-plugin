@@ -8,7 +8,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
-import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
