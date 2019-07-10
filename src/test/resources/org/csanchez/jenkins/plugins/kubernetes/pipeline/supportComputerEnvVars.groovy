@@ -2,7 +2,6 @@ pipeline {
 	agent {
 
         kubernetes{
-                label '$NAME'
                 containerTemplate{
                         name 'openjdk'
                         image 'openjdk'

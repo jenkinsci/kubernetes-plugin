@@ -45,10 +45,8 @@ Nodes can be defined in a pipeline and then used, however, default execution alw
 
 This will run in jnlp container
 ```groovy
-// this guarantees the node will use this template
-def label = "mypod-${UUID.randomUUID().toString()}"
-podTemplate(label: label) {
-    node(label) {
+podTemplate {
+    node(POD_LABEL) {
         stage('Run shell') {
             sh 'echo hello world'
         }
@@ -58,9 +56,8 @@ podTemplate(label: label) {
 
 This will be container specific
 ```groovy
-def label = "mypod-${UUID.randomUUID().toString()}"
-podTemplate(label: label) {
-  node(label) {
+podTemplate(containers: […]) {
+  node(POD_LABEL) {
     stage('Run shell') {
       container('mycontainer') {
         sh 'echo hello world'
@@ -97,13 +94,12 @@ Multiple containers can be defined for the agent pod, with shared resources, lik
 The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
 
 ```groovy
-def label = "mypod-${UUID.randomUUID().toString()}"
-podTemplate(label: label, containers: [
+podTemplate(containers: [
     containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
     containerTemplate(name: 'golang', image: 'golang:1.8.0', ttyEnabled: true, command: 'cat')
   ]) {
 
-    node(label) {
+    node(POD_LABEL) {
         stage('Get a Maven project') {
             git 'https://github.com/jenkinsci/kubernetes-plugin.git'
             container('maven') {
@@ -139,7 +135,7 @@ Either way it provides access to the following fields:
 * **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
 * **name** The name of the pod.
 * **namespace** The namespace of the pod.
-* **label** The label of the pod. Set a unique value to avoid conflicts across builds
+* **label** The label of the pod. Can be set to a unique value to avoid conflicts across builds, or omitted and `POD_LABEL` will be defined inside the step.
 * **yaml** [yaml representation of the Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#pod-v1-core), to allow setting any values not supported as fields
 * **containers** The container templates that are use to create the containers of the pod *(see below)*.
 * **serviceAccount** The service account of the pod.
@@ -182,8 +178,7 @@ In order to support any possible value in Kubernetes `Pod` object, we can pass a
 for the template. If any other properties are set outside of the yaml they will take precedence.
 
 ```groovy
-def label = "mypod-${UUID.randomUUID().toString()}"
-podTemplate(label: label, yaml: """
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 metadata:
@@ -198,7 +193,7 @@ spec:
     tty: true
 """
 ) {
-    node (label) {
+    node(POD_LABEL) {
       container('busybox') {
         sh "hostname"
       }
@@ -269,21 +264,19 @@ Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
 package com.foo.utils
 
 public void dockerTemplate(body) {
-  def label = "worker-${UUID.randomUUID().toString()}"
-  podTemplate(label: label,
+  podTemplate(
         containers: [containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true)],
         volumes: [hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock')]) {
-    body.call(label)
+    body.call()
 }
 }
 
 public void mavenTemplate(body) {
-  def label = "worker-${UUID.randomUUID().toString()}"
-  podTemplate(label: label,
+  podTemplate(
         containers: [containerTemplate(name: 'maven', image: 'maven', command: 'cat', ttyEnabled: true)],
         volumes: [secretVolume(secretName: 'maven-settings', mountPath: '/root/.m2'),
                   persistentVolumeClaim(claimName: 'maven-local-repo', mountPath: '/root/.m2nrepo')]) {
-    body.call(label)
+    body.call()
 }
 }
 
@@ -292,7 +285,7 @@ return this
 
 Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
 
-Note that you **must** use the innermost generated label in order get a node which has all the outer pods available on the node as shown in this example:
+Note that `POD_LABEL` will be the innermost generated label so as to get a node which has all the outer pods available on the node, as shown in this example:
 
 ```groovy
 import com.foo.utils.PodTemplates
@@ -300,8 +293,8 @@ import com.foo.utils.PodTemplates
 slaveTemplates = new PodTemplates()
 
 slaveTemplates.dockerTemplate {
-  slaveTemplates.mavenTemplate { label ->
-    node(label) {
+  slaveTemplates.mavenTemplate {
+    node(POD_LABEL) {
       container('docker') {
         sh 'echo hello from docker'
       }
@@ -336,8 +329,8 @@ For those cases you can explicitly configure a namespace either using the ui or 
 By default, the shell command is /bin/sh. In some case, you would like to use another shell command like /bin/bash.
 
 ```groovy
-podTemplate(label: my-label) {
-  node(my-label) {
+podTemplate {
+  node(POD_LABEL) {
     stage('Run specific shell') {
       container(name:'mycontainer', shell:'/bin/bash') {
         sh 'echo hello world'
@@ -351,7 +344,7 @@ podTemplate(label: my-label) {
 When configuring a container in a pipeline podTemplate the following options are available:
 
 ```groovy
-podTemplate(label: 'mypod', cloud: 'kubernetes', containers: [
+podTemplate(cloud: 'kubernetes', containers: [
     containerTemplate(
         name: 'mariadb',
         image: 'mariadb:10.1',
@@ -400,7 +393,6 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      label 'mypod'
       defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
@@ -444,7 +436,6 @@ or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` 
 pipeline {
   agent {
     kubernetes {
-      label 'mypod'
       defaultContainer 'jnlp'
       yamlFile 'KubernetesPod.yaml'
     }
@@ -462,7 +453,6 @@ pipeline {
   agent {
     kubernetes {
       //cloud 'kubernetes'
-      label 'mypod'
       containerTemplate {
         name 'maven'
         image 'maven:3.3.9-jdk-8-alpine'
@@ -481,7 +471,6 @@ Run the Pipeline or individual stage within a custom workspace - not required un
 pipeline {
   agent {
     kubernetes {
-      label 'mypod'
       customWorkspace 'some/other/path'
       defaultContainer 'maven'
       yamlFile 'KubernetesPod.yaml'

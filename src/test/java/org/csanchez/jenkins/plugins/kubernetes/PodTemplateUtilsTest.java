@@ -654,6 +654,7 @@ public class PodTemplateUtilsTest {
     @Test
     public void testValidateLabelSpecialChars() {
         assertTrue(validateLabel("x-_.z"));
+        assertFalse(validateLabel("one two"));
     }
 
     @Test

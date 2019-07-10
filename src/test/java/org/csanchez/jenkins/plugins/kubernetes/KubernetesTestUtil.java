@@ -67,6 +67,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -240,6 +241,7 @@ public class KubernetesTestUtil {
 
     public static String loadPipelineDefinition(Class cls, String name, Map<String, String> providedEnv) {
         Map<String, String> env = providedEnv == null ? new HashMap<>() : new HashMap<>(providedEnv);
+        // TODO get rid of $NAME substitution once all remaining tests stop using it
         env.put("NAME", name);
         return Util.replaceMacro(loadPipelineScript(cls, name + ".groovy"), env);
     }
@@ -251,4 +253,10 @@ public class KubernetesTestUtil {
             throw new RuntimeException("Could not read resource:[" + name + "].");
         }
     }
+
+    public static void assertRegex(String name, String regex) {
+        assertNotNull(name);
+        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+    }
+
 }

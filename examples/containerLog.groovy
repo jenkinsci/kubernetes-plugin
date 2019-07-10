@@ -1,6 +1,4 @@
-def label = "mongo-${UUID.randomUUID().toString()}"
-
-podTemplate(label: label, yaml: """
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 metadata:
@@ -17,7 +15,7 @@ spec:
 """
   ) {
 
-    node(label) {
+    node(POD_LABEL) {
         stage('Integration Test') {
             try {
                 container('maven') {

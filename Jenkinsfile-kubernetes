@@ -9,7 +9,7 @@
  * two concurrent jobs with this pipeline. Or change readOnly: true after the first run
  */
 
-def label = UUID.randomUUID().toString()
+def label = UUID.randomUUID().toString() // TODO use POD_LABEL when available
 
   podTemplate(label: label, yaml: """
 apiVersion: v1

@@ -14,7 +14,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="label" title="${%Labels}">
+  <f:entry field="label" title="${%Label}">
     <f:textbox/>
   </f:entry>
 
