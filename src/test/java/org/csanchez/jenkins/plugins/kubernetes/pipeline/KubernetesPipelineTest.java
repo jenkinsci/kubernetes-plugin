@@ -46,6 +46,7 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
 import org.junit.Rule;
@@ -350,6 +351,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void runInPodWithRetention() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
+    }
+
+    @Issue("JENKINS-49707")
+    @Test
+    public void terminatedPod() throws Exception {
+        r.waitForMessage("+ sleep", b);
+        deletePods(cloud.connect(), getLabels(this, name), false);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
     @Test
