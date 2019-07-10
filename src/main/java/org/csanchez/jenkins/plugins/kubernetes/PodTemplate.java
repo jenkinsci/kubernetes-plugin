@@ -16,6 +16,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -128,6 +129,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private transient String yaml;
 
     private List<String> yamls = new ArrayList<>();
+
+    public YamlMergeStrategy getYamlMergeStrategy() {
+        return yamlMergeStrategy;
+    }
+
+    @DataBoundSetter
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+        this.yamlMergeStrategy = yamlMergeStrategy;
+    }
+
+    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+
+    public Pod getYamlsPod() {
+        return yamlMergeStrategy.merge(getYamls());
+    }
 
     private Boolean showRawYaml;
 
@@ -718,6 +734,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             showRawYaml = Boolean.TRUE;
         }
 
+        if (yamlMergeStrategy == null) {
+            yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+        }
+
         return this;
     }
 
@@ -805,7 +825,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
         public Descriptor getDefaultPodRetention() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -814,6 +835,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
         }
 
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public YamlMergeStrategy getDefaultYamlMergeStrategy() {
+            return YamlMergeStrategy.defaultStrategy();
+        }
     }
 
     @Override

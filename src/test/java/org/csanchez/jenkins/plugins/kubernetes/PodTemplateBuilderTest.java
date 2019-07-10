@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -344,6 +346,7 @@ public class PodTemplateBuilderTest {
                 "    - cat\n" +
                 "    tty: true\n"
         );
+        child.setYamlMergeStrategy(merge());
         child.setInheritFrom("parent");
         setupStubs();
         PodTemplate result = combine(parent, child);
@@ -385,6 +388,7 @@ public class PodTemplateBuilderTest {
                 "    tty: true\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -409,6 +413,7 @@ public class PodTemplateBuilderTest {
                 "    - name: VAR2\n" +
                 "      value: \"1\"\n");
         PodTemplate child = new PodTemplate();
+        child.setYamlMergeStrategy(merge());
         child.setYaml("kind: Pod\n" +
                 "spec:\n" +
                 "  containers:\n" +
@@ -452,6 +457,7 @@ public class PodTemplateBuilderTest {
                 "      path: /host/data2\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -487,6 +493,7 @@ public class PodTemplateBuilderTest {
                 "      path: /host/data2\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -523,5 +530,9 @@ public class PodTemplateBuilderTest {
 
     private String loadYamlFile(String s) throws IOException {
         return new String(IOUtils.toByteArray(getClass().getResourceAsStream(s)));
+    }
+
+    private YamlMergeStrategy merge() {
+        return new Merge();
     }
 }

@@ -351,6 +351,7 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
+        podTemplate.setYamlMergeStrategy(template.getYamlMergeStrategy());
         podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
                                    template.getInheritFrom() : parent.getInheritFrom());
 

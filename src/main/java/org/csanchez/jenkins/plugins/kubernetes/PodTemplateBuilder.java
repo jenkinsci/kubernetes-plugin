@@ -198,8 +198,7 @@ public class PodTemplateBuilder {
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
         // merge with the yaml fragments
-        Pod yamlPods = combine(template.getYamls().stream().map(PodTemplateUtils::parseFromYaml).collect(Collectors.toList()));
-        Pod pod = combine(yamlPods, builder.endSpec().build());
+        Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
         // Apply defaults
 
