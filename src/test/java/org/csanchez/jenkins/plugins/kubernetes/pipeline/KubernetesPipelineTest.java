@@ -345,4 +345,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
     }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void overrideYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void mergeYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
 }

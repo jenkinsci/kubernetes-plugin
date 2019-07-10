@@ -71,6 +71,8 @@
     <f:textarea/>
   </f:entry>
 
+  <f:dropdownDescriptorSelector title="${%Yaml merge strategy}" field="yamlMergeStrategy" default="${descriptor.defaultYamlMergeStrategy}" />
+
   <f:entry field="showRawYaml" title="${%Show raw yaml in console}" >
     <f:checkbox default="true"/>
   </f:entry>
