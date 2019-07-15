@@ -362,6 +362,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
+    @Issue("JENKINS-58306")
+    @Test
+    public void cascadingDelete() throws Exception {
+        cloud.connect().apps().deployments().withName("cascading-delete").delete();
+        cloud.connect().apps().replicaSets().withLabel("app", "cascading-delete").delete();
+        cloud.connect().pods().withLabel("app", "cascading-delete").delete();
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
     @Test
     public void computerCantBeConfigured() throws Exception {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
