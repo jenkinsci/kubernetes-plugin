@@ -9,7 +9,8 @@
  * two concurrent jobs with this pipeline. Or change readOnly: true after the first run
  */
 
-podTemplate(yaml: """
+podTemplate(yamlMergeStrategy: merge(),
+            yaml: """
 apiVersion: v1
 kind: Pod
 spec:
