@@ -187,7 +187,6 @@ public class PodTemplateBuilderTest {
 
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
-        doReturn(false).when(cloud).isOpenShift();
         when(computer.getName()).thenReturn(AGENT_NAME);
         when(computer.getJnlpMac()).thenReturn(AGENT_SECRET);
         when(slave.getComputer()).thenReturn(computer);

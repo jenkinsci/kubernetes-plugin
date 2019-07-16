@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import hudson.slaves.ComputerLauncher;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -757,18 +758,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * @deprecated Use {@link #getDescriptionForLogging(KubernetesSlave)} instead
+     * @deprecated Use Serialization.asYaml(build(KubernetesSlave)) instead.
      */
     @Deprecated
     public String getDescriptionForLogging() {
-        return getDescriptionForLogging(null);
-    }
-
-    public String getDescriptionForLogging(KubernetesSlave slave) {
         return String.format("Agent specification [%s] (%s): %n%s",
                 getDisplayName(),
                 getLabel(),
-                getContainersDescriptionForLogging(slave));
+                getContainersDescriptionForLogging());
     }
 
     public boolean isShowRawYaml() {
@@ -780,12 +777,29 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
-    private String getContainersDescriptionForLogging(KubernetesSlave slave) {
-        if (slave != null && isShowRawYaml()) {
-            return Serialization.asYaml(build(slave));
-        } else {
-            return StringUtils.EMPTY;
+    private String getContainersDescriptionForLogging() {
+        List<ContainerTemplate> containers = getContainers();
+        StringBuilder sb = new StringBuilder();
+        for (ContainerTemplate ct : containers) {
+            sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
+            StringBuilder optional = new StringBuilder();
+            optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
+            optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
+            optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
+            optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
+            if (optional.length() > 0) {
+                sb.append("(").append(optional).append(")");
+            }
+            sb.append("\n");
         }
+        if (isShowRawYaml()) {
+            for (String yaml : getYamls()) {
+                sb.append("yaml:\n")
+                    .append(yaml)
+                    .append("\n");
+            }
+        }
+        return sb.toString();
     }
 
     private void optionalField(StringBuilder builder, String label, String value) {

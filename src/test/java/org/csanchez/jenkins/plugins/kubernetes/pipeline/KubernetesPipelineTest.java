@@ -390,7 +390,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithShowRawYamlFalse() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("value: container-env-var-value", b);
+        r.assertLogNotContains("value: \"container-env-var-value\"", b);
     }
 
     @Test

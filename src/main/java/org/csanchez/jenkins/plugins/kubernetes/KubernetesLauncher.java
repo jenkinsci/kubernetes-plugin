@@ -108,6 +108,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         try {
             KubernetesClient client = slave.getKubernetesCloud().connect();
             Pod pod = template.build(slave);
+            boolean showRawYaml = template.isShowRawYaml();
+            slave.assignPod(pod, showRawYaml);
 
             String podId = pod.getMetadata().getName();
 
