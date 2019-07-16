@@ -759,7 +759,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     /**
      * Use getDescriptionForLogging(KubernetesSlave) instead
      * @return
-     * @deprecated
+     * @deprecated Use {@link #getDescriptionForLogging(KubernetesSlave)} instead
      */
     @Deprecated
     public String getDescriptionForLogging() {
