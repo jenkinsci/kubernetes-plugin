@@ -758,7 +758,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * @deprecated Use Serialization.asYaml(build(KubernetesSlave)) instead.
+     * @deprecated Use {@code Serialization.asYaml(build(KubernetesSlave))} instead.
      */
     @Deprecated
     public String getDescriptionForLogging() {

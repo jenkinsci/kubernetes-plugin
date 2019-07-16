@@ -74,7 +74,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @CheckForNull
     private transient Pod pod;
-    private transient boolean showRawYaml;
 
     @Nonnull
     public PodTemplate getTemplate() {
@@ -361,22 +360,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return launcher;
     }
 
-    @CheckForNull
-    public Pod getPod() {
-        return pod;
-    }
-
-    public boolean isShowRawYaml() {
-        return showRawYaml;
-    }
-
-    void assignPod(@CheckForNull Pod pod, boolean showRawYaml) {
+    void assignPod(@CheckForNull Pod pod) {
         this.pod = pod;
-        this.showRawYaml = showRawYaml;
     }
 
     private void printAgentDescription(TaskListener listener) {
-        if (pod != null && showRawYaml) {
+        if (pod != null) {
             listener.getLogger().println(Serialization.asYaml(pod));
         }
     }
