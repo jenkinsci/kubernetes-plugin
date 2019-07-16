@@ -762,7 +762,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * @deprecated
      */
     @Deprecated
-    @Restricted(DoNotUse.class)
     public String getDescriptionForLogging() {
         return getDescriptionForLogging(null);
     }
