@@ -12,8 +12,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
@@ -25,7 +27,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.console.ModelHyperlinkNote;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -70,6 +71,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private String namespace;
     private final PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
+
+    @CheckForNull
+    private transient Pod pod;
 
     @Nonnull
     public PodTemplate getTemplate() {
@@ -350,12 +354,22 @@ public class KubernetesSlave extends AbstractCloudSlave {
                             ModelHyperlinkNote.encodeTo("/computer/" + getNodeName(), getNodeName()),
                             getTemplate().getDisplayName())
                     );
-                    listener.getLogger().println(getTemplate().getDescriptionForLogging());
+                    printAgentDescription(listener);
                     checkHomeAndWarnIfNeeded(listener);
                 }
             }
         }
         return launcher;
+    }
+
+    void assignPod(@CheckForNull Pod pod) {
+        this.pod = pod;
+    }
+
+    private void printAgentDescription(TaskListener listener) {
+        if (pod != null) {
+            listener.getLogger().println(Serialization.asYaml(pod));
+        }
     }
 
     private void checkHomeAndWarnIfNeeded(TaskListener listener) {

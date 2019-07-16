@@ -755,6 +755,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return new PodTemplateBuilder(this).withSlave(slave).build();
     }
 
+    /**
+     * @deprecated Use {@code Serialization.asYaml(build(KubernetesSlave))} instead.
+     */
+    @Deprecated
     public String getDescriptionForLogging() {
         return String.format("Agent specification [%s] (%s): %n%s",
                 getDisplayName(),
