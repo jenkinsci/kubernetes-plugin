@@ -28,6 +28,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
@@ -365,7 +367,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-58306")
     @Test
     public void cascadingDelete() throws Exception {
-        cloud.connect().apps().deployments().withName("cascading-delete").delete();
+        try {
+            cloud.connect().apps().deployments().withName("cascading-delete").delete();
+        } catch (KubernetesClientException x) {
+            // Failure executing: DELETE at: https://…/apis/apps/v1/namespaces/kubernetes-plugin-test/deployments/cascading-delete. Message: Forbidden!Configured service account doesn't have access. Service account may have been revoked. deployments.apps "cascading-delete" is forbidden: User "system:serviceaccount:…:…" cannot delete resource "deployments" in API group "apps" in the namespace "kubernetes-plugin-test".
+            assumeNoException("was not permitted to clean up any previous deployment, so presumably cannot run test either", x);
+        }
         cloud.connect().apps().replicaSets().withLabel("app", "cascading-delete").delete();
         cloud.connect().pods().withLabel("app", "cascading-delete").delete();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
