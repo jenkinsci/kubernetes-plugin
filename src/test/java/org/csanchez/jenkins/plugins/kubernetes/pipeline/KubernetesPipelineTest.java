@@ -208,9 +208,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[jnlp] jenkins/jnlp-slave:3.10-1-alpine", b);
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"jenkins/jnlp-slave:3.10-1-alpine\"", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -219,8 +219,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodNested() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("go version go1.6.3", b);
     }
@@ -229,8 +229,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodNestedExplicitInherit() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogNotContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogNotContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
     }

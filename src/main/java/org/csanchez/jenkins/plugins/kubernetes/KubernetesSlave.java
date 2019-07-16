@@ -348,7 +348,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                             ModelHyperlinkNote.encodeTo("/computer/" + getNodeName(), getNodeName()),
                             getTemplate().getDisplayName())
                     );
-                    listener.getLogger().println(getTemplate().getDescriptionForLogging());
+                    listener.getLogger().println(getTemplate().getDescriptionForLogging(this));
                     checkHomeAndWarnIfNeeded(listener);
                 }
             }
