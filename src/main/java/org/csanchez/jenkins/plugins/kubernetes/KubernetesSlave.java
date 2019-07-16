@@ -291,7 +291,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
         try {
-            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).delete();
+            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).
+                cascading(true). // TODO JENKINS-58306 pending https://github.com/fabric8io/kubernetes-client/pull/1620
+                delete();
             if (!Boolean.TRUE.equals(deleted)) {
                 String msg = String.format("Failed to delete pod for agent %s/%s: not found", getNamespace(), name);
                 LOGGER.log(Level.WARNING, msg);
