@@ -731,7 +731,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
 
         if (showRawYaml == null) {
-            showRawYaml = Boolean.TRUE;
+            showRawYaml = Boolean.FALSE;
         }
 
         if (yamlMergeStrategy == null) {
@@ -767,7 +767,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return showRawYaml == null ? false : showRawYaml.booleanValue();
     }
 
     @DataBoundSetter

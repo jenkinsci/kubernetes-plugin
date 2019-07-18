@@ -153,7 +153,7 @@ Either way it provides access to the following fields:
 * **podRetention** Controls the behavior of keeping slave pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
-* **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
+* **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `false`
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 

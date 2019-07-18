@@ -282,7 +282,7 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return showRawYaml == null ? false : showRawYaml.booleanValue();
     }
 
     @DataBoundSetter
