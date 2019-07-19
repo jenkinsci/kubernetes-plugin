@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -388,14 +390,45 @@ public class KubernetesCloud extends Cloud {
         return labels == null || labels.isEmpty() ? DEFAULT_POD_LABELS : labels;
     }
 
-    /**
-     * No UI yet, so this is never re-set
-     * 
-     * @param labels
-     */
-    // @DataBoundSetter
     public void setLabels(Map<String, String> labels) {
         this.labels = labels;
+    }
+
+    public String getLabelsStr() {
+        List<String> labels = new LinkedList<>();
+        for (Map.Entry<String, String> label : getLabels ().entrySet()) {
+            if (label.getValue() != null && !label.getValue().isEmpty()) {
+                labels.add(label.getKey() + "=" + label.getValue());
+            } else {
+                labels.add(label.getKey());
+            }
+        }
+        return Util.join(labels, " ");
+    }
+
+    /**
+     * Set Pod labels as key value pairs (<code>key=value</code>) separated by white space.
+     * @implNote  <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set">Kubernetes Label Syntax and character set</a> does
+     * not allow "=" or whitespace in either the key or value.
+     * @param labelsStr pods labels as key value pairs
+     */
+    @DataBoundSetter
+    public void setLabelsStr(String labelsStr) {
+        if (labelsStr == null || labelsStr.isEmpty()) {
+            this.labels = null;
+        } else {
+            Map<String, String> labels = new LinkedHashMap<>();
+            String[] pairs = Util.tokenize(labelsStr);
+            for (int i = 0; i < pairs.length; i++) {
+                String[] pair = pairs[i].split("=", 2);
+                if (pair.length == 2) {
+                    labels.put(pair[0], pair[1]);
+                } else {
+                    labels.put(pair[0], null);
+                }
+            }
+            this.labels = labels;
+        }
     }
 
     @DataBoundSetter

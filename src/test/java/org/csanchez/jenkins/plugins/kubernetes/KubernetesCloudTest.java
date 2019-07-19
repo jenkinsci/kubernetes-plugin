@@ -10,6 +10,8 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -175,4 +177,32 @@ public class KubernetesCloudTest {
         plannedNodes = cloud.provision(test, 200);
         assertEquals(10, plannedNodes.size());
     }
+
+    @Test
+    public void testLabelsStr() {
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getLabels());
+        assertEquals("jenkins=slave", cloud.getLabelsStr());
+
+        cloud.setLabelsStr("foo=bar");
+        Map<String, String> expected = new LinkedHashMap<>();
+        expected.put("foo", "bar");
+        assertEquals(expected, cloud.getLabels());
+        assertEquals("foo=bar", cloud.getLabelsStr());
+
+        cloud.setLabelsStr("  app.kubernetes.io/managed-by=jenkins   app.kubernetes.io/instance=dev  ");
+        expected = new LinkedHashMap<>();
+        expected.put("app.kubernetes.io/managed-by", "jenkins");
+        expected.put("app.kubernetes.io/instance", "dev");
+        assertEquals(expected, cloud.getLabels());
+        assertEquals("app.kubernetes.io/managed-by=jenkins app.kubernetes.io/instance=dev", cloud.getLabelsStr());
+
+        cloud.setLabelsStr("  app.kubernetes.io/managed-by=   app.kubernetes.io/instance  ");
+        expected = new LinkedHashMap<>();
+        expected.put("app.kubernetes.io/managed-by", "");
+        expected.put("app.kubernetes.io/instance", null);
+        assertEquals(expected, cloud.getLabels());
+        assertEquals("app.kubernetes.io/managed-by app.kubernetes.io/instance", cloud.getLabelsStr());
+    }
+
 }

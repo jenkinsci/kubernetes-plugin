@@ -47,6 +47,10 @@
         <f:textbox default="10"/>
     </f:entry>
 
+    <f:entry title="${%Pod Labels}" field="labelsStr">
+         <f:textbox default="jenkins=slave"/>
+    </f:entry>
+
     <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" 
         descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" /> 
 

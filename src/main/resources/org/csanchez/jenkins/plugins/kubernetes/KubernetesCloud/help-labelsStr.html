@@ -1,0 +1,22 @@
+<div>
+    <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set">Labels</a>
+    for all Pods started by the plugin. Pods that match these labels count toward the <strong>Concurrency Limit</strong>.
+    <p>
+        Valid label keys have two segments: an optional prefix and name, separated by a slash (<code>/</code>). The name
+        segment is required and must be 63 characters or less, beginning and ending with an alphanumeric character
+        (<code>[a-z0-9A-Z]</code>) with dashes (<code>-</code>), underscores (<code>_</code>), dots (<code>.</code>), and
+        alphanumerics between. The prefix is optional. If specified, the prefix must be a DNS subdomain: a series of DNS
+        labels separated by dots (<code>.</code>), not longer than 253 characters in total, followed by a slash (<code>/</code>).
+    </p>
+    <p>
+        Valid label values must be 63 characters or less and must be empty or begin and end with an alphanumeric character
+        (<code>[a-z0-9A-Z]</code>) with dashes (<code>-</code>), underscores (<code>_</code>), dots (<code>.</code>),
+        and alphanumerics between.
+    </p>
+    <p>Examples:
+        <ul>
+            <li><code>jenkins=slave</code></li>
+            <li><code>app.kubernetes.io/managed-by=jenkins app.kubernetes.io/instance=dev</code></li>
+        </ul>
+    </p>
+</div>
