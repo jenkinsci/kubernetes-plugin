@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
@@ -368,8 +369,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private void printAgentDescription(TaskListener listener) {
         if (pod != null) {
-            listener.getLogger().println(Serialization.asYaml(pod));
+            listener.getLogger().println(podAsYaml());
         }
+    }
+
+    private String podAsYaml() {
+        String x = Serialization.asYaml(pod);
+        Computer computer = toComputer();
+        if (computer instanceof SlaveComputer) {
+            SlaveComputer sc = (SlaveComputer) computer;
+            return x.replaceAll(sc.getJnlpMac(),"********");
+        }
+        return x;
     }
 
     private void checkHomeAndWarnIfNeeded(TaskListener listener) {

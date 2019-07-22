@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -419,5 +421,21 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-58405")
     public void mergeYaml() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    @Issue("JENKINS-58602")
+    public void jenkinsSecretHidden() throws Exception {
+        SemaphoreStep.waitForStart("pod/1", b);
+        List<SlaveComputer> kc = Arrays.stream(r.jenkins.getComputers())
+                .filter(SlaveComputer.class::isInstance)
+                .map(SlaveComputer.class::cast)
+                .collect(Collectors.toList());
+        assertThat(kc, hasSize(1));
+        SlaveComputer slaveComputer = kc.get(0);
+        String jnlpMac = slaveComputer.getJnlpMac();
+        SemaphoreStep.success("pod/1", b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains("value: \""+jnlpMac+"\"", b);
     }
 }
