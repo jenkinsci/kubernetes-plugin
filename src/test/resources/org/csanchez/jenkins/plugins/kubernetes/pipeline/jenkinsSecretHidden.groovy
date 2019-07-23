@@ -4,8 +4,9 @@ podTemplate(containers: [
     node (POD_LABEL) {
       semaphore 'pod'
       stage('Run') {
+        sh 'env | sort'
         container('busybox') {
-          sh "true"
+          sh 'env | sort'
         }
       }
     }

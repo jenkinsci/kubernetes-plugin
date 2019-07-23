@@ -25,6 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
@@ -427,15 +428,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-58602")
     public void jenkinsSecretHidden() throws Exception {
         SemaphoreStep.waitForStart("pod/1", b);
-        List<SlaveComputer> kc = Arrays.stream(r.jenkins.getComputers())
+        Optional<SlaveComputer> scOptional = Arrays.stream(r.jenkins.getComputers())
                 .filter(SlaveComputer.class::isInstance)
                 .map(SlaveComputer.class::cast)
-                .collect(Collectors.toList());
-        assertThat(kc, hasSize(1));
-        SlaveComputer slaveComputer = kc.get(0);
-        String jnlpMac = slaveComputer.getJnlpMac();
+                .findAny();
+        assertThat(scOptional.isPresent(), equalTo(true));
+        SlaveComputer slaveComputer = scOptional.get();
         SemaphoreStep.success("pod/1", b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("value: \""+jnlpMac+"\"", b);
+        r.assertLogNotContains(slaveComputer.getJnlpMac(), b);
     }
 }
