@@ -432,10 +432,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 .filter(SlaveComputer.class::isInstance)
                 .map(SlaveComputer.class::cast)
                 .findAny();
-        assertThat(scOptional.isPresent(), equalTo(true));
-        SlaveComputer slaveComputer = scOptional.get();
+        assertTrue(scOptional.isPresent());
+        String jnlpMac = scOptional.get().getJnlpMac();
         SemaphoreStep.success("pod/1", b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains(slaveComputer.getJnlpMac(), b);
+        r.assertLogNotContains(jnlpMac, b);
     }
 }
