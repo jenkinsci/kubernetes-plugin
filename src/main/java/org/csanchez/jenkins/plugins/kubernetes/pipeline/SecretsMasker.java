@@ -139,6 +139,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
             }
             Pod pod = slave.getTemplate().build(slave);
             Set<String> values = new HashSet<>();
+            values.add(c.getJnlpMac());
             LOGGER.finer(() -> "inspecting " + pod);
             for (Container container : pod.getSpec().getContainers()) {
                 Set<String> secretContainerKeys = new TreeSet<>();
@@ -191,7 +192,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     // TODO issue a warning if we did not find values for all of secretContainerKeys
                 }
             }
-            return values.isEmpty() ? null : values;
+            return values;
         }
 
     }

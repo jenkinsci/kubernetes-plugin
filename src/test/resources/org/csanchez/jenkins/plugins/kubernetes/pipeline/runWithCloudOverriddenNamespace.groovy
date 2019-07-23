@@ -4,7 +4,8 @@ podTemplate(volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [
 
     node(POD_LABEL) {
         container(name: 'jnlp') {
-            sh "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace"
+            // Need a newline cf. https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/103
+            sh "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace && echo"
         }
     }
 }
