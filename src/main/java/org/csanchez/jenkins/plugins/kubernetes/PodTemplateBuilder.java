@@ -159,7 +159,7 @@ public class PodTemplateBuilder {
 
         Map<String, String> labels = new HashMap<>();
         if (slave != null) {
-            labels.putAll(slave.getKubernetesCloud().getLabels());
+            labels.putAll(slave.getKubernetesCloud().getLabelsMap());
         }
         labels.putAll(template.getLabelsMap());
         if (!labels.isEmpty()) {

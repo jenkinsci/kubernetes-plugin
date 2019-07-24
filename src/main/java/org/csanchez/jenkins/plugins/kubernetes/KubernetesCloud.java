@@ -118,7 +118,7 @@ public class KubernetesCloud extends Cloud {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout;
     private int readTimeout;
-    private Map<String, String> labels;
+    private List<PodLabel> labels = new ArrayList<PodLabel>();
     private boolean usageRestricted;
 
     private int maxRequestsPerHost;
@@ -386,49 +386,34 @@ public class KubernetesCloud extends Cloud {
     /**
      * Labels for all pods started by the plugin
      */
-    public Map<String, String> getLabels() {
-        return labels == null || labels.isEmpty() ? DEFAULT_POD_LABELS : labels;
-    }
-
-    public void setLabels(Map<String, String> labels) {
-        this.labels = labels;
-    }
-
-    public String getLabelsStr() {
-        List<String> labels = new LinkedList<>();
-        for (Map.Entry<String, String> label : getLabels ().entrySet()) {
-            if (label.getValue() != null && !label.getValue().isEmpty()) {
-                labels.add(label.getKey() + "=" + label.getValue());
-            } else {
-                labels.add(label.getKey());
+    public List<PodLabel> getLabels() {
+        if (this.labels == null || labels.isEmpty()) {
+            List<PodLabel> labels = new ArrayList<>();
+            for (Map.Entry<String, String> label : DEFAULT_POD_LABELS.entrySet()) {
+                labels.add(new PodLabel(label.getKey(), label.getValue()));
             }
+            return labels;
         }
-        return Util.join(labels, " ");
+        return this.labels;
     }
 
     /**
-     * Set Pod labels as key value pairs (<code>key=value</code>) separated by white space.
-     * @implNote  <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set">Kubernetes Label Syntax and character set</a> does
-     * not allow "=" or whitespace in either the key or value.
-     * @param labelsStr pods labels as key value pairs
+     * Set Pod labels  for all pods started by the plugin.
      */
     @DataBoundSetter
-    public void setLabelsStr(String labelsStr) {
-        if (labelsStr == null || labelsStr.isEmpty()) {
-            this.labels = null;
-        } else {
-            Map<String, String> labels = new LinkedHashMap<>();
-            String[] pairs = Util.tokenize(labelsStr);
-            for (int i = 0; i < pairs.length; i++) {
-                String[] pair = pairs[i].split("=", 2);
-                if (pair.length == 2) {
-                    labels.put(pair[0], pair[1]);
-                } else {
-                    labels.put(pair[0], null);
-                }
-            }
-            this.labels = labels;
+    public void setLabels(List<PodLabel> labels) {
+        this.labels = new ArrayList<PodLabel>();
+        if (labels != null) {
+            this.labels.addAll(labels);
         }
+    }
+
+    /**
+     * Map of labels to add to all pods started by the plugin
+     * @return immutable map of pod labels
+     */
+    Map<String, String> getLabelsMap() {
+        return PodLabel.toMap(getLabels());
     }
 
     @DataBoundSetter
@@ -550,15 +535,8 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(getLabels()).list();
-        List<Pod> allActiveSlavePods = null;
-        // JENKINS-53370 check for nulls
-        if (slaveList != null && slaveList.getItems() != null) {
-            allActiveSlavePods = slaveList.getItems().stream() //
-                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                    .collect(Collectors.toList());
-        }
-
+        Map<String, String> podLabels = getLabelsMap();
+        List<Pod> allActiveSlavePods = getActiveSlavePods(client, templateNamespace, podLabels);
         if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
@@ -566,16 +544,9 @@ public class KubernetesCloud extends Cloud {
             return false;
         }
 
-        Map<String, String> labelsMap = new HashMap<>(this.getLabels());
+        Map<String, String> labelsMap = new HashMap<>(podLabels);
         labelsMap.putAll(template.getLabelsMap());
-        PodList templateSlaveList = client.pods().inNamespace(templateNamespace).withLabels(labelsMap).list();
-        // JENKINS-53370 check for nulls
-        List<Pod> activeTemplateSlavePods = null;
-        if (templateSlaveList != null && templateSlaveList.getItems() != null) {
-            activeTemplateSlavePods = templateSlaveList.getItems().stream()
-                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                    .collect(Collectors.toList());
-        }
+        List<Pod> activeTemplateSlavePods = getActiveSlavePods(client, templateNamespace, labelsMap);
         if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
@@ -584,6 +555,21 @@ public class KubernetesCloud extends Cloud {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Query for running or pending pods
+     */
+    private List<Pod> getActiveSlavePods(KubernetesClient client, String templateNamespace, Map<String, String> podLabels) {
+        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(podLabels).list();
+        List<Pod> activeSlavePods = null;
+        // JENKINS-53370 check for nulls
+        if (slaveList != null && slaveList.getItems() != null) {
+            activeSlavePods = slaveList.getItems().stream() //
+                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
+                    .collect(Collectors.toList());
+        }
+        return activeSlavePods;
     }
 
     @Override

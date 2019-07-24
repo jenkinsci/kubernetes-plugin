@@ -11,10 +11,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.collect.ImmutableMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -179,30 +181,27 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testLabelsStr() {
+    public void testLabels() {
         KubernetesCloud cloud = new KubernetesCloud("name");
-        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getLabels());
-        assertEquals("jenkins=slave", cloud.getLabelsStr());
+        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getLabelsMap());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
 
-        cloud.setLabelsStr("foo=bar");
+        List<PodLabel> labels = Arrays.asList(new PodLabel("foo", "bar"), new PodLabel("cat", "dog"));
+        cloud.setLabels(labels);
         Map<String, String> expected = new LinkedHashMap<>();
         expected.put("foo", "bar");
-        assertEquals(expected, cloud.getLabels());
-        assertEquals("foo=bar", cloud.getLabelsStr());
+        expected.put("cat", "dog");
+        assertEquals(expected, cloud.getLabelsMap());
+        assertEquals(new ArrayList<>(labels), cloud.getLabels());
 
-        cloud.setLabelsStr("  app.kubernetes.io/managed-by=jenkins   app.kubernetes.io/instance=dev  ");
-        expected = new LinkedHashMap<>();
-        expected.put("app.kubernetes.io/managed-by", "jenkins");
-        expected.put("app.kubernetes.io/instance", "dev");
-        assertEquals(expected, cloud.getLabels());
-        assertEquals("app.kubernetes.io/managed-by=jenkins app.kubernetes.io/instance=dev", cloud.getLabelsStr());
+        cloud.setLabels(null);
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
 
-        cloud.setLabelsStr("  app.kubernetes.io/managed-by=   app.kubernetes.io/instance  ");
-        expected = new LinkedHashMap<>();
-        expected.put("app.kubernetes.io/managed-by", "");
-        expected.put("app.kubernetes.io/instance", null);
-        assertEquals(expected, cloud.getLabels());
-        assertEquals("app.kubernetes.io/managed-by app.kubernetes.io/instance", cloud.getLabelsStr());
+        cloud.setLabels(new ArrayList<>());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
     }
 
 }

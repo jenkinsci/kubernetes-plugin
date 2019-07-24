@@ -111,7 +111,7 @@ public class KubernetesTest {
         FileSystemServiceAccountCredential cred1 = (FileSystemServiceAccountCredential) credentials.get(1);
         StringCredentialsImpl cred2 = (StringCredentialsImpl) credentials.get(2);
         assertEquals("mytoken", Secret.toString(cred2.getSecret()));
-        assertThat(cloud.getLabels(), hasEntry("jenkins", "slave"));
+        assertThat(cloud.getLabelsMap(), hasEntry("jenkins", "slave"));
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
