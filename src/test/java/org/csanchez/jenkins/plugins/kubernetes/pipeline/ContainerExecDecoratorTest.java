@@ -81,7 +81,7 @@ public class ContainerExecDecoratorTest {
 
     private KubernetesCloud cloud;
     private static KubernetesClient client;
-    private static final Pattern PID_PATTERN = Pattern.compile("^(\\[\\d+\\] pid is \\d+)$", Pattern.MULTILINE);
+    private static final Pattern PID_PATTERN = Pattern.compile("^((?:\\[\\d+\\] )?pid is \\d+)$", Pattern.MULTILINE);
 
     private ContainerExecDecorator decorator;
     private Pod pod;
@@ -130,6 +130,7 @@ public class ContainerExecDecoratorTest {
 
     @After
     public void after() throws Exception {
+        client.pods().delete(pod);
         deletePods(client, getLabels(this, name), true);
     }
 
