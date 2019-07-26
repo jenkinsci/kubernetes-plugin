@@ -48,7 +48,7 @@
     </f:entry>
 
     <f:entry title="${%Pod Labels}" field="podLabels">
-        <f:repeatableHeteroProperty field="podLabels" hasHeader="true" addCaption="${%Add Pod Label}"
+        <f:repeatableHeteroProperty hasHeader="true" addCaption="${%Add Pod Label}"
                                     deleteCaption="${%Delete Pod Label}" />
     </f:entry>
 

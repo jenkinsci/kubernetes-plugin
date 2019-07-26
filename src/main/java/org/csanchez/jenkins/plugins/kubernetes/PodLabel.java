@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import org.apache.commons.lang.Validate;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -52,11 +54,9 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      */
     @NotNull
     static Map<String, String> toMap(@NotNull Iterable<PodLabel> labels) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
-        if (labels != null) {
-            for (PodLabel podLabel : labels) {
-                builder.put(podLabel.getKey(), substituteEnv(podLabel.getValue()));
-            }
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        for (PodLabel podLabel : labels) {
+            builder.put(podLabel.getKey(), substituteEnv(podLabel.getValue()));
         }
         return builder.build();
     }
@@ -75,6 +75,15 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
         return list;
     }
 
+    static List<PodLabel> listOf(String... keyValue) {
+        Validate.isTrue(keyValue.length % 2 == 0, "Expecting an even number of arguments");
+        List<PodLabel> labels = new ArrayList<>();
+        for (int i = 0; i < keyValue.length / 2; i++) {
+            labels.add(new PodLabel(keyValue[2*i], keyValue[2*i+1]));
+        }
+        return labels;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -91,10 +100,16 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
         return key != null ? key.hashCode() : 0;
     }
 
+    @Override
+    public String toString() {
+        return "PodLabel(" + key + " = \"" + value + "\")";
+    }
+
     @Extension
     @Symbol("podLabel")
     public static class DescriptorImpl extends Descriptor<PodLabel> {
         @Override
+        @Nonnull
         public String getDisplayName() {
             return "Pod Label";
         }

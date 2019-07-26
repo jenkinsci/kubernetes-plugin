@@ -10,6 +10,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.google.common.collect.ImmutableMap;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -182,13 +184,13 @@ public class KubernetesCloudTest {
 
     @Test
     public void testPodLabels() {
+        List<PodLabel> defaultPodLabelsList = PodLabel.fromMap(KubernetesCloud.DEFAULT_POD_LABELS);
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getPodLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+        assertEquals(defaultPodLabelsList, cloud.getPodLabels());
         assertEquals(cloud.getPodLabelsMap(), cloud.getLabels());
 
-        List<PodLabel> labels = Arrays.asList(new PodLabel("foo", "bar"), new PodLabel("cat", "dog"));
+        List<PodLabel> labels = PodLabel.listOf("foo", "bar", "cat", "dog");
         cloud.setPodLabels(labels);
         Map<String, String> expected = new LinkedHashMap<>();
         expected.put("foo", "bar");
@@ -198,20 +200,20 @@ public class KubernetesCloudTest {
         assertEquals(new ArrayList<>(labels), cloud.getPodLabels());
 
         cloud.setPodLabels(null);
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getPodLabelsMap());
+        assertEquals(defaultPodLabelsList, cloud.getPodLabels());
 
         cloud.setPodLabels(new ArrayList<>());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getPodLabelsMap());
         assertEquals(cloud.getPodLabelsMap(), cloud.getLabels());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+        assertEquals(defaultPodLabelsList, cloud.getPodLabels());
     }
 
     @Test
     public void testLabels() {
         KubernetesCloud cloud = new KubernetesCloud("name");
 
-        List<PodLabel> labels = Arrays.asList(new PodLabel("foo", "bar"), new PodLabel("cat", "dog"));
+        List<PodLabel> labels = PodLabel.listOf("foo", "bar", "cat", "dog");
         cloud.setPodLabels(labels);
         Map<String, String> labelsMap = new LinkedHashMap<>();
         for (PodLabel l : labels) {
@@ -229,6 +231,35 @@ public class KubernetesCloudTest {
         cloud.setLabels(new LinkedHashMap<>());
         assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
         assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
+    }
+
+    @Test
+    public void copyConstructor() {
+        PodTemplate pt = new PodTemplate();
+        pt.setName("podTemplate");
+
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        cloud.setDefaultsProviderTemplate("default");
+        cloud.setTemplates(Collections.singletonList(pt));
+        cloud.setServerUrl("serverUrl");
+        cloud.setSkipTlsVerify(true);
+        cloud.setAddMasterProxyEnvVars(true);
+        cloud.setNamespace("namespace");
+        cloud.setJenkinsUrl("jenkinsUrl");
+        cloud.setJenkinsTunnel("tunnel");
+        cloud.setCredentialsId("abcd");
+        cloud.setContainerCapStr("100");
+        cloud.setRetentionTimeout(1000);
+        cloud.setConnectTimeout(123);
+        cloud.setUsageRestricted(true);
+        cloud.setMaxRequestsPerHostStr("42");
+        cloud.setPodRetention(new Always());
+        cloud.setWaitForPodSec(245);
+        cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
+
+        KubernetesCloud copy = new KubernetesCloud("copy", cloud);
+
+        assertEquals("Expected cloud from copy constructor to be equal to the source except for name", cloud, copy);
     }
 
 }
