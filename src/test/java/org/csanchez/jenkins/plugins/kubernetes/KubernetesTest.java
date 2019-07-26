@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -73,6 +74,15 @@ public class KubernetesTest {
     public void before() throws Exception {
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
+    }
+
+    @Test
+    @LocalData()
+    public void upgradeFrom_1_17_2() throws Exception {
+        Map<String, String> labels = cloud.getPodLabelsMap();
+        assertEquals(2, labels.size());
+        assertThat(cloud.getPodLabelsMap(), hasEntry("jenkins", "slave"));
+        assertThat(cloud.getPodLabelsMap(), hasEntry("biff", "johnson"));
     }
 
     @Test
