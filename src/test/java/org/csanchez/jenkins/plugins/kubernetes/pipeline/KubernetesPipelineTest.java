@@ -412,6 +412,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogNotContains("value: \"container-env-var-value\"", b);
     }
 
+    @Issue("JENKINS-58574")
+    @Test
+    public void showRawYamlFalseInherited() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains("value: \"container-env-var-value\"", b);
+    }
+
     @Test
     @Issue("JENKINS-58405")
     public void overrideYaml() throws Exception {

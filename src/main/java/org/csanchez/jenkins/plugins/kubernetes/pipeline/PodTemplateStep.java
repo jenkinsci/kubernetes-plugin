@@ -281,8 +281,12 @@ public class PodTemplateStep extends Step implements Serializable {
         this.podRetention = podRetention;
     }
 
+    boolean isShowRawYamlSet() {
+        return showRawYaml != null;
+    }
+
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return isShowRawYamlSet() ? showRawYaml.booleanValue() : true;
     }
 
     @DataBoundSetter
