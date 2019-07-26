@@ -91,7 +91,7 @@ public class KubernetesTestUtil {
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
-        cloud.setLabels(PodLabel.fromMap(getLabels(cloud, test, name)));
+        cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
@@ -143,7 +143,7 @@ public class KubernetesTestUtil {
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
         if (cloud != null) {
-            l.putAll(cloud.getLabelsMap());
+            l.putAll(cloud.getPodLabelsMap());
         }
         l.put("class", o.getClass().getSimpleName());
         l.put("test", name.getMethodName());

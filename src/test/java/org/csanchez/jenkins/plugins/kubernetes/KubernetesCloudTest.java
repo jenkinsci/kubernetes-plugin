@@ -181,27 +181,54 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testLabels() {
+    public void testPodLabels() {
         KubernetesCloud cloud = new KubernetesCloud("name");
-        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
+        assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getPodLabelsMap());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+        assertEquals(cloud.getPodLabelsMap(), cloud.getLabels());
 
         List<PodLabel> labels = Arrays.asList(new PodLabel("foo", "bar"), new PodLabel("cat", "dog"));
-        cloud.setLabels(labels);
+        cloud.setPodLabels(labels);
         Map<String, String> expected = new LinkedHashMap<>();
         expected.put("foo", "bar");
         expected.put("cat", "dog");
-        assertEquals(expected, cloud.getLabelsMap());
-        assertEquals(new ArrayList<>(labels), cloud.getLabels());
+        assertEquals(expected, cloud.getPodLabelsMap());
+        assertEquals(cloud.getPodLabelsMap(), cloud.getLabels());
+        assertEquals(new ArrayList<>(labels), cloud.getPodLabels());
+
+        cloud.setPodLabels(null);
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+
+        cloud.setPodLabels(new ArrayList<>());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(cloud.getPodLabelsMap(), cloud.getLabels());
+        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getPodLabels());
+    }
+
+    @Test
+    public void testLabels() {
+        KubernetesCloud cloud = new KubernetesCloud("name");
+
+        List<PodLabel> labels = Arrays.asList(new PodLabel("foo", "bar"), new PodLabel("cat", "dog"));
+        cloud.setPodLabels(labels);
+        Map<String, String> labelsMap = new LinkedHashMap<>();
+        for (PodLabel l : labels) {
+            labelsMap.put(l.getKey(), l.getValue());
+        }
+        cloud.setLabels(labelsMap);
+        assertEquals(new LinkedHashMap<>(labelsMap), cloud.getPodLabelsMap());
+        assertEquals(labels, cloud.getPodLabels());
+
 
         cloud.setLabels(null);
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
 
-        cloud.setLabels(new ArrayList<>());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabelsMap());
-        assertEquals(Arrays.asList(new PodLabel("jenkins", "slave")), cloud.getLabels());
+        cloud.setLabels(new LinkedHashMap<>());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
     }
 
 }

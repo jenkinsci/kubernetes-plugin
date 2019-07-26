@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -77,6 +78,15 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
+    public void upgradeFrom_1_17_2() throws Exception {
+        Map<String, String> labels = cloud.getPodLabelsMap();
+        assertEquals(2, labels.size());
+        assertThat(cloud.getPodLabelsMap(), hasEntry("jenkins", "slave"));
+        assertThat(cloud.getPodLabelsMap(), hasEntry("biff", "johnson"));
+    }
+
+    @Test
+    @LocalData()
     @Issue("JENKINS-57116")
     public void upgradeFrom_1_15_1() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
@@ -111,7 +121,7 @@ public class KubernetesTest {
         FileSystemServiceAccountCredential cred1 = (FileSystemServiceAccountCredential) credentials.get(1);
         StringCredentialsImpl cred2 = (StringCredentialsImpl) credentials.get(2);
         assertEquals("mytoken", Secret.toString(cred2.getSecret()));
-        assertThat(cloud.getLabelsMap(), hasEntry("jenkins", "slave"));
+        assertThat(cloud.getLabels(), hasEntry("jenkins", "slave"));
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 

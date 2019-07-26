@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -118,7 +116,10 @@ public class KubernetesCloud extends Cloud {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout;
     private int readTimeout;
-    private List<PodLabel> labels = new ArrayList<PodLabel>();
+    /** @deprecated Stored as a list of PodLabels */
+    @Deprecated
+    private Map<String, String> labels;
+    private List<PodLabel> podLabels = new ArrayList<PodLabel>();
     private boolean usageRestricted;
 
     private int maxRequestsPerHost;
@@ -385,26 +386,47 @@ public class KubernetesCloud extends Cloud {
 
     /**
      * Labels for all pods started by the plugin
+     * @return immutable map of pod labels
+     * @deprecated use {@link #getPodLabels()}
      */
-    public List<PodLabel> getLabels() {
-        if (this.labels == null || labels.isEmpty()) {
+    @Deprecated
+    public Map<String, String> getLabels() {
+        return getPodLabelsMap();
+    }
+
+    /**
+     * Set pod labels
+     *
+     * @param labels pod labels
+     * @deprecated use {@link #setPodLabels(List)}
+     */
+    @Deprecated
+    public void setLabels(Map<String, String> labels) {
+        setPodLabels(labels != null ? PodLabel.fromMap(labels) : Collections.emptyList());
+    }
+
+    /**
+     * Labels for all pods started by the plugin
+     */
+    public List<PodLabel> getPodLabels() {
+        if (this.podLabels == null || podLabels.isEmpty()) {
             List<PodLabel> labels = new ArrayList<>();
             for (Map.Entry<String, String> label : DEFAULT_POD_LABELS.entrySet()) {
                 labels.add(new PodLabel(label.getKey(), label.getValue()));
             }
             return labels;
         }
-        return this.labels;
+        return this.podLabels;
     }
 
     /**
      * Set Pod labels  for all pods started by the plugin.
      */
     @DataBoundSetter
-    public void setLabels(List<PodLabel> labels) {
-        this.labels = new ArrayList<PodLabel>();
+    public void setPodLabels(List<PodLabel> labels) {
+        this.podLabels = new ArrayList<PodLabel>();
         if (labels != null) {
-            this.labels.addAll(labels);
+            this.podLabels.addAll(labels);
         }
     }
 
@@ -412,8 +434,8 @@ public class KubernetesCloud extends Cloud {
      * Map of labels to add to all pods started by the plugin
      * @return immutable map of pod labels
      */
-    Map<String, String> getLabelsMap() {
-        return PodLabel.toMap(getLabels());
+    Map<String, String> getPodLabelsMap() {
+        return PodLabel.toMap(getPodLabels());
     }
 
     @DataBoundSetter
@@ -535,7 +557,7 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
-        Map<String, String> podLabels = getLabelsMap();
+        Map<String, String> podLabels = getPodLabelsMap();
         List<Pod> allActiveSlavePods = getActiveSlavePods(client, templateNamespace, podLabels);
         if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
@@ -671,14 +693,14 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(jenkinsUrl, that.jenkinsUrl) &&
                 Objects.equals(jenkinsTunnel, that.jenkinsTunnel) &&
                 Objects.equals(credentialsId, that.credentialsId) &&
-                Objects.equals(labels, that.labels) &&
+                Objects.equals(podLabels, that.podLabels) &&
                 Objects.equals(podRetention, that.podRetention) &&
                 Objects.equals(waitForPodSec, that.waitForPodSec);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, labels, usageRestricted, maxRequestsPerHost, podRetention);
+        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted, maxRequestsPerHost, podRetention);
     }
 
     public Integer getWaitForPodSec() {
@@ -810,6 +832,10 @@ public class KubernetesCloud extends Cloud {
         }
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
+        }
+        // migrate to pod labels list
+        if (labels != null) {
+            setPodLabels(PodLabel.fromMap(labels));
         }
 
         return this;
