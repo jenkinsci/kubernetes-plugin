@@ -374,6 +374,7 @@ public class PodTemplateUtils {
         podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
         podTemplate.setPodRetention(template.getPodRetention());
+        podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
