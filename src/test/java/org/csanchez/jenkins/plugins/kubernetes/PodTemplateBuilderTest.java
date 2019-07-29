@@ -253,6 +253,7 @@ public class PodTemplateBuilderTest {
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
+            envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
