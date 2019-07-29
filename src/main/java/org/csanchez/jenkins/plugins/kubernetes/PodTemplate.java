@@ -766,8 +766,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getContainersDescriptionForLogging());
     }
 
+    boolean isShowRawYamlSet() {
+        return showRawYaml != null;
+    }
+
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return isShowRawYamlSet() ? showRawYaml.booleanValue() : true;
     }
 
     @DataBoundSetter
