@@ -54,6 +54,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
     private static final Logger LOGGER = Logger.getLogger(SecretsMasker.class.getName());
 
     private static final long serialVersionUID = 1;
+    private static final String secretReplacement = "********";
 
     private final Set<String> values;
 
@@ -71,19 +72,22 @@ public final class SecretsMasker extends TaskListenerDecorator {
             protected void eol(byte[] b, int len) throws IOException {
                 String s = new String(b, 0, len, StandardCharsets.UTF_8);
                 for (String value : values) {
-                    s = s.replace(value, "********");
+                    s = s.replace(value, secretReplacement);
                 }
                 logger.write(s.getBytes(StandardCharsets.UTF_8));
             }
+
             @Override
             public void flush() throws IOException {
                 logger.flush();
             }
+
             @Override
             public void close() throws IOException {
                 super.close();
                 logger.close();
             }
+
         };
     }
 
@@ -185,7 +189,11 @@ public final class SecretsMasker extends TaskListenerDecorator {
                             String key = line.substring(0, equals);
                             if (secretContainerKeys.contains(key)) {
                                 LOGGER.fine(() -> "found value for " + key);
-                                values.add(line.substring(equals + 1));
+                                String value = line.substring(equals + 1);
+                                // We add value to set of masked secrets only if it's non-empty not to mask empty strings
+                                if (!value.isEmpty()) {
+                                    values.add(value);
+                                }
                             }
                         }
                     }

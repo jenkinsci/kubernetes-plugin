@@ -240,7 +240,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogNotContains("go version go1.6.3", b);
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "JENKINS-58540"})
     @Test
     public void runInPodWithExistingTemplate() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
@@ -249,7 +249,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEnvVars(r, b);
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "JENKINS-58540"})
     @Test
     public void runWithEnvVariables() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
@@ -299,6 +299,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("INSIDE_GLOBAL = " + GLOBAL + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
@@ -306,6 +307,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = or\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
     }
 
