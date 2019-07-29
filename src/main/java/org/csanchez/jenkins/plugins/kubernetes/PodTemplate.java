@@ -266,7 +266,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Deprecated
     public String getRemoteFs() {
-        return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(null);
+        return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(ContainerTemplate.DEFAULT_WORKING_DIR);
     }
 
     public void setInstanceCap(int instanceCap) {
