@@ -358,7 +358,7 @@ podTemplate(cloud: 'kubernetes', containers: [
         ttyEnabled: true,
         privileged: false,
         alwaysPullImage: false,
-        workingDir: '/home/jenkins',
+        workingDir: '/home/jenkins/agent',
         resourceRequestCpu: '50m',
         resourceLimitCpu: '100m',
         resourceRequestMemory: '100Mi',
@@ -809,7 +809,7 @@ Set `Container Cap` to a reasonable number for tests, i.e. 3.
 Add an image with
 
 * Docker image: `jenkins/jnlp-slave`
-* Jenkins agent root directory: `/home/jenkins`
+* Jenkins agent root directory: `/home/jenkins/agent`
 
 ![image](configuration.png)
 

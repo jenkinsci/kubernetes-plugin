@@ -26,11 +26,13 @@ import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.Nonnull;
+
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
     private static final long serialVersionUID = 4212681620316294146L;
 
-    public static final String DEFAULT_WORKING_DIR = "/home/jenkins";
+    public static final String DEFAULT_WORKING_DIR = "/home/jenkins/agent";
 
     private String name;
 
@@ -278,6 +280,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 return FormValidation.error(Messages.RFC1123_error(value));
             }
             return FormValidation.ok();
+        }
+
+        @SuppressWarnings("unused") // jelly
+        public String getWorkingDir() {
+            return DEFAULT_WORKING_DIR;
         }
     }
 

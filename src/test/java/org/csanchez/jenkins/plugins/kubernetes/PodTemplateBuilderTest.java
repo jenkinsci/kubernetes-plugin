@@ -139,7 +139,7 @@ public class PodTemplateBuilderTest {
         Container container1 = containers.get(1);
 
         ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
-                .withMountPath("/home/jenkins").withName("workspace-volume").withReadOnly(false).build());
+                .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build());
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
         assertEquals(volumeMounts, container1.getVolumeMounts());
@@ -223,7 +223,7 @@ public class PodTemplateBuilderTest {
         List<VolumeMount> mounts = containers.get("busybox").getVolumeMounts();
         List<VolumeMount> jnlpMounts = containers.get("jnlp").getVolumeMounts();
         VolumeMount workspaceVolume = new VolumeMountBuilder() //
-                .withMountPath("/home/jenkins").withName("workspace-volume").withReadOnly(false).build();
+                .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build();
 
         // when using yaml we don't mount all volumes, just the ones explicitly listed
         if (fromYaml) {
@@ -253,6 +253,7 @@ public class PodTemplateBuilderTest {
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
+            envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
@@ -277,7 +278,7 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
         assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
         assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));

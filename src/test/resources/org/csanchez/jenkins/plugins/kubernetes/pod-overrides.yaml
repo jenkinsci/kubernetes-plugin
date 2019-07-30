@@ -3,7 +3,7 @@ spec:
   - name: jnlp
     image: jenkins-jnlp-override
     volumeMounts:
-    - mountPath: /home/jenkins
+    - mountPath: /home/jenkins/agent
       name: host-volume
     resources:
       limits:
