@@ -307,7 +307,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = or\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
-        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ''", b);
+        r.assertLogContains("OUTSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
     }
 
