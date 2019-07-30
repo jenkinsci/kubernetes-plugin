@@ -1,7 +1,8 @@
 podTemplate(
     envVars: [
         envVar(key: 'POD_ENV_VAR', value: 'pod-env-var-value'),
-        secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password')
+        secretEnvVar(key: 'POD_ENV_VAR_FROM_SECRET', secretName: 'pod-secret', secretKey: 'password'),
+        secretEnvVar(key: 'EMPTY_POD_ENV_VAR_FROM_SECRET', secretName: 'empty-secret', secretKey: 'password')
     ],
     containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
@@ -25,6 +26,7 @@ podTemplate(
         echo OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = $CONTAINER_ENV_VAR_FROM_SECRET or `echo $CONTAINER_ENV_VAR_FROM_SECRET | tr [a-z] [A-Z]`
         echo OUTSIDE_POD_ENV_VAR = $POD_ENV_VAR
         echo OUTSIDE_POD_ENV_VAR_FROM_SECRET = $POD_ENV_VAR_FROM_SECRET or `echo $POD_ENV_VAR_FROM_SECRET | tr [a-z] [A-Z]`
+        echo "OUTSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = '$EMPTY_POD_ENV_VAR_FROM_SECRET'"
         echo OUTSIDE_JAVA_HOME_X = $JAVA_HOME_X
         echo OUTSIDE_GLOBAL = $GLOBAL
         '''
@@ -39,6 +41,7 @@ podTemplate(
                 echo INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = $CONTAINER_ENV_VAR_FROM_SECRET or `echo $CONTAINER_ENV_VAR_FROM_SECRET | tr [a-z] [A-Z]`
                 echo INSIDE_POD_ENV_VAR = $POD_ENV_VAR
                 echo INSIDE_POD_ENV_VAR_FROM_SECRET = $POD_ENV_VAR_FROM_SECRET or `echo $POD_ENV_VAR_FROM_SECRET | tr [a-z] [A-Z]`
+                echo "INSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = '$EMPTY_POD_ENV_VAR_FROM_SECRET'"
                 echo INSIDE_JAVA_HOME_X = $JAVA_HOME_X
                 echo INSIDE_JAVA_HOME = $JAVA_HOME
                 echo INSIDE_GLOBAL = $GLOBAL

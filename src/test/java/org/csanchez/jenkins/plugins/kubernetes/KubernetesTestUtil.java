@@ -218,9 +218,15 @@ public class KubernetesTestUtil {
                 .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+
         LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+
+        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
+                .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
     }
