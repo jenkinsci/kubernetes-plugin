@@ -213,9 +213,6 @@ public class RestartPipelineTest {
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
             r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
-            // Currently the logic in ExecutorStepExecution cannot handle a Jenkins restart so it prints the following.
-            // It does not matter since DurableTaskStep redundantly implements the same check.
-            r.assertLogContains(" was deleted, but do not have a node body to cancel", b);
         });
     }
 
