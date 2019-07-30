@@ -8,8 +8,7 @@ podTemplate(
 
     node(POD_LABEL) {
         container(name: 'jnlp') {
-            // Need a newline cf. https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/103
-            sh "cat /var/run/secrets/kubernetes.io/serviceaccount/namespace && echo"
+            sh 'cat /var/run/secrets/kubernetes.io/serviceaccount/namespace'
         }
     }
 }
