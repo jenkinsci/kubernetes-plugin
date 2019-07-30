@@ -330,7 +330,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runDirContext() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        String workspace = "/home/jenkins/workspace/" + getProjectName();
+        String workspace = "/home/jenkins/agent/workspace/" + getProjectName();
         r.assertLogContains("initpwd is -" + workspace + "-", b);
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);

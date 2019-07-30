@@ -322,5 +322,9 @@ public class PodTemplateStep extends Step implements Serializable {
             return ImmutableSet.of(Run.class, TaskListener.class);
         }
 
+        @SuppressWarnings("unused") // jelly
+        public String getWorkingDir() {
+            return ContainerTemplate.DEFAULT_WORKING_DIR;
+        }
     }
 }

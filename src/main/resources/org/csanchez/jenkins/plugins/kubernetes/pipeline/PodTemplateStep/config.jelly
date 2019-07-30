@@ -76,8 +76,8 @@
           help="/plugin/kubernetes/help/nodeSelector.html">
           <f:textbox/>
         </f:entry>
-        <f:entry field="workingDir" title="${%Working directory}">
-          <f:textbox default="/home/jenkins"/>
+        <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
+          <f:textbox default="${descriptor.workingDir}"/>
         </f:entry>
         <f:block>
           <table>
