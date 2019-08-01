@@ -647,11 +647,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setYaml(String yaml) {
         this.yaml = Util.fixEmpty(yaml);
-        if (this.yaml != null) {
-            this.yamls = Collections.singletonList(this.yaml);
-        } else {
-            this.yamls = Collections.emptyList();
-        }
     }
 
     @Nonnull
