@@ -123,10 +123,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private PodTemplateToolLocation nodeProperties;
 
-    /**
-     * @deprecated Stored as a list of yaml fragments
-     */
-    @Deprecated
     private transient String yaml;
 
     private List<String> yamls;
