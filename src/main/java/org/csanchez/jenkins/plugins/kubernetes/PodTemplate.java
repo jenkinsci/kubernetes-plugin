@@ -123,9 +123,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private PodTemplateToolLocation nodeProperties;
 
-    private transient String yaml;
+    /**
+     * Persisted yaml fragment
+     */
+    private String yaml;
 
-    private List<String> yamls;
+    private transient List<String> yamls;
 
     public YamlMergeStrategy getYamlMergeStrategy() {
         return yamlMergeStrategy;
