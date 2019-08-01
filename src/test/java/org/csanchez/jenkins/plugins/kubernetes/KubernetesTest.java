@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -43,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import com.cloudbees.plugins.credentials.Credentials;
@@ -67,12 +69,39 @@ public class KubernetesTest {
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
+    @Rule
+    public LoggerRule log = new LoggerRule();
+
     private KubernetesCloud cloud;
 
     @Before
     public void before() throws Exception {
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
+    }
+
+    @Test
+    @LocalData
+    public void upgradeFrom_1_15_9() {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
+        assertEquals("blah", template.getYaml());
+        assertEquals(Collections.singletonList("blah"), template.getYamls());
+        assertNull(template._getYamls());
+    }
+
+    @Test
+    @LocalData
+    public void upgradeFrom_1_15_9_invalid() {
+        log.record(PodTemplate.class, Level.WARNING).capture(1);
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
+        assertEquals("blah", template.getYaml());
+        assertEquals(Collections.singletonList("blah"), template.getYamls());
+        assertNull(template._getYamls());
+        log.getMessages().stream().anyMatch(msg -> msg.contains("Found several persisted YAML fragments in pod template java"));
     }
 
     @Test
