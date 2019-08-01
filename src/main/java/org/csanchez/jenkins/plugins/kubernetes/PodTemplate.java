@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -123,12 +124,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private PodTemplateToolLocation nodeProperties;
 
     /**
-     * @deprecated Stored as a list of yaml fragments
+     * Persisted yaml fragment
      */
-    @Deprecated
-    private transient String yaml;
+    private String yaml;
 
-    private List<String> yamls = new ArrayList<>();
+    /**
+     * List of yaml fragments used for transient pod templates. Never persisted
+     */
+    private transient List<String> yamls;
 
     public YamlMergeStrategy getYamlMergeStrategy() {
         return yamlMergeStrategy;
@@ -170,6 +173,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.yaml = from.yaml;
         this.setYamls(from.getYamls());
         this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
@@ -637,14 +641,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
-        return yamls == null || yamls.isEmpty() ? null : yamls.get(0);
+        return yaml;
     }
 
     @DataBoundSetter
     public void setYaml(String yaml) {
-        String trimmed = Util.fixEmpty(yaml);
-        if (trimmed != null) {
-            this.yamls = Collections.singletonList(yaml);
+        this.yaml = Util.fixEmpty(yaml);
+        if (this.yaml != null) {
+            this.yamls = Collections.singletonList(this.yaml);
         } else {
             this.yamls = Collections.emptyList();
         }
@@ -652,9 +656,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Nonnull
     public List<String> getYamls() {
-        if (yamls ==null) {
-            return Collections.emptyList();
+        if (yamls == null) {
+            if (yaml != null) {
+                return Collections.singletonList(yaml);
+            } else {
+                return Collections.emptyList();
+            }
         }
+        return yamls;
+    }
+
+    @VisibleForTesting
+    @Restricted(NoExternalUse.class)
+    List<String> _getYamls() {
         return yamls;
     }
 
@@ -716,18 +730,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             annotations = new ArrayList<>();
         }
 
-        if (yamls == null) {
-            yamls = new ArrayList<>();
-        }
-
-        if (yaml != null) {
-            yamls.add(yaml);
-            yaml = null;
-        }
-
-        // JENKINS-57116 remove empty items from yamls
-        if (!yamls.isEmpty() && StringUtils.isBlank(yamls.get(0))) {
+        yaml = Util.fixEmpty(yaml);
+        if (yamls != null) {
+            // Sanitize empty values
             setYamls(yamls);
+            // Migration from storage in yamls field
+            if (!yamls.isEmpty()) {
+                yaml = yamls.get(0);
+            }
+            yamls = null;
         }
 
         if (showRawYaml == null) {
