@@ -637,7 +637,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * @return The first yaml fragment for this pod template
+     * @return The persisted yaml fragment
      */
     @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
@@ -732,6 +732,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             setYamls(yamls);
             // Migration from storage in yamls field
             if (!yamls.isEmpty()) {
+                if (yamls.size() > 1) {
+                    LOGGER.log(Level.WARNING, "Found several persisted YAML fragments in pod template " + name + ". Only the first fragment will be considered, others will be ignored.");
+                }
                 yaml = yamls.get(0);
             }
             yamls = null;
