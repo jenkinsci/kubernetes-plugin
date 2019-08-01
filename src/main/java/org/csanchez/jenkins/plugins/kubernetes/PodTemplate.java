@@ -128,6 +128,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     private String yaml;
 
+    /**
+     * List of yaml fragments used for transient pod templates. Never persisted
+     */
     private transient List<String> yamls;
 
     public YamlMergeStrategy getYamlMergeStrategy() {
@@ -170,6 +173,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.yaml = from.yaml;
         this.setYamls(from.getYamls());
         this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
