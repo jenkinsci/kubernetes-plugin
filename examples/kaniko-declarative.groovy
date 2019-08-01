@@ -29,7 +29,7 @@ spec:
     tty: true
     volumeMounts:
       - name: jenkins-docker-cfg
-        mountPath: /root
+        mountPath: /kaniko/.docker
   volumes:
   - name: jenkins-docker-cfg
     projected:
@@ -38,7 +38,7 @@ spec:
           name: regcred
           items:
             - key: .dockerconfigjson
-              path: .docker/config.json
+              path: config.json
 """
     }
   }
