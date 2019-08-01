@@ -86,6 +86,17 @@ public class KubernetesTest {
     }
 
     @Test
+    @LocalData
+    public void upgradeFrom_1_15_9() {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates);
+        PodTemplate template = templates.get(0);
+        assertEquals("blah", template.getYaml());
+        assertEquals(Collections.singletonList("blah"), template.getYamls());
+        assertNull(template._getYamls());
+    }
+
+    @Test
     @LocalData()
     @Issue("JENKINS-57116")
     public void upgradeFrom_1_15_1() throws Exception {
