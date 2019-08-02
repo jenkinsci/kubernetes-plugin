@@ -11,6 +11,39 @@ Unreleased
 ----------
 * Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [#497](https://github.com/jenkinsci/kubernetes-plugin/pull/497) [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
 
+1.16.5 and newer
+------
+
+No longer tracked in this file. See [GitHub releases](https://github.com/jenkinsci/kubernetes-plugin/releases) instead.
+
+1.16.4
+------
+* Add http connections count [#528](https://github.com/jenkinsci/kubernetes-plugin/pull/528)
+* Hide deprecated credential type [#529](https://github.com/jenkinsci/kubernetes-plugin/pull/529) [JENKINS-49717](https://issues.jenkins-ci.org/browse/JENKINS-49717)
+* Allow option `showRawYaml` in Jenkinsfiles [#519](https://github.com/jenkinsci/kubernetes-plugin/pull/519)
+
+1.16.3
+------
+* **testing** Fixed test flakes [#496](https://github.com/jenkinsci/kubernetes-plugin/pull/496) [JENKINS-46076](https://issues.jenkins-ci.org/browse/JENKINS-46076)
+* **testing** Add a test for the `showRawYaml` option [#525](https://github.com/jenkinsci/kubernetes-plugin/pull/525)
+* Simplify logic to return pod status [#526](https://github.com/jenkinsci/kubernetes-plugin/pull/526)
+* **testing** Simplify testing logic by providing a generic method to load and schedule a pipeline definition [#527](https://github.com/jenkinsci/kubernetes-plugin/pull/527)
+* Prevent save of Kubernetes agent through UI [#514](https://github.com/jenkinsci/kubernetes-plugin/pull/514) [JENKINS-57965](https://issues.jenkins-ci.org/browse/JENKINS-57965)
+* Support "Docker Host Certificates" credentials to authenticate against Kubernetes [#520](https://github.com/jenkinsci/kubernetes-plugin/pull/520)
+
+1.16.2
+------
+* Fixed an issue where only the last PodTemplateFilter would be applied [#521](https://github.com/jenkinsci/kubernetes-plugin/pull/521)
+
+1.16.1
+------
+* Update parent POM to 3.44 [#505](https://github.com/jenkinsci/kubernetes-plugin/pull/505)
+* Update plugin dependencies
+  * structs 1.19 [#494](https://github.com/jenkinsci/kubernetes-plugin/pull/494)
+  * variant 1.2 [#464](https://github.com/jenkinsci/kubernetes-plugin/pull/464)
+  * cloudbees-folder 6.8 [#471](https://github.com/jenkinsci/kubernetes-plugin/pull/471)
+  * credentials 2.2.0 / ssh-credentials 1.17 [#499](https://github.com/jenkinsci/kubernetes-plugin/pull/499)
+* Making ContainerExecProc periodically send a newline to keep a socket alive [#513](https://github.com/jenkinsci/kubernetes-plugin/pull/513)[JENKINS-58065](https://issues.jenkins-ci.org/browse/JENKINS-58065)
 
 1.16.0
 ----------

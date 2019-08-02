@@ -23,6 +23,9 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import com.google.common.annotations.VisibleForTesting;
+
 import java.io.Serializable;
 import java.util.*;
 import java.util.logging.Level;
