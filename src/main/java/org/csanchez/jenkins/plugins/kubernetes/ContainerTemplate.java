@@ -34,6 +34,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public static final String DEFAULT_WORKING_DIR = "/home/jenkins/agent";
 
+    private static final String OLD_DEFAULT_WORKING_DIR = "/home/jenkins";
+
     private String name;
 
     private String image;
@@ -391,6 +393,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private Object readResolve() {
         this.workingDir = Util.fixEmpty(workingDir);
+        if (OLD_DEFAULT_WORKING_DIR.equals(workingDir)) {
+            this.workingDir = DEFAULT_WORKING_DIR;
+        }
         return this;
     }
 }

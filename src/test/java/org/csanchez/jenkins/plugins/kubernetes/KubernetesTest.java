@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import hudson.model.Label;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
@@ -88,6 +89,11 @@ public class KubernetesTest {
         assertEquals(2, labels.size());
         assertThat(cloud.getPodLabelsMap(), hasEntry("jenkins", "slave"));
         assertThat(cloud.getPodLabelsMap(), hasEntry("biff", "johnson"));
+        PodTemplate pt = cloud.getTemplate(Label.get("java"));
+        assertNotNull(pt);
+        for (ContainerTemplate ct : pt.getContainers()) {
+            assertEquals(ContainerTemplate.DEFAULT_WORKING_DIR, ct.getWorkingDir());
+        }
     }
 
     @Test
