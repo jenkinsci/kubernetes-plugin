@@ -129,7 +129,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getRemoteFs(),
                 1,
                 template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
-                labelStr == null ? null : labelStr,
+                labelStr,
                 computerLauncher,
                 rs,
                 template.getNodeProperties());
