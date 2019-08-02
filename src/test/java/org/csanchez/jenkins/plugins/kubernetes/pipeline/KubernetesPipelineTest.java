@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
@@ -355,5 +356,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void runInPodWithRetention() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
+    }
+
+    @Test
+    public void runWithNonexistentDockerImage() throws Exception {
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("WRONGMSG", b);
     }
 }

@@ -98,6 +98,7 @@ public abstract class AbstractKubernetesPipelineTest {
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
+        cloud.addTemplate(buildBadDockerImageTemplate("baddockerimage"));
 
         // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
@@ -122,16 +123,26 @@ public abstract class AbstractKubernetesPipelineTest {
         r.jenkins.save();
     }
 
-    private PodTemplate buildBusyboxTemplate(String label) {
-        // Create a busybox template
+    private PodTemplate buildPodTemplate(String label, String containerName, String image, String command, String args, Boolean ttyEnabled, Boolean setEnvVars) {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(label);
 
-        ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
-        containerTemplate.setTtyEnabled(true);
+        ContainerTemplate containerTemplate = new ContainerTemplate(containerName, image, command, args);
+        containerTemplate.setTtyEnabled(ttyEnabled);
         podTemplate.getContainers().add(containerTemplate);
-        setEnvVariables(podTemplate);
+        if (setEnvVars)
+            setEnvVariables(podTemplate);
         return podTemplate;
+    }
+
+    private PodTemplate buildBusyboxTemplate(String label) {
+        // Create a busybox template
+        return buildPodTemplate(label, "busybox", "busybox", "cat", "", true, true);
+    }
+
+    private PodTemplate buildBadDockerImageTemplate(String label) {
+        // Create pod template using nonexistent Docker image
+        return buildPodTemplate(label,"bad-image", "bogus-image", "cat", "", true, false);
     }
 
     protected String loadPipelineScript(String name) {
