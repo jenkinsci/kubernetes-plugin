@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -135,12 +137,17 @@ public class KubernetesLauncher extends JNLPLauncher {
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (IllegalStateException e) {
+                LOGGER.log(Level.INFO, "CAUGHT ILLEGALSTATEEXCEPTION");
                 if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
                     Jenkins jenkins = Jenkins.get();
+                    if (jenkins != null)
+                        LOGGER.info("HAVE JENKINS");
                     Queue q = jenkins.getQueue();
                     for (Queue.Item item : q.getItems()) {
                         Label itemLabel = item.getAssignedLabel();
-                        if (itemLabel != null && isCorrespondingLabels(itemLabel.getDisplayName(), podName)) {
+                        LOGGER.info("ITEMLABEL: " + itemLabel + " ITEMLABEL_DISPLAYNAME: " + itemLabel.getDisplayName() + " PODNAME: " + podName);
+                        if (isCorrespondingLabels(itemLabel.getDisplayName(), podName)) {
+                            LOGGER.info("FOUND JOB TO CANCEL");
                             String itemTaskName = item.task.getFullDisplayName();
                             String jobName = getJobName(itemTaskName);
                             if (jobName.isEmpty()) {
@@ -151,6 +158,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                             break;
                         }
                     }
+                    LOGGER.info("EXITED QUEUE");
                 }
                 return;
             }
@@ -237,10 +245,34 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     private boolean isCorrespondingLabels(String taskLabel, String podId) {
+        final int maxLabelLen = 63;
         int taskLabelLen = taskLabel.length();
-        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
-        podId = podId.substring(0, podId.lastIndexOf("-"));
-        return taskLabel.equals(podId);
+//        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
+        String suffixPatternString = "-[a-z0-9]{5}";
+        if (taskLabelLen + 12 <= maxLabelLen) { // 2 occurrences of the suffix pattern
+            suffixPatternString = suffixPatternString + suffixPatternString;
+        }
+        else if (taskLabelLen + 6 > maxLabelLen) { // need to make room for 1 occurrence of suffix pattern
+            taskLabel = taskLabel.substring(0, taskLabelLen - (taskLabelLen + 6 - maxLabelLen));
+        }
+        else if (taskLabelLen + 6 < maxLabelLen){ // 1 occurrence of suffix pattern + as much as it can for 1 more suffix pattern
+            suffixPatternString = "-[a-z0-9]{0,5}" + suffixPatternString;
+        }
+        // else exactly 1 occurrence of suffix pattern
+
+        suffixPatternString = ".*(" + suffixPatternString + ")";
+        final Pattern podIdSuffixPattern = Pattern.compile(suffixPatternString);
+        Matcher matcher = podIdSuffixPattern.matcher(podId);
+
+        if (matcher.find()) {
+            podId = podId.substring(0, podId.lastIndexOf(matcher.group(1)));
+        }
+        else {
+            LOGGER.warning("Pod [" + podId + " does not match pod naming convention");
+        }
+
+        LOGGER.info("COMPARING: " + taskLabel + ", " + podId);
+        return taskLabel.equalsIgnoreCase(podId);
     }
 
     /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
