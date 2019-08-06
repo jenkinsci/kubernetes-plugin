@@ -98,7 +98,6 @@ public abstract class AbstractKubernetesPipelineTest {
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
-        cloud.addTemplate(buildBadDockerImageTemplate("baddockerimage"));
 
         // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = r.getURL();
@@ -138,11 +137,6 @@ public abstract class AbstractKubernetesPipelineTest {
     private PodTemplate buildBusyboxTemplate(String label) {
         // Create a busybox template
         return buildPodTemplate(label, "busybox", "busybox", "cat", "", true, true);
-    }
-
-    private PodTemplate buildBadDockerImageTemplate(String label) {
-        // Create pod template using nonexistent Docker image
-        return buildPodTemplate(label,"bad-image", "bogus-image", "cat", "", true, false);
     }
 
     protected String loadPipelineScript(String name) {
