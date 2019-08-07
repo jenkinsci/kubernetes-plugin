@@ -137,17 +137,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (IllegalStateException e) {
-                LOGGER.log(Level.INFO, "CAUGHT ILLEGALSTATEEXCEPTION");
                 if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
                     Jenkins jenkins = Jenkins.get();
-                    if (jenkins != null)
-                        LOGGER.info("HAVE JENKINS");
                     Queue q = jenkins.getQueue();
                     for (Queue.Item item : q.getItems()) {
                         Label itemLabel = item.getAssignedLabel();
-                        LOGGER.info("ITEMLABEL: " + itemLabel + " ITEMLABEL_DISPLAYNAME: " + itemLabel.getDisplayName() + " PODNAME: " + podName);
                         if (isCorrespondingLabels(itemLabel.getDisplayName(), podName)) {
-                            LOGGER.info("FOUND JOB TO CANCEL");
                             String itemTaskName = item.task.getFullDisplayName();
                             String jobName = getJobName(itemTaskName);
                             if (jobName.isEmpty()) {
