@@ -153,7 +153,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                             break;
                         }
                     }
-                    LOGGER.info("EXITED QUEUE");
                 }
                 return;
             }
