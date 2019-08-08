@@ -140,9 +140,9 @@ public class KubernetesLauncher extends JNLPLauncher {
                 if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
                     Jenkins jenkins = Jenkins.get();
                     Queue q = jenkins.getQueue();
-                    for (Queue.Item item : q.getItems()) {
-                        Label itemLabel = item.getAssignedLabel();
-                        if (isCorrespondingLabels(itemLabel.getDisplayName(), podName)) {
+                    String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+                    for (Queue.Item item: q.getItems()) {
+                        if (item.task.getUrl().equals(runUrl)) {
                             String itemTaskName = item.task.getFullDisplayName();
                             String jobName = getJobName(itemTaskName);
                             if (jobName.isEmpty()) {
@@ -236,37 +236,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw Throwables.propagate(ex);
         }
-    }
-
-    private boolean isCorrespondingLabels(String taskLabel, String podId) {
-        final int maxLabelLen = 63;
-        int taskLabelLen = taskLabel.length();
-//        taskLabel = taskLabel.substring(0, taskLabelLen - 2);
-        String suffixPatternString = "-[a-z0-9]{5}";
-        if (taskLabelLen + 12 <= maxLabelLen) { // 2 occurrences of the suffix pattern
-            suffixPatternString = suffixPatternString + suffixPatternString;
-        }
-        else if (taskLabelLen + 6 > maxLabelLen) { // need to make room for 1 occurrence of suffix pattern
-            taskLabel = taskLabel.substring(0, taskLabelLen - (taskLabelLen + 6 - maxLabelLen));
-        }
-        else if (taskLabelLen + 6 < maxLabelLen){ // 1 occurrence of suffix pattern + as much as it can for 1 more suffix pattern
-            suffixPatternString = "-[a-z0-9]{0,5}" + suffixPatternString;
-        }
-        // else exactly 1 occurrence of suffix pattern
-
-        suffixPatternString = ".*(" + suffixPatternString + ")";
-        final Pattern podIdSuffixPattern = Pattern.compile(suffixPatternString);
-        Matcher matcher = podIdSuffixPattern.matcher(podId);
-
-        if (matcher.find()) {
-            podId = podId.substring(0, podId.lastIndexOf(matcher.group(1)));
-        }
-        else {
-            LOGGER.warning("Pod [" + podId + " does not match pod naming convention");
-        }
-
-        LOGGER.info("COMPARING: " + taskLabel + ", " + podId);
-        return taskLabel.equalsIgnoreCase(podId);
     }
 
     /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
