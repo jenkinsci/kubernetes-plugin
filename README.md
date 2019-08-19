@@ -173,6 +173,7 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not support httpGet liveness probes)
 * **ports** Expose ports on the container.
+* **alwaysPullImage** The container will pull the image upon starting.
 
 #### Specifying a different default agent connection timeout
 
