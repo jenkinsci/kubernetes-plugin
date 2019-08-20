@@ -1,7 +1,6 @@
 pipeline {
   agent {
     kubernetes {
-      label 'declarativeFromYaml'
       yaml """
 metadata:
   labels:

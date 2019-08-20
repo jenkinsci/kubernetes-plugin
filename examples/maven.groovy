@@ -2,13 +2,11 @@
  * This pipeline will execute a simple Maven build
  */
 
-def label = "maven-${UUID.randomUUID().toString()}"
-
-podTemplate(label: label, containers: [
+podTemplate(containers: [
   containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: 'cat')
   ]) {
 
-  node(label) {
+  node(POD_LABEL) {
     stage('Build a Maven project') {
       git 'https://github.com/jenkinsci/kubernetes-plugin.git'
       container('maven') {

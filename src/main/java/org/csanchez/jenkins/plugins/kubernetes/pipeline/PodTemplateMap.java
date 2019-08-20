@@ -24,8 +24,7 @@ public class PodTemplateMap {
     private static final Logger LOGGER = Logger.getLogger(PodTemplateMap.class.getName());
 
     public static PodTemplateMap get() {
-        // TODO Replace with lookupSingleton post 2.87
-        return ExtensionList.lookup(PodTemplateMap.class).get(PodTemplateMap.class);
+        return ExtensionList.lookupSingleton(PodTemplateMap.class);
     }
 
     /**

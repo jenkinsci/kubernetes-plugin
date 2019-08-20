@@ -1,7 +1,6 @@
 pipeline {
   agent {
     kubernetes {
-      label 'declarativefromyaml-pod'
       yaml """
 metadata:
   namespace: kubernetes-plugin-test-overridden-namespace

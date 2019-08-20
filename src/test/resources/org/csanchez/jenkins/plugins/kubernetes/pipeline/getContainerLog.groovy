@@ -1,6 +1,6 @@
 //noinspection GrPackage
-podTemplate(label: 'getContainerLog') {
-    node ('getContainerLog') {
+podTemplate {
+    node(POD_LABEL) {
         stage('container log') {
             containerLog 'jnlp'
         }

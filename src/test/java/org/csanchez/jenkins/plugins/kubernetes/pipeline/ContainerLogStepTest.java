@@ -16,12 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 
 import static org.junit.Assert.assertNotNull;
@@ -30,11 +25,8 @@ public class ContainerLogStepTest extends AbstractKubernetesPipelineTest {
 
     @Issue("JENKINS-46085")
     @Test
-    public void simple() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "containerLog");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("getContainerLog.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
+    public void getContainerLog() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("INFO: Handshaking", b);
         r.assertLogContains("INFO: Connected", b);

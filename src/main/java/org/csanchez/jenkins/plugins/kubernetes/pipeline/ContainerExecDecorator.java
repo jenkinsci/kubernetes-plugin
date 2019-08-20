@@ -23,14 +23,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -42,11 +39,8 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.CachedProc;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.proc.DeadProc;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -85,7 +79,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private static final String DEFAULT_SHELL="/bin/sh";
+    private static final String DEFAULT_SHELL = "sh";
 
     /**
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
@@ -96,12 +90,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
-    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
-    private transient Map<Integer, ContainerExecProc> processes = new HashMap<Integer, ContainerExecProc>();
 
     private String containerName;
     private EnvironmentExpander environmentExpander;
     private EnvVars globalVars;
+    /** @deprecated no longer used */
+    @Deprecated
     private FilePath ws;
     private EnvVars rcEnvVars;
     private String shell;
@@ -219,6 +213,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return this.rcEnvVars;
     }
 
+    /** @deprecated unused */
+    @Deprecated
     public FilePath getWs() {
         return ws;
     }
@@ -276,19 +272,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
                     boolean[] masks, String... commands) throws IOException {
-                if (processes == null) {
-                    processes = new HashMap<>();
-                }
-                //check ifits the actual script or the ProcessLiveness check.
-                int p = readPidFromPsCommand(commands);
-                //if it is a liveness check, try to find the actual process to avoid doing multiple execs.
-                if (p == 9999) {
-                    return new DeadProc();
-                } else if (p > 0 && processes.containsKey(p)) {
-                    LOGGER.log(Level.INFO, "Retrieved process from cache with pid:[ " + p + "].");
-                    return new CachedProc(processes.get(p));
-                }
-
                 waitUntilPodContainersAreReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
@@ -426,11 +409,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     doExec(stdin, printStream, masks, commands);
 
-                    int pid = readPidFromPidFile(commands);
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
-                            + containerName + "] with pid:[" + pid + "]");
+                            + containerName + "]");
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
-                    processes.put(pid, proc);
                     closables.add(proc);
                     return proc;
                 } catch (InterruptedException ie) {
@@ -550,51 +531,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             e.printStackTrace(out);
             throw new RuntimeException(e);
         }
-    }
-
-    static int readPidFromPsCommand(String... commands) {
-        if (commands.length == 4 && "ps".equals(commands[0]) && "-o".equals(commands[1]) && commands[2].equals("pid=")) {
-            return Integer.parseInt(commands[3]);
-        }
-
-
-        if (commands.length == 4 && "ps".equals(commands[0]) && "-o".equals(commands[1]) && commands[2].startsWith("-pid")) {
-            return Integer.parseInt(commands[3]);
-        }
-        return -1;
-    }
-
-
-    private synchronized int readPidFromPidFile(String... commands) throws IOException, InterruptedException {
-        int pid = -1;
-        String pidFilePath = readPidFile(commands);
-        if (pidFilePath == null) {
-            return pid;
-        }
-        FilePath pidFile = ws.child(pidFilePath);
-        for (int w = 0; w < 10 && !pidFile.exists(); w++) {
-            try {
-                wait(1000);
-            } catch (InterruptedException e) {
-                break;
-            }
-        }
-        if (pidFile.exists()) {
-            try {
-                pid = Integer.parseInt(pidFile.readToString().trim());
-            } catch (NumberFormatException x) {
-                throw new IOException("corrupted content in " + pidFile + ": " + x, x);
-            }
-        }
-        return pid;
-    }
-
-    @CheckForNull
-    static String readPidFile(String... commands) {
-        if (commands.length >= 4 && "nohup".equals(commands[0]) && "sh".equals(commands[1]) && commands[2].equals("-c") && commands[3].startsWith("echo \\$\\$ >")) {
-            return commands[3].substring(13, commands[3].indexOf(";") - 1);
-        }
-        return null;
     }
 
     static String[] getCommands(Launcher.ProcStarter starter) {

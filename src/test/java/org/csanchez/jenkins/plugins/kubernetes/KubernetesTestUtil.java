@@ -34,6 +34,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,7 +43,12 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import hudson.Util;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.rules.TestName;
 
 import com.google.common.collect.ImmutableMap;
@@ -61,6 +67,8 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import static org.junit.Assert.*;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
 
@@ -83,7 +91,7 @@ public class KubernetesTestUtil {
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
-        cloud.setLabels(getLabels(cloud, test, name));
+        cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
@@ -135,7 +143,7 @@ public class KubernetesTestUtil {
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
         if (cloud != null) {
-            l.putAll(cloud.getLabels());
+            l.putAll(cloud.getPodLabelsMap());
         }
         l.put("class", o.getClass().getSimpleName());
         l.put("test", name.getMethodName());
@@ -210,11 +218,51 @@ public class KubernetesTestUtil {
                 .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+
         LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+
+        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
+                .withNewMetadata().withName("empty-secret").endMetadata().build();
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+    }
+
+    public static String generateProjectName(String name) {
+        return name.replaceAll("([A-Z])", " $1");
+    }
+
+    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName) throws InterruptedException, ExecutionException, IOException {
+        return createPipelineJobThenScheduleRun(r, cls, methodName, null);
+    }
+
+    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName, Map<String, String> env) throws IOException, ExecutionException, InterruptedException {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, generateProjectName(methodName));
+        p.setDefinition(new CpsFlowDefinition(loadPipelineDefinition(cls, methodName, env), true));
+        return p.scheduleBuild2(0).waitForStart();
+    }
+
+    public static String loadPipelineDefinition(Class cls, String name, Map<String, String> providedEnv) {
+        Map<String, String> env = providedEnv == null ? new HashMap<>() : new HashMap<>(providedEnv);
+        // TODO get rid of $NAME substitution once all remaining tests stop using it
+        env.put("NAME", name);
+        return Util.replaceMacro(loadPipelineScript(cls, name + ".groovy"), env);
+    }
+
+    public static String loadPipelineScript(Class<?> clazz, String name) {
+        try {
+            return new String(IOUtils.toByteArray(clazz.getResourceAsStream(name)));
+        } catch (Throwable t) {
+            throw new RuntimeException("Could not read resource:[" + name + "].");
+        }
+    }
+
+    public static void assertRegex(String name, String regex) {
+        assertNotNull(name);
+        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
     }
 
 }

@@ -18,8 +18,8 @@
     <f:checkbox/>
   </f:entry>
 
-  <f:entry field="workingDir" title="${%Working directory}">
-    <f:textbox default="/home/jenkins"/>
+  <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
+    <f:textbox default="${descriptor.workingDir}"/>
   </f:entry>
 
   <f:entry field="command" title="${%Command to run}">

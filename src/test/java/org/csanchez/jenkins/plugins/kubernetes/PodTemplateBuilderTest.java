@@ -20,6 +20,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -109,8 +111,7 @@ public class PodTemplateBuilderTest {
         validatePod(pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(2, containers.size());
 
         Container container0 = containers.get("busybox");
@@ -138,7 +139,7 @@ public class PodTemplateBuilderTest {
         Container container1 = containers.get(1);
 
         ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
-                .withMountPath("/home/jenkins").withName("workspace-volume").withReadOnly(false).build());
+                .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build());
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
         assertEquals(volumeMounts, container1.getVolumeMounts());
@@ -169,6 +170,21 @@ public class PodTemplateBuilderTest {
         validatePod(pod, false);
     }
 
+    @Test
+    public void homeIsSetOnOpenShift() {
+        when(slave.getKubernetesCloud()).thenReturn(cloud);
+        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
+        doReturn(true).when(cloud).isOpenShift();
+
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+
+        Map<String, Container> containers = pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Container jnlp = containers.get("jnlp");
+        assertThat(jnlp.getEnv(), hasItems(new EnvVar("HOME", "/home/jenkins", null)));
+    }
+
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -185,8 +201,7 @@ public class PodTemplateBuilderTest {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
 
         // check containers
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
@@ -208,7 +223,7 @@ public class PodTemplateBuilderTest {
         List<VolumeMount> mounts = containers.get("busybox").getVolumeMounts();
         List<VolumeMount> jnlpMounts = containers.get("jnlp").getVolumeMounts();
         VolumeMount workspaceVolume = new VolumeMountBuilder() //
-                .withMountPath("/home/jenkins").withName("workspace-volume").withReadOnly(false).build();
+                .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build();
 
         // when using yaml we don't mount all volumes, just the ones explicitly listed
         if (fromYaml) {
@@ -231,15 +246,14 @@ public class PodTemplateBuilderTest {
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave) {
         assertThat(jnlp.getCommand(), empty());
-        List<EnvVar> envVars = Lists.newArrayList( //
-                new EnvVar("HOME", "/home/jenkins", null) //
-        );
+        List<EnvVar> envVars = Lists.newArrayList();
         if (slave != null) {
             assertThat(jnlp.getArgs(), empty());
             envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
+            envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
@@ -261,11 +275,10 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
+        assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
         assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
         assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
@@ -296,8 +309,7 @@ public class PodTemplateBuilderTest {
         PodTemplate result = combine(parent, template);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
@@ -335,6 +347,7 @@ public class PodTemplateBuilderTest {
                 "    - cat\n" +
                 "    tty: true\n"
         );
+        child.setYamlMergeStrategy(merge());
         child.setInheritFrom("parent");
         setupStubs();
         PodTemplate result = combine(parent, child);
@@ -376,6 +389,7 @@ public class PodTemplateBuilderTest {
                 "    tty: true\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -384,6 +398,39 @@ public class PodTemplateBuilderTest {
         Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
         assertTrue(container.isPresent());
         assertEquals("busybox2", container.get().getImage());
+    }
+
+    @Issue("JENKINS-58374")
+    @Test
+    public void yamlOverrideContainerEnvvar() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml("kind: Pod\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: jnlp\n" +
+                "    env:\n" +
+                "    - name: VAR1\n" +
+                "      value: \"1\"\n" +
+                "    - name: VAR2\n" +
+                "      value: \"1\"\n");
+        PodTemplate child = new PodTemplate();
+        child.setYamlMergeStrategy(merge());
+        child.setYaml("kind: Pod\n" +
+                "spec:\n" +
+                "  containers:\n" +
+                "  - name: jnlp\n" +
+                "    env:\n" +
+                "    - name: VAR1\n" +
+                "      value: \"2\"\n");
+        setupStubs();
+
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Map<String, Container> containers = toContainerMap(pod);
+        Container jnlp = containers.get("jnlp");
+        Map<String, EnvVar> env = PodTemplateUtils.envVarstoMap(jnlp.getEnv());
+        assertEquals("2", env.get("VAR1").getValue()); // value from child
+        assertEquals("1", env.get("VAR2").getValue()); // value from parent
     }
 
     @Test
@@ -411,6 +458,7 @@ public class PodTemplateBuilderTest {
                 "      path: /host/data2\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -446,6 +494,7 @@ public class PodTemplateBuilderTest {
                 "      path: /host/data2\n"
         );
         child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
@@ -468,15 +517,23 @@ public class PodTemplateBuilderTest {
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
 
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
+        Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         validateJnlpContainer(jnlp, slave);
     }
 
+    private Map<String, Container> toContainerMap(Pod pod) {
+        return pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+    }
+
     private String loadYamlFile(String s) throws IOException {
         return new String(IOUtils.toByteArray(getClass().getResourceAsStream(s)));
+    }
+
+    private YamlMergeStrategy merge() {
+        return new Merge();
     }
 }

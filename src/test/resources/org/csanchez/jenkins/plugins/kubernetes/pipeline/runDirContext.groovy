@@ -1,8 +1,8 @@
-podTemplate(label: 'runDirContext', containers: [
+podTemplate(containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
 
-    node ('runDirContext') {
+    node(POD_LABEL) {
         stage('Run') {
             container('busybox') {
                 sh 'mkdir hz'

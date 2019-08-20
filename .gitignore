@@ -10,3 +10,5 @@
 nbactions.xml
 *.bak
 /.vscode/
+
+**/.DS_Store

@@ -1,10 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
-podTemplate(label: 'runInPodWithRestart', containers: [
+podTemplate(containers: [
         containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
 ]) {
 
-    node ('runInPodWithRestart') {
+    node(POD_LABEL) {
         stage('Run') {
             container('busybox') {
                 sh 'mkdir hz'

@@ -1,8 +1,8 @@
-podTemplate(label: 'badcontainername', containers: [
+podTemplate(containers: [
         containerTemplate(name: 'badcontainerName_!', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
     ]) {
 
-    node ('badcontainername') {
+    node(POD_LABEL) {
       stage('Run') {
         container('busybox') {
           sh """
