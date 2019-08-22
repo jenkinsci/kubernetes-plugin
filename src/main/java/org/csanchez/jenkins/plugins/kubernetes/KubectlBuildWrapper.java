@@ -9,6 +9,8 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.google.jenkins.plugins.credentials.oauth.GoogleOAuth2ScopeRequirement;
+import com.google.jenkins.plugins.credentials.oauth.GoogleRobotCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -49,6 +51,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -169,6 +172,14 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             } catch (CertificateEncodingException e) {
                 throw new AbortException(e.getMessage());
             }
+        } else if (c instanceof GoogleRobotCredentials) {
+            login = "--token=" + ((GoogleRobotCredentials) c).getAccessToken(new GoogleOAuth2ScopeRequirement() {
+                     @Override
+                     public Collection<String> getScopes() {
+                         return Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
+                     }
+                }
+            ).getPlainText();
         } else {
             throw new AbortException("Unsupported Credentials type " + c.getClass().getName());
         }
@@ -240,7 +251,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(FileCredentials.class)
+                                    CredentialsMatchers.instanceOf(FileCredentials.class),
+                                    CredentialsMatchers.instanceOf(GoogleRobotCredentials.class)
                             ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,

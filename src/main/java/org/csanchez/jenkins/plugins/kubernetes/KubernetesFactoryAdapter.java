@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
 import java.util.Collections;
 import static java.util.logging.Level.*;
 import java.util.logging.Logger;
@@ -21,6 +22,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
+import com.google.jenkins.plugins.credentials.oauth.GoogleOAuth2ScopeRequirement;
+import com.google.jenkins.plugins.credentials.oauth.GoogleRobotCredentials;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -45,6 +48,8 @@ import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+
+import com.google.api.services.oauth2.Oauth2Scopes;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -157,8 +162,16 @@ public class KubernetesFactoryAdapter {
             DockerServerCredentials certificateCredentials = (DockerServerCredentials) credentials;
             builder.withClientCertData(certificateCredentials.getClientCertificate())
                     .withClientKeyData(certificateCredentials.getClientKey());
+        } else if (credentials instanceof GoogleRobotCredentials) {
+            final String token = ((GoogleRobotCredentials) credentials).getAccessToken(new GoogleOAuth2ScopeRequirement() {
+                    @Override
+                    public Collection<String> getScopes() {
+                        return Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
+                    }
+                }
+            ).getPlainText();
+            builder.withOauthToken(token);
         }
-
         if (skipTlsVerify) {
             builder.withTrustCerts(true);
         }

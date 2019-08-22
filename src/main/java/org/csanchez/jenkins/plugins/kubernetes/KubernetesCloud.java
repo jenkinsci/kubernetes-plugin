@@ -26,6 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import com.google.jenkins.plugins.credentials.oauth.GoogleRobotCredentials;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -768,7 +769,9 @@ public class KubernetesCloud extends Cloud {
                                             org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
                                     CredentialsMatchers.instanceOf(StringCredentials.class),//
-                                    CredentialsMatchers.instanceOf(DockerServerCredentials.class)),
+                                    CredentialsMatchers.instanceOf(DockerServerCredentials.class),
+                                    CredentialsMatchers.instanceOf(GoogleRobotCredentials.class)
+                            ),
                             CredentialsProvider.lookupCredentials(StandardCredentials.class, //
                                     Jenkins.getInstance(), //
                                     ACL.SYSTEM, //
