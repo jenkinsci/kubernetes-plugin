@@ -139,26 +139,27 @@ public class KubernetesLauncher extends JNLPLauncher {
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            } catch (IllegalStateException e) {
-                if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
-                    Jenkins jenkins = Jenkins.get();
-                    Queue q = jenkins.getQueue();
-                    String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-                    for (Queue.Item item: q.getItems()) {
-                        if (item.task.getUrl().equals(runUrl)) {
-                            String itemTaskName = item.task.getFullDisplayName();
-                            String jobName = getJobName(itemTaskName);
-                            if (jobName.isEmpty()) {
-                                LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-                                break;
-                            }
-                            q.cancel(item);
-                            break;
-                        }
-                    }
-                }
-                return;
             }
+//            } catch (IllegalStateException e) {
+//                if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
+//                    Jenkins jenkins = Jenkins.get();
+//                    Queue q = jenkins.getQueue();
+//                    String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+//                    for (Queue.Item item: q.getItems()) {
+//                        if (item.task.getUrl().equals(runUrl)) {
+//                            String itemTaskName = item.task.getFullDisplayName();
+//                            String jobName = getJobName(itemTaskName);
+//                            if (jobName.isEmpty()) {
+//                                LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
+//                                break;
+//                            }
+//                            q.cancel(item);
+//                            break;
+//                        }
+//                    }
+//                }
+//                return;
+//            }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
 
             // We need the pod to be running and connected before returning
