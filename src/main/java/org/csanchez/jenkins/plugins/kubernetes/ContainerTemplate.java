@@ -52,6 +52,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceRequestCpu;
 
+    private Long runAsUser;
+
     private String resourceRequestMemory;
 
     private String resourceLimitCpu;
@@ -94,6 +96,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.setArgs(from.getArgs());
         this.setTtyEnabled(from.isTtyEnabled());
         this.setResourceRequestCpu(from.getResourceRequestCpu());
+        this.setRunAsUser(from.getRunAsUser());
         this.setResourceRequestMemory(from.getResourceRequestMemory());
         this.setResourceLimitCpu(from.getResourceLimitCpu());
         this.setResourceLimitMemory(from.getResourceLimitMemory());
@@ -167,6 +170,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public boolean isPrivileged() {
         return privileged;
     }
+    public Long isRunAsUser() {
+        return runAsUser;
+    }
+
 
     @DataBoundSetter
     public void setAlwaysPullImage(boolean alwaysPullImage) {
@@ -234,9 +241,18 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return resourceRequestCpu;
     }
 
+    public Long getRunAsUser(){
+        return runAsUser;
+    }
+
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         this.resourceRequestCpu = resourceRequestCpu;
+    }
+
+    @DataBoundSetter
+    public void setRunAsUser(Long runAsUser) {
+        this.runAsUser = runAsUser;
     }
 
     public String getShell() {
@@ -300,6 +316,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (args == null ? "" : ", args='" + args + '\'') +
                 (!ttyEnabled ? "" : ", ttyEnabled=" + ttyEnabled) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (runAsUser == null ? "" : ", runAsUser='" + runAsUser + '\'') +
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
@@ -347,6 +364,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         if (resourceRequestCpu != null ? !resourceRequestCpu.equals(that.resourceRequestCpu) : that.resourceRequestCpu != null) {
             return false;
         }
+        if (runAsUser != null ? !runAsUser.equals(that.runAsUser) : that.runAsUser != null) {
+            return false;
+        }
         if (resourceRequestMemory != null ? !resourceRequestMemory.equals(that.resourceRequestMemory) : that.resourceRequestMemory != null) {
             return false;
         }
@@ -379,6 +399,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         result = 31 * result + (args != null ? args.hashCode() : 0);
         result = 31 * result + (ttyEnabled ? 1 : 0);
         result = 31 * result + (resourceRequestCpu != null ? resourceRequestCpu.hashCode() : 0);
+        result = 31 * result + (runAsUser != null ? runAsUser.hashCode() : 0);
         result = 31 * result + (resourceRequestMemory != null ? resourceRequestMemory.hashCode() : 0);
         result = 31 * result + (resourceLimitCpu != null ? resourceLimitCpu.hashCode() : 0);
         result = 31 * result + (resourceLimitMemory != null ? resourceLimitMemory.hashCode() : 0);

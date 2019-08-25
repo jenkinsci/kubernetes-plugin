@@ -102,6 +102,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceRequestCpu;
 
+    private Long runAsUser;
+
     private String resourceRequestMemory;
 
     private String resourceLimitCpu;
@@ -440,6 +442,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isPrivileged).orElse(false);
     }
 
+    public Long isRunAsUser() { return getFirstContainer().map(ContainerTemplate::isRunAsUser).orElse(Integer.toUnsignedLong(0)); }
+
+
     public String getServiceAccount() {
         return serviceAccount;
     }
@@ -581,9 +586,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Deprecated
+    public Long getRunAsUser() {
+        return getFirstContainer().map(ContainerTemplate::getRunAsUser).orElse(Integer.toUnsignedLong(0));
+    }
+
+    @Deprecated
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         getFirstContainer().ifPresent((i) -> i.setResourceRequestCpu(resourceRequestCpu));
+    }
+
+
+    @Deprecated
+    @DataBoundSetter
+    public void setRunAsUser(Long runAsUser) {
+        getFirstContainer().ifPresent((i) -> i.setRunAsUser(runAsUser));
     }
 
     @DataBoundSetter
@@ -708,6 +725,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);
             containerTemplate.setResourceRequestCpu(resourceRequestCpu);
+            containerTemplate.setRunAsUser(runAsUser);
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
@@ -796,6 +814,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             sb.append("* [").append(ct.getName()).append("] ").append(ct.getImage());
             StringBuilder optional = new StringBuilder();
             optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
+            optionalField(optional, "runAsUser", ct.getRunAsUser().toString());
             optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
             optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
             optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
@@ -881,6 +900,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
                 (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
+                (runAsUser == null ? "" : ", runAsUser='" + runAsUser + '\'') +
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +

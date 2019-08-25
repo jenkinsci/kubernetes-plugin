@@ -359,6 +359,7 @@ public class PodTemplateBuilder {
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
+                .withRunAsUser(containerTemplate.isRunAsUser())
                 .endSecurityContext()
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
