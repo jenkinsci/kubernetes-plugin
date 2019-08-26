@@ -167,9 +167,17 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.privileged = privileged;
     }
 
+
+
     public boolean isPrivileged() {
         return privileged;
     }
+
+    @DataBoundSetter
+    public void setRunAsUser(Long runAsUser) {
+        this.runAsUser = runAsUser;
+    }
+
     public Long isRunAsUser() {
         return runAsUser;
     }
@@ -250,10 +258,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceRequestCpu = resourceRequestCpu;
     }
 
-    @DataBoundSetter
-    public void setRunAsUser(Long runAsUser) {
-        this.runAsUser = runAsUser;
-    }
 
     public String getShell() {
         return shell;
