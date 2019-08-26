@@ -31,6 +31,7 @@
               <name>maven</name>
               <image>maven:alpine</image>
               <privileged>false</privileged>
+              <runAsUser>10000</runAsUser>
               <alwaysPullImage>false</alwaysPullImage>
               <workingDir>/home/jenkins</workingDir>
               <command>/bin/sh -c</command>

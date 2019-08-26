@@ -26,6 +26,7 @@ public class ContainerTemplateTest {
     public void testCopyConstructorCreatesEqualInstance() {
         ContainerTemplate originalTemplate = new ContainerTemplate("myname", "myimage");
         originalTemplate.setPrivileged(true);
+        originalTemplate.setRunAsUser(Integer.toUnsignedLong(10000));
         originalTemplate.setAlwaysPullImage(true);
         originalTemplate.setWorkingDir("some/bogus/dir");
         originalTemplate.setCommand("run this");
