@@ -220,9 +220,9 @@ public class PodTemplateBuilder {
         if (StringUtils.isBlank(jnlp.getImage())) {
             jnlp.setImage(DEFAULT_JNLP_IMAGE);
         }
-        Map<String, EnvVar> envVars = defaultEnvVars(slave,
-                jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR,
-                template.getEnvVars());
+        Map<String, EnvVar> envVars = new HashMap<>();
+        envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR));
+        envVars.putAll(defaultEnvVars(template.getEnvVars()));
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
 
@@ -242,8 +242,51 @@ public class PodTemplateBuilder {
         return pod;
     }
 
-    private Map<String, EnvVar> defaultEnvVars(KubernetesSlave slave, String workingDir,
-            Collection<TemplateEnvVar> globalEnvVars) {
+    private Map<String, EnvVar> defaultEnvVars(Collection<TemplateEnvVar> globalEnvVars) {
+        Map<String, String> env = new HashMap<>();
+        if (slave != null) {
+            KubernetesCloud cloud = slave.getKubernetesCloud();
+            if (cloud.isAddMasterProxyEnvVars()) {
+                // see if the env vars for proxy that the remoting.jar looks for
+                // are set on the master, and if so, propagate them to the slave
+                // vs. having to set on each pod template; if explicitly set already
+                // the processing of globalEnvVars below will override;
+                // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
+                String noProxy = System.getenv("no_proxy");
+                if (!StringUtils.isBlank(noProxy)) {
+                    env.put("no_proxy", noProxy);
+                }
+                String httpProxy = null;
+                if (System.getProperty("http.proxyHost") == null) {
+                    httpProxy = System.getenv("http_proxy");
+                }
+                if (!StringUtils.isBlank(httpProxy)) {
+                    env.put("http_proxy", httpProxy);
+                }
+            }
+
+            if (cloud.isOpenShift()) {
+                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
+                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
+                // and `?` for java build tools. So we force HOME to a safe location.
+                env.put("HOME", DEFAULT_HOME);
+            }
+        }
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
+
+        env.entrySet().forEach(item ->
+                envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
+        );
+
+        if (globalEnvVars != null) {
+            globalEnvVars.forEach(item ->
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
+            );
+        }
+        return envVarsMap;
+    }
+
+    private Map<String, EnvVar> jnlpEnvVars(String workingDir) {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
@@ -270,51 +313,23 @@ public class PodTemplateBuilder {
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
-
-            if (slave.getKubernetesCloud().isAddMasterProxyEnvVars()) {
-                // see if the env vars for proxy that the remoting.jar looks for 
-                // are set on the master, and if so, propagate them to the slave
-                // vs. having to set on each pod template; if explicitly set already
-                // the processing of globalEnvVars below will override;
-                // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
-                String noProxy = System.getenv("no_proxy");
-                if (!StringUtils.isBlank(noProxy)) {
-                	env.put("no_proxy", noProxy);
-                }
-                String httpProxy = null;
-                if (System.getProperty("http.proxyHost") == null) {
-                    httpProxy = System.getenv("http_proxy");
-                }
-                if (!StringUtils.isBlank(httpProxy)) {
-                	env.put("http_proxy", httpProxy);
-                }
-            }
-
-            if (cloud.isOpenShift()) {
-                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
-                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
-                // and `?` for java build tools. So we force HOME to a safe location.
-                env.put("HOME", DEFAULT_HOME);
-            }
         }
-
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         env.entrySet().forEach(item ->
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
-
-        if (globalEnvVars != null) {
-            globalEnvVars.forEach(item ->
-                    envVarsMap.put(item.getKey(), item.buildEnvVar())
-            );
-        }
         return envVarsMap;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
             Collection<VolumeMount> volumeMounts) {
-        Map<String, EnvVar> envVarsMap = defaultEnvVars(slave, containerTemplate.getWorkingDir(), globalEnvVars);
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
+        String workingDir = substituteEnv(containerTemplate.getWorkingDir());
+        if (JNLP_NAME.equals(containerTemplate.getName())) {
+            envVarsMap.putAll(jnlpEnvVars(workingDir));
+        }
+        envVarsMap.putAll(defaultEnvVars(globalEnvVars));
 
         if (containerTemplate.getEnvVars() != null) {
             containerTemplate.getEnvVars().forEach(item ->
@@ -337,7 +352,7 @@ public class PodTemplateBuilder {
 
         ContainerPort[] ports = containerTemplate.getPorts().stream().map(entry -> entry.toPort()).toArray(size -> new ContainerPort[size]);
 
-        String workingDir = substituteEnv(containerTemplate.getWorkingDir());
+
         List<VolumeMount> containerMounts = getContainerVolumeMounts(volumeMounts, workingDir);
 
         ContainerLivenessProbe clp = containerTemplate.getLivenessProbe();

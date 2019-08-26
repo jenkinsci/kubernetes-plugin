@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.stream.Collectors.toList;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.Matchers.*;
@@ -241,7 +242,19 @@ public class PodTemplateBuilderTest {
             assertThat(jnlpMounts, containsInAnyOrder(volumeMounts));
         }
 
-        validateJnlpContainer(containers.get("jnlp"), slave);
+        validateContainers(pod, slave);
+    }
+
+    private void validateContainers(Pod pod, KubernetesSlave slave) {
+        String[] exclusions = new String[] {"JENKINS_URL", "JENKINS_SECRET", "JENKINS_NAME", "JENKINS_AGENT_NAME", "JENKINS_AGENT_WORKDIR"};
+        for (Container c : pod.getSpec().getContainers()) {
+            if ("jnlp".equals(c.getName())) {
+                validateJnlpContainer(c, slave);
+            } else {
+                List<EnvVar> env = c.getEnv();
+                assertThat(env.stream().map(EnvVar::getName).collect(toList()), everyItem(not(isIn(exclusions))));
+            }
+        }
     }
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave) {
@@ -283,7 +296,7 @@ public class PodTemplateBuilderTest {
         assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
         assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
-        validateJnlpContainer(jnlp, slave);
+        validateContainers(pod, slave);
     }
 
     /**
@@ -316,7 +329,7 @@ public class PodTemplateBuilderTest {
         assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
         assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
-        validateJnlpContainer(jnlp, slave);
+        validateContainers(pod, slave);
     }
 
     @Test
@@ -521,7 +534,7 @@ public class PodTemplateBuilderTest {
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
-        validateJnlpContainer(jnlp, slave);
+        validateContainers(pod, slave);
     }
 
     private Map<String, Container> toContainerMap(Pod pod) {
