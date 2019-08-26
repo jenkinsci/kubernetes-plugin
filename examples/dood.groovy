@@ -1,7 +1,6 @@
-/**
- * This pipeline will run a Docker image build
- */
-
+/*
+“Docker-outside-of-Docker”: runs a Docker-based build by connecting a Docker client inside the pod to the host daemon.
+*/
 podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
