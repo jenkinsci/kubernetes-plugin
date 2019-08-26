@@ -82,6 +82,30 @@
                 <successThreshold>0</successThreshold>
               </livenessProbe>
             </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+            <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+              <name>busybox</name>
+              <image>busybox</image>
+              <privileged>false</privileged>
+              <alwaysPullImage>false</alwaysPullImage>
+              <workingDir>/home/jenkins</workingDir>
+              <command>cat</command>
+              <args></args>
+              <ttyEnabled>false</ttyEnabled>
+              <resourceRequestCpu>500m</resourceRequestCpu>
+              <resourceRequestMemory>250Mi</resourceRequestMemory>
+              <resourceLimitCpu>500m</resourceLimitCpu>
+              <resourceLimitMemory>250Mi</resourceLimitMemory>
+              <envVars/>
+              <ports/>
+              <livenessProbe>
+                <execArgs></execArgs>
+                <timeoutSeconds>0</timeoutSeconds>
+                <initialDelaySeconds>0</initialDelaySeconds>
+                <failureThreshold>0</failureThreshold>
+                <periodSeconds>0</periodSeconds>
+                <successThreshold>0</successThreshold>
+              </livenessProbe>
+            </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
           </containers>
           <envVars>
             <org.csanchez.jenkins.plugins.kubernetes.PodEnvVar>
