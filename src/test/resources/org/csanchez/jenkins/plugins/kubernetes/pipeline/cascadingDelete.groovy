@@ -29,7 +29,7 @@ spec:
             fieldRef:
               fieldPath: status.podIP
   securityContext:
-    runAsUser: 1000
+    runAsUser: 10000
     fsGroup: 1000
 ''') {
     node(POD_LABEL) {

@@ -93,7 +93,7 @@ public class PodTemplateUtils {
         String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
         boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
         String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
-        Long runAsUser = parent.getRunAsUser()  ==  Integer.toUnsignedLong(0) ? parent.getRunAsUser() : template.getRunAsUser();
+        Long runAsUser = parent.getRunAsUser()  ==  Integer.toUnsignedLong(10000) ? parent.getRunAsUser() : template.getRunAsUser();
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
@@ -142,7 +142,7 @@ public class PodTemplateUtils {
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
-        Long runAsUser = template.getSecurityContext().getRunAsUser()  ==  Integer.toUnsignedLong(0) ? parent.getSecurityContext().getRunAsUser() : template.getSecurityContext().getRunAsUser();
+        Long runAsUser = template.getSecurityContext().getRunAsUser() == Integer.toUnsignedLong(10000) ? parent.getSecurityContext().getRunAsUser() : template.getSecurityContext().getRunAsUser();
 
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
                 ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())

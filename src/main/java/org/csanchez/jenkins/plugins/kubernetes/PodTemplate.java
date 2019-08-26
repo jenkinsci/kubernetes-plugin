@@ -585,7 +585,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::getResourceRequestCpu).orElse(null);
     }
 
-    @Deprecated
     public Long getRunAsUser() {
         return getFirstContainer().map(ContainerTemplate::getRunAsUser).orElse(Integer.toUnsignedLong(0));
     }
