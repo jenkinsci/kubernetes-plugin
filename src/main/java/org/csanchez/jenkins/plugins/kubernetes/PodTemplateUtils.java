@@ -141,12 +141,13 @@ public class PodTemplateUtils {
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
-        Long runAsUser =  template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
-                ?template.getSecurityContext().getRunAsUser()
-                : (parent.getSecurityContext() != null  ? parent.getSecurityContext().getRunAsUser() : Long.parseLong("10000"));
+
+        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext() != null && template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
+                ? template.getSecurityContext().getRunAsUser()
+                : (parent.getSecurityContext() != null && parent.getSecurityContext().getRunAsUser() != null ? parent.getSecurityContext().getRunAsUser() : Long.parseLong("10000"));
 
 
-                String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
+        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
                 ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
                 : template.getWorkingDir();
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
