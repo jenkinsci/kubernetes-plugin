@@ -142,7 +142,7 @@ public class PodTemplateUtils {
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
 
-        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext() != null && template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
+        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
                 ? template.getSecurityContext().getRunAsUser()
                 : (parent.getSecurityContext() != null && parent.getSecurityContext().getRunAsUser() != null ? parent.getSecurityContext().getRunAsUser() : Long.parseLong("10000"));
 
