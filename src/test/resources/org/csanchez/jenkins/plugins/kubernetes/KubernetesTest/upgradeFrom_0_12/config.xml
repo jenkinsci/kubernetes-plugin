@@ -27,7 +27,6 @@
           <name>java</name>
           <namespace></namespace>
           <privileged>false</privileged>
-          <runAsUser>10000</runAsUser>
           <alwaysPullImage>false</alwaysPullImage>
           <instanceCap>2147483647</instanceCap>
           <slaveConnectTimeout>100</slaveConnectTimeout>
@@ -54,7 +53,6 @@
               <name>jnlp</name>
               <image>jenkins/jnlp-slave</image>
               <privileged>false</privileged>
-              <runAsUser>10000</runAsUser>
               <alwaysPullImage>false</alwaysPullImage>
               <workingDir>/home/jenkins</workingDir>
               <command></command>

@@ -25,7 +25,6 @@
           <name>java</name>
           <namespace></namespace>
           <privileged>false</privileged>
-          <runAsUser>10000</runAsUser>
           <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
           <alwaysPullImage>false</alwaysPullImage>
           <instanceCap>2147483647</instanceCap>

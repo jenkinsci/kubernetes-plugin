@@ -70,8 +70,18 @@ public class PodTemplateBuilderTest {
     @Mock
     private KubernetesComputer computer;
 
+
     @Test
     public void testParseDockerCommand() {
+        assertNull(parseDockerCommand(""));
+        assertNull(parseDockerCommand(null));
+        assertEquals(ImmutableList.of("bash"), parseDockerCommand("bash"));
+        assertEquals(ImmutableList.of("bash", "-c", "x y"), parseDockerCommand("bash -c \"x y\""));
+        assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
+    }
+
+    @Test
+    public void testvalidateRunAsUser() {
         assertNull(parseDockerCommand(""));
         assertNull(parseDockerCommand(null));
         assertEquals(ImmutableList.of("bash"), parseDockerCommand("bash"));

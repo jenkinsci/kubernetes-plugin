@@ -25,7 +25,6 @@
           <name>java</name>
           <image>jenkins/jnlp-slave</image>
           <privileged>false</privileged>
-          <runAsUser>10000</runAsUser>
           <alwaysPullImage>false</alwaysPullImage>
           <command></command>
           <args></args>
