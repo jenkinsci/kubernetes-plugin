@@ -651,7 +651,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Nonnull
     public List<String> getYamls() {
-        if (yamls == null) {
+        if (yamls == null || yamls.isEmpty()) {
             if (yaml != null) {
                 return Collections.singletonList(yaml);
             } else {
