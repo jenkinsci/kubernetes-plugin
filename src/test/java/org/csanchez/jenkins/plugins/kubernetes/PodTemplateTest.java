@@ -2,10 +2,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertThat;
 
 public class PodTemplateTest {
     @Test
@@ -15,9 +14,7 @@ public class PodTemplateTest {
         podTemplate.setYamls(null);
         assertThat(podTemplate.getYamls(), empty());
         podTemplate.setYaml("yaml");
-        List<String> yamls = podTemplate.getYamls();
-        assertThat(yamls, hasSize(1));
-        assertEquals("yaml", yamls.get(0));
+        assertThat(podTemplate.getYamls(), contains("yaml"));
         podTemplate.setYaml(null);
         assertThat(podTemplate.getYamls(), empty());
     }
