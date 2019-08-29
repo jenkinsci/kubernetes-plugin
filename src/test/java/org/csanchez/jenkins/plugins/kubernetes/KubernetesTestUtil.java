@@ -87,8 +87,7 @@ public class KubernetesTestUtil {
     public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     public static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
 
-    public static KubernetesCloud setupCloud(Object test, TestName name) throws UnrecoverableKeyException,
-            CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public static KubernetesCloud setupCloud(Object test, TestName name) throws Exception {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
         cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));

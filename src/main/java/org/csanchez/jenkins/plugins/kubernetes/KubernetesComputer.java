@@ -22,11 +22,6 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.framework.io.LargeText;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,7 +64,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Exported
-    public List<Container> getContainers() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public List<Container> getContainers() throws Exception {
         if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
             LOGGER.log(Level.FINE, " Computer {0} getContainers, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
@@ -90,7 +85,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Exported
-    public List<Event> getPodEvents() throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    public List<Event> getPodEvents() throws Exception {
         if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
             LOGGER.log(Level.FINE, " Computer {0} getPodEvents, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
@@ -124,7 +119,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     public void doContainerLog(@QueryParameter String containerId,
-                               StaplerRequest req, StaplerResponse rsp) throws UnrecoverableKeyException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
+                               StaplerRequest req, StaplerResponse rsp) throws Exception {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         ByteBuffer outputStream = new ByteBuffer();

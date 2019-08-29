@@ -87,8 +87,7 @@ public class KubernetesClientProvider {
     private KubernetesClientProvider() {
     }
 
-    static KubernetesClient createClient(KubernetesCloud cloud) throws NoSuchAlgorithmException,
-            UnrecoverableKeyException, KeyStoreException, IOException, CertificateEncodingException {
+    static KubernetesClient createClient(KubernetesCloud cloud) throws Exception {
         String displayName = cloud.getDisplayName();
         final Client c = clients.getIfPresent(displayName);
         if (c == null) {

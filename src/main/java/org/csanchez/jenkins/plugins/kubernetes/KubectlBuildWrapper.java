@@ -6,10 +6,7 @@ import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -19,39 +16,20 @@ import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
-import hudson.util.Secret;
-import jenkins.model.Jenkins;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.auth.*;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
-import java.util.Collections;
+import java.io.*;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -60,10 +38,6 @@ import static com.google.common.collect.Sets.newHashSet;
  */
 public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
-    private static final String BEGIN_CERTIFICATE = "-----BEGIN CERTIFICATE-----";
-    private static final String END_CERTIFICATE = "-----END CERTIFICATE-----";
-    private static final String BEGIN_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----";
-    private static final String END_PRIVATE_KEY = "-----END PRIVATE KEY-----";
 
     private final String serverUrl;
     private final String credentialsId;
@@ -102,8 +76,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         if (caCertificate != null && !caCertificate.isEmpty()) {
             FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
             String ca = caCertificate;
-            if (!ca.startsWith(BEGIN_CERTIFICATE)) {
-                ca = wrapWithMarker(BEGIN_CERTIFICATE, END_CERTIFICATE, ca);
+            if (!ca.startsWith(Utils.BEGIN_CERTIFICATE)) {
+                ca = Utils.wrapWithMarker(Utils.BEGIN_CERTIFICATE, Utils.END_CERTIFICATE, ca);
             }
             caCrtFile.write(ca, null);
             tempFiles.add(caCrtFile.getRemote());
@@ -119,58 +93,43 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        final StandardCredentials c = getCredentials();
+        final KubernetesAuth auth;
+        try {
+            auth = KubernetesAuthFactory.fromCredentialsId(credentialsId, serverUrl, null, true);
+        } catch (Exception e) {
+            throw new AbortException(e.getMessage());
+        }
 
-        String login;
-        if (c == null) {
+        if (auth == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
         }
 
-        if (c instanceof FileCredentials) {
-            try (InputStream in = ((FileCredentials) c).getContent(); OutputStream out = configFile.write()) {
-                IOUtils.copy(in, out);
+        // create Kubeconfig
+        if (auth instanceof KubernetesAuthKubeconfig) {
+            try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
+                w.write(((KubernetesAuthKubeconfig) auth).getKubeconfig());
             }
             return;
         }
 
-        if (c instanceof StringCredentials) {
-            login = "--token=" + ((StringCredentials) c).getSecret().getPlainText();
-        } else if (c instanceof TokenProducer) {
-            login = "--token=" + ((TokenProducer) c).getToken(serverUrl, null, true);
-        } else if (c instanceof UsernamePasswordCredentials) {
-            UsernamePasswordCredentials upc = (UsernamePasswordCredentials) c;
-            login = "--username=" + upc.getUsername() + " --password=" + Secret.toString(upc.getPassword());
-        } else if (c instanceof StandardCertificateCredentials) {
-            StandardCertificateCredentials scc = (StandardCertificateCredentials) c;
-            KeyStore keyStore = scc.getKeyStore();
-            String alias;
-            try {
-                alias = keyStore.aliases().nextElement();
-                X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
-                Key key = keyStore.getKey(alias, Secret.toString(scc.getPassword()).toCharArray());
-                FilePath clientCrtFile = workspace.createTempFile("client", "crt");
-                FilePath clientKeyFile = workspace.createTempFile("client", "key");
-                String encodedClientCrt = wrapWithMarker(BEGIN_CERTIFICATE, END_CERTIFICATE,
-                        Base64.encodeBase64String(certificate.getEncoded()));
-                String encodedClientKey = wrapWithMarker(BEGIN_PRIVATE_KEY, END_PRIVATE_KEY,
-                        Base64.encodeBase64String(key.getEncoded()));
-                clientCrtFile.write(encodedClientCrt, null);
-                clientKeyFile.write(encodedClientKey, null);
-                tempFiles.add(clientCrtFile.getRemote());
-                tempFiles.add(clientKeyFile.getRemote());
-                login = "--client-certificate=" + clientCrtFile.getRemote() + " --client-key="
-                        + clientKeyFile.getRemote();
-            } catch (KeyStoreException e) {
-                throw new AbortException(e.getMessage());
-            } catch (UnrecoverableKeyException e) {
-                throw new AbortException(e.getMessage());
-            } catch (NoSuchAlgorithmException e) {
-                throw new AbortException(e.getMessage());
-            } catch (CertificateEncodingException e) {
-                throw new AbortException(e.getMessage());
-            }
+        String login;
+        if (auth instanceof KubernetesAuthToken) {
+            login = "--token=" + ((KubernetesAuthToken) auth).getToken();
+        } else if (auth instanceof KubernetesAuthUsernamePassword) {
+            KubernetesAuthUsernamePassword upc = (KubernetesAuthUsernamePassword) auth;
+            login = "--username=" + upc.getUsername() + " --password=" + upc.getPassword();
+        } else if (auth instanceof KubernetesAuthCertificate) {
+            KubernetesAuthCertificate certData = (KubernetesAuthCertificate) auth;
+            FilePath clientCrtFile = workspace.createTempFile("client", "crt");
+            FilePath clientKeyFile = workspace.createTempFile("client", "key");
+            clientCrtFile.write(certData.getCertificate(), null);
+            clientKeyFile.write(certData.getKey(), null);
+            tempFiles.add(clientCrtFile.getRemote());
+            tempFiles.add(clientKeyFile.getRemote());
+            login = "--client-certificate=" + clientCrtFile.getRemote() + " --client-key="
+                    + clientKeyFile.getRemote();
         } else {
-            throw new AbortException("Unsupported Credentials type " + c.getClass().getName());
+            throw new AbortException("Unable to detect login method for class " + auth.getClass());
         }
 
         status = launcher.launch()
@@ -190,34 +149,6 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
     }
 
-    /**
-     * Get the {@link StandardCredentials}.
-     *
-     * @return the credentials matching the {@link #credentialsId} or {@code null} is {@code #credentialsId} is blank
-     * @throws AbortException if no {@link StandardCredentials} matching {@link #credentialsId} is found
-     */
-    @CheckForNull
-    private StandardCredentials getCredentials() throws AbortException {
-        if (StringUtils.isBlank(credentialsId)) {
-            return null;
-        }
-        StandardCredentials result = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentials(StandardCredentials.class,
-                        Jenkins.getInstance(), ACL.SYSTEM, Collections.<DomainRequirement>emptyList()),
-                CredentialsMatchers.withId(credentialsId)
-        );
-        if (result == null) {
-            throw new AbortException("No credentials found for id \"" + credentialsId + "\"");
-        }
-        return result;
-    }
-
-    private static String wrapWithMarker(String begin, String end, String encodedBody) {
-        return new StringBuilder(begin).append("\n")
-                .append(encodedBody).append("\n")
-                .append(end)
-                .toString();
-    }
 
     @Extension
     public static class DescriptorImpl extends BuildWrapperDescriptor {
@@ -240,7 +171,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                                     CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
                                     CredentialsMatchers.instanceOf(TokenProducer.class),
                                     CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(FileCredentials.class)
+                                    CredentialsMatchers.instanceOf(FileCredentials.class),
+                                    AuthenticationTokens.matcher(KubernetesAuth.class)
                             ),
                             CredentialsProvider.lookupCredentials(
                                     StandardCredentials.class,
