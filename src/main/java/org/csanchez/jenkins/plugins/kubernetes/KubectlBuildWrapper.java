@@ -20,7 +20,11 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
-import org.jenkinsci.plugins.kubernetes.auth.*;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthToken;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthCertificate;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthUsernamePassword;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthKubeconfig;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
@@ -28,7 +32,10 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
-import java.io.*;
+import java.io.IOException;
+import java.io.Writer;
+import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -75,11 +82,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         String tlsConfig;
         if (caCertificate != null && !caCertificate.isEmpty()) {
             FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
-            String ca = caCertificate;
-            if (!ca.startsWith(Utils.BEGIN_CERTIFICATE)) {
-                ca = Utils.wrapWithMarker(Utils.BEGIN_CERTIFICATE, Utils.END_CERTIFICATE, ca);
-            }
-            caCrtFile.write(ca, null);
+            caCrtFile.write(Utils.wrapCertificate(caCertificate), null);
             tempFiles.add(caCrtFile.getRemote());
 
             tlsConfig = " --certificate-authority=" + caCrtFile.getRemote();

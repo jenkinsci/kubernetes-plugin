@@ -75,20 +75,8 @@ public abstract class KubernetesAuthFactory {
             String alias = keyStore.aliases().nextElement();
             X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
             return new KubernetesAuthCertificate(
-                    Utils.wrapWithMarker(
-                        Utils.BEGIN_CERTIFICATE,
-                        Utils.END_CERTIFICATE,
-                        Base64.encodeBase64String(
-                            certificate.getEncoded()
-                        )
-                    ),
-                    Utils.wrapWithMarker(
-                        Utils.BEGIN_PRIVATE_KEY,
-                        Utils.END_PRIVATE_KEY,
-                        Base64.encodeBase64String(
-                            keyStore.getKey(alias, password.toCharArray()).getEncoded()
-                        )
-                    ),
+                    Utils.wrapCertificate(Base64.encodeBase64String(certificate.getEncoded())),
+                    Utils.wrapPrivateKey(Base64.encodeBase64String(keyStore.getKey(alias, password.toCharArray()).getEncoded())),
                     password
             );
         } else if (c instanceof DockerServerCredentials) {
