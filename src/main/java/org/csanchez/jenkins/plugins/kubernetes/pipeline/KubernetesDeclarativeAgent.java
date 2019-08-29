@@ -221,11 +221,6 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (label != null) {
             argMap.put("label", label);
         }
-
-        if (!StringUtils.isEmpty(customWorkspace)) {
-            argMap.put("customWorkspace", customWorkspace);
-        }
-
         List<ContainerTemplate> containerTemplates = getContainerTemplates();
         if (containerTemplate != null) {
             LOGGER.log(Level.WARNING,
