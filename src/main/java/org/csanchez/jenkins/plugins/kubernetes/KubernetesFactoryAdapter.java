@@ -72,43 +72,23 @@ public class KubernetesFactoryAdapter {
         this.maxRequestsPerHost = maxRequestsPerHost;
     }
 
-    public KubernetesClient createClient() throws IOException {
+    public KubernetesClient createClient() throws IOException, KubernetesAuthException {
 
         ConfigBuilder builder;
 
-        if (auth instanceof KubernetesAuthKubeconfig) {
-            builder = new ConfigBuilder(
-                Config.fromKubeconfig(
-                    ((KubernetesAuthKubeconfig) auth).getKubeconfig()
-                )
-            );
+        if (StringUtils.isBlank(serviceAddress)) {
+            LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
+            builder = new ConfigBuilder(Config.autoConfigure(null));
         } else {
-            // autoconfigure if url is not set
-            if (StringUtils.isBlank(serviceAddress)) {
-                LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
-                builder = new ConfigBuilder(Config.autoConfigure(null));
-            } else {
-                // although this will still autoconfigure based on Config constructor notes
-                // In future releases (2.4.x) the public constructor will be empty.
-                // The current functionality will be provided by autoConfigure().
-                // This is a necessary change to allow us distinguish between auto configured values and builder values.
-                builder = new ConfigBuilder().withMasterUrl(serviceAddress);
-            }
+            // although this will still autoconfigure based on Config constructor notes
+            // In future releases (2.4.x) the public constructor will be empty.
+            // The current functionality will be provided by autoConfigure().
+            // This is a necessary change to allow us distinguish between auto configured values and builder values.
+            builder = new ConfigBuilder().withMasterUrl(serviceAddress);
         }
 
-        if (auth instanceof KubernetesAuthToken) {
-            builder.withOauthToken(((KubernetesAuthToken) auth).getToken());
-        } else if (auth instanceof KubernetesAuthUsernamePassword) {
-            KubernetesAuthUsernamePassword usernamePassword = (KubernetesAuthUsernamePassword) auth;
-            builder.withUsername(usernamePassword.getUsername()).withPassword(usernamePassword.getPassword());
-        } else if (auth instanceof KubernetesAuthCertificate) {
-            KubernetesAuthCertificate certData = (KubernetesAuthCertificate) auth;
-            builder.withClientCertData(certData.getCertificate());
-            builder.withClientKeyData(certData.getKey());
-            String password = certData.getKeyPassword();
-            if (password != null) {
-                builder.withClientKeyPassphrase(password);
-            }
+        if (auth != null) {
+            builder = auth.decorate(builder);
         }
 
         if (skipTlsVerify) {
