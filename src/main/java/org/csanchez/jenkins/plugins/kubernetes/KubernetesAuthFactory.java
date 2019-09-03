@@ -8,6 +8,7 @@ import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 
+import java.io.IOException;
 import java.util.Collections;
 
 import org.jenkinsci.plugins.kubernetes.auth.*;
@@ -41,16 +42,23 @@ public abstract class KubernetesAuthFactory {
         );
     }
 
-    public static KubernetesAuth fromCredentialsId(String credentialsId, String serviceAddress, String caCertData, Boolean skipTlsVerify) throws Exception {
+    public static KubernetesAuth fromCredentialsId(String credentialsId, String serviceAddress, String caCertData, Boolean skipTlsVerify) throws KubernetesAuthException {
         StandardCredentials c = getAuthenticationTokenCredentials(credentialsId);
         if (c != null) {
             return AuthenticationTokens.convert(KubernetesAuth.class, c);
         }
         c = getCredentials(credentialsId);
         if (c instanceof TokenProducer) {
-            return new KubernetesAuthToken(((TokenProducer) c).getToken(serviceAddress, caCertData, skipTlsVerify));
+            // TODO:
+            //  TokenProducer implementations should be converted to AuthenticationTokenSource in kubernetes-credentials plugin
+            //  It is not possible for now due to additional arguments required for getToken() call
+            try {
+                return new KubernetesAuthToken(((TokenProducer) c).getToken(serviceAddress, caCertData, skipTlsVerify));
+            } catch (IOException e) {
+                throw new KubernetesAuthException(e.getMessage());
+            }
         } else {
-            throw new Exception("Unable to use " + credentialsId + " for authentication");
+            throw new KubernetesAuthException("Unable to use " + credentialsId + " for authentication");
         }
     }
 

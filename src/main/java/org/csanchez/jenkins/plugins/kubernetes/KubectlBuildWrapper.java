@@ -7,6 +7,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -18,13 +19,11 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
+import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthToken;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthCertificate;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthUsernamePassword;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthKubeconfig;
+import org.jenkinsci.plugins.kubernetes.auth.*;
 import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
@@ -70,6 +69,26 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         return caCertificate;
     }
 
+    private String buildKubeConfig(KubernetesAuth auth) throws JsonProcessingException {
+        ConfigBuilder b = new ConfigBuilder();
+        // setup cluster
+        Cluster c = new Cluster();
+        c.setServer(getServerUrl());
+        if (caCertificate != null && !caCertificate.isEmpty()) {
+            c.setCertificateAuthorityData(Utils.wrapCertificate(caCertificate));
+        } else {
+            c.setInsecureSkipTlsVerify(true);
+        }
+        b.addNewCluster().withName("k8s").withCluster(c).endCluster();
+        // setup user
+        AuthInfoBuilder authInfoBuilder = new AuthInfoBuilder();
+        auth.decorate(authInfoBuilder);
+        b.addNewUser().withName("cluster-admin").withUser(authInfoBuilder.build()).endUser();
+        // setup context
+        b.addNewContext().withName("k8s").withNewContext().withCluster("k8s").withUser("cluster-admin").endContext().endContext();
+        return SerializationUtils.getMapper().writeValueAsString(b.build());
+    }
+
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
 
@@ -79,27 +98,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.env("KUBECONFIG", configFile.getRemote());
         context.setDisposer(new CleanupDisposer(tempFiles));
 
-        String tlsConfig;
-        if (caCertificate != null && !caCertificate.isEmpty()) {
-            FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
-            caCrtFile.write(Utils.wrapCertificate(caCertificate), null);
-            tempFiles.add(caCrtFile.getRemote());
-
-            tlsConfig = " --certificate-authority=" + caCrtFile.getRemote();
-        } else {
-            tlsConfig = " --insecure-skip-tls-verify=true";
-        }
-
-        int status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote()
-                        + "\" set-cluster k8s --server=" + serverUrl + tlsConfig)
-                .join();
-        if (status != 0) throw new IOException("Failed to run kubectl config "+status);
-
         final KubernetesAuth auth;
         try {
             auth = KubernetesAuthFactory.fromCredentialsId(credentialsId, serverUrl, null, true);
-        } catch (Exception e) {
+        } catch (KubernetesAuthException e) {
             throw new AbortException(e.getMessage());
         }
 
@@ -108,48 +110,16 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         // create Kubeconfig
-        if (auth instanceof KubernetesAuthKubeconfig) {
-            try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
+            if (auth instanceof KubernetesAuthKubeconfig) {
                 w.write(((KubernetesAuthKubeconfig) auth).getKubeconfig());
+            } else {
+                w.write(buildKubeConfig(auth));
             }
-            return;
         }
 
-        String login;
-        if (auth instanceof KubernetesAuthToken) {
-            login = "--token=" + ((KubernetesAuthToken) auth).getToken();
-        } else if (auth instanceof KubernetesAuthUsernamePassword) {
-            KubernetesAuthUsernamePassword upc = (KubernetesAuthUsernamePassword) auth;
-            login = "--username=" + upc.getUsername() + " --password=" + upc.getPassword();
-        } else if (auth instanceof KubernetesAuthCertificate) {
-            KubernetesAuthCertificate certData = (KubernetesAuthCertificate) auth;
-            FilePath clientCrtFile = workspace.createTempFile("client", "crt");
-            FilePath clientKeyFile = workspace.createTempFile("client", "key");
-            clientCrtFile.write(certData.getCertificate(), null);
-            clientKeyFile.write(certData.getKey(), null);
-            tempFiles.add(clientCrtFile.getRemote());
-            tempFiles.add(clientKeyFile.getRemote());
-            login = "--client-certificate=" + clientCrtFile.getRemote() + " --client-key="
-                    + clientKeyFile.getRemote();
-        } else {
-            throw new AbortException("Unable to detect login method for class " + auth.getClass());
-        }
-
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
-                .masks(false, false, false, false, false, false, true)
-                .join();
-        if (status != 0) throw new IOException("Failed to run kubectl config "+status);
-
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-context k8s --cluster=k8s --user=cluster-admin")
-                .join();
-        if (status != 0) throw new IOException("Failed to run kubectl config "+status);
-
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" use-context k8s")
-                .join();
-        if (status != 0) throw new IOException("Failed to run kubectl config "+status);
+        int status = launcher.launch().cmdAsSingleString("kubectl version").join();
+        if (status != 0) throw new IOException("Failed to run kubectl version " + status);
     }
 
 

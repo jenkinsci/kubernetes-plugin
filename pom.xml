@@ -98,7 +98,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.4.2-rc53.c27a1e6f9664</version>
+      <version>0.4.2-rc54.0ccb800468da</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

@@ -8,6 +8,9 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 
+import com.fasterxml.jackson.databind.ObjectReader;
+import io.fabric8.kubernetes.client.internal.SerializationUtils;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
@@ -46,22 +49,22 @@ public class KubernetesFactoryAdapter {
     private final int maxRequestsPerHost;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify) throws Exception {
+                                    @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
         this(serviceAddress, null, caCertData, credentials, skipTlsVerify);
     }
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify) throws Exception {
+                                    @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
         this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) throws Exception {
+                                    @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) throws KubernetesAuthException {
         this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
     }
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) throws Exception {
+                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
@@ -88,6 +91,7 @@ public class KubernetesFactoryAdapter {
         }
 
         if (auth != null) {
+            // Using assignment here due to KubernetesAuthKubeconfig - it returns new ConfigBuilder
             builder = auth.decorate(builder);
         }
 
@@ -110,6 +114,7 @@ public class KubernetesFactoryAdapter {
         }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
+        Serialization.yamlMapper().writeValueAsString(builder.build());
         return new DefaultKubernetesClient(builder.build());
     }
 
