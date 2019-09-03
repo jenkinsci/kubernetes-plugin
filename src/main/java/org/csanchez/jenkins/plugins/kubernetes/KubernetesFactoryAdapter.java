@@ -8,9 +8,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 
-import com.fasterxml.jackson.databind.ObjectReader;
-import io.fabric8.kubernetes.client.internal.SerializationUtils;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
@@ -114,7 +111,6 @@ public class KubernetesFactoryAdapter {
         }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
-        Serialization.yamlMapper().writeValueAsString(builder.build());
         return new DefaultKubernetesClient(builder.build());
     }
 
