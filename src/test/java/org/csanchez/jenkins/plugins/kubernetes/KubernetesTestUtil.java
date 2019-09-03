@@ -46,6 +46,7 @@ import java.util.stream.IntStream;
 import hudson.Util;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -87,7 +88,7 @@ public class KubernetesTestUtil {
     public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     public static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
 
-    public static KubernetesCloud setupCloud(Object test, TestName name) throws Exception {
+    public static KubernetesCloud setupCloud(Object test, TestName name) throws KubernetesAuthException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
         cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));

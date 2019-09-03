@@ -15,6 +15,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -22,6 +23,7 @@ import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.framework.io.LargeText;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +66,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Exported
-    public List<Container> getContainers() throws Exception {
+    public List<Container> getContainers() throws KubernetesAuthException, IOException {
         if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
             LOGGER.log(Level.FINE, " Computer {0} getContainers, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
@@ -85,7 +87,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Exported
-    public List<Event> getPodEvents() throws Exception {
+    public List<Event> getPodEvents() throws KubernetesAuthException, IOException {
         if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
             LOGGER.log(Level.FINE, " Computer {0} getPodEvents, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
@@ -119,7 +121,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     public void doContainerLog(@QueryParameter String containerId,
-                               StaplerRequest req, StaplerResponse rsp) throws Exception {
+                               StaplerRequest req, StaplerResponse rsp) throws KubernetesAuthException, IOException {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         ByteBuffer outputStream = new ByteBuffer();

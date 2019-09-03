@@ -115,7 +115,7 @@ public class KubernetesCloudTest {
     public void testInstanceCap() {
         KubernetesCloud cloud = new KubernetesCloud("name") {
             @Override
-            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+            public KubernetesClient connect() {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
                 MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
@@ -150,7 +150,7 @@ public class KubernetesCloudTest {
     public void testContainerCap() {
         KubernetesCloud cloud = new KubernetesCloud("name") {
             @Override
-            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+            public KubernetesClient connect()  {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
                 MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);

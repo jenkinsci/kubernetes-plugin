@@ -30,6 +30,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -478,7 +479,7 @@ public class KubernetesCloud extends Cloud {
      * @return Kubernetes client.
      */
     @SuppressFBWarnings({ "IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK" })
-    public KubernetesClient connect() throws Exception {
+    public KubernetesClient connect() throws KubernetesAuthException, IOException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });

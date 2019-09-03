@@ -72,29 +72,9 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         return caCertificate;
     }
 
-    private String buildKubeConfig(KubernetesAuth auth) throws JsonProcessingException {
-        ConfigBuilder b = new ConfigBuilder();
-        // setup cluster
-        Cluster c = new Cluster();
-        c.setServer(getServerUrl());
-        if (caCertificate != null && !caCertificate.isEmpty()) {
-            c.setCertificateAuthorityData(Utils.wrapCertificate(caCertificate));
-        } else {
-            c.setInsecureSkipTlsVerify(true);
-        }
-        b.addNewCluster().withName("k8s").withCluster(c).endCluster();
-        // setup user
-        AuthInfoBuilder authInfoBuilder = new AuthInfoBuilder();
-        auth.decorate(authInfoBuilder);
-        b.addNewUser().withName("cluster-admin").withUser(authInfoBuilder.build()).endUser();
-        // setup context
-        b.addNewContext().withName("k8s").withNewContext().withCluster("k8s").withUser("cluster-admin").endContext().endContext();
-        return SerializationUtils.getMapper().writeValueAsString(b.build());
-    }
 
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
-
         FilePath configFile = workspace.createTempFile(".kube", "config");
         Set<String> tempFiles = newHashSet(configFile.getRemote());
 
@@ -105,7 +85,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         try {
             auth = KubernetesAuthFactory.fromCredentialsId(credentialsId, serverUrl, null, true);
         } catch (KubernetesAuthException e) {
-            throw new AbortException(e.getMessage());
+            throw new AbortException("Unable to get valid Kubernetes authentication from given credentialsId " + credentialsId + "\n" + e);
         }
 
         if (auth == null) {
@@ -114,11 +94,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
         // create Kubeconfig
         try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
-            if (auth instanceof KubernetesAuthKubeconfig) {
-                w.write(((KubernetesAuthKubeconfig) auth).getKubeconfig());
-            } else {
-                w.write(buildKubeConfig(auth));
-            }
+            w.write(auth.buildKubeConfig(getServerUrl(), getCaCertificate()));
         }
 
         int status = launcher.launch().cmdAsSingleString("kubectl version").join();

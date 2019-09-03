@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.model.PeriodicWork;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -87,7 +88,7 @@ public class KubernetesClientProvider {
     private KubernetesClientProvider() {
     }
 
-    static KubernetesClient createClient(KubernetesCloud cloud) throws Exception {
+    static KubernetesClient createClient(KubernetesCloud cloud) throws KubernetesAuthException, IOException {
         String displayName = cloud.getDisplayName();
         final Client c = clients.getIfPresent(displayName);
         if (c == null) {
