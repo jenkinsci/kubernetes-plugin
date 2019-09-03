@@ -13,7 +13,7 @@
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/Kubernetes+Plugin</url>
+  <url>https://github.com/jenkinsci/kubernetes-plugin</url>
 
   <scm>
     <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
