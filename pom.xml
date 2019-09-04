@@ -57,28 +57,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>kubernetes-client</artifactId>
-      <version>${kubernetes-client.version}</version>
-      <exclusions>
-        <!-- Jackson logic comes from plugins -->
-        <exclusion>
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>openshift-client</artifactId>
-      <version>${kubernetes-client.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
       <version>2.9.9</version>
@@ -98,7 +76,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.4.2-rc59.87cde421088c</version>
+      <version>0.4.2-rc60.cedbc051cd88</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
