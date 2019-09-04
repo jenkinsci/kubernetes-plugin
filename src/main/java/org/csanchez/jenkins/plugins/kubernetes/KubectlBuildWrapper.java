@@ -13,6 +13,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
@@ -107,7 +108,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(
-                    null,
+                    ACL.SYSTEM,
                     item,
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(serverUrl).build(),
