@@ -27,7 +27,9 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,13 +41,16 @@ import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
 import org.junit.Rule;
@@ -221,11 +226,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void bourneShellElsewhereInPath() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("/kaniko:/busybox", b);
+    }
+
+    @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[jnlp] jenkins/jnlp-slave:3.10-1-alpine", b);
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"jenkins/jnlp-slave:3.10-1-alpine\"", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
         r.assertLogContains("my-mount", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -234,8 +245,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodNested() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("go version go1.6.3", b);
     }
@@ -244,13 +255,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodNestedExplicitInherit() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("[maven] maven:3.3.9-jdk-8-alpine", b);
-        r.assertLogNotContains("[golang] golang:1.6.3-alpine", b);
+        r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
+        r.assertLogNotContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "JENKINS-58540"})
     @Test
     public void runInPodWithExistingTemplate() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
@@ -259,7 +270,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertEnvVars(r, b);
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "JENKINS-58540"})
     @Test
     public void runWithEnvVariables() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
@@ -309,6 +320,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("INSIDE_GLOBAL = " + GLOBAL + "\n", b);
 
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR =\n", b);
@@ -316,6 +328,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = or\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("OUTSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
     }
 
@@ -340,7 +353,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runDirContext() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        String workspace = "/home/jenkins/workspace/" + getProjectName();
+        String workspace = "/home/jenkins/agent/workspace/" + getProjectName();
         r.assertLogContains("initpwd is -" + workspace + "-", b);
         r.assertLogContains("dirpwd is -" + workspace + "/hz-", b);
         r.assertLogContains("postpwd is -" + workspace + "-", b);
@@ -366,6 +379,29 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void runInPodWithRetention() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
+    }
+
+    @Issue("JENKINS-49707")
+    @Test
+    public void terminatedPod() throws Exception {
+        r.waitForMessage("+ sleep", b);
+        deletePods(cloud.connect(), getLabels(this, name), false);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+    }
+
+    @Issue("JENKINS-58306")
+    @Test
+    public void cascadingDelete() throws Exception {
+        try {
+            cloud.connect().apps().deployments().withName("cascading-delete").delete();
+        } catch (KubernetesClientException x) {
+            // Failure executing: DELETE at: https://…/apis/apps/v1/namespaces/kubernetes-plugin-test/deployments/cascading-delete. Message: Forbidden!Configured service account doesn't have access. Service account may have been revoked. deployments.apps "cascading-delete" is forbidden: User "system:serviceaccount:…:…" cannot delete resource "deployments" in API group "apps" in the namespace "kubernetes-plugin-test".
+            assumeNoException("was not permitted to clean up any previous deployment, so presumably cannot run test either", x);
+        }
+        cloud.connect().apps().replicaSets().withLabel("app", "cascading-delete").delete();
+        cloud.connect().pods().withLabel("app", "cascading-delete").delete();
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
     @Test
@@ -396,6 +432,40 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithShowRawYamlFalse() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogNotContains("value: container-env-var-value", b);
+        r.assertLogNotContains("value: \"container-env-var-value\"", b);
+    }
+
+    @Issue("JENKINS-58574")
+    @Test
+    public void showRawYamlFalseInherited() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains("value: \"container-env-var-value\"", b);
+    }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void overrideYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    @Issue("JENKINS-58405")
+    public void mergeYaml() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    @Issue("JENKINS-58602")
+    public void jenkinsSecretHidden() throws Exception {
+        SemaphoreStep.waitForStart("pod/1", b);
+        Optional<SlaveComputer> scOptional = Arrays.stream(r.jenkins.getComputers())
+                .filter(SlaveComputer.class::isInstance)
+                .map(SlaveComputer.class::cast)
+                .findAny();
+        assertTrue(scOptional.isPresent());
+        String jnlpMac = scOptional.get().getJnlpMac();
+        SemaphoreStep.success("pod/1", b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains(jnlpMac, b);
     }
 }

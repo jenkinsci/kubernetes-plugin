@@ -67,6 +67,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -90,7 +91,7 @@ public class KubernetesTestUtil {
             CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
-        cloud.setLabels(getLabels(cloud, test, name));
+        cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));
         KubernetesClient client = cloud.connect();
 
         // Run in our own testing namespace
@@ -142,7 +143,7 @@ public class KubernetesTestUtil {
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
         if (cloud != null) {
-            l.putAll(cloud.getLabels());
+            l.putAll(cloud.getPodLabelsMap());
         }
         l.put("class", o.getClass().getSimpleName());
         l.put("test", name.getMethodName());
@@ -217,9 +218,15 @@ public class KubernetesTestUtil {
                 .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+
         LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
+        secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
+        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+
+        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
+                .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
     }
@@ -240,6 +247,7 @@ public class KubernetesTestUtil {
 
     public static String loadPipelineDefinition(Class cls, String name, Map<String, String> providedEnv) {
         Map<String, String> env = providedEnv == null ? new HashMap<>() : new HashMap<>(providedEnv);
+        // TODO get rid of $NAME substitution once all remaining tests stop using it
         env.put("NAME", name);
         return Util.replaceMacro(loadPipelineScript(cls, name + ".groovy"), env);
     }
@@ -251,4 +259,10 @@ public class KubernetesTestUtil {
             throw new RuntimeException("Could not read resource:[" + name + "].");
         }
     }
+
+    public static void assertRegex(String name, String regex) {
+        assertNotNull(name);
+        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+    }
+
 }

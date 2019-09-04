@@ -13,9 +13,11 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
@@ -122,12 +124,29 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private PodTemplateToolLocation nodeProperties;
 
     /**
-     * @deprecated Stored as a list of yaml fragments
+     * Persisted yaml fragment
      */
-    @Deprecated
-    private transient String yaml;
+    private String yaml;
 
-    private List<String> yamls = new ArrayList<>();
+    /**
+     * List of yaml fragments used for transient pod templates. Never persisted
+     */
+    private transient List<String> yamls;
+
+    public YamlMergeStrategy getYamlMergeStrategy() {
+        return yamlMergeStrategy;
+    }
+
+    @DataBoundSetter
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+        this.yamlMergeStrategy = yamlMergeStrategy;
+    }
+
+    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+
+    public Pod getYamlsPod() {
+        return yamlMergeStrategy.merge(getYamls());
+    }
 
     private Boolean showRawYaml;
 
@@ -154,6 +173,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
+        this.yaml = from.yaml;
         this.setYamls(from.getYamls());
         this.setShowRawYaml(from.isShowRawYaml());
         this.setNodeProperties(from.getNodeProperties());
@@ -250,7 +270,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Deprecated
     public String getRemoteFs() {
-        return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(null);
+        return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(ContainerTemplate.DEFAULT_WORKING_DIR);
     }
 
     public void setInstanceCap(int instanceCap) {
@@ -617,28 +637,33 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * @return The first yaml fragment for this pod template
+     * @return The persisted yaml fragment
      */
     @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
-        return yamls == null || yamls.isEmpty() ? null : yamls.get(0);
+        return yaml;
     }
 
     @DataBoundSetter
     public void setYaml(String yaml) {
-        String trimmed = Util.fixEmpty(yaml);
-        if (trimmed != null) {
-            this.yamls = Collections.singletonList(yaml);
-        } else {
-            this.yamls = Collections.emptyList();
-        }
+        this.yaml = Util.fixEmpty(yaml);
     }
 
     @Nonnull
     public List<String> getYamls() {
-        if (yamls ==null) {
-            return Collections.emptyList();
+        if (yamls == null || yamls.isEmpty()) {
+            if (yaml != null) {
+                return Collections.singletonList(yaml);
+            } else {
+                return Collections.emptyList();
+            }
         }
+        return yamls;
+    }
+
+    @VisibleForTesting
+    @Restricted(NoExternalUse.class)
+    List<String> _getYamls() {
         return yamls;
     }
 
@@ -700,22 +725,27 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             annotations = new ArrayList<>();
         }
 
-        if (yamls == null) {
-            yamls = new ArrayList<>();
-        }
-
-        if (yaml != null) {
-            yamls.add(yaml);
-            yaml = null;
-        }
-
-        // JENKINS-57116 remove empty items from yamls
-        if (!yamls.isEmpty() && StringUtils.isBlank(yamls.get(0))) {
+        // Sanitize empty values
+        yaml = Util.fixEmpty(yaml);
+        if (yamls != null) {
+            // JENKINS-57116 Sanitize empty values
             setYamls(yamls);
+            // Migration from storage in yamls field
+            if (!yamls.isEmpty()) {
+                if (yamls.size() > 1) {
+                    LOGGER.log(Level.WARNING, "Found several persisted YAML fragments in pod template " + name + ". Only the first fragment will be considered, others will be ignored.");
+                }
+                yaml = yamls.get(0);
+            }
+            yamls = null;
         }
 
         if (showRawYaml == null) {
             showRawYaml = Boolean.TRUE;
+        }
+
+        if (yamlMergeStrategy == null) {
+            yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
         }
 
         return this;
@@ -735,6 +765,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return new PodTemplateBuilder(this).withSlave(slave).build();
     }
 
+    /**
+     * @deprecated Use {@code Serialization.asYaml(build(KubernetesSlave))} instead.
+     */
+    @Deprecated
     public String getDescriptionForLogging() {
         return String.format("Agent specification [%s] (%s): %n%s",
                 getDisplayName(),
@@ -742,8 +776,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getContainersDescriptionForLogging());
     }
 
+    boolean isShowRawYamlSet() {
+        return showRawYaml != null;
+    }
+
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return isShowRawYamlSet() ? showRawYaml.booleanValue() : true;
     }
 
     @DataBoundSetter
@@ -805,7 +843,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
         }
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
         public Descriptor getDefaultPodRetention() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -814,6 +853,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
         }
 
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public YamlMergeStrategy getDefaultYamlMergeStrategy() {
+            return YamlMergeStrategy.defaultStrategy();
+        }
     }
 
     @Override

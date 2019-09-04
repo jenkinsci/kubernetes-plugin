@@ -1,7 +1,6 @@
 pipeline {
   agent {
     kubernetes {
-      label '$NAME'
       customWorkspace 'some/other/path'
       defaultContainer 'maven'
       yaml """

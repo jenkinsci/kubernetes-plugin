@@ -12,12 +12,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +31,7 @@ import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -348,6 +351,7 @@ public class PodTemplateUtils {
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(toolLocationNodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
+        podTemplate.setYamlMergeStrategy(template.getYamlMergeStrategy());
         podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
                                    template.getInheritFrom() : parent.getInheritFrom());
 
@@ -370,6 +374,7 @@ public class PodTemplateUtils {
         podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
                                                     template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
         podTemplate.setPodRetention(template.getPodRetention());
+        podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
@@ -575,24 +580,45 @@ public class PodTemplateUtils {
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
-        List<EnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnv());
-        combinedEnvVars.addAll(template.getEnv());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getName())).collect(toList());
+        Map<String,EnvVar> combinedEnvVars = mergeMaps(envVarstoMap(parent.getEnv()),envVarstoMap(template.getEnv()));
+        return combinedEnvVars.entrySet().stream()
+                .filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(toList());
+    }
+
+    @VisibleForTesting
+    static Map<String, EnvVar> envVarstoMap(List<EnvVar> envVarList) {
+        return envVarList.stream().collect(toMap(EnvVar::getName, Function.identity()));
     }
 
     private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+        return combineEnvVars(parent.getEnvVars(), template.getEnvVars());
     }
 
     private static List<TemplateEnvVar> combineEnvVars(PodTemplate parent, PodTemplate template) {
-        List<TemplateEnvVar> combinedEnvVars = new ArrayList<>();
-        combinedEnvVars.addAll(parent.getEnvVars());
-        combinedEnvVars.addAll(template.getEnvVars());
-        return combinedEnvVars.stream().filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey())).collect(toList());
+        return combineEnvVars(parent.getEnvVars(), template.getEnvVars());
+    }
+
+    private static List<TemplateEnvVar> combineEnvVars(List<TemplateEnvVar> parent, List<TemplateEnvVar> child) {
+        Map<String,TemplateEnvVar> combinedEnvVars = mergeMaps(templateEnvVarstoMap(parent),templateEnvVarstoMap(child));
+        return combinedEnvVars
+                .entrySet()
+                .stream()
+                .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .collect(toList());
+    }
+
+    @VisibleForTesting
+    static Map<String, TemplateEnvVar> templateEnvVarstoMap(List<TemplateEnvVar> envVarList) {
+        return envVarList
+                .stream()
+                .collect(Collectors.toMap(TemplateEnvVar::getKey, Function.identity(), throwingMerger(), LinkedHashMap::new));
+    }
+
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
     }
 
     private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
@@ -606,7 +632,7 @@ public class PodTemplateUtils {
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
-        Map<K, V> m = new HashMap<>();
+        Map<K, V> m = new LinkedHashMap<>();
         if (m1 != null)
             m.putAll(m1);
         if (m2 != null)

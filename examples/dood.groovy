@@ -1,10 +1,7 @@
-/**
- * This pipeline will run a Docker image build
- */
-
-def label = "docker-${UUID.randomUUID().toString()}"
-
-podTemplate(label: label, yaml: """
+/*
+“Docker-outside-of-Docker”: runs a Docker-based build by connecting a Docker client inside the pod to the host daemon.
+*/
+podTemplate(yaml: """
 apiVersion: v1
 kind: Pod
 spec:
@@ -24,7 +21,7 @@ spec:
   ) {
 
   def image = "jenkins/jnlp-slave"
-  node(label) {
+  node(POD_LABEL) {
     stage('Build Docker image') {
       git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
       container('docker') {

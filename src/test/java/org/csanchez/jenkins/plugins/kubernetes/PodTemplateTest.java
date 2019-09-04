@@ -2,31 +2,20 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import org.junit.Test;
 
-import java.util.Collections;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertThat;
 
 public class PodTemplateTest {
-
     @Test
-    public void descriptionHonorsShowRawYaml() {
-        PodTemplate pt = new PodTemplate();
-        ContainerTemplate ct1 = new ContainerTemplate("foo", "image");
-        pt.setContainers(Collections.singletonList(ct1));
-        String yaml =
-                "metadata:\n" +
-                "  annotations:\n" +
-                "    foo: bar\n";
-        pt.setYamls(Collections.singletonList(yaml));
-        String description = pt.getDescriptionForLogging();
-        assertThat(description, containsString("[foo] image"));
-        assertThat(description, containsString("yaml:\n"+yaml));
-
-        pt.setShowRawYaml(false);
-        description = pt.getDescriptionForLogging();
-        assertThat(description, not(containsString("yaml:\n")));
-        assertThat(description, not(containsString(yaml)));
+    public void getYamlsExposesSingleYamlField() {
+        PodTemplate podTemplate = new PodTemplate();
+        assertThat(podTemplate.getYamls(), empty());
+        podTemplate.setYamls(null);
+        assertThat(podTemplate.getYamls(), empty());
+        podTemplate.setYaml("yaml");
+        assertThat(podTemplate.getYamls(), contains("yaml"));
+        podTemplate.setYaml(null);
+        assertThat(podTemplate.getYamls(), empty());
     }
 }

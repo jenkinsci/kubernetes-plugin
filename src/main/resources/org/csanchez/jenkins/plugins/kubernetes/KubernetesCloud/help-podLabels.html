@@ -1,0 +1,14 @@
+<div>
+    <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/labels">Labels</a>
+    for all Pods started by the plugin. Pods that match these labels count toward the <strong>Concurrency Limit</strong>.
+    <p>
+        If not configured, all Pods will be created with <code>jenkins=slave</code> by default.
+    </p>
+    <p>Examples:
+        <ul>
+            <li><code>jenkins=slave</code></li>
+            <li><code>app.kubernetes.io/managed-by=jenkins</code></li>
+            <li><code>app.kubernetes.io/part-of=cicd</code></li>
+        </ul>
+    </p>
+</div>

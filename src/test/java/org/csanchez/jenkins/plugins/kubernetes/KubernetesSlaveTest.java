@@ -25,6 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,11 +65,6 @@ public class KubernetesSlaveTest {
                 ("^a-name-[0-9a-z]{5}$"));
         assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("an_other_name", volumes, containers)),
                 ("^an-other-name-[0-9a-z]{5}$"));
-    }
-
-    private void assertRegex(String name, String regex) {
-        assertNotNull(name);
-        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
     }
 
     @Test

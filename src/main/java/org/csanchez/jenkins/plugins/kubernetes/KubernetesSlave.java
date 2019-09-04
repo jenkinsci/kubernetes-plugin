@@ -12,8 +12,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import hudson.slaves.SlaveComputer;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
@@ -25,7 +28,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.console.ModelHyperlinkNote;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -70,6 +72,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private String namespace;
     private final PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
+
+    @CheckForNull
+    private transient Pod pod;
 
     @Nonnull
     public PodTemplate getTemplate() {
@@ -124,7 +129,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 template.getRemoteFs(),
                 1,
                 template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
-                labelStr == null ? null : labelStr,
+                labelStr,
                 computerLauncher,
                 rs,
                 template.getNodeProperties());
@@ -291,7 +296,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
         try {
-            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).delete();
+            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).
+                cascading(true). // TODO JENKINS-58306 pending https://github.com/fabric8io/kubernetes-client/pull/1620
+                delete();
             if (!Boolean.TRUE.equals(deleted)) {
                 String msg = String.format("Failed to delete pod for agent %s/%s: not found", getNamespace(), name);
                 LOGGER.log(Level.WARNING, msg);
@@ -338,6 +345,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Override
     public Launcher createLauncher(TaskListener listener) {
+        Launcher launcher = super.createLauncher(listener);
         if (template != null) {
             Executor executor = Executor.currentExecutor();
             if (executor != null) {
@@ -347,11 +355,46 @@ public class KubernetesSlave extends AbstractCloudSlave {
                             ModelHyperlinkNote.encodeTo("/computer/" + getNodeName(), getNodeName()),
                             getTemplate().getDisplayName())
                     );
-                    listener.getLogger().println(getTemplate().getDescriptionForLogging());
+                    printAgentDescription(listener);
+                    checkHomeAndWarnIfNeeded(listener);
                 }
             }
         }
-        return super.createLauncher(listener);
+        return launcher;
+    }
+
+    void assignPod(@CheckForNull Pod pod) {
+        this.pod = pod;
+    }
+
+    private void printAgentDescription(TaskListener listener) {
+        if (pod != null) {
+            listener.getLogger().println(podAsYaml());
+        }
+    }
+
+    private String podAsYaml() {
+        String x = Serialization.asYaml(pod);
+        Computer computer = toComputer();
+        if (computer instanceof SlaveComputer) {
+            SlaveComputer sc = (SlaveComputer) computer;
+            return x.replaceAll(sc.getJnlpMac(),"********");
+        }
+        return x;
+    }
+
+    private void checkHomeAndWarnIfNeeded(TaskListener listener) {
+        try {
+            Computer computer = toComputer();
+            if (computer != null) {
+                String home = computer.getEnvironment().get("HOME");
+                if ("/".equals(home)) {
+                    listener.getLogger().println(Messages.KubernetesSlave_HomeWarning());
+                }
+            }
+        } catch (IOException|InterruptedException e) {
+            e.printStackTrace(listener.error("[WARNING] Unable to retrieve HOME environment variable"));
+        }
     }
 
     protected Object readResolve() {

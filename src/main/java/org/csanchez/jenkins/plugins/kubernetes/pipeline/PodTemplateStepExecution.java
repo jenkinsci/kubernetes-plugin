@@ -27,10 +27,13 @@ import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
+import java.util.Collections;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
+import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
@@ -73,10 +76,19 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         PodTemplateContext podTemplateContext = getContext().get(PodTemplateContext.class);
         String parentTemplates = podTemplateContext != null ? podTemplateContext.getName() : null;
 
+        String label = step.getLabel();
+        if (label == null) {
+            label = labelify(run.getExternalizableId());
+        }
+
         //Let's generate a random name based on the user specified to make sure that we don't have
         //issues with concurrent builds, or messing with pre-existing configuration
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        String name = String.format(NAME_FORMAT, step.getName(), randString);
+        String stepName = step.getName();
+        if (stepName == null) {
+            stepName = label;
+        }
+        String name = String.format(NAME_FORMAT, stepName, randString);
         String namespace = checkNamespace(kubernetesCloud, podTemplateContext);
 
         newTemplate = new PodTemplate();
@@ -91,7 +103,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setIdleMinutes(step.getIdleMinutes());
         newTemplate.setSlaveConnectTimeout(step.getSlaveConnectTimeout());
-        newTemplate.setLabel(step.getLabel());
+        newTemplate.setLabel(label);
         newTemplate.setEnvVars(step.getEnvVars());
         newTemplate.setVolumes(step.getVolumes());
         newTemplate.setCustomWorkspaceVolumeEnabled(step.getWorkspaceVolume() != null);
@@ -101,13 +113,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
         newTemplate.setAnnotations(step.getAnnotations());
+        newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
             newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", ((KubernetesCloud)cloud).getJenkinsUrlOrDie()+run.getUrl()));
         }
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
         newTemplate.setYaml(step.getYaml());
-        newTemplate.setShowRawYaml(step.isShowRawYaml());
+        if (step.isShowRawYamlSet()) {
+            newTemplate.setShowRawYaml(step.isShowRawYaml());
+        }
         newTemplate.setPodRetention(step.getPodRetention());
 
         if(step.getActiveDeadlineSeconds() != 0) {
@@ -124,14 +139,30 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
 
+        // Note that after JENKINS-51248 this must be a single label atom, not a space-separated list, unlike PodTemplate.label generally.
         if (!PodTemplateUtils.validateLabel(newTemplate.getLabel())) {
             throw new AbortException(Messages.label_error(newTemplate.getLabel()));
         }
 
         kubernetesCloud.addDynamicTemplate(newTemplate);
-        getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate)).start();
+        BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
+        if (step.getLabel() == null) {
+            invoker.withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), EnvironmentExpander.constant(Collections.singletonMap("POD_LABEL", label))));
+        }
+        invoker.start();
 
         return false;
+    }
+
+    static String labelify(String input) {
+        int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
+        if (input.length() > max) {
+            input = input.substring(input.length() - max);
+        }
+        input = input.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        assert PodTemplateUtils.validateLabel(label) : label;
+        return label;
     }
 
     /**

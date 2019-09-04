@@ -13,6 +13,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -23,9 +24,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import javax.annotation.CheckForNull;
 
 public class PodTemplateStep extends Step implements Serializable {
 
@@ -36,8 +39,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private String cloud = DEFAULT_CLOUD;
     private String inheritFrom;
 
-    private final String label;
-    private final String name;
+    private String label;
+    private String name;
 
     private String namespace;
     private List<ContainerTemplate> containers = new ArrayList<>();
@@ -58,22 +61,30 @@ public class PodTemplateStep extends Step implements Serializable {
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     private String yaml;
+    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
     private PodRetention podRetention;
 
     private Boolean showRawYaml;
 
     @DataBoundConstructor
-    public PodTemplateStep(String label, String name) {
-        this.label = label;
-        this.name = name == null ? label : name;
-    }
+    public PodTemplateStep() {}
 
     public String getLabel() {
         return label;
     }
 
-    public String getName() {
+    @DataBoundSetter
+    public void setLabel(String label) {
+        this.label = Util.fixEmpty(label);
+    }
+
+    public @CheckForNull String getName() {
         return name;
+    }
+
+    @DataBoundSetter
+    public void setName(String name) {
+        this.name = Util.fixEmpty(name);
     }
 
     public String getNamespace() {
@@ -122,6 +133,15 @@ public class PodTemplateStep extends Step implements Serializable {
             this.envVars.clear();
             this.envVars.addAll(envVars);
         }
+    }
+
+    public YamlMergeStrategy getYamlMergeStrategy() {
+        return yamlMergeStrategy;
+    }
+
+    @DataBoundSetter
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+        this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
     public List<PodVolume> getVolumes() {
@@ -261,8 +281,12 @@ public class PodTemplateStep extends Step implements Serializable {
         this.podRetention = podRetention;
     }
 
+    boolean isShowRawYamlSet() {
+        return showRawYaml != null;
+    }
+
     public boolean isShowRawYaml() {
-        return showRawYaml == null ? true : showRawYaml.booleanValue();
+        return isShowRawYamlSet() ? showRawYaml.booleanValue() : true;
     }
 
     @DataBoundSetter
@@ -298,5 +322,9 @@ public class PodTemplateStep extends Step implements Serializable {
             return ImmutableSet.of(Run.class, TaskListener.class);
         }
 
+        @SuppressWarnings("unused") // jelly
+        public String getWorkingDir() {
+            return ContainerTemplate.DEFAULT_WORKING_DIR;
+        }
     }
 }

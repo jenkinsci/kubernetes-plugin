@@ -47,6 +47,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -54,11 +55,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
 
 import hudson.model.Node;
+import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
@@ -185,6 +188,31 @@ public class RestartPipelineTest {
         story.then(r -> {
             WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+        });
+    }
+
+    @Issue("JENKINS-49707")
+    @Test
+    public void terminatedPodAfterRestart() throws Exception {
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureCloud();
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("+ sleep", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            r.waitForMessage("Ready to run", b);
+            // Note that the test is cheating here slightly.
+            // The watch in Reaper is still running across the in-JVM restarts,
+            // whereas in production it would have been cancelled during the shutdown.
+            // But it does not matter since we are waiting for the agent to come back online after the restart,
+            // which is sufficient trigger to reactivate the reaper.
+            // Indeed we get two Reaper instances running, which independently remove the node.
+            deletePods(cloud.connect(), getLabels(this, name), false);
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+            r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
         });
     }
 

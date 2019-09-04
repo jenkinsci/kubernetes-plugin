@@ -26,11 +26,15 @@ import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.Nonnull;
+
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
     private static final long serialVersionUID = 4212681620316294146L;
 
-    public static final String DEFAULT_WORKING_DIR = "/home/jenkins";
+    public static final String DEFAULT_WORKING_DIR = "/home/jenkins/agent";
+
+    private static final String OLD_DEFAULT_WORKING_DIR = "/home/jenkins";
 
     private String name;
 
@@ -279,6 +283,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
             }
             return FormValidation.ok();
         }
+
+        @SuppressWarnings("unused") // jelly
+        public String getWorkingDir() {
+            return DEFAULT_WORKING_DIR;
+        }
     }
 
     @Override
@@ -384,6 +393,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private Object readResolve() {
         this.workingDir = Util.fixEmpty(workingDir);
+        if (OLD_DEFAULT_WORKING_DIR.equals(workingDir)) {
+            this.workingDir = DEFAULT_WORKING_DIR;
+        }
         return this;
     }
 }
