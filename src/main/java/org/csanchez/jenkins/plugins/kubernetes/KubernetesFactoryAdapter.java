@@ -2,7 +2,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.*;
 
-import java.io.IOException;
 import static java.util.logging.Level.*;
 import java.util.logging.Logger;
 
@@ -15,7 +14,8 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.jenkinsci.plugins.kubernetes.auth.*;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -72,7 +72,7 @@ public class KubernetesFactoryAdapter {
         this.maxRequestsPerHost = maxRequestsPerHost;
     }
 
-    public KubernetesClient createClient() throws IOException, KubernetesAuthException {
+    public KubernetesClient createClient() throws KubernetesAuthException {
 
         ConfigBuilder builder;
 

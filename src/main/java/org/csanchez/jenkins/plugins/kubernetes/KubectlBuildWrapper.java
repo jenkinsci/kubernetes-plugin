@@ -1,13 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -19,16 +15,10 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.*;
-import io.fabric8.kubernetes.client.internal.SerializationUtils;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthKubeconfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
-import org.jenkinsci.plugins.kubernetes.credentials.Utils;
-import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
-import org.jenkinsci.plugins.plaincredentials.FileCredentials;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -47,14 +37,12 @@ import static com.google.common.collect.Sets.newHashSet;
  */
 public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
-
     private final String serverUrl;
     private final String credentialsId;
     private final String caCertificate;
 
     @DataBoundConstructor
-    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
-            @Nonnull String caCertificate) {
+    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId, @Nonnull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = credentialsId;
         this.caCertificate = caCertificate;
@@ -116,26 +104,20 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl) {
-            return new StandardListBoxModel()
-                    .withEmptySelection()
-                    .withMatching(
-                            CredentialsMatchers.anyOf(
-                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(FileCredentials.class),
-                                    AuthenticationTokens.matcher(KubernetesAuth.class)
-                            ),
-                            CredentialsProvider.lookupCredentials(
-                                    StandardCredentials.class,
-                                    item,
-                                    null,
-                                    URIRequirementBuilder.fromUri(serverUrl).build()
-                            )
-                    );
-
+            StandardListBoxModel result = new StandardListBoxModel();
+            result.includeEmptyValue();
+            result.includeMatchingAs(
+                    null,
+                    item,
+                    StandardCredentials.class,
+                    URIRequirementBuilder.fromUri(serverUrl).build(),
+                    CredentialsMatchers.anyOf(
+                            CredentialsMatchers.instanceOf(org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
+                            AuthenticationTokens.matcher(KubernetesAuth.class)
+                    )
+            );
+            return result;
         }
-
     }
 
     private static class CleanupDisposer extends Disposer {

@@ -28,11 +28,8 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
-import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.jenkinsci.plugins.plaincredentials.FileCredentials;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -40,10 +37,8 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -765,14 +760,7 @@ public class KubernetesCloud extends Cloud {
                 serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
                             : Collections.EMPTY_LIST,
                 CredentialsMatchers.anyOf(
-                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                    CredentialsMatchers.instanceOf(FileCredentials.class),
-                    CredentialsMatchers.instanceOf(TokenProducer.class),
-                    CredentialsMatchers.instanceOf(
-                        org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
-                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                    CredentialsMatchers.instanceOf(StringCredentials.class),//
-                    CredentialsMatchers.instanceOf(DockerServerCredentials.class),
+                    CredentialsMatchers.instanceOf(org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
                     AuthenticationTokens.matcher(KubernetesAuth.class)
                 )
             );

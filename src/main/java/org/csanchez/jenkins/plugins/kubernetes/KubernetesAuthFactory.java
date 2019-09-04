@@ -11,7 +11,9 @@ import org.jenkinsci.plugins.kubernetes.credentials.TokenProducer;
 import java.io.IOException;
 import java.util.Collections;
 
-import org.jenkinsci.plugins.kubernetes.auth.*;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthToken;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 
 public abstract class KubernetesAuthFactory {
 
