@@ -225,6 +225,20 @@
         <artifactId>jackson-dataformat-yaml</artifactId>
         <version>2.9.9</version>
       </dependency>
+      <dependency>
+        <!-- Transitive dependency of test-scoped git-plugin, should not be packaged -->
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.9.5</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <!-- Transitive dependency of test-scoped git-plugin, should not be packaged -->
+        <groupId>io.jenkins.temp.jelly</groupId>
+        <artifactId>multiline-secrets-ui</artifactId>
+        <version>1.0</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
