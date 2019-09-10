@@ -154,12 +154,34 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>git</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <!-- Already included through pipeline-model-extensions and causing them to be packaged -->
+        <exclusion>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>ssh-credentials</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>git</artifactId>
       <classifier>tests</classifier>
       <scope>test</scope>
+      <exclusions>
+        <!-- Already included through pipeline-model-extensions and causing them to be packaged -->
+        <exclusion>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>ssh-credentials</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -174,9 +196,13 @@
       <version>1.17</version>
       <scope>test</scope>
       <exclusions>
-        <exclusion> <!-- pluginFirstClassLoader, and anyway kroniak/ssh-client includes /usr/bin/ssh-agent so JVM client is unused -->
+        <exclusion>
           <groupId>org.apache.sshd</groupId>
           <artifactId>sshd-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jenkins-ci.plugins</groupId>
+          <artifactId>ssh-credentials</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -248,13 +274,6 @@
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
-          <!-- with the default setting seems that an older version of jackson from core is used
-            java.lang.NoSuchMethodError: com.fasterxml.jackson.core.JsonFactory.requiresPropertyOrdering()Z
-            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:549)
-            at com.fasterxml.jackson.databind.ObjectMapper.<init>(ObjectMapper.java:460)
-            at io.fabric8.kubernetes.client.utils.Serialization.<clinit>(Serialization.java:37)
-          -->
-          <pluginFirstClassLoader>true</pluginFirstClassLoader>
           <systemProperties>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
