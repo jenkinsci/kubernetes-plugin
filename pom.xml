@@ -245,12 +245,6 @@
         <artifactId>commons-lang3</artifactId>
         <version>3.8.1</version>
       </dependency>
-      <!-- force kubernetes-client dependency to match jackson2-api plugin version -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-yaml</artifactId>
-        <version>2.9.9</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
