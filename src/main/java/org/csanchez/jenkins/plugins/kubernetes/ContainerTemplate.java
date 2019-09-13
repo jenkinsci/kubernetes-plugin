@@ -44,7 +44,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private boolean alwaysPullImage;
 
-    private String workingDir = DEFAULT_WORKING_DIR;
+    private String workingDir;
 
     private String command;
 
