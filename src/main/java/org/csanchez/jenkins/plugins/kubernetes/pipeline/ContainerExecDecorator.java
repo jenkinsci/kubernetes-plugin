@@ -26,10 +26,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -37,8 +34,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import io.fabric8.kubernetes.api.model.Container;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -58,6 +58,8 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+
+import javax.swing.text.html.Option;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -245,6 +247,28 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
+
+                // find container working dir
+                KubernetesSlave slave = (KubernetesSlave) node;
+                FilePath containerWorkingDirFilePath = starter.pwd();
+                String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
+                if (slave.getPod().isPresent() && containerName != null) {
+                    Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
+                            .filter(container1 -> container1.getName().equals(containerName))
+                            .findAny();
+                    Optional<String> containerWorkingDir = Optional.empty();
+                    if (container.isPresent() && container.get().getWorkingDir() != null) {
+                        containerWorkingDir = Optional.of(container.get().getWorkingDir());
+                    }
+                    if (containerWorkingDir.isPresent() && ! containerWorkingDirFilePath.getRemote().equals(containerWorkingDir.toString())) {
+                        // Container has a custom workingDir, set pwd to the container workspace root
+                        containerWorkingDirStr = containerWorkingDir.get();
+                        containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirStr);
+                        LOGGER.log(Level.FINEST, "Modified the pwd to match {0} containers workspace directory : {1}",
+                                new String[]{containerName, containerWorkingDirStr});
+                    }
+                }
+
                 String[] envVars = starter.envs();
                 if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
                     final Computer computer = node.toComputer();
@@ -253,21 +277,47 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         try {
                             EnvVars environment = computer.getEnvironment();
                             String[] envs = starter.envs();
+                            Set<String> overriddenKeys = new HashSet<>();
                             for (String keyValue : envs) {
                                 String[] split = keyValue.split("=", 2);
+                                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)
+                                        && split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                    // Container has a custom workingDir, update env vars with right workspace folder
+                                    split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                    keyValue = split[0] + "=" + split[1];
+                                    LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
+                                            new String[]{split[0], split[1]});
+                                }
                                 if (!split[1].equals(environment.get(split[0]))) {
                                     // Only keep environment variables that differ from Computer's environment
                                     resultEnvVar.add(keyValue);
+                                    overriddenKeys.add(split[0]);
                                 }
                             }
+
+                            // modify the working dir on envvars part of Computer
+                            if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                for(Map.Entry<String, String> entry : environment.entrySet()) {
+                                    if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
+                                            && overriddenKeys.contains(entry.getKey())) {
+                                        // Value should be overridden and is not overridden earlier
+                                        String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                        String keyValue = entry.getKey() + "=" + newValue;
+                                        LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
+                                                new String[]{entry.getKey(), newValue});
+                                        resultEnvVar.add(keyValue);
+                                    }
+                                }
+                            }
+
                             envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
                         } catch (InterruptedException e) {
                             throw new IOException("Unable to retrieve environment variables", e);
                         }
                     }
                 }
-                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), starter.masks(),
-                        getCommands(starter));
+                return doLaunch(starter.quiet(), envVars, starter.stdout(), containerWorkingDirFilePath, starter.masks(),
+                        getCommands(starter, containerWorkingDirStr));
             }
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
@@ -533,12 +583,17 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    static String[] getCommands(Launcher.ProcStarter starter) {
+    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr) {
         List<String> allCommands = new ArrayList<String>();
 
         // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
-            allCommands.add(cmd.replaceAll("\\$\\$", "\\\\\\$"));
+            String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
+            if (!ContainerTemplate.DEFAULT_WORKING_DIR.equals(containerWorkingDirStr)) {
+                // Container has a custom workingDir, update the dir in commands
+                fixedCommand = fixedCommand.replaceAll(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+            }
+            allCommands.add(fixedCommand);
         }
         return allCommands.toArray(new String[allCommands.size()]);
     }
