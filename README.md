@@ -587,6 +587,14 @@ you can use these flags during Jenkins startup:
     -Dhudson.slaves.NodeProvisioner.MARGIN=50
     -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
 
+# No delay provisioning
+
+By default Jenkins do estimate load to avoid over-provisioning of cloud nodes.
+With this option enabled, a new node is created on Kubernetes as soon as NodeProvisioner detects need for more agents.
+In worse scenarios, this will results in some extra nodes provisioned on Kubernetes, which will be shortly terminated.
+
+When using this method you will not need to set the provisioning flags, which can be configured in the Jenkins Kubernetes Cloud settings.
+
 # Configuration on minikube
 
 Create and start [minikube](https://github.com/kubernetes/minikube)
