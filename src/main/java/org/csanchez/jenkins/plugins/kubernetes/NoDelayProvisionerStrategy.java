@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  * a task enter the queue.
  * In kubernetes, we don't really need to wait before provisioning a new node,
  * because kubernetes agents can be started and destroyed quickly
- * 
+ *
  * @author <a href="mailto:root@junwuhui.cn">runzexia</a>
  */
 @Extension(ordinal = 100)
