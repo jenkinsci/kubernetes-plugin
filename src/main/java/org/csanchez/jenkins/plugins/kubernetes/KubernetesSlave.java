@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -161,6 +162,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @Deprecated
     public Cloud getCloud() {
         return Jenkins.getInstance().getCloud(getCloudName());
+    }
+
+    public Optional<Pod> getPod() {
+        return pod == null ? Optional.empty() : Optional.of(pod);
     }
 
     /**
