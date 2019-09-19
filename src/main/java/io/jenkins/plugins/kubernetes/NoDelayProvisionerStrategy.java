@@ -1,10 +1,11 @@
-package org.csanchez.jenkins.plugins.kubernetes;
+package io.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import java.util.Collection;
 import java.util.logging.Level;
@@ -23,9 +24,16 @@ import java.util.logging.Logger;
 public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
 
     private static final Logger LOGGER = Logger.getLogger(NoDelayProvisionerStrategy.class.getName());
+    private static final boolean DISABLE_NODELAY_PROVISING = Boolean.valueOf(
+            System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
 
     @Override
     public NodeProvisioner.StrategyDecision apply(NodeProvisioner.StrategyState strategyState) {
+        if (DISABLE_NODELAY_PROVISING) {
+            LOGGER.log(Level.FINE, "Provisioning not complete, NoDelayProvisionerStrategy is disabled");
+            return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
+        }
+
         final Label label = strategyState.getLabel();
 
         LoadStatistics.LoadStatisticsSnapshot snapshot = strategyState.getSnapshot();
@@ -42,8 +50,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
             for (Cloud cloud : jenkinsInstance.clouds) {
                 if (!(cloud instanceof KubernetesCloud)) continue;
                 if (!cloud.canProvision(label)) continue;
-                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                if (!kubernetesCloud.isNoDelayProvisioning()) continue;
+
 
                 Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, currentDemand - availableCapacity);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
