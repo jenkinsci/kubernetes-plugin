@@ -7,7 +7,10 @@ import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,11 +49,11 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
         if (availableCapacity < currentDemand) {
-            Jenkins jenkinsInstance = Jenkins.get();
-            for (Cloud cloud : jenkinsInstance.clouds) {
+            List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
+            Collections.shuffle(jenkinsClouds);
+            for (Cloud cloud : jenkinsClouds) {
                 if (!(cloud instanceof KubernetesCloud)) continue;
                 if (!cloud.canProvision(label)) continue;
-
 
                 Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, currentDemand - availableCapacity);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
