@@ -1,0 +1,6 @@
+<div>
+  When this option is enabled a <a href="https://github.com/jenkinsci/remoting/blob/master/docs/tcpAgent.md#connect-directly-to-tcp-port">direct connection</a>
+  is established from the agent to the TCP agent listener on the master, without the usual initial http request to get the required connection parameters.
+  All parameters (like TCP agent listener port and instance identity) are directly passed to the agent.
+  This is useful in scenarios where the master does not expose an http port, for example <a href="https://github.com/jenkinsci/jenkinsfile-runner">Jenkinsfile Runner</a>.
+</div>

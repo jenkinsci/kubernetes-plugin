@@ -1,10 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.*;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -107,6 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private boolean directConnection;
     private String jenkinsUrl;
     @CheckForNull
     private String jenkinsTunnel;
@@ -151,6 +155,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
+        this.directConnection = source.directConnection;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
@@ -326,6 +331,15 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
+    }
+
+    public boolean isDirectConnection() {
+        return directConnection;
+    }
+
+    @DataBoundSetter
+    public void setDirectConnection(boolean directConnection) {
+        this.directConnection = directConnection;
     }
 
     @DataBoundSetter
@@ -786,6 +800,29 @@ public class KubernetesCloud extends Cloud {
             } catch (NumberFormatException e) {
                 return FormValidation.error("Please supply an integer");
             }
+        }
+
+        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+            if(value) {
+                if(!isEmpty(jenkinsUrl)) return FormValidation.warning("no need to configure Jenkins URL if direct connection is enabled");
+            } else {
+                if(isEmpty(jenkinsUrl)) return FormValidation.warning("configure either Direct Connection or Jenkins URL ");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection) throws IOException, ServletException {
+            try {
+                if(!isEmpty(value)) new URL(value);
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, "Invalid Jenkins URL");
+            }
+            if(directConnection) {
+                if(!isEmpty(value)) return FormValidation.warning("no need to configure Jenkins URL if direct connection is enabled");
+            } else {
+                if(isEmpty(value)) return FormValidation.warning("configure either Direct Connection or Jenkins URL ");
+            }
+            return FormValidation.ok();
         }
 
         public List<Descriptor<PodRetention>> getAllowedPodRetentions() {

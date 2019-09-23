@@ -27,6 +27,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,6 +73,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import jenkins.model.Jenkins;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -311,12 +314,27 @@ public class PodTemplateBuilder {
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
-            String url = cloud.getJenkinsUrlOrDie();
-
-            env.put("JENKINS_URL", url);
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
+            
+            if (!cloud.isDirectConnection()) {
+                env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+            } else {
+                Jenkins jenkins = Jenkins.getInstanceOrNull();
+                if(jenkins == null) throw new IllegalStateException("Jenkins instance null");
+                String host;
+                try {
+                    host = new URL(jenkins.getRootUrl()).getHost();
+                } catch (MalformedURLException e) {
+                    throw new IllegalStateException("Could not get Jenkins host name", e);
+                }
+                int port = jenkins.getTcpSlaveAgentListener().getPort();
+                env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
+                env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
+                env.put("JENKINS_INSTANCE_IDENTITY", jenkins.getTcpSlaveAgentListener().getIdentityPublicKey());
+            }
+
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
