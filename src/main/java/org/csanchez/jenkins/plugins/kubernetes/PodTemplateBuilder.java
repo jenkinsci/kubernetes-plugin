@@ -217,11 +217,12 @@ public class PodTemplateBuilder {
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
         }
+        pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
             jnlp.setImage(DEFAULT_JNLP_IMAGE);
         }
         Map<String, EnvVar> envVars = new HashMap<>();
-        envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR));
+        envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
         envVars.putAll(defaultEnvVars(template.getEnvVars()));
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
@@ -287,6 +288,9 @@ public class PodTemplateBuilder {
     }
 
     private Map<String, EnvVar> jnlpEnvVars(String workingDir) {
+        if (workingDir == null) {
+            workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
+        }
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 

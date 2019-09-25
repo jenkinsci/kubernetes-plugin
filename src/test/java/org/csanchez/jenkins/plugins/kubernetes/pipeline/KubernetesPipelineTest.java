@@ -468,4 +468,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogNotContains(jnlpMac, b);
     }
+
+    @Test
+    public void jnlpWorkingDir() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
 }
