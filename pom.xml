@@ -46,7 +46,7 @@
     <connectorHost />
     <jenkins.host.address />
     <java.level>8</java.level>
-    <jenkins.version>2.190</jenkins.version> <!-- TODO 2.190.1 LTS when available -->
+    <jenkins.version>2.190.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
