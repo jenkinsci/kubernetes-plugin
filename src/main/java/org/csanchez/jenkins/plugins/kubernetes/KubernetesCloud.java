@@ -817,11 +817,6 @@ public class KubernetesCloud extends Cloud {
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, "Invalid Jenkins URL");
             }
-            if(directConnection) {
-                if(!isEmpty(value)) return FormValidation.warning("no need to configure Jenkins URL if direct connection is enabled");
-            } else {
-                if(isEmpty(value)) return FormValidation.warning("configure either Direct Connection or Jenkins URL ");
-            }
             return FormValidation.ok();
         }
 

@@ -329,7 +329,7 @@ public class PodTemplateBuilder {
                 } catch (MalformedURLException e) {
                     throw new IllegalStateException("Could not get Jenkins host name", e);
                 }
-                int port = jenkins.getTcpSlaveAgentListener().getPort();
+                int port = jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
                 env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
                 env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
                 env.put("JENKINS_INSTANCE_IDENTITY", jenkins.getTcpSlaveAgentListener().getIdentityPublicKey());

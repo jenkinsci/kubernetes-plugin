@@ -1,6 +1,29 @@
 <div>
-  When this option is enabled a <a href="https://github.com/jenkinsci/remoting/blob/master/docs/tcpAgent.md#connect-directly-to-tcp-port">direct connection</a>
-  is established from the agent to the TCP agent listener on the master, without the usual initial http request to get the required connection parameters.
-  All parameters (like TCP agent listener port and instance identity) are directly passed to the agent.
-  This is useful in scenarios where the master does not expose an http port, for example <a href="https://github.com/jenkinsci/jenkinsfile-runner">Jenkinsfile Runner</a>.
+  <p>
+  With this option is is possible to connect directly to the TCP agent listener port.
+  This skips the connect to an HTTP(S) port to retrieve the connection information. 
+  </p>
+
+  <p>
+  This is useful in scenarios where the master does not expose an HTTP(S) port, for example
+  <a target="_blank" href="https://github.com/jenkinsci/jenkinsfile-runner">Jenkinsfile Runner</a>.
+  </p>
+
+  <p>
+  Here is an example how the connect on agent side would look like. Most parameters are provided automatically when you enable the <i>Direct Connection</i> option.
+  <pre>
+  java -cp agent.jar hudson.remoting.jnlp.Main \
+    -headless \
+    -workDir &lt;WORK_DIRECTORY&gt; \
+    -direct &lt;MASTER_HOST:TCP_AGENT_LISTENER_PORT&gt; \
+    -protocols JNLP4-connect \
+    -instanceIdentity &lt;INSTANCE_IDENTITY&gt; \
+    &lt;SECRET_STRING&gt; &lt;AGENT_NAME&gt;
+  </pre>
+  </p>
+  
+  <p>
+    You find more information in the <a target="_blank" href="https://github.com/jenkinsci/remoting">Jenkins Remoting</a> project.
+  </p>
+
 </div>
