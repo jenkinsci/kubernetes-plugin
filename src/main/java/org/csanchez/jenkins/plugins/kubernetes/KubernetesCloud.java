@@ -803,10 +803,19 @@ public class KubernetesCloud extends Cloud {
         }
 
         public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if(jenkins == null) throw new IllegalStateException("Jenkins instance null");
+
+            if(jenkins.getSlaveAgentPort() == -1) return FormValidation.warning(
+                    "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
+
             if(value) {
-                if(!isEmpty(jenkinsUrl)) return FormValidation.warning("no need to configure Jenkins URL if direct connection is enabled");
+                if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
+
+                if(jenkins.getSlaveAgentPort() == 0) return FormValidation.warning(
+                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
             } else {
-                if(isEmpty(jenkinsUrl)) return FormValidation.warning("configure either Direct Connection or Jenkins URL ");
+                if(isEmpty(jenkinsUrl)) return FormValidation.warning("Configure either Direct Connection or Jenkins URL");
             }
             return FormValidation.ok();
         }
