@@ -38,9 +38,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
-import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.base.Throwables;
