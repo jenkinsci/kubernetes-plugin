@@ -38,7 +38,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.base.Throwables;
@@ -126,6 +128,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
+            if (template.getWorkspaceVolume() != null){
+                template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
+            }
             watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);

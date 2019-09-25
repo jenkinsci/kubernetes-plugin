@@ -140,7 +140,9 @@ public class PodTemplateBuilder {
         if (template.getWorkspaceVolume() != null) {
             LOGGER.log(Level.FINE, "Adding workspace volume from template: {0}",
                     template.getWorkspaceVolume().toString());
-            volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
+            if (slave != null) {
+                volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave.getPodName()));
+            }
         } else {
             // add an empty volume to share the workspace across the pod
             LOGGER.log(Level.FINE, "Adding empty workspace volume");

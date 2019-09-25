@@ -26,6 +26,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.hamcrest.Matcher;
 import org.junit.Rule;
@@ -144,6 +145,29 @@ public class PodTemplateBuilderTest {
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
         assertEquals(volumeMounts, container1.getVolumeMounts());
+    }
+
+    @Test
+    public void testBuildWithDynamicPVCWorkspaceVolume(){
+        PodTemplate template = new PodTemplate();
+        template.setCustomWorkspaceVolumeEnabled(true);
+        template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume(
+                null, null,null));
+        ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
+        containerTemplate.setWorkingDir("");
+        template.getContainers().add(containerTemplate);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        List<Container> containers = pod.getSpec().getContainers();
+        assertEquals(2, containers.size());
+        Container container0 = containers.get(0);
+        Container container1 = containers.get(1);
+        ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
+                .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build());
+
+        assertEquals(volumeMounts, container0.getVolumeMounts());
+        assertEquals(volumeMounts, container1.getVolumeMounts());
+        assertNotNull(pod.getSpec().getVolumes().get(0).getPersistentVolumeClaim());
     }
 
     @Test
