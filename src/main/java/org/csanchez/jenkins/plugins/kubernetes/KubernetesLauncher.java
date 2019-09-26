@@ -24,7 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.logging.Level.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,6 +52,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+import static java.util.logging.Level.INFO;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.

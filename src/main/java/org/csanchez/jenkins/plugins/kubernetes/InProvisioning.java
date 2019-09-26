@@ -10,7 +10,6 @@ import javax.annotation.Nonnull;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Label;
-import hudson.model.Node;
 
 /**
  * Collects the Kubernetes agents currently in provisioning.

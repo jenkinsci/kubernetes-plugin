@@ -1,6 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toList;
 
 import java.util.HashSet;
 import java.util.Set;
