@@ -92,7 +92,7 @@ public class KubernetesClientProvider {
         String displayName = cloud.getDisplayName();
         final Client c = clients.getIfPresent(displayName);
         if (c == null) {
-            KubernetesClient client = new KubernetesFactoryAdapter(cloud.getServerUrl(), cloud.getHttps_proxy(), cloud.getNamespace(),
+            KubernetesClient client = new KubernetesFactoryAdapter(cloud.getServerUrl(), cloud.getHttpsProxy(), cloud.getNamespace(),
                     cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
                     cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost()).createClient();
             clients.put(displayName, new Client(getValidity(cloud), client));

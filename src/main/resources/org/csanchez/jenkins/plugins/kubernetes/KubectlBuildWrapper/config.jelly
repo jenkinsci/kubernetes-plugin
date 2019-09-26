@@ -5,7 +5,7 @@
     <f:textbox/>
   </f:entry>
 
-  <f:entry field="https_proxy" title="${%https_proxy}">
+  <f:entry field="httpsProxy" title="${%https_proxy}">
     <f:textbox/>
   </f:entry>
 

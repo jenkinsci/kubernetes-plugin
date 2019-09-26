@@ -98,7 +98,7 @@ public class KubernetesCloud extends Cloud {
     @Nonnull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
-    private String https_proxy;
+    private String httpsProxy;
     @CheckForNull
     private String serverCertificate;
 
@@ -149,7 +149,7 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = source.defaultsProviderTemplate;
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
-        this.https_proxy = source.https_proxy;
+        this.httpsProxy = source.httpsProxy;
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
@@ -250,13 +250,13 @@ public class KubernetesCloud extends Cloud {
         this.serverUrl = serverUrl;
     }
 
-    public String getHttps_proxy() {
-        return https_proxy;
+    public String getHttpsProxy() {
+        return httpsProxy;
     }
 
     @DataBoundSetter
-    public void setHttps_proxy(@Nonnull String https_proxy) {
-        this.https_proxy = https_proxy;
+    public void setHttpsProxy(@Nonnull String httpsProxy) {
+        this.httpsProxy = httpsProxy;
     }
 
     public String getServerCertificate() {
@@ -742,7 +742,7 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
-                                               @QueryParameter String https_proxy,
+                                               @QueryParameter String httpsProxy,
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -750,7 +750,7 @@ public class KubernetesCloud extends Cloud {
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
 
-            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, https_proxy, namespace,
+            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, httpsProxy, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
                         connectionTimeout, readTimeout).createClient()) {
                     // test listing pods
