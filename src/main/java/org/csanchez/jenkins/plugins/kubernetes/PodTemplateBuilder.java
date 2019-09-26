@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
@@ -55,6 +56,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -74,6 +76,7 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -323,12 +326,7 @@ public class PodTemplateBuilder {
             } else {
                 Jenkins jenkins = Jenkins.getInstanceOrNull();
                 if(jenkins == null) throw new IllegalStateException("Jenkins instance null");
-                String host;
-                try {
-                    host = new URL(jenkins.getRootUrl()).getHost();
-                } catch (MalformedURLException e) {
-                    throw new IllegalStateException("Could not get Jenkins host name", e);
-                }
+                String host = getAdvertisedHost();
                 int port = jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
                 env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
                 env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
@@ -342,6 +340,19 @@ public class PodTemplateBuilder {
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
         return envVarsMap;
+    }
+
+    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() once https://github.com/jenkinsci/jenkins/pull/4227 is merged and released
+    private String getAdvertisedHost() {
+        String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
+        if(isBlank(host)) {
+            try {
+                host = new URL(Jenkins.getInstanceOrNull().getRootUrl()).getHost();
+            } catch (MalformedURLException | NullPointerException e) {
+                throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
+            }
+        }
+        return host;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
