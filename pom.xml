@@ -205,6 +205,12 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency> <!-- TODO for #sshagent pending https://github.com/jenkinsci/ssh-credentials-plugin/pull/47 -->
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>trilead-api</artifactId>
+      <version>1.0.5</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
