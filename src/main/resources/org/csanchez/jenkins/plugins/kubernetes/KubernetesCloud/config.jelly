@@ -28,7 +28,7 @@
     <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
 
     <f:entry title="${%Direct Connection}" field="directConnection">
-      <f:checkbox />
+      <f:checkbox default="true" />
     </f:entry>
 
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">

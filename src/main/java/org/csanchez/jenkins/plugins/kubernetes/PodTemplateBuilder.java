@@ -76,7 +76,6 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import jenkins.model.Jenkins;
-import jenkins.util.SystemProperties;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -347,7 +346,7 @@ public class PodTemplateBuilder {
         String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
         if(isBlank(host)) {
             try {
-                host = new URL(Jenkins.getInstanceOrNull().getRootUrl()).getHost();
+                host = new URL(Jenkins.get().getRootUrl()).getHost();
             } catch (MalformedURLException | NullPointerException e) {
                 throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
             }
