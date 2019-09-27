@@ -24,9 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,6 +68,9 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
  * Helper class to build Pods from PodTemplates

@@ -1,10 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static hudson.Util.*;
-import static java.nio.charset.StandardCharsets.*;
-import static java.util.stream.Collectors.*;
-import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.*;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,6 +59,12 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+
+import static hudson.Util.replaceMacro;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 public class PodTemplateUtils {
 

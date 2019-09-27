@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.nio.charset.StandardCharsets.*;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -71,6 +70,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Kubernetes cloud provider.
