@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.ExtensionList;
+import hudson.node_monitors.NodeMonitor;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
@@ -123,6 +125,7 @@ public class RestartPipelineTest {
     }
 
     public void configureCloud() throws Exception {
+        ExtensionList.lookup(NodeMonitor.class).clear();
         cloud = setupCloud(this, name);
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();

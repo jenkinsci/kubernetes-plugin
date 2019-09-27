@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
+import hudson.ExtensionList;
+import hudson.node_monitors.NodeMonitor;
 import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -140,6 +142,7 @@ public abstract class AbstractKubernetesPipelineTest {
 
     @Before
     public void configureCloud() throws Exception {
+        ExtensionList.lookup(NodeMonitor.class).clear();
         cloud = setupCloud(this, name);
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
