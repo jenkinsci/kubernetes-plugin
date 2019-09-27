@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -21,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import jenkins.util.Timer;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.CTRL_C;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
 
 /**
  * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.

@@ -575,17 +575,15 @@ just runs something and exit then it should be overridden with something like `c
 **WARNING**
 If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
 
-# Over provisioning flags
 
-By default, Jenkins spawns agents conservatively. Say, if there are 2 builds in queue, it won't spawn 2 executors immediately.
-It will spawn one executor and wait for sometime for the first executor to be freed before deciding to spawn the second executor.
-Jenkins makes sure every executor it spawns is utilized to the maximum.
-If you want to override this behaviour and spawn an executor for each build in queue immediately without waiting,
-you can use these flags during Jenkins startup:
 
-    -Dhudson.slaves.NodeProvisioner.initialDelay=0
-    -Dhudson.slaves.NodeProvisioner.MARGIN=50
-    -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+# No delay provisioning
+
+By default Jenkins do estimate load to avoid over-provisioning of cloud nodes.
+This plugin will use its own provisioning strategy by default, with this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects need for more agents.
+In worse scenarios, this will results in some extra nodes provisioned on Kubernetes, which will be shortly terminated.
+
+If you want to turn off this Strategy you can set SystemProperty `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning=true`
 
 # Configuration on minikube
 

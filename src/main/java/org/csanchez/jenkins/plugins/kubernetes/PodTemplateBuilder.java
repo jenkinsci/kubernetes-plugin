@@ -25,7 +25,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
 import java.net.MalformedURLException;
@@ -76,6 +75,9 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import jenkins.model.Jenkins;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -145,7 +147,9 @@ public class PodTemplateBuilder {
         if (template.getWorkspaceVolume() != null) {
             LOGGER.log(Level.FINE, "Adding workspace volume from template: {0}",
                     template.getWorkspaceVolume().toString());
-            volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
+            if (slave != null) {
+                volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave.getPodName()));
+            }
         } else {
             // add an empty volume to share the workspace across the pod
             LOGGER.log(Level.FINE, "Adding empty workspace volume");

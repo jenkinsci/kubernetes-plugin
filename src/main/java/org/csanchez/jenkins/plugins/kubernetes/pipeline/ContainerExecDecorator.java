@@ -16,7 +16,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -58,6 +57,8 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
