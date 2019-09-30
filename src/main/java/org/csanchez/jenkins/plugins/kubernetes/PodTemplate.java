@@ -171,12 +171,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.setServiceAccount(from.getServiceAccount());
         this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
         this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
+        this.setIdleMinutes(from.getIdleMinutes());
         this.setVolumes(from.getVolumes());
         this.setWorkspaceVolume(from.getWorkspaceVolume());
         this.yaml = from.yaml;
         this.setYamls(from.getYamls());
-        this.setShowRawYaml(from.isShowRawYaml());
-        this.setNodeProperties(from.getNodeProperties());
+        this.showRawYaml = from.showRawYaml;
+        if (from.nodeProperties != null) {
+            this.setNodeProperties(from.getNodeProperties());
+        }
         this.setPodRetention(from.getPodRetention());
     }
 
