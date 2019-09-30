@@ -162,6 +162,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public PodTemplate(PodTemplate from) {
         XStream2 xs = new XStream2();
         xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
+        this.yamls = from.yamls;
     }
 
     @Deprecated
