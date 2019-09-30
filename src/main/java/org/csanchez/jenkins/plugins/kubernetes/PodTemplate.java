@@ -39,8 +39,10 @@ import hudson.model.Node;
 import hudson.model.Saveable;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
+import hudson.util.XStream2;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.StringReader;
 import jenkins.model.Jenkins;
 
 /**
@@ -158,29 +160,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public PodTemplate(PodTemplate from) {
-        this.setAnnotations(from.getAnnotations());
-        this.setContainers(from.getContainers());
-        this.setImagePullSecrets(from.getImagePullSecrets());
-        this.setInstanceCap(from.getInstanceCap());
-        this.setLabel(from.getLabel());
-        this.setName(from.getName());
-        this.setNamespace(from.getNamespace());
-        this.setInheritFrom(from.getInheritFrom());
-        this.setNodeSelector(from.getNodeSelector());
-        this.setNodeUsageMode(from.getNodeUsageMode());
-        this.setServiceAccount(from.getServiceAccount());
-        this.setSlaveConnectTimeout(from.getSlaveConnectTimeout());
-        this.setActiveDeadlineSeconds(from.getActiveDeadlineSeconds());
-        this.setIdleMinutes(from.getIdleMinutes());
-        this.setVolumes(from.getVolumes());
-        this.setWorkspaceVolume(from.getWorkspaceVolume());
-        this.yaml = from.yaml;
-        this.setYamls(from.getYamls());
-        this.showRawYaml = from.showRawYaml;
-        if (from.nodeProperties != null) {
-            this.setNodeProperties(from.getNodeProperties());
-        }
-        this.setPodRetention(from.getPodRetention());
+        XStream2 xs = new XStream2();
+        xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
     }
 
     @Deprecated
@@ -741,10 +722,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 yaml = yamls.get(0);
             }
             yamls = null;
-        }
-
-        if (showRawYaml == null) {
-            showRawYaml = Boolean.TRUE;
         }
 
         if (yamlMergeStrategy == null) {
