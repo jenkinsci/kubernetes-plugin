@@ -345,6 +345,13 @@ public class PodTemplateBuilder {
 
     //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
     private String getAdvertisedHost() {
+        try {
+            return (String) TcpSlaveAgentListener.class.getMethod("getAdvertisedHost").invoke(Jenkins.get().getTcpSlaveAgentListener());
+        } catch (NoSuchMethodException x) {
+            // 2.197-, fine
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
         String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
         if(isBlank(host)) {
             try {
