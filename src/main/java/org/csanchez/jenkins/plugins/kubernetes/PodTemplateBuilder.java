@@ -343,7 +343,7 @@ public class PodTemplateBuilder {
         return envVarsMap;
     }
 
-    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() once https://github.com/jenkinsci/jenkins/pull/4227 is merged and released
+    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
     private String getAdvertisedHost() {
         String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
         if(isBlank(host)) {
