@@ -813,7 +813,14 @@ public class KubernetesCloud extends Cloud {
                 if(slaveAgentPort == 0) return FormValidation.warning(
                         "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
             } else {
-                if(isEmpty(jenkinsUrl)) return FormValidation.warning("Configure either Direct Connection or Jenkins URL");
+                if (isEmpty(jenkinsUrl)) {
+                    String url = StringUtils.defaultIfBlank(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")), JenkinsLocationConfiguration.get().getUrl());
+                    if (url != null) {
+                        return FormValidation.ok("Will connect using " + url);
+                    } else {
+                        return FormValidation.warning("Configure either Direct Connection or Jenkins URL");
+                    }
+                }
             }
             return FormValidation.ok();
         }
