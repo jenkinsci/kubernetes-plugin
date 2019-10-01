@@ -327,13 +327,11 @@ public class PodTemplateBuilder {
             if (!cloud.isDirectConnection()) {
                 env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
             } else {
-                Jenkins jenkins = Jenkins.getInstanceOrNull();
-                if(jenkins == null) throw new IllegalStateException("Jenkins instance null");
                 String host = getAdvertisedHost();
-                int port = jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
+                int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
                 env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
                 env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
-                env.put("JENKINS_INSTANCE_IDENTITY", jenkins.getTcpSlaveAgentListener().getIdentityPublicKey());
+                env.put("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey());
             }
 
         }
