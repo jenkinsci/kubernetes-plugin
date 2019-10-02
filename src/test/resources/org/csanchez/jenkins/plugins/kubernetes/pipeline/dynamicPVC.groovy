@@ -1,5 +1,5 @@
 podTemplate(workspaceVolume: dynamicPVC(requestsSize: "10Gi"), containers: [
-        containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}')
+        containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}')
 ]) {
 
     node(POD_LABEL) {
