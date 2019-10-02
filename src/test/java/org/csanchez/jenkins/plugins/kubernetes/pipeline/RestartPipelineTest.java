@@ -161,6 +161,7 @@ public class RestartPipelineTest {
     public void runInPodWithRestartWithMultipleContainerCalls() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
@@ -181,6 +182,7 @@ public class RestartPipelineTest {
     public void runInPodWithRestartWithLongSleep() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
@@ -202,6 +204,7 @@ public class RestartPipelineTest {
     public void terminatedPodAfterRestart() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
