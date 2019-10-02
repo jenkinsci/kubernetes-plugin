@@ -142,6 +142,12 @@ public class RestartPipelineTest {
 
         story.j.jenkins.clouds.add(cloud);
     }
+    
+    public void configureAgentListener() throws IOException {
+      //Take random port and fix it, to be the same after Jenkins restart
+      int fixedPort = story.j.jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
+      story.j.jenkins.setSlaveAgentPort(fixedPort);
+    }
 
     protected String loadPipelineScript(String name) {
         try {
@@ -220,6 +226,7 @@ public class RestartPipelineTest {
     public void getContainerLogWithRestart() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
