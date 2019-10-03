@@ -252,7 +252,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 KubernetesSlave slave = (KubernetesSlave) node;
                 FilePath containerWorkingDirFilePath = starter.pwd();
                 String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
-                if (slave.getPod().isPresent() && containerName != null) {
+                if (slave != null && slave.getPod().isPresent() && containerName != null) {
                     Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
                             .filter(container1 -> container1.getName().equals(containerName))
                             .findAny();
@@ -270,47 +270,54 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 String[] envVars = starter.envs();
+                // modify the working dir on envvars part of starter env vars
+                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                    for (int i = 0; i < envVars.length; i++) {
+                        String keyValue = envVars[i];
+                        String[] split = keyValue.split("=", 2);
+                        if (split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                            // Container has a custom workingDir, update env vars with right workspace folder
+                            split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                            envVars[i] = split[0] + "=" + split[1];
+                            LOGGER.log(Level.FINEST, "Updated the starter environment variable, key: {0}, Value: {1}",
+                                    new String[]{split[0], split[1]});
+                        }
+                    }
+                }
+
                 if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
                     final Computer computer = node.toComputer();
                     if (computer != null) {
                         List<String> resultEnvVar = new ArrayList<>();
                         try {
                             EnvVars environment = computer.getEnvironment();
-                            String[] envs = starter.envs();
-                            Set<String> overriddenKeys = new HashSet<>();
-                            for (String keyValue : envs) {
-                                String[] split = keyValue.split("=", 2);
-                                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)
-                                        && split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
-                                    // Container has a custom workingDir, update env vars with right workspace folder
-                                    split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
-                                    keyValue = split[0] + "=" + split[1];
-                                    LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
-                                            new String[]{split[0], split[1]});
-                                }
-                                if (!split[1].equals(environment.get(split[0]))) {
-                                    // Only keep environment variables that differ from Computer's environment
-                                    resultEnvVar.add(keyValue);
-                                    overriddenKeys.add(split[0]);
-                                }
-                            }
-
-                            // modify the working dir on envvars part of Computer
-                            if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
-                                for(Map.Entry<String, String> entry : environment.entrySet()) {
-                                    if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
-                                            && overriddenKeys.contains(entry.getKey())) {
-                                        // Value should be overridden and is not overridden earlier
-                                        String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
-                                        String keyValue = entry.getKey() + "=" + newValue;
-                                        LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
-                                                new String[]{entry.getKey(), newValue});
+                            if (environment != null) {
+                                Set<String> overriddenKeys = new HashSet<>();
+                                for (String keyValue : envVars) {
+                                    String[] split = keyValue.split("=", 2);
+                                    if (!split[1].equals(environment.get(split[0]))) {
+                                        // Only keep environment variables that differ from Computer's environment
                                         resultEnvVar.add(keyValue);
+                                        overriddenKeys.add(split[0]);
                                     }
                                 }
-                            }
 
-                            envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
+                                // modify the working dir on envvars part of Computer
+                                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                    for (Map.Entry<String, String> entry : environment.entrySet()) {
+                                        if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
+                                                && !overriddenKeys.contains(entry.getKey())) {
+                                            // Value should be overridden and is not overridden earlier
+                                            String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                            String keyValue = entry.getKey() + "=" + newValue;
+                                            LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
+                                                    new String[]{entry.getKey(), newValue});
+                                            resultEnvVar.add(keyValue);
+                                        }
+                                    }
+                                }
+                                envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
+                            }
                         } catch (InterruptedException e) {
                             throw new IOException("Unable to retrieve environment variables", e);
                         }
