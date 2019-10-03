@@ -36,12 +36,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import hudson.EnvVars;
+import hudson.model.Computer;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
@@ -85,6 +88,7 @@ public class ContainerExecDecoratorTest {
 
     private ContainerExecDecorator decorator;
     private Pod pod;
+    private KubernetesSlave agent;
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
@@ -108,18 +112,21 @@ public class ContainerExecDecoratorTest {
         String image = "busybox";
         Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
                 .withCommand("cat").withTty(true).build();
+        Container d = new ContainerBuilder().withName(image + "1").withImagePullPolicy("IfNotPresent").withImage(image)
+                .withCommand("cat").withTty(true).withWorkingDir("/home/jenkins/agent1").build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
-                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c).endSpec().build());
+                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
-        KubernetesSlave agent = mock(KubernetesSlave.class);
+        agent = mock(KubernetesSlave.class);
         when(agent.getNamespace()).thenReturn(client.getNamespace());
         when(agent.getPodName()).thenReturn(pod.getMetadata().getName());
-        when(agent.getKubernetesCloud()).thenReturn(cloud);
+        doReturn(cloud).when(agent).getKubernetesCloud();
+        when(agent.getPod()).thenReturn(Optional.of(pod));
         StepContext context = mock(StepContext.class);
         when(context.get(Node.class)).thenReturn(agent);
 
@@ -314,14 +321,53 @@ public class ContainerExecDecoratorTest {
         }
     }
 
+    @Test
+    @Issue("JENKINS-58975")
+    public void testContainerExecOnCustomWorkingDir() throws Exception {
+        doReturn(null).when((Node)agent).toComputer();
+        ProcReturn r = execCommandInContainer("busybox1", agent, false, "env");
+        assertTrue("Environment variable workingDir1 should be changed to /home/jenkins/agent1",
+                r.output.contains("workingDir1=/home/jenkins/agent1"));
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    @Issue("JENKINS-58975")
+    public void testContainerExecOnCustomWorkingDirWithComputeEnvVars() throws Exception {
+        EnvVars computeEnvVars = new EnvVars();
+        computeEnvVars.put("MyDir", "dir");
+        computeEnvVars.put("MyCustomDir", "/home/jenkins/agent");
+        Computer computer = mock(Computer.class);
+        doReturn(computeEnvVars).when(computer).getEnvironment();
+
+        doReturn(computer).when((Node)agent).toComputer();
+        ProcReturn r = execCommandInContainer("busybox1", agent, false, "env");
+        assertTrue("Environment variable workingDir1 should be changed to /home/jenkins/agent1",
+                r.output.contains("workingDir1=/home/jenkins/agent1"));
+        assertTrue("Environment variable MyCustomDir should be changed to /home/jenkins/agent1",
+                r.output.contains("MyCustomDir=/home/jenkins/agent1"));
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
     private ProcReturn execCommand(boolean quiet, String... cmd) throws Exception {
+        return execCommandInContainer(null, null, quiet, cmd);
+    }
+
+    private ProcReturn execCommandInContainer(String containerName, Node node, boolean quiet, String... cmd) throws Exception {
+        if (containerName != null && ! containerName.isEmpty()) {
+            decorator.setContainerName(containerName);
+        }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Launcher launcher = decorator
-                .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), null);
+                .decorate(new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))), node);
         Map<String, String> envs = new HashMap<>(100);
         for (int i = 0; i < 50; i++) {
             envs.put("aaaaaaaa" + i, "bbbbbbbb");
         }
+        envs.put("workingDir1", "/home/jenkins/agent");
+
         ContainerExecProc proc = (ContainerExecProc) launcher
                 .launch(launcher.new ProcStarter().pwd("/tmp").cmds(cmd).envs(envs).quiet(quiet));
         // wait for proc to finish (shouldn't take long)
