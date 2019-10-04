@@ -225,6 +225,7 @@ public class ContainerExecDecoratorTest {
     public void commandsEscaping() {
         ProcStarter procStarter = new DummyLauncher(null).launch();
         procStarter = procStarter.cmds("$$$$", "$$?");
+
         String[] commands = ContainerExecDecorator.getCommands(procStarter, null);
         assertArrayEquals(new String[] { "\\$\\$", "\\$?" }, commands);
     }

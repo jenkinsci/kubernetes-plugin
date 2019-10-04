@@ -255,6 +255,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // find container working dir
                 KubernetesSlave slave = (KubernetesSlave) node;
                 FilePath containerWorkingDirFilePath = starter.pwd();
+                String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
+                        ? containerWorkingDirFilePath.getRemote() : ContainerTemplate.DEFAULT_WORKING_DIR;
                 String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
                 if (slave != null && slave.getPod().isPresent() && containerName != null) {
                     Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
@@ -264,12 +266,17 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (container.isPresent() && container.get().getWorkingDir() != null) {
                         containerWorkingDir = Optional.of(container.get().getWorkingDir());
                     }
-                    if (containerWorkingDir.isPresent() && ! containerWorkingDirFilePath.getRemote().equals(containerWorkingDir.toString())) {
-                        // Container has a custom workingDir, set pwd to the container workspace root
+                    if (containerWorkingDir.isPresent()) {
                         containerWorkingDirStr = containerWorkingDir.get();
-                        containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirStr);
+                    }
+
+                    if (containerWorkingDir.isPresent() && ! containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
+                        // Container has a custom workingDir, updated the pwd to match container working dir
+                        containerWorkingDirFilePathStr = containerWorkingDirFilePath.getRemote().replaceFirst(
+                                ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                        containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirFilePathStr);
                         LOGGER.log(Level.FINEST, "Modified the pwd to match {0} containers workspace directory : {1}",
-                                new String[]{containerName, containerWorkingDirStr});
+                                new String[]{containerName, containerWorkingDirFilePathStr});
                     }
                 }
 
@@ -328,7 +335,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 }
                 return doLaunch(starter.quiet(), envVars, starter.stdout(), containerWorkingDirFilePath, starter.masks(),
-                        getCommands(starter, containerWorkingDirStr));
+                        getCommands(starter, containerWorkingDirFilePathStr));
             }
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
@@ -600,9 +607,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
             String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
-            if (!ContainerTemplate.DEFAULT_WORKING_DIR.equals(containerWorkingDirStr)) {
+            String oldRemoteDir = starter.pwd() != null ? starter.pwd().getRemote() : null;
+            if (oldRemoteDir != null && ! oldRemoteDir.isEmpty() &&
+                    !oldRemoteDir.equals(containerWorkingDirStr) && fixedCommand.contains(oldRemoteDir)) {
                 // Container has a custom workingDir, update the dir in commands
-                fixedCommand = fixedCommand.replaceAll(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                fixedCommand = fixedCommand.replaceAll(oldRemoteDir, containerWorkingDirStr);
             }
             allCommands.add(fixedCommand);
         }

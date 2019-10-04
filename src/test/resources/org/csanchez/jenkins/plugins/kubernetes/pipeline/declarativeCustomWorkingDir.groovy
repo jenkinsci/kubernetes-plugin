@@ -29,9 +29,19 @@ spec:
     stages {
         stage('Run maven') {
             steps {
-                sh 'mvn -version'
-                sh "echo Workspace dir is ${pwd()}"
-                sh "echo \$WORKSPACE"
+                dir('foo') {
+                    container('jnlp') {
+                        sh 'echo [jnlp] current dir is $(pwd)'
+                        sh 'echo [jnlp] WORKSPACE=$WORKSPACE'
+                    }
+                    container('maven') {
+                        sh 'mvn -version'
+                        sh 'echo [maven] current dir is $(pwd)'
+                        sh 'echo [maven] WORKSPACE=$WORKSPACE'
+                    }
+                    sh 'echo [default:maven] current dir is $(pwd)'
+                    sh 'echo [default:maven] WORKSPACE=$WORKSPACE'
+                }
             }
         }
     }
