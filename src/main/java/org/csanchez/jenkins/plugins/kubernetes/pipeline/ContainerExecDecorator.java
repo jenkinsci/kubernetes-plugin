@@ -607,7 +607,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
             String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
-            String oldRemoteDir = starter.pwd() != null ? starter.pwd().getRemote() : null;
+
+            String oldRemoteDir = null;
+            FilePath oldRemoteDirFilepath = starter.pwd();
+            if (oldRemoteDirFilepath != null) {
+                oldRemoteDir = oldRemoteDirFilepath.getRemote();
+            }
             if (oldRemoteDir != null && ! oldRemoteDir.isEmpty() &&
                     !oldRemoteDir.equals(containerWorkingDirStr) && fixedCommand.contains(oldRemoteDir)) {
                 // Container has a custom workingDir, update the dir in commands
