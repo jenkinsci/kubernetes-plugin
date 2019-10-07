@@ -1,4 +1,6 @@
-buildPlugin(configurations: [
-    [platform: 'linux', jdk: '8', jenkins: null],
-    [platform: 'linux', jdk: '11', jenkins: null],
-])
+node('docker') {
+    withEnv(["WSTMP=${pwd tmp: true}"]) {
+        sh 'bash kind.sh'
+        archiveArtifacts "$WSTMP/kindlogs"
+    }
+}
