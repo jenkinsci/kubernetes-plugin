@@ -10,4 +10,4 @@ curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/releas
 chmod +x $WSTMP/kubectl
 kubectl cluster-info
 kubectl run hi --quiet --rm --attach --restart=Never --image=busybox  -- sh -c 'echo hello world'
-kind export logs $WSTMP/kindlogs
+kind export logs --name $BUILD_TAG $WSTMP/kindlogs
