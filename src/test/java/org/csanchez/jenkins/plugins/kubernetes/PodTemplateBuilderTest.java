@@ -32,9 +32,6 @@ import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -55,8 +52,11 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import jenkins.model.Jenkins;
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
+import junitparams.naming.TestCaseName;
 
-@RunWith(Parameterized.class)
+@RunWith(JUnitParamsRunner.class)
 public class PodTemplateBuilderTest {
 
     private static final String AGENT_NAME = "jenkins-agent";
@@ -64,17 +64,8 @@ public class PodTemplateBuilderTest {
     private static final String JENKINS_URL = "http://jenkins.example.com";
     private static final String JENKINS_PROTOCOLS = "JNLP4-connect";
 
-    @Parameters
-    public static Object[] data() {
-        return new Object[] { false, true };
-    }
-
-    @Parameter(0)
-    public boolean directConnection;
-    
     @Rule
     public JenkinsRule r = new JenkinsRule();
-
 
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -114,7 +105,9 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildWithoutSlave() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testBuildWithoutSlave(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         slave = null;
         PodTemplate template = new PodTemplate();
@@ -126,7 +119,9 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildFromYaml() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testBuildFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
@@ -193,7 +188,9 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildFromTemplate() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testBuildFromTemplate(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
 
@@ -335,7 +332,9 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testOverridesFromYaml() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testOverridesFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
@@ -359,7 +358,9 @@ public class PodTemplateBuilderTest {
      * requests are used.
      */
     @Test
-    public void testInheritsFromWithYaml() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testInheritsFromWithYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate parent = new PodTemplate();
         ContainerTemplate container1 = new ContainerTemplate("jnlp", "image1");
@@ -577,7 +578,9 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testOverridesContainerSpec() throws Exception {
+    @TestCaseName("{method} - directConnection={0}")
+    @Parameters({ "true", "false" })
+    public void testOverridesContainerSpec(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         ContainerTemplate cT = new ContainerTemplate("jnlp", "jenkinsci/jnlp-slave:latest");
