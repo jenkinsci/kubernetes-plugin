@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
@@ -14,6 +15,7 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.util.Map;
 import java.util.logging.Level;
@@ -128,9 +130,23 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
     @Extension
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
+
+        private static final ListBoxModel ACCESS_MODES_BOX;
+        static {
+            ListBoxModel boxModel = new ListBoxModel();
+            boxModel.add("ReadWriteOnce","ReadWriteOnce");
+            boxModel.add("ReadOnlyMany","ReadOnlyMany");
+            boxModel.add("ReadWriteMany","ReadWriteMany");
+            ACCESS_MODES_BOX = boxModel;
+        }
         @Override
         public String getDisplayName() {
             return "Dynamic Persistent Volume Claim Workspace Volume";
+        }
+
+        @RequirePOST
+        public ListBoxModel doFillAccessModesItems(){
+            return ACCESS_MODES_BOX;
         }
     }
 }

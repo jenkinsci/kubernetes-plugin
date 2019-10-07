@@ -11,6 +11,8 @@
     </f:entry>
 
     <f:entry title="${%Access Modes}" field="accessModes">
-        <f:textbox />
+        <f:select default="ReadWriteOnce"/>
     </f:entry>
+
 </j:jelly>
+
