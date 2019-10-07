@@ -12,8 +12,11 @@ then
     chmod +x $WSTMP/kubectl
 fi
 kind create cluster --name $BUILD_TAG --wait 5m
-trap "kind delete cluster --name $BUILD_TAG" EXIT
+function cleanup() {
+    kind export logs --name $BUILD_TAG $WSTMP/kindlogs || :
+    kind delete cluster --name $BUILD_TAG || :
+}
+trap cleanup EXIT
 export KUBECONFIG="$(kind get kubeconfig-path --name $BUILD_TAG)"
 kubectl cluster-info
-kubectl run hi --quiet --rm --attach --restart=Never --image=busybox  -- sh -c 'echo hello world'
-kind export logs --name $BUILD_TAG $WSTMP/kindlogs
+bash run-in-k8s.sh

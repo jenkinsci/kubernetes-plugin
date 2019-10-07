@@ -155,6 +155,7 @@ public abstract class AbstractKubernetesPipelineTest {
         System.err.println("Calling home to address: " + hostAddress);
         URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
                 url.getFile());
+        // TODO better to set KUBERNETES_JENKINS_URL (ditto in RestartPipelineTest)
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
 
         r.jenkins.clouds.add(cloud);

@@ -709,6 +709,8 @@ kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kuberne
 kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
 ```
 
+(TODO above instructions may be stale)
+
 # Docker image
 
 Docker image for Jenkins, with plugin installed.
