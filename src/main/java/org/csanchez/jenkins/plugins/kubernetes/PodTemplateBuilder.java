@@ -24,9 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -353,7 +350,7 @@ public class PodTemplateBuilder {
             LOGGER.log(Level.WARNING, null, x);
         }
         String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
-        if(isBlank(host)) {
+        if(StringUtils.isBlank(host)) {
             try {
                 host = new URL(Jenkins.get().getRootUrl()).getHost();
             } catch (MalformedURLException | NullPointerException e) {
