@@ -18,5 +18,4 @@ kubectl exec jenkins -- \
         -DslaveAgentPort=50000 \
         -Djenkins.host.address=jenkins \
         -Dtest=KubernetesPipelineTest\#runInPod \
-        -Djenkins.test.timeout=0 \
         test
