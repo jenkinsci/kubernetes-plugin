@@ -8,7 +8,7 @@ then
 fi
 if [ \! -f $WSTMP/kubectl ]
 then
-    curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+    curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.15.3/bin/linux/amd64/kubectl
     chmod +x $WSTMP/kubectl
 fi
 kind create cluster --name $BUILD_TAG --wait 5m
