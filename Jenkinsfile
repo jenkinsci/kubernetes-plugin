@@ -6,7 +6,7 @@ node('docker') {
             sh 'bash kind.sh'
         } finally {
             if (fileExists("$WSTMP/kindlogs/docker-info.txt")) {
-                archiveArtifacts "$WSTMP/kindlogs"
+                archiveArtifacts "$WSTMP/kindlogs/"
             }
         }
     }
