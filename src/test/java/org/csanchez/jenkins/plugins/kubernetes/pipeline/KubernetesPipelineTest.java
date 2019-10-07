@@ -63,6 +63,7 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
@@ -474,6 +475,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
+    @Ignore("TODO fails in Kind with 'java.nio.file.AccessDeniedException: /home/jenkins/agent/workspace' from FilePath.mkdirs from FileMonitoringTask$FileMonitoringController.<init>")
     @Test
     public void dynamicPVC() throws Exception {
         try {
