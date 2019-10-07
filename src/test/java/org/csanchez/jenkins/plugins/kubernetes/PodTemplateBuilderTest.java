@@ -31,6 +31,10 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspa
 import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -52,14 +56,22 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import jenkins.model.Jenkins;
 
+@RunWith(Parameterized.class)
 public class PodTemplateBuilderTest {
 
     private static final String AGENT_NAME = "jenkins-agent";
     private static final String AGENT_SECRET = "xxx";
     private static final String JENKINS_URL = "http://jenkins.example.com";
     private static final String JENKINS_PROTOCOLS = "JNLP4-connect";
-    
 
+    @Parameters
+    public static Object[] data() {
+        return new Object[] { false, true };
+    }
+
+    @Parameter(0)
+    public boolean directConnection;
+    
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
@@ -102,16 +114,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildWithoutSlave_directConnection() throws Exception {
-      testBuildWithoutSlave(true);
-    }
-
-    @Test
-    public void testBuildWithoutSlave_noDirectConnection() throws Exception {
-      testBuildWithoutSlave(false);
-    }
-
-    private void testBuildWithoutSlave(boolean directConnection) throws Exception {
+    public void testBuildWithoutSlave() throws Exception {
         cloud.setDirectConnection(directConnection);
         slave = null;
         PodTemplate template = new PodTemplate();
@@ -123,16 +126,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildFromYaml_directConnection() throws Exception {
-      testBuildFromYaml(true);
-    }
-
-    @Test
-    public void testBuildFromYaml_noDirectConnection() throws Exception {
-      testBuildFromYaml(false);
-    }
-
-    private void testBuildFromYaml(boolean directConnection) throws Exception {
+    public void testBuildFromYaml() throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
@@ -199,16 +193,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildFromTemplate_directConnection() throws Exception {
-      testBuildFromTemplate(true);
-    }
-
-    @Test
-    public void testBuildFromTemplate_noDirectConnection() throws Exception {
-      testBuildFromTemplate(false);
-    }
-
-    private void testBuildFromTemplate(boolean directConnection) throws Exception {
+    public void testBuildFromTemplate() throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
 
@@ -350,16 +335,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testOverridesFromYaml_directConnection() throws Exception {
-      testOverridesFromYaml(true);
-    }
-
-    @Test
-    public void testOverridesFromYaml_noDirectConnection() throws Exception {
-      testOverridesFromYaml(false);
-    }
-
-    private void testOverridesFromYaml(boolean directConnection) throws Exception {
+    public void testOverridesFromYaml() throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
@@ -377,22 +353,13 @@ public class PodTemplateBuilderTest {
         validateContainers(pod, slave, directConnection);
     }
 
-    @Test
-    public void testInheritsFromWithYaml_directConnection() throws Exception {
-      testInheritsFromWithYaml(true);
-    }
-
-    @Test
-    public void testInheritsFromWithYaml_noDirectConnection() throws Exception {
-      testInheritsFromWithYaml(false);
-    }
-
     /**
      * This is counter intuitive, the yaml contents are ignored because the parent fields are merged first with the
      * child ones. Then the fields override what is defined in the yaml, so in effect the parent resource limits and
      * requests are used.
      */
-    private void testInheritsFromWithYaml(boolean directConnection) throws Exception {
+    @Test
+    public void testInheritsFromWithYaml() throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate parent = new PodTemplate();
         ContainerTemplate container1 = new ContainerTemplate("jnlp", "image1");
@@ -610,16 +577,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testOverridesContainerSpec_directConnection() throws Exception {
-      testOverridesContainerSpec(true);
-    }
-
-    @Test
-    public void testOverridesContainerSpec_noDirectConnection() throws Exception {
-      testOverridesContainerSpec(false);
-    }
-
-    private void testOverridesContainerSpec(boolean directConnection) throws Exception {
+    public void testOverridesContainerSpec() throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         ContainerTemplate cT = new ContainerTemplate("jnlp", "jenkinsci/jnlp-slave:latest");
