@@ -105,7 +105,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testBuildWithoutSlave(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
@@ -119,7 +119,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testBuildFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
@@ -188,7 +188,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testBuildFromTemplate(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
@@ -332,7 +332,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testOverridesFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
@@ -358,7 +358,7 @@ public class PodTemplateBuilderTest {
      * requests are used.
      */
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testInheritsFromWithYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
@@ -578,7 +578,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    @TestCaseName("{method} - directConnection={0}")
+    @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testOverridesContainerSpec(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
