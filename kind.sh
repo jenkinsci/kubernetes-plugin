@@ -21,3 +21,5 @@ trap cleanup EXIT
 export KUBECONFIG="$(kind get kubeconfig-path --name $BUILD_TAG)"
 kubectl cluster-info
 bash test-in-k8s.sh
+rm -rf $WSTMP/surefire-reports
+kubectl cp jenkins:/checkout/target/surefire-reports $WSTMP/surefire-reports

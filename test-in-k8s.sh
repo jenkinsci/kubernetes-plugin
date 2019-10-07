@@ -19,5 +19,5 @@ kubectl exec jenkins -- \
         -Dport=8000 \
         -DslaveAgentPort=50000 \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test \
-        -Dtest='org.csanchez.jenkins.plugins.kubernetes.pipeline.**.*Test' \
-        test
+        -Dmaven.test.failure.ignore \
+        verify

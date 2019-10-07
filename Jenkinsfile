@@ -4,6 +4,9 @@ node('docker') {
     withEnv(["WSTMP=${pwd tmp: true}"]) {
         try {
             sh 'bash kind.sh'
+            dir (WSTMP) {
+                junit 'surefire-reports/*.xml'
+            }
         } finally {
             dir (WSTMP) {
                 if (fileExists('kindlogs/docker-info.txt')) {
