@@ -59,8 +59,14 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create","delete","get","list","patch","update","watch"]
-- apiGroups: [""]
-  resources: ["deploy"] # KubernetesPipelineTest#cascadingDelete
+- apiGroups: ["apps"]
+  resources: ["deployments"] # KubernetesPipelineTest#cascadingDelete
+  verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: ["extensions"]
+  resources: ["deployments"] # ditto
+  verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"] # ditto
   verbs: ["create","delete","get","list","patch","update","watch"]
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"] # KubernetesPipelineTest#dynamicPVC
