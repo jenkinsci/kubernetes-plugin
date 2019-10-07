@@ -19,4 +19,4 @@ function cleanup() {
 trap cleanup EXIT
 export KUBECONFIG="$(kind get kubeconfig-path --name $BUILD_TAG)"
 kubectl cluster-info
-bash run-in-k8s.sh
+bash test-in-k8s.sh

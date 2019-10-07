@@ -693,23 +693,11 @@ just run as
 
 ### Integration Tests in a Different Cluster
 
-Ensure you create the namespaces and roles with the following commands, then run the tests
-in namespace `kubernetes-plugin` with the service account `jenkins`
-(edit `src/test/kubernetes/service-account.yml` to use a different service account)
+Try
 
+```bash
+bash test-in-k8s.sh
 ```
-kubectl create namespace kubernetes-plugin-test
-kubectl create namespace kubernetes-plugin-test-overridden-namespace
-kubectl create namespace kubernetes-plugin-test-overridden-namespace2
-kubectl apply -n kubernetes-plugin-test -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test -f src/test/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
-```
-
-(TODO above instructions may be stale)
 
 # Docker image
 
