@@ -5,8 +5,10 @@ node('docker') {
         try {
             sh 'bash kind.sh'
         } finally {
-            if (fileExists("$WSTMP/kindlogs/docker-info.txt")) {
-                archiveArtifacts "$WSTMP/kindlogs/"
+            dir (WSTMP) {
+                if (fileExists('kindlogs/docker-info.txt')) {
+                    archiveArtifacts 'kindlogs/'
+                }
             }
         }
     }
