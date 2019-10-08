@@ -20,6 +20,12 @@ function cleanup() {
 trap cleanup EXIT
 export KUBECONFIG="$(kind get kubeconfig-path --name $BUILD_TAG)"
 kubectl cluster-info
+
+# https://github.com/kubernetes-sigs/kind/issues/118#issuecomment-475134086
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/205a80824bc6ea6095602458c15651f58146eae4/deploy/local-path-storage.yaml
+kubectl patch storageclass local-path -p '{"metadata":{"annotations":{"storageclass.beta.kubernetes.io/is-default-class":"true"}}}'
+kubectl delete storageclass standard
+
 bash test-in-k8s.sh
 rm -rf $WSTMP/surefire-reports
 kubectl cp jenkins:/checkout/target/surefire-reports $WSTMP/surefire-reports
