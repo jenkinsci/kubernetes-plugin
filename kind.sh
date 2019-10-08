@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euxo pipefail
+
 export PATH=$WSTMP:$PATH
 if [ \! -f $WSTMP/kind ]
 then
@@ -11,6 +12,7 @@ then
     curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.15.3/bin/linux/amd64/kubectl
     chmod +x $WSTMP/kubectl
 fi
+
 # TODO use kind load to take better advantage of images cached in the host VM
 kind create cluster --name $BUILD_TAG --wait 5m
 function cleanup() {
