@@ -28,6 +28,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+  serviceAccountName: jenkins
   securityContext:
     runAsUser: 1000
     fsGroup: 1000

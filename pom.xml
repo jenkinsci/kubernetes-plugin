@@ -45,6 +45,7 @@
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost />
     <jenkins.host.address />
+    <slaveAgentPort />
     <java.level>8</java.level>
     <jenkins.version>2.190.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
@@ -266,6 +267,7 @@
             <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
+            <slaveAgentPort>${slaveAgentPort}</slaveAgentPort>
           </systemPropertyVariables>
         </configuration>
       </plugin>
