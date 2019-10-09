@@ -14,6 +14,8 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.Symbol;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -131,20 +133,19 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
 
-        private static final ListBoxModel ACCESS_MODES_BOX;
-        static {
-            ListBoxModel boxModel = new ListBoxModel();
-            boxModel.add("ReadWriteOnce","ReadWriteOnce");
-            boxModel.add("ReadOnlyMany","ReadOnlyMany");
-            boxModel.add("ReadWriteMany","ReadWriteMany");
-            ACCESS_MODES_BOX = boxModel;
-        }
+        private static final ListBoxModel ACCESS_MODES_BOX = new ListBoxModel()
+                .add("ReadWriteOnce")
+                .add("ReadOnlyMany")
+                .add("ReadWriteMany");
+
         @Override
         public String getDisplayName() {
             return "Dynamic Persistent Volume Claim Workspace Volume";
         }
 
+        @SuppressWarnings("unused") // by stapler
         @RequirePOST
+        @Restricted(DoNotUse.class) // stapler only
         public ListBoxModel doFillAccessModesItems(){
             return ACCESS_MODES_BOX;
         }
