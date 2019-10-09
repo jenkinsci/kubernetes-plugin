@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
@@ -13,7 +14,10 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.Symbol;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.util.Map;
 import java.util.logging.Level;
@@ -128,9 +132,22 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
     @Extension
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
+
+        private static final ListBoxModel ACCESS_MODES_BOX = new ListBoxModel()
+                .add("ReadWriteOnce")
+                .add("ReadOnlyMany")
+                .add("ReadWriteMany");
+
         @Override
         public String getDisplayName() {
             return "Dynamic Persistent Volume Claim Workspace Volume";
+        }
+
+        @SuppressWarnings("unused") // by stapler
+        @RequirePOST
+        @Restricted(DoNotUse.class) // stapler only
+        public ListBoxModel doFillAccessModesItems(){
+            return ACCESS_MODES_BOX;
         }
     }
 }

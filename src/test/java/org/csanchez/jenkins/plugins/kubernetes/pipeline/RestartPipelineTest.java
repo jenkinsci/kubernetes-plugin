@@ -28,8 +28,6 @@ import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,7 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -66,7 +63,6 @@ import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
-import jenkins.model.JenkinsLocationConfiguration;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -128,17 +124,7 @@ public class RestartPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
-        URL url = story.j.getURL();
-
-        String hostAddress = System.getProperty("jenkins.host.address");
-        if (StringUtils.isBlank(hostAddress)) {
-            hostAddress = InetAddress.getLocalHost().getHostAddress();
-        }
-        System.err.println("Calling home to address: " + hostAddress);
-        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
-                url.getFile());
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+        setupHost();
 
         story.j.jenkins.clouds.add(cloud);
     }

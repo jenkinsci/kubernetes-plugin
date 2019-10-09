@@ -67,6 +67,10 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import java.net.InetAddress;
+import java.net.URL;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -122,6 +126,25 @@ public class KubernetesTestUtil {
         client = cloud.connect();
 
         return cloud;
+    }
+
+    public static void setupHost() throws Exception {
+        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
+        URL url = new URL(JenkinsLocationConfiguration.get().getUrl());
+        String hostAddress = System.getProperty("jenkins.host.address");
+        if (org.apache.commons.lang3.StringUtils.isBlank(hostAddress)) {
+            hostAddress = InetAddress.getLocalHost().getHostAddress();
+        }
+        System.err.println("Calling home to address: " + hostAddress);
+        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
+                url.getFile());
+        // TODO better to set KUBERNETES_JENKINS_URL
+        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+
+        Integer slaveAgentPort = Integer.getInteger("slaveAgentPort");
+        if (slaveAgentPort != null) {
+            Jenkins.get().setSlaveAgentPort(slaveAgentPort);
+        }
     }
 
     public static void assumeKubernetes() throws Exception {
