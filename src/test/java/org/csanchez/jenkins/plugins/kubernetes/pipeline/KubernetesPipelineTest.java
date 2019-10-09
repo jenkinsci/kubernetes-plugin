@@ -25,9 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
@@ -39,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -60,6 +59,7 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
@@ -75,13 +75,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
+    @Rule
+    public LoggerRule warnings = new LoggerRule();
+
     @Before
     public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
-        logs.capture(1000);
+        warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
     }
 
+    @Issue("JENKINS-57993")
     @Test
     public void runInPod() throws Exception {
         SemaphoreStep.waitForStart("podTemplate/1", b);
@@ -100,16 +104,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
+        for (Computer c : r.jenkins.getComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+            new Thread(() -> {
+                long pos = 0;
+                try {
+                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
+                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                            pos = c.getLogText().writeLogTo(pos, System.out);
+                        }
+                        Thread.sleep(100);
+                    }
+                } catch (Exception x) {
+                    x.printStackTrace();
+                }
+            }, "watching logs for " + c.getDisplayName()).start();
+            System.out.println(c.getLog());
+        }
         PodList pods = cloud.connect().pods().withLabels(labels).list();
         assertThat(
                 "Expected one pod with labels " + labels + " but got: "
                         + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
                 pods.getItems(), hasSize(1));
         SemaphoreStep.success("pod/1", null);
-
-        for (String msg : logs.getMessages()) {
-            System.out.println(msg);
-        }
 
         PodTemplate template = templates.get(0);
         List<PodAnnotation> annotations = template.getAnnotations();
@@ -136,6 +152,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+        assertThat("routine build should not issue warnings",
+            warnings.getRecords().stream().
+                filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue()). // TODO .record(…, WARNING) does not accomplish this
+                map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage()).collect(Collectors.toList()), // LogRecord does not override toString
+            emptyIterable());
     }
 
     @Test
