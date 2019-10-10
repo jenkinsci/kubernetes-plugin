@@ -14,13 +14,14 @@ then
 fi
 
 # TODO use kind load to take better advantage of images cached in the host VM
-kind create cluster --name $BUILD_TAG --wait 5m
+export cluster=ci$RANDOM
+kind create cluster --name $cluster --wait 5m
 function cleanup() {
-    kind export logs --name $BUILD_TAG $WSTMP/kindlogs || :
-    kind delete cluster --name $BUILD_TAG || :
+    kind export logs --name $cluster $WSTMP/kindlogs || :
+    kind delete cluster --name $cluster || :
 }
 trap cleanup EXIT
-export KUBECONFIG="$(kind get kubeconfig-path --name $BUILD_TAG)"
+export KUBECONFIG="$(kind get kubeconfig-path --name $cluster)"
 kubectl cluster-info
 
 # https://github.com/kubernetes-sigs/kind/issues/118#issuecomment-475134086
