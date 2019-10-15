@@ -173,6 +173,8 @@ public class PodTemplateBuilderTest {
     @Test
     public void testBuildFromTemplate() throws Exception {
         PodTemplate template = new PodTemplate();
+        template.setRunAsUser(1000L);
+        template.setRunAsGroup(1000L);
 
         List<PodVolume> volumes = new ArrayList<PodVolume>();
         volumes.add(new HostPathVolume("/host/data", "/container/data"));
@@ -186,6 +188,8 @@ public class PodTemplateBuilderTest {
         List<TemplateEnvVar> envVars = new ArrayList<TemplateEnvVar>();
         envVars.add(new KeyValueEnvVar("CONTAINER_ENV_VAR", "container-env-var-value"));
         busyboxContainer.setEnvVars(envVars);
+        busyboxContainer.setRunAsUser(2000L);
+        busyboxContainer.setRunAsGroup(2000L);
         containers.add(busyboxContainer);
         template.setContainers(containers);
 
@@ -266,6 +270,11 @@ public class PodTemplateBuilderTest {
             assertThat(jnlpMounts, containsInAnyOrder(volumeMounts));
         }
 
+        assertEquals(1000L, (Object) pod.getSpec().getSecurityContext().getRunAsUser());
+        assertEquals(1000L, (Object) pod.getSpec().getSecurityContext().getRunAsGroup());
+        assertEquals(2000L, (Object) containers.get("busybox").getSecurityContext().getRunAsUser());
+        assertEquals(2000L, (Object) containers.get("busybox").getSecurityContext().getRunAsGroup());
+
         validateContainers(pod, slave);
     }
 
@@ -336,6 +345,8 @@ public class PodTemplateBuilderTest {
         container1.setResourceLimitMemory("1Gi");
         container1.setResourceRequestCpu("100m");
         container1.setResourceRequestMemory("156Mi");
+        container1.setRunAsUser(1000L);
+        container1.setRunAsGroup(2000L);
         parent.setContainers(Arrays.asList(container1));
 
         PodTemplate template = new PodTemplate();
@@ -353,6 +364,8 @@ public class PodTemplateBuilderTest {
         assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
         assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
+        assertEquals(1000L, (Object) jnlp.getSecurityContext().getRunAsUser());
+        assertEquals(2000L, (Object) jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave);
     }
 
@@ -504,6 +517,60 @@ public class PodTemplateBuilderTest {
         Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
         assertTrue(hostVolume.isPresent());
         assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+    }
+
+    @Test
+    public void yamlOverrideSecurityContext() {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  securityContext:\n" +
+                "    runAsUser: 2000\n" +
+                "    runAsGroup: 2000\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 1000\n" +
+                "      runAsGroup: 1000\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  securityContext:\n" +
+                "    runAsUser: 3000\n" +
+                "    runAsGroup: 3000\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    image: busybox2\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 2000\n" +
+                "      runAsGroup: 2000\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+        child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
+        setupStubs();
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        assertThat(pod.getSpec().getContainers(), hasSize(2));
+        Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
+        assertTrue(container.isPresent());
+        assertEquals(3000L, (Object) pod.getSpec().getSecurityContext().getRunAsUser());
+        assertEquals(3000L, (Object) pod.getSpec().getSecurityContext().getRunAsGroup());
+        assertEquals(2000L, (Object) container.get().getSecurityContext().getRunAsUser());
+        assertEquals(2000L, (Object) container.get().getSecurityContext().getRunAsGroup());
     }
 
     @Test

@@ -75,6 +75,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String image;
 
     private boolean privileged;
+    
+    private Long runAsUser;
+    
+    private Long runAsGroup;
 
     private boolean capOnlyOnAlivePods;
 
@@ -425,6 +429,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isPrivileged).orElse(false);
     }
 
+    @DataBoundSetter
+    public void setRunAsUser(Long runAsUser) {
+        this.runAsUser = runAsUser;
+    }
+    
+    public Long getRunAsUser() {
+        return runAsUser;
+    }
+
+    @DataBoundSetter
+    public void setRunAsGroup(Long runAsGroup) {
+        this.runAsGroup = runAsGroup;
+    }
+    
+    public Long getRunAsGroup() {
+        return runAsGroup;
+    }
+
     public String getServiceAccount() {
         return serviceAccount;
     }
@@ -687,6 +709,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
+            containerTemplate.setRunAsUser(runAsUser);
+            containerTemplate.setRunAsGroup(runAsGroup);
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
@@ -849,6 +873,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (namespace == null ? "" : ", namespace='" + namespace + '\'') +
                 (image == null ? "" : ", image='" + image + '\'') +
                 (!privileged ? "" : ", privileged=" + privileged) +
+                (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
+                (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
                 (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
                 (command == null ? "" : ", command='" + command + '\'') +
                 (args == null ? "" : ", args='" + args + '\'') +
