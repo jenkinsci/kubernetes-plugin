@@ -35,6 +35,8 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
+import java.util.Objects;
+
 public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     private static final String DEFAULT_MEDIUM = "";
@@ -58,13 +60,26 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
     }
 
     @Override
-    public Volume buildVolume(String volumeName) {
+    public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder().withName(volumeName).withNewEmptyDir().withMedium(getMedium()).endEmptyDir().build();
     }
 
     @Override
     public String toString() {
         return "EmptyDirWorkspaceVolume [memory=" + memory + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EmptyDirWorkspaceVolume that = (EmptyDirWorkspaceVolume) o;
+        return Objects.equals(memory, that.memory);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(memory);
     }
 
     @Extension
