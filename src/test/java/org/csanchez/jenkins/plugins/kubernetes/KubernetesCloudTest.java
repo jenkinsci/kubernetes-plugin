@@ -17,11 +17,20 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.DomNodeList;
+import com.gargoylesoftware.htmlunit.html.HtmlButton;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlForm;
+import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -261,5 +270,36 @@ public class KubernetesCloudTest {
 
         assertEquals("Expected cloud from copy constructor to be equal to the source except for name", cloud, copy);
     }
+
+    @Test
+    public void defaultWorkspaceVolume() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        j.jenkins.clouds.add(cloud);
+        j.jenkins.save();
+        JenkinsRule.WebClient wc = j.createWebClient();
+        HtmlPage p = wc.goTo("configure");
+        HtmlForm f = p.getFormByName("config");
+        HtmlButton button = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
+        button.click();
+        DomElement templates = p.getElementByName("templates");
+        HtmlInput templateName = getInputByName(templates, "_.name");
+        templateName.setValueAttribute("default-workspace-volume");
+        j.submit(f);
+        cloud = j.jenkins.clouds.get(KubernetesCloud.class);
+        PodTemplate podTemplate = cloud.getTemplates().get(0);
+        assertEquals("default-workspace-volume", podTemplate.getName());
+        assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
+    }
+
+    public HtmlInput getInputByName(DomElement root, String name) {
+        DomNodeList<HtmlElement> inputs = root.getElementsByTagName("input");
+        for (HtmlElement input : inputs) {
+            if (name.equals(input.getAttribute("name"))) {
+                return (HtmlInput) input;
+            }
+        }
+        return null;
+    }
+
 
 }
