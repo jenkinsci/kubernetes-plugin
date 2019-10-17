@@ -327,8 +327,11 @@ public class PodTemplateBuilderTest {
     }
 
     /**
-     * Overrride is in this order:
-     * parent (UI) > template (UI) > yaml
+     * Configuration is applied in this order :
+     * - parent (UI)
+     * - template (UI)
+     * - parent (yaml)
+     * - template (yaml)
      */
     @Test
     public void testInheritsFromWithYaml() throws Exception {
