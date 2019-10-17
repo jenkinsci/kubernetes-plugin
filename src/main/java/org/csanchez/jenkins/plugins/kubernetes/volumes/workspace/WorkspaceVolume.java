@@ -39,6 +39,15 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
 
     private static final long serialVersionUID = 5367004248055474414L;
 
+    public static WorkspaceVolume merge(WorkspaceVolume parentWorkspaceVolume, WorkspaceVolume templateVolume) {
+        // Only override parent if differ from the default
+        return getDefault().equals(templateVolume) ? parentWorkspaceVolume : templateVolume;
+    }
+
+    public static WorkspaceVolume getDefault() {
+        return new EmptyDirWorkspaceVolume(false);
+    }
+
     // Builds a Volume model with the given name.require podName to generate pvc name
     public Volume buildVolume(String volumeName, String podName){
         return buildVolume(volumeName);

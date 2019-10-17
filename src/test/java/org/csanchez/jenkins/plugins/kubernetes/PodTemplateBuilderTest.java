@@ -128,8 +128,7 @@ public class PodTemplateBuilderTest {
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
-        template.setCustomWorkspaceVolumeEnabled(true);
-        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(false));
+        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(true));
         ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
         containerTemplate.setWorkingDir("");
         template.getContainers().add(containerTemplate);
@@ -145,12 +144,12 @@ public class PodTemplateBuilderTest {
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
         assertEquals(volumeMounts, container1.getVolumeMounts());
+        assertEquals("Memory", pod.getSpec().getVolumes().get(0).getEmptyDir().getMedium());
     }
 
     @Test
     public void testBuildWithDynamicPVCWorkspaceVolume(){
         PodTemplate template = new PodTemplate();
-        template.setCustomWorkspaceVolumeEnabled(true);
         template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume(
                 null, null,null));
         ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");

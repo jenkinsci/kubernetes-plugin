@@ -19,6 +19,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -110,8 +111,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceLimitMemory;
 
-    private boolean customWorkspaceVolumeEnabled;
-    private WorkspaceVolume workspaceVolume;
+    private WorkspaceVolume workspaceVolume = WorkspaceVolume.getDefault();
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
@@ -587,15 +587,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return volumes;
     }
 
-    public boolean isCustomWorkspaceVolumeEnabled() {
-        return customWorkspaceVolumeEnabled;
-    }
-
-    @DataBoundSetter
-    public void setCustomWorkspaceVolumeEnabled(boolean customWorkspaceVolumeEnabled) {
-        this.customWorkspaceVolumeEnabled = customWorkspaceVolumeEnabled;
-    }
-
+    @Nonnull
     public WorkspaceVolume getWorkspaceVolume() {
         return workspaceVolume;
     }
@@ -704,6 +696,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             // value can still be null, so check for it here so 
             // as to not blow up things like termination path
             podRetention = PodRetention.getPodTemplateDefault();
+        }
+
+        if (workspaceVolume == null) {
+            workspaceVolume = WorkspaceVolume.getDefault();
         }
 
         if (annotations == null) {
@@ -826,12 +822,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
+        public Descriptor getDefaultWorkspaceVolume() {
+            return Jenkins.get().getDescriptor(EmptyDirWorkspaceVolume.class);
+        }
+
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
         public Descriptor getDefaultPodRetention() {
-            Jenkins jenkins = Jenkins.getInstanceOrNull();
-            if (jenkins == null) {
-                return null;
-            }
-            return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
+            return Jenkins.get().getDescriptor(PodRetention.getPodTemplateDefault().getClass());
         }
 
         @SuppressWarnings("unused") // Used by jelly
@@ -865,7 +863,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
-                (!customWorkspaceVolumeEnabled ? "" : ", customWorkspaceVolumeEnabled=" + customWorkspaceVolumeEnabled) +
                 (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
                 (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
                 (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +

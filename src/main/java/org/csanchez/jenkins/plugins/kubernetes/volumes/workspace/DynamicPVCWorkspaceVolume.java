@@ -20,6 +20,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -127,6 +128,21 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
             Quantity storageQuantity = new Quantity(actualStorage);
             builder.put("storage", storageQuantity);
         return builder.build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DynamicPVCWorkspaceVolume that = (DynamicPVCWorkspaceVolume) o;
+        return Objects.equals(storageClassName, that.storageClassName) &&
+                Objects.equals(requestsSize, that.requestsSize) &&
+                Objects.equals(accessModes, that.accessModes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(storageClassName, requestsSize, accessModes);
     }
 
     @Extension
