@@ -822,7 +822,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
-        public Descriptor getDefaultWorkspaceVolume() {
         public WorkspaceVolume getDefaultWorkspaceVolume() {
             return WorkspaceVolume.getDefault();
         }
