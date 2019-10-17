@@ -823,7 +823,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
         public Descriptor getDefaultWorkspaceVolume() {
-            return Jenkins.get().getDescriptor(EmptyDirWorkspaceVolume.class);
+        public WorkspaceVolume getDefaultWorkspaceVolume() {
+            return WorkspaceVolume.getDefault();
         }
 
         @SuppressWarnings("unused") // Used by jelly
@@ -863,7 +864,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
-                (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
+                ", workspaceVolume=" + workspaceVolume +
                 (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
                 (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
