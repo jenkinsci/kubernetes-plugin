@@ -24,6 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,6 +52,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -68,6 +71,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import jenkins.model.Jenkins;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
@@ -303,12 +307,20 @@ public class PodTemplateBuilder {
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
-            String url = cloud.getJenkinsUrlOrDie();
-
-            env.put("JENKINS_URL", url);
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
+            
+            if (!cloud.isDirectConnection()) {
+                env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+            } else {
+                String host = getAdvertisedHost();
+                int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
+                env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
+                env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
+                env.put("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey());
+            }
+
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
@@ -316,6 +328,26 @@ public class PodTemplateBuilder {
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
         return envVarsMap;
+    }
+
+    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
+    private String getAdvertisedHost() {
+        try {
+            return (String) TcpSlaveAgentListener.class.getMethod("getAdvertisedHost").invoke(Jenkins.get().getTcpSlaveAgentListener());
+        } catch (NoSuchMethodException x) {
+            // 2.197-, fine
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+        String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
+        if(StringUtils.isBlank(host)) {
+            try {
+                host = new URL(Jenkins.get().getRootUrl()).getHost();
+            } catch (MalformedURLException | NullPointerException e) {
+                throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
+            }
+        }
+        return host;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
