@@ -1,9 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -107,6 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private boolean directConnection = true;
     private String jenkinsUrl;
     @CheckForNull
     private String jenkinsTunnel;
@@ -151,6 +155,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
+        this.directConnection = source.directConnection;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
@@ -326,6 +331,15 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
+    }
+
+    public boolean isDirectConnection() {
+        return directConnection;
+    }
+
+    @DataBoundSetter
+    public void setDirectConnection(boolean directConnection) {
+        this.directConnection = directConnection;
     }
 
     @DataBoundSetter
@@ -786,6 +800,38 @@ public class KubernetesCloud extends Cloud {
             } catch (NumberFormatException e) {
                 return FormValidation.error("Please supply an integer");
             }
+        }
+
+        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+            int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
+            if(slaveAgentPort == -1) return FormValidation.warning(
+                    "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
+
+            if(value) {
+                if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
+
+                if(slaveAgentPort == 0) return FormValidation.warning(
+                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
+            } else {
+                if (isEmpty(jenkinsUrl)) {
+                    String url = StringUtils.defaultIfBlank(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")), JenkinsLocationConfiguration.get().getUrl());
+                    if (url != null) {
+                        return FormValidation.ok("Will connect using " + url);
+                    } else {
+                        return FormValidation.warning("Configure either Direct Connection or Jenkins URL");
+                    }
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection) throws IOException, ServletException {
+            try {
+                if(!isEmpty(value)) new URL(value);
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, "Invalid Jenkins URL");
+            }
+            return FormValidation.ok();
         }
 
         public List<Descriptor<PodRetention>> getAllowedPodRetentions() {

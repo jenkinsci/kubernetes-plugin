@@ -332,7 +332,7 @@ public class PodTemplateUtils {
         combinedVolumes.putAll(parentVolumes);
         combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
 
-        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
+        WorkspaceVolume workspaceVolume = WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
 
         //Tool location node properties
         PodTemplateToolLocation toolLocationNodeProperties = parent.getNodeProperties();
@@ -372,8 +372,6 @@ public class PodTemplateUtils {
         podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
 
-        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
-                                                    template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
 
