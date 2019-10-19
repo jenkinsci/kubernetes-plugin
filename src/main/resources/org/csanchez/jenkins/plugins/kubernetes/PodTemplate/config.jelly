@@ -101,12 +101,9 @@
     <f:textbox/>
   </f:entry>
 
-    <f:optionalBlock title="${%Use custom workspace volume}" field="customWorkspaceVolumeEnabled" inline="true">
-      <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
-        <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="${%Add Workspace Volume}"
-                                      deleteCaption="${%Delete Workspace Volume}" />
-      </f:entry>
-    </f:optionalBlock>
+  <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+    <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+  </f:entry>
 
   <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 
