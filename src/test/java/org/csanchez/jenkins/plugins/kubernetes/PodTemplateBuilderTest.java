@@ -270,10 +270,10 @@ public class PodTemplateBuilderTest {
             assertThat(jnlpMounts, containsInAnyOrder(volumeMounts));
         }
 
-        assertEquals(1000L, (Object) pod.getSpec().getSecurityContext().getRunAsUser());
-        assertEquals(1000L, (Object) pod.getSpec().getSecurityContext().getRunAsGroup());
-        assertEquals(2000L, (Object) containers.get("busybox").getSecurityContext().getRunAsUser());
-        assertEquals(2000L, (Object) containers.get("busybox").getSecurityContext().getRunAsGroup());
+        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsGroup());
+        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsGroup());
 
         validateContainers(pod, slave);
     }
@@ -364,8 +364,8 @@ public class PodTemplateBuilderTest {
         assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
         assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
         assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
-        assertEquals(1000L, (Object) jnlp.getSecurityContext().getRunAsUser());
-        assertEquals(2000L, (Object) jnlp.getSecurityContext().getRunAsGroup());
+        assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave);
     }
 
@@ -567,10 +567,10 @@ public class PodTemplateBuilderTest {
         assertThat(pod.getSpec().getContainers(), hasSize(2));
         Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
         assertTrue(container.isPresent());
-        assertEquals(3000L, (Object) pod.getSpec().getSecurityContext().getRunAsUser());
-        assertEquals(3000L, (Object) pod.getSpec().getSecurityContext().getRunAsGroup());
-        assertEquals(2000L, (Object) container.get().getSecurityContext().getRunAsUser());
-        assertEquals(2000L, (Object) container.get().getSecurityContext().getRunAsGroup());
+        assertEquals(Long.valueOf(3000L), pod.getSpec().getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(3000L), pod.getSpec().getSecurityContext().getRunAsGroup());
+        assertEquals(Long.valueOf(2000L), container.get().getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(2000L), container.get().getSecurityContext().getRunAsGroup());
     }
 
     @Test
