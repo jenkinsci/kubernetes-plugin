@@ -47,7 +47,7 @@ use this cloud configuration you will need to add it in the jobs folder's config
 
 Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the container you want to execute your task in.
 
-*Please note the `Pod_LABEL` is a new feature to automatically label the generated pod in versions `1.17.0` or higher, older versions of the Kubernetes Plugin will need to manually label the podTemplate*
+*Please note the `POD_LABEL` is a new feature to automatically label the generated pod in versions `1.17.0` or higher, older versions of the Kubernetes Plugin will need to manually label the podTemplate*
 
 This will run in jnlp container
 ```groovy
