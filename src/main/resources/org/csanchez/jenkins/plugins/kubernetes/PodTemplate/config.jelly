@@ -88,6 +88,14 @@
         <f:textbox/>
   </f:entry>
 
+  <f:entry field="runAsUser" title="${%Run As User ID}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="runAsGroup" title="${%Run As Group ID}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="nodeSelector" title="${%Node Selector}"
     help="/plugin/kubernetes/help/nodeSelector.html">
     <f:textbox/>

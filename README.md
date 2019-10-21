@@ -160,6 +160,8 @@ Either way it provides access to the following fields:
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
+* **runAsUser** The user ID to run all containers in the pod as.
+* **runAsGroup** The group ID to run all containers in the pod as. 
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -174,6 +176,8 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not support httpGet liveness probes)
 * **ports** Expose ports on the container.
 * **alwaysPullImage** The container will pull the image upon starting.
+* **runAsUser** The user ID to run the container as.
+* **runAsGroup** The group ID to run the container as.
 
 #### Specifying a different default agent connection timeout
 
