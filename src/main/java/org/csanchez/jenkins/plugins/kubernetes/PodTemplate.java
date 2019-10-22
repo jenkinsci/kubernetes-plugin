@@ -115,6 +115,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceLimitMemory;
 
+    private Boolean hostNetwork;
+
     private WorkspaceVolume workspaceVolume = WorkspaceVolume.getDefault();
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
@@ -445,6 +447,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     
     public Long getRunAsGroup() {
         return runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setHostNetwork(Boolean hostNetwork) {
+        this.hostNetwork = hostNetwork;
+    }
+
+    public Boolean isHostNetwork() {
+        return hostNetwork;
+    }
+
+    public boolean isHostNetworkSet() {
+        return hostNetwork != null;
     }
 
     public String getServiceAccount() {
@@ -873,6 +888,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (!privileged ? "" : ", privileged=" + privileged) +
                 (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
                 (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
+                (!isHostNetworkSet() ? "" : ", hostNetwork=" + hostNetwork) +
                 (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
                 (command == null ? "" : ", command='" + command + '\'') +
                 (args == null ? "" : ", args='" + args + '\'') +

@@ -201,6 +201,10 @@ public class PodTemplateBuilder {
                 .withRunAsGroup(template.getRunAsGroup())
                 .endSecurityContext();
 
+        if (template.isHostNetworkSet()) {
+            builder.withHostNetwork(template.isHostNetwork());
+        }
+
         // merge with the yaml fragments
         Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
