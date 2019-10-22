@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -72,6 +73,7 @@ import java.net.URL;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assert.*;
+import org.junit.AssumptionViolatedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -286,6 +288,17 @@ public class KubernetesTestUtil {
     public static void assertRegex(String name, String regex) {
         assertNotNull(name);
         assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+    }
+
+    public static void assumeWindows(KubernetesClient client) {
+        for (Node n : client.nodes().list().getItems()) {
+            String os = n.getMetadata().getLabels().get("kubernetes.io/os");
+            LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
+            if ("windows".equals(os)) {
+                return;
+            }
+        }
+        throw new AssumptionViolatedException("Cluster seems to contain no Windows nodes");
     }
 
 }

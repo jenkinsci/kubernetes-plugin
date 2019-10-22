@@ -474,6 +474,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
+    @Issue("JENKINS-57256")
+    @Test
+    public void basicWindows() throws Exception {
+        assumeWindows(cloud.connect());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
     @Test
     public void dynamicPVC() throws Exception {
         try {
