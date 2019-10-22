@@ -173,7 +173,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                                     semaphore.release();
                                 }
                             })
-                            .exec("env")) {
+                            .exec("env")) { // TODO this is unlikely to work in Windows
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
