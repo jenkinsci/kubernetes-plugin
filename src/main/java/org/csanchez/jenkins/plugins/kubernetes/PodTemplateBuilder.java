@@ -71,6 +71,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+
 import jenkins.model.Jenkins;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
@@ -195,6 +196,11 @@ public class PodTemplateBuilder {
 
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
+        builder.editOrNewSecurityContext()
+                .withRunAsUser(template.getRunAsUser())
+                .withRunAsGroup(template.getRunAsGroup())
+                .endSecurityContext();
+
         // merge with the yaml fragments
         Pod pod = builder.endSpec().build();
         Pod podFromYaml = template.getYamlsPod();
@@ -314,7 +320,7 @@ public class PodTemplateBuilder {
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
-            
+
             if (!cloud.isDirectConnection()) {
                 env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
             } else {
@@ -406,6 +412,8 @@ public class PodTemplateBuilder {
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
+                .withRunAsUser(containerTemplate.getRunAsUser())
+                .withRunAsGroup(containerTemplate.getRunAsGroup())
                 .endSecurityContext()
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))

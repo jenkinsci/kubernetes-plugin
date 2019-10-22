@@ -51,6 +51,7 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.PodSpecFluent.SecurityContextNested;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
@@ -87,6 +88,8 @@ public class PodTemplateUtils {
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
+        Long runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
+        Long runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
         boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
@@ -113,6 +116,8 @@ public class PodTemplateUtils {
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
+        combined.setRunAsUser(runAsUser);
+        combined.setRunAsGroup(runAsGroup);
         combined.setEnvVars(combineEnvVars(parent, template));
         combined.setPorts(new ArrayList<>(ports.values()));
         return combined;
@@ -138,6 +143,12 @@ public class PodTemplateUtils {
         Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
+        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
+                ? template.getSecurityContext().getRunAsUser()
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsUser() : null);
+        Long runAsGroup = template.getSecurityContext() != null && template.getSecurityContext().getRunAsGroup() != null
+                ? template.getSecurityContext().getRunAsGroup()
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsGroup() : null);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
@@ -167,7 +178,11 @@ public class PodTemplateUtils {
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
-                .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
+                .withNewSecurityContext()
+                .withPrivileged(privileged)
+                .withRunAsUser(runAsUser)
+                .withRunAsGroup(runAsGroup)
+                .endSecurityContext() //
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
 
@@ -272,6 +287,20 @@ public class PodTemplateUtils {
                 .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
 
+        // Security context
+        specBuilder.editOrNewSecurityContext()
+                .withRunAsUser(
+                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
+                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
+                        )
+                )
+                .withRunAsGroup(
+                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
+                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
+                        )
+                )
+                .endSecurityContext();
+
         // podTemplate.setLabel(label);
 //        podTemplate.setEnvVars(combineEnvVars(parent, template));
 //        podTemplate.setWorkspaceVolume(workspaceVolume);
@@ -374,6 +403,9 @@ public class PodTemplateUtils {
 
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
+
+        podTemplate.setRunAsUser(template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser());
+        podTemplate.setRunAsGroup(template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup());
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
