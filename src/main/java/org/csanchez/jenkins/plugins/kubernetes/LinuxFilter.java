@@ -18,6 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Extension;
 import hudson.model.Label;
+import java.util.logging.Logger;
 
 /**
  * Pods should run on Linux unless otherwise specified.
@@ -25,14 +26,17 @@ import hudson.model.Label;
 @Extension
 public class LinuxFilter extends PodTemplateFilter {
 
+    private static final Logger LOGGER = Logger.getLogger(LinuxFilter.class.getName());
+
     @Override
     protected PodTemplate transform(KubernetesCloud cloud, PodTemplate podTemplate, Label label) {
         if (podTemplate.getNodeSelector() != null) {
-            // leave it alone
+            LOGGER.fine(() -> "leaving pod " + podTemplate + " alone since it already specifies " + podTemplate.getNodeSelector());
             return podTemplate;
         }
         PodTemplate copy = new PodTemplate(podTemplate);
         // TODO beta.kubernetes.io for old Kubernetes versions?
+        LOGGER.fine(() -> "adding kubernetes.io/os=linux to pod " + podTemplate);
         copy.setNodeSelector("kubernetes.io/os=linux");
         return copy;
     }
