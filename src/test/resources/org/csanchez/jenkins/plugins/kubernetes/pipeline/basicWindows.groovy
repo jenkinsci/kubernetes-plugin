@@ -6,7 +6,7 @@ spec:
   - name: jnlp
     image: jenkins4eval/jnlp-agent:latest-windows
   nodeSelector:
-    kubernetes.io/os: windows
+    beta.kubernetes.io/os: windows
 '''
 ) {
     node(POD_LABEL) {
