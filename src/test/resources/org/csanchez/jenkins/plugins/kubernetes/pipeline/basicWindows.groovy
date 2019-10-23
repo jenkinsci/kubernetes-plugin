@@ -11,5 +11,6 @@ spec:
 ) {
     node(POD_LABEL) {
         bat 'dir'
+        powershell 'Get-ChildItem Env: | Sort Name'
     }
 }
