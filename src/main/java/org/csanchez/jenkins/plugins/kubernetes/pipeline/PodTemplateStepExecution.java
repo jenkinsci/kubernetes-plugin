@@ -116,7 +116,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
-            newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", ((KubernetesCloud)cloud).getJenkinsUrlOrDie()+run.getUrl()));
+            String url = ((KubernetesCloud)cloud).getJenkinsUrlOrNull();
+            if(url != null) {
+                newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
+            }
         }
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
