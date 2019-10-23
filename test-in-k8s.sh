@@ -24,6 +24,6 @@ kubectl exec jenkins -- \
         -DconnectorHost=0.0.0.0 \
         -Dport=8000 \
         -DslaveAgentPort=50000 \
-        -Djenkins.host.address=jenkins.kubernetes-plugin-test \
+        -Djenkins.host.address=jenkins.kubernetes-plugin-test.svc.cluster.local \
         -Dmaven.test.failure.ignore \
         $args
