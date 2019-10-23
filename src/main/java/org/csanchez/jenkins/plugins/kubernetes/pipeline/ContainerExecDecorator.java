@@ -48,7 +48,6 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
-import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -268,7 +267,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
                     boolean[] masks, String... commands) throws IOException {
-                Pod pod = waitUntilPodContainersAreReady();
+                waitUntilPodContainersAreReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
@@ -280,7 +279,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
                     stream = new NullOutputStream();
-                    printStream = LOGGER.isLoggable(Level.FINEST) ? new LogTaskListener(LOGGER, Level.FINEST).getLogger() : new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
 
                 // Send to proc caller as well if they sent one
@@ -289,11 +288,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String sh = shell;
-                if (sh == null) {
-                    sh = launcher.isUnix() ? "sh" : "cmd";
-                }
-                printStream.println("Executing " + sh + " script inside container [" + containerName + "] of pod [" + getPodName() + "]");
+                String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
+                String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
+                LOGGER.log(Level.FINEST, msg);
+                printStream.println(msg);
 
                 if (closables == null) {
                     closables = new ArrayList<>();
@@ -451,7 +449,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
             }
 
-            private Pod waitUntilPodContainersAreReady() throws IOException {
+            private void waitUntilPodContainersAreReady() throws IOException {
                 LOGGER.log(Level.FINEST, "Waiting until pod containers are ready: {0}/{1}",
                         new String[] { getNamespace(), getPodName() });
                 try {
@@ -468,7 +466,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
                         if (info.getName().equals(containerName)) {
                             if (info.getReady()) {
-                                return pod;
+                                return;
                             } else {
                                 // container died in the meantime
                                 throw new IOException("container [" + containerName + "] of pod [" + getPodName() + "] is not ready, state is " + info.getState());
