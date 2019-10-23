@@ -17,7 +17,7 @@ spec:
 '''
 ) {
     node(POD_LABEL) {
-        container(name: 'shell', shell: 'cmd') {
+        container('shell') {
             bat 'dir'
             powershell 'Get-ChildItem Env: | Sort Name'
         }

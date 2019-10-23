@@ -48,6 +48,7 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -80,7 +81,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private static final String DEFAULT_SHELL = "sh";
 
     /**
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
@@ -110,7 +110,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
-        this.shell = DEFAULT_SHELL;
     }
 
     @Deprecated
@@ -224,10 +223,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.ws = ws;
     }
 
-    public String getShell() {
-        return shell == null? DEFAULT_SHELL:shell;
-    }
-
     public void setShell(String shell) {
         this.shell = shell;
     }
@@ -273,7 +268,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
                     boolean[] masks, String... commands) throws IOException {
-                waitUntilPodContainersAreReady();
+                Pod pod = waitUntilPodContainersAreReady();
 
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
@@ -285,7 +280,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
                     stream = new NullOutputStream();
-                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                    printStream = LOGGER.isLoggable(Level.FINEST) ? new LogTaskListener(LOGGER, Level.FINEST).getLogger() : new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
                 }
 
                 // Send to proc caller as well if they sent one
@@ -294,9 +289,30 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + getPodName() + "]";
-                LOGGER.log(Level.FINEST, msg);
-                printStream.println(msg);
+                String sh = shell;
+                if (sh == null) {
+                    sh = "sh";
+                    try {
+                        String nodeName = pod.getSpec().getNodeName();
+                        if (nodeName != null) {
+                            io.fabric8.kubernetes.api.model.Node n = getClient().nodes().withName(nodeName).get();
+                            if (n != null) {
+                                if ("windows".equals(n.getMetadata().getLabels().get("kubernetes.io/os"))) {
+                                    sh = "cmd";
+                                } else {
+                                    LOGGER.fine(() -> nodeName + " does not seem to be Windows");
+                                }
+                            } else {
+                                printStream.println("Could find node " + nodeName + " to check OS for " + getPodName() + ", assuming Linux");
+                            }
+                        } else {
+                            printStream.println("Could find node name to check OS for " + getPodName() + ", assuming Linux");
+                        }
+                    } catch (KubernetesClientException x) { // for example, missing RBAC permission to get nodes
+                        printStream.println("Could not check OS of node running "+ getPodName() + ", assuming Linux: " + x);
+                    }
+                }
+                printStream.println("Executing " + sh + " script inside container [" + containerName + "] of pod [" + getPodName() + "]");
 
                 if (closables == null) {
                     closables = new ArrayList<>();
@@ -341,7 +357,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec(getShell());
+                    watch = execable.exec(sh);
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException(
@@ -454,7 +470,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
             }
 
-            private void waitUntilPodContainersAreReady() throws IOException {
+            private Pod waitUntilPodContainersAreReady() throws IOException {
                 LOGGER.log(Level.FINEST, "Waiting until pod containers are ready: {0}/{1}",
                         new String[] { getNamespace(), getPodName() });
                 try {
@@ -471,7 +487,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
                         if (info.getName().equals(containerName)) {
                             if (info.getReady()) {
-                                return;
+                                return pod;
                             } else {
                                 // container died in the meantime
                                 throw new IOException("container [" + containerName + "] of pod [" + getPodName() + "] is not ready, state is " + info.getState());
