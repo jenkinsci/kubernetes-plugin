@@ -27,4 +27,3 @@ kubectl exec jenkins -- \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test \
         -Dmaven.test.failure.ignore \
         $args
-kubectl delete pod jenkins
