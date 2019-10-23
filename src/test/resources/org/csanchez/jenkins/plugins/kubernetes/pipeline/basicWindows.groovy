@@ -4,7 +4,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: jenkins4eval/jnlp-agent:latest-windows\n\
+    image: jenkins4eval/jnlp-agent:latest-windows
   nodeSelector:
     kubernetes.io/os: windows
 '''
