@@ -291,26 +291,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 String sh = shell;
                 if (sh == null) {
-                    sh = "sh";
-                    try {
-                        String nodeName = pod.getSpec().getNodeName();
-                        if (nodeName != null) {
-                            io.fabric8.kubernetes.api.model.Node n = getClient().nodes().withName(nodeName).get();
-                            if (n != null) {
-                                if ("windows".equals(n.getMetadata().getLabels().get("kubernetes.io/os"))) {
-                                    sh = "cmd";
-                                } else {
-                                    LOGGER.fine(() -> nodeName + " does not seem to be Windows");
-                                }
-                            } else {
-                                printStream.println("Could find node " + nodeName + " to check OS for " + getPodName() + ", assuming Linux");
-                            }
-                        } else {
-                            printStream.println("Could find node name to check OS for " + getPodName() + ", assuming Linux");
-                        }
-                    } catch (KubernetesClientException x) { // for example, missing RBAC permission to get nodes
-                        printStream.println("Could not check OS of node running "+ getPodName() + ", assuming Linux: " + x);
-                    }
+                    sh = launcher.isUnix() ? "sh" : "cmd";
                 }
                 printStream.println("Executing " + sh + " script inside container [" + containerName + "] of pod [" + getPodName() + "]");
 
