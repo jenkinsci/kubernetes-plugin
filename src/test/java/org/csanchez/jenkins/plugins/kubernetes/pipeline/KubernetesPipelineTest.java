@@ -490,7 +490,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assumeWindows(cloud.connect());
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container", b);
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
         r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
     }
 

@@ -17,9 +17,12 @@ spec:
 '''
 ) {
     node(POD_LABEL) {
-        container('shell') {
-            bat 'dir'
-            powershell 'Get-ChildItem Env: | Sort Name'
+        bat 'mkdir subdir'
+        dir('subdir') {
+            container('shell') {
+                bat 'dir'
+                powershell 'Get-ChildItem Env: | Sort Name'
+            }
         }
     }
 }
