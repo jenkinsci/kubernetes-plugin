@@ -492,6 +492,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
         r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
+        r.assertLogContains("got stuff: some value", b);
     }
 
     @Test

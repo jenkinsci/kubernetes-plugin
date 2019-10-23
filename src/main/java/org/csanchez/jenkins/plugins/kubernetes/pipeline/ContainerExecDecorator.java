@@ -371,6 +371,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     OutputStream stdin = watch.getInput();
+                    // stdin = new TeeOutputStream(stdin, new LogTaskListener(LOGGER, Level.FINEST).getLogger());
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -401,7 +402,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    this.setupEnvironmentVariable(envVars, stdin);
+                    this.setupEnvironmentVariable(envVars, stdin, !launcher.isUnix());
 
                     doExec(stdin, printStream, masks, commands);
 
@@ -433,15 +434,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, OutputStream out) throws IOException {
+            private void setupEnvironmentVariable(EnvVars vars, OutputStream out, boolean windows) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             out.write(
                                     String.format(
-                                            "export %s='%s'%s",
+                                            windows ? "set %s=%s%s" : "export %s='%s'%s",
                                             entry.getKey(),
-                                            entry.getValue().replace("'", "'\\''"),
+                                            windows ? entry.getValue() : entry.getValue().replace("'", "'\\''"),
                                             NEWLINE
                                     ).getBytes(StandardCharsets.UTF_8)
                             );
