@@ -431,6 +431,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 int exitCode = doLaunch(
                         true, null, null, null, null,
+                        // TODO Windows
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 

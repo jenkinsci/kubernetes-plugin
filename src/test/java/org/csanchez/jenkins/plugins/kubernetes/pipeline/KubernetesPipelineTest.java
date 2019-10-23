@@ -63,7 +63,6 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
-import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
@@ -485,7 +484,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("C:\\Program Files (x86)", b); // powershell
     }
 
-    @Ignore("TODO java.io.IOException: Pipe closed from ContainerExecDecorator.doExec")
     @Issue("JENKINS-53500")
     @Test
     public void windowsContainer() throws Exception {
@@ -493,7 +491,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container", b);
-        r.assertLogContains("C:\\Program Files (x86)", b);
+        r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
     }
 
     @Test
