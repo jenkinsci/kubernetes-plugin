@@ -158,6 +158,12 @@ public class KubernetesTestUtil {
         }
     }
 
+    /**
+     * Verifies that we are running in a mixed cluster with Windows nodes.
+     * (The cluster is assumed to always have Linux nodes.)
+     * This means that we can run tests involving Windows agent pods.
+     * Note that running the <em>master</em> on Windows is untested.
+     */
     public static void assumeWindows() {
         try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
             for (Node n : client.nodes().list().getItems()) {
