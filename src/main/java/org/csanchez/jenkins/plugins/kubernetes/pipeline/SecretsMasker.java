@@ -173,14 +173,14 @@ public final class SecretsMasker extends TaskListenerDecorator {
                                     semaphore.release();
                                 }
                             })
-                            .exec("env")) { // TODO this is unlikely to work in Windows
+                            .exec(c.isUnix() ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
                     } catch (Exception x) {
                         LOGGER.log(Level.FINE, "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName, x);
                     }
-                    for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\n")) {
+                    for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {
                         int equals = line.indexOf('=');
                         if (equals != -1) {
                             String key = line.substring(0, equals);

@@ -516,6 +516,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void secretMaskingWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
+        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
+    }
+
+    @Test
     public void dynamicPVC() throws Exception {
         try {
             cloud.connect().persistentVolumeClaims().list();
