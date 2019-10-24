@@ -66,11 +66,6 @@ public class ContainerStep extends Step implements Serializable {
         }
 
         @Override
-        public boolean isAdvanced() {
-            return true;
-        }
-
-        @Override
         public Set<? extends Class<?>> getRequiredContext() {
             return ImmutableSet.of(Node.class, FilePath.class, TaskListener.class);
         }
