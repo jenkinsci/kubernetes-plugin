@@ -159,6 +159,10 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     LOGGER.fine(() -> "looking for " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName + " secrets named " + secretContainerKeys);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     Semaphore semaphore = new Semaphore(0);
+                    Boolean unix = c.isUnix();
+                    if (unix == null) {
+                        return null;
+                    }
                     try (OutputStream errs = new LogTaskListener(LOGGER, Level.FINE).getLogger();
                          ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
                             .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
@@ -175,7 +179,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                                     semaphore.release();
                                 }
                             })
-                            .exec(c.isUnix() ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
+                            .exec(unix ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
