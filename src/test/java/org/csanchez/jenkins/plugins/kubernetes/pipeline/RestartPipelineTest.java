@@ -187,11 +187,11 @@ public class RestartPipelineTest {
 
     @Test
     public void windowsRestart() throws Exception {
+        assumeWindows();
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            assumeWindows(cloud.connect());
             cloud.setDirectConnection(false);
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());

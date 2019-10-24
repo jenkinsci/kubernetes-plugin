@@ -158,6 +158,19 @@ public class KubernetesTestUtil {
         }
     }
 
+    public static void assumeWindows() {
+        try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
+            for (Node n : client.nodes().list().getItems()) {
+                String os = n.getMetadata().getLabels().get("kubernetes.io/os");
+                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
+                if ("windows".equals(os)) {
+                    return;
+                }
+            }
+        }
+        throw new AssumptionViolatedException("Cluster seems to contain no Windows nodes");
+    }
+
     public static Map<String, String> getLabels(Object o, TestName name) {
         return getLabels(null, o, name);
     }
@@ -288,17 +301,6 @@ public class KubernetesTestUtil {
     public static void assertRegex(String name, String regex) {
         assertNotNull(name);
         assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
-    }
-
-    public static void assumeWindows(KubernetesClient client) {
-        for (Node n : client.nodes().list().getItems()) {
-            String os = n.getMetadata().getLabels().get("kubernetes.io/os");
-            LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
-            if ("windows".equals(os)) {
-                return;
-            }
-        }
-        throw new AssumptionViolatedException("Cluster seems to contain no Windows nodes");
     }
 
 }

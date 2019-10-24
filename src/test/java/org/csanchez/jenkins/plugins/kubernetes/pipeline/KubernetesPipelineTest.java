@@ -477,7 +477,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57256")
     @Test
     public void basicWindows() throws Exception {
-        assumeWindows(cloud.connect());
+        assumeWindows();
         cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-jnlp-slave/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
@@ -487,7 +487,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-53500")
     @Test
     public void windowsContainer() throws Exception {
-        assumeWindows(cloud.connect());
+        assumeWindows();
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
