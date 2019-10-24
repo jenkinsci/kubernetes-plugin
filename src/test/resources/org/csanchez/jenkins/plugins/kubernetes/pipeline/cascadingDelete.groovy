@@ -70,6 +70,8 @@ spec:
                         args:
                           - -c
                           - 'sleep infinity'
+                      nodeSelector:
+                        kubernetes.io/os: linux
                 EOF
                 )
                 kubectl rollout status "$deploy"
