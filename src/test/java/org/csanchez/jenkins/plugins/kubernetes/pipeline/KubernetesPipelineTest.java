@@ -390,6 +390,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
+    @Test
+    public void interruptedPod() throws Exception {
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
     @Issue("JENKINS-58306")
     @Test
     public void cascadingDelete() throws Exception {
