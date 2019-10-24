@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.Extension;
 import hudson.console.LineTransformationOutputStream;
 import hudson.remoting.Channel;
+import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
@@ -158,8 +159,9 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     LOGGER.fine(() -> "looking for " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName + " secrets named " + secretContainerKeys);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     Semaphore semaphore = new Semaphore(0);
-                    try (ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
-                            .writingOutput(baos).writingError(System.err).writingErrorChannel(System.err)
+                    try (OutputStream errs = new LogTaskListener(LOGGER, Level.FINE).getLogger();
+                         ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
+                            .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
                             .usingListener(new ExecListener() {
                                 @Override
                                 public void onOpen(Response response) {
