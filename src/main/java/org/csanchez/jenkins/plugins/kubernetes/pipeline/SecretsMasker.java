@@ -31,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -183,7 +184,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
-                    } catch (Exception x) {
+                    } catch (RuntimeException | GeneralSecurityException x) {
                         LOGGER.log(Level.FINE, "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName, x);
                     }
                     for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {
