@@ -327,22 +327,6 @@ There might be cases, where you need to have the agent pod run inside a differen
 For example you may need the agent to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
 
-#### Specifying a different shell command other than /bin/sh
-
-By default, the shell command is /bin/sh. In some case, you would like to use another shell command like /bin/bash.
-
-```groovy
-podTemplate {
-  node(POD_LABEL) {
-    stage('Run specific shell') {
-      container(name:'mycontainer', shell:'/bin/bash') {
-        sh 'echo hello world'
-      }
-    }
-  }
-}
-```
-
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
 
