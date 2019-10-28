@@ -432,12 +432,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public void setRunAsUser(String runAsUser) {
         this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
     }
-
-    public void setRunAsUser(Long runAsUser) {
-        this.runAsUser = runAsUser;
-    }
     
-    public Long getRunAsUser() {
+    public String getRunAsUser() {
+        return runAsUser == null ? null : runAsUser.toString();
+    }
+
+    public Long getRunAsUserAsLong() {
         return runAsUser;
     }
 
@@ -446,11 +446,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.runAsGroup = PodTemplateUtils.parseLong(runAsGroup);
     }
 
-    public void setRunAsGroup(Long runAsGroup) {
-        this.runAsGroup = runAsGroup;
+    public String getRunAsGroup() {
+        return runAsGroup == null ? null : runAsGroup.toString();
     }
 
-    public Long getRunAsGroup() {
+    public Long getRunAsGroupAsLong() {
         return runAsGroup;
     }
 
@@ -708,8 +708,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
-            containerTemplate.setRunAsUser(runAsUser);
-            containerTemplate.setRunAsGroup(runAsGroup);
+            containerTemplate.setRunAsUser(getRunAsUser());
+            containerTemplate.setRunAsGroup(getRunAsGroup());
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);

@@ -197,8 +197,8 @@ public class PodTemplateBuilderTest {
     public void testBuildFromTemplate(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
-        template.setRunAsUser(1000L);
-        template.setRunAsGroup(1000L);
+        template.setRunAsUser("1000");
+        template.setRunAsGroup("1000");
 
         List<PodVolume> volumes = new ArrayList<PodVolume>();
         volumes.add(new HostPathVolume("/host/data", "/container/data"));
@@ -212,8 +212,8 @@ public class PodTemplateBuilderTest {
         List<TemplateEnvVar> envVars = new ArrayList<TemplateEnvVar>();
         envVars.add(new KeyValueEnvVar("CONTAINER_ENV_VAR", "container-env-var-value"));
         busyboxContainer.setEnvVars(envVars);
-        busyboxContainer.setRunAsUser(2000L);
-        busyboxContainer.setRunAsGroup(2000L);
+        busyboxContainer.setRunAsUser("2000");
+        busyboxContainer.setRunAsGroup("2000");
         containers.add(busyboxContainer);
         template.setContainers(containers);
 
@@ -383,8 +383,8 @@ public class PodTemplateBuilderTest {
         container1.setResourceLimitMemory("1Gi");
         container1.setResourceRequestCpu("100m");
         container1.setResourceRequestMemory("156Mi");
-        container1.setRunAsUser(1000L);
-        container1.setRunAsGroup(2000L);
+        container1.setRunAsUser("1000");
+        container1.setRunAsGroup("2000");
         parent.setContainers(Arrays.asList(container1));
 
         PodTemplate template = new PodTemplate();
