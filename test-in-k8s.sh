@@ -27,3 +27,4 @@ kubectl exec jenkins -- \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test.svc.cluster.local \
         -Dmaven.test.failure.ignore \
         $args
+kubectl exec jenkins -- sh -c 'fgrep skipped /checkout/target/surefire-reports/*.xml' || :
