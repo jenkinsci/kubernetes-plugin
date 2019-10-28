@@ -115,6 +115,36 @@ public class KubernetesCloudTest {
     }
 
     @Test
+    public void getJenkinsUrlOrNull_NoJenkinsUrl() {
+        JenkinsLocationConfiguration.get().setUrl(null);
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        String url = cloud.getJenkinsUrlOrNull();
+        assertNull(url);
+    }
+
+    @Test
+    public void getJenkinsUrlOrNull_UrlInCloud() {
+        System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocationinsysprop");
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        cloud.setJenkinsUrl("http://mylocation");
+        assertEquals("http://mylocation/", cloud.getJenkinsUrlOrNull());
+    }
+
+    @Test
+    public void getJenkinsUrlOrNull_UrlInSysprop() {
+        System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocation");
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        assertEquals("http://mylocation/", cloud.getJenkinsUrlOrNull());
+    }
+
+    @Test
+    public void getJenkinsUrlOrNull_UrlInLocation() {
+        JenkinsLocationConfiguration.get().setUrl("http://mylocation");
+        KubernetesCloud cloud = new KubernetesCloud("name");
+        assertEquals("http://mylocation/", cloud.getJenkinsUrlOrNull());
+    }
+
+    @Test
     public void testKubernetesCloudDefaults() {
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
