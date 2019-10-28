@@ -670,4 +670,17 @@ public class PodTemplateUtils {
             m.putAll(m2);
         return m;
     }
+
+    static Long parseLong(String value) {
+        String s = Util.fixEmptyAndTrim(value);
+        if (s != null) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
 }

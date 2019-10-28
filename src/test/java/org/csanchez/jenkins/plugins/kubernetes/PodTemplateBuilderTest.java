@@ -18,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.PodSecurityContext;
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -114,8 +115,12 @@ public class PodTemplateBuilderTest {
         String yaml = loadYamlFile("pod-busybox.yaml");
         template.setYaml(yaml);
         assertEquals(yaml,template.getYaml());
+        template.setRunAsGroup("");
+        template.setRunAsUser("");
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod, directConnection);
+        assertNull(pod.getSpec().getSecurityContext().getRunAsUser());
+        assertNull(pod.getSpec().getSecurityContext().getRunAsGroup());
     }
 
     @Test
@@ -216,6 +221,13 @@ public class PodTemplateBuilderTest {
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
         validatePod(pod, false, directConnection);
+
+        Map<String, Container> containersMap = toContainerMap(pod);
+        PodSecurityContext securityContext = pod.getSpec().getSecurityContext();
+        assertEquals(Long.valueOf(1000L), securityContext.getRunAsUser());
+        assertEquals(Long.valueOf(1000L), securityContext.getRunAsGroup());
+        assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
     }
 
     @Test
@@ -288,11 +300,6 @@ public class PodTemplateBuilderTest {
             assertThat(mounts, containsInAnyOrder(volumeMounts));
             assertThat(jnlpMounts, containsInAnyOrder(volumeMounts));
         }
-
-        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsGroup());
-        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsGroup());
 
         validateContainers(pod, slave, directConnection);
     }
