@@ -4,6 +4,17 @@ metadata:
   name: jenkins
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: m2repo
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
 kind: Pod
 metadata:
   name: jenkins
@@ -12,15 +23,24 @@ metadata:
 spec:
   serviceAccountName: jenkins
   containers:
-    - name: jenkins
-      image: maven:3.6.2-jdk-8
-      command:
-        - sleep
-      args:
-        - infinity
-      ports:
-        - containerPort: 8000
-        - containerPort: 50000
+  - name: jenkins
+    image: maven:3.6.2-jdk-8
+    command:
+      - sleep
+    args:
+      - infinity
+    ports:
+      - containerPort: 8000
+      - containerPort: 50000
+    volumeMounts:
+    - name: m2repo
+      mountPath: /root/.m2/repository
+  volumes:
+  - name: m2repo
+    persistentVolumeClaim:
+      claimName: m2repo
+  nodeSelector:
+    kubernetes.io/os: linux
 ---
 apiVersion: v1
 kind: Service
@@ -56,6 +76,9 @@ rules:
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get","list","watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list"]
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create","delete","get","list","patch","update","watch"]

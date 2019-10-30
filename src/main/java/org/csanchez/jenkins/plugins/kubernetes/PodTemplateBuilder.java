@@ -211,6 +211,13 @@ public class PodTemplateBuilder {
             pod.getSpec().setRestartPolicy("Never");
         }
 
+        // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+        if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
+                (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
+            // TODO kubernetes.io/os for 1.14+? but: https://github.com/aws/containers-roadmap/issues/542
+            pod.getSpec().setNodeSelector(Collections.singletonMap("beta.kubernetes.io/os", "linux"));
+        }
+
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
                 .findFirst();

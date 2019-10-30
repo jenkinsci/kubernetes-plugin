@@ -63,6 +63,7 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
@@ -390,6 +391,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
+    @Test
+    public void interruptedPod() throws Exception {
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
     @Issue("JENKINS-58306")
     @Test
     public void cascadingDelete() throws Exception {
@@ -472,6 +481,49 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void jnlpWorkingDir() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Issue("JENKINS-57256")
+    @Test
+    public void basicWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-jnlp-slave/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
+        r.assertLogContains("C:\\Program Files (x86)", b); // powershell
+    }
+
+    @Issue("JENKINS-53500")
+    @Test
+    public void windowsContainer() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
+        r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
+        r.assertLogContains("got stuff: some value", b);
+    }
+
+    @Ignore("TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
+    @Test
+    public void interruptedPodWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
+    @Test
+    public void secretMaskingWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
+        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
     }
 
     @Test

@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
@@ -72,6 +73,7 @@ import java.net.URL;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assert.*;
+import org.junit.AssumptionViolatedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -154,6 +156,25 @@ public class KubernetesTestUtil {
         } catch (Exception e) {
             assumeNoException(e);
         }
+    }
+
+    /**
+     * Verifies that we are running in a mixed cluster with Windows nodes.
+     * (The cluster is assumed to always have Linux nodes.)
+     * This means that we can run tests involving Windows agent pods.
+     * Note that running the <em>master</em> on Windows is untested.
+     */
+    public static void assumeWindows() {
+        try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
+            for (Node n : client.nodes().list().getItems()) {
+                String os = n.getMetadata().getLabels().get("kubernetes.io/os");
+                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
+                if ("windows".equals(os)) {
+                    return;
+                }
+            }
+        }
+        throw new AssumptionViolatedException("Cluster seems to contain no Windows nodes");
     }
 
     public static Map<String, String> getLabels(Object o, TestName name) {
