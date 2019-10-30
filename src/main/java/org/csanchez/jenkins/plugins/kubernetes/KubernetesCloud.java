@@ -318,6 +318,26 @@ public class KubernetesCloud extends Cloud {
      */
     @Nonnull
     public String getJenkinsUrlOrDie() {
+        String url = getJenkinsUrlOrNull();
+        if (url == null) {
+            throw new IllegalStateException("Jenkins URL for Kubernetes is null");
+        }
+        return url;
+    }
+
+    /**
+     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     *
+     * Uses in order:
+     * * cloud configuration
+     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
+     * * Jenkins Location URL
+     *
+     * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     *         Null if no Jenkins URL could be computed.
+     */
+    @CheckForNull
+    public String getJenkinsUrlOrNull() {
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
         String url = StringUtils.defaultIfBlank(
                 getJenkinsUrl(),
@@ -327,7 +347,7 @@ public class KubernetesCloud extends Cloud {
                 )
         );
         if (url == null) {
-            throw new IllegalStateException("Jenkins URL for Kubernetes is null");
+            return null;
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
