@@ -195,6 +195,8 @@ public class PodTemplateBuilderTest {
         template.setRunAsUser(1000L);
         template.setRunAsGroup(1000L);
 
+        template.setHostNetwork(false);
+
         List<PodVolume> volumes = new ArrayList<PodVolume>();
         volumes.add(new HostPathVolume("/host/data", "/container/data"));
         volumes.add(new EmptyDirVolume("/empty/dir", false));
@@ -548,6 +550,49 @@ public class PodTemplateBuilderTest {
         Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
         assertTrue(hostVolume.isPresent());
         assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+    }
+
+    @Test
+    public void yamlOverrideHostNetwork() {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  hostNetwork: false\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 1000\n" +
+                "      runAsGroup: 1000\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  hostNetwork: true\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    image: busybox2\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 2000\n" +
+                "      runAsGroup: 2000\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+        child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).build();
+        assertTrue(pod.getSpec().getHostNetwork());
     }
 
     @Test
