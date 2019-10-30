@@ -41,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -196,10 +197,16 @@ public class PodTemplateBuilder {
 
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
-        builder.editOrNewSecurityContext()
-                .withRunAsUser(template.getRunAsUser())
-                .withRunAsGroup(template.getRunAsGroup())
-                .endSecurityContext();
+        Long runAsUser = template.getRunAsUserAsLong();
+        Long runAsGroup = template.getRunAsGroupAsLong();
+        PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
+        if (runAsUser != null) {
+            securityContext.withRunAsUser(runAsUser);
+        }
+        if (runAsGroup != null) {
+            securityContext.withRunAsGroup(runAsGroup);
+        }
+        securityContext.endSecurityContext();
 
         if (template.isHostNetworkSet()) {
             builder.withHostNetwork(template.isHostNetwork());
@@ -419,8 +426,8 @@ public class PodTemplateBuilder {
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
-                .withRunAsUser(containerTemplate.getRunAsUser())
-                .withRunAsGroup(containerTemplate.getRunAsGroup())
+                .withRunAsUser(containerTemplate.getRunAsUserAsLong())
+                .withRunAsGroup(containerTemplate.getRunAsGroupAsLong())
                 .endSecurityContext()
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))

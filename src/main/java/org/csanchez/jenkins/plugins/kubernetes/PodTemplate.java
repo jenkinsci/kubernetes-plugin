@@ -19,7 +19,6 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -432,20 +431,28 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setRunAsUser(Long runAsUser) {
-        this.runAsUser = runAsUser;
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
     }
     
-    public Long getRunAsUser() {
+    public String getRunAsUser() {
+        return runAsUser == null ? null : runAsUser.toString();
+    }
+
+    public Long getRunAsUserAsLong() {
         return runAsUser;
     }
 
     @DataBoundSetter
-    public void setRunAsGroup(Long runAsGroup) {
-        this.runAsGroup = runAsGroup;
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = PodTemplateUtils.parseLong(runAsGroup);
     }
-    
-    public Long getRunAsGroup() {
+
+    public String getRunAsGroup() {
+        return runAsGroup == null ? null : runAsGroup.toString();
+    }
+
+    public Long getRunAsGroupAsLong() {
         return runAsGroup;
     }
 
@@ -716,8 +723,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
-            containerTemplate.setRunAsUser(runAsUser);
-            containerTemplate.setRunAsGroup(runAsGroup);
+            containerTemplate.setRunAsUser(getRunAsUser());
+            containerTemplate.setRunAsGroup(getRunAsGroup());
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
