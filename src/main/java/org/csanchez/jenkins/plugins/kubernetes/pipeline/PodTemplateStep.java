@@ -313,11 +313,6 @@ public class PodTemplateStep extends Step implements Serializable {
         }
 
         @Override
-        public boolean isAdvanced() {
-            return true;
-        }
-
-        @Override
         public Set<? extends Class<?>> getRequiredContext() {
             return ImmutableSet.of(Run.class, TaskListener.class);
         }

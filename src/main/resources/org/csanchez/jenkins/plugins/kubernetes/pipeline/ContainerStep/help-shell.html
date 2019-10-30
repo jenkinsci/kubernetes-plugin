@@ -1,0 +1,21 @@
+<p>
+    Specifies a shell which will run inside the container
+    and process requests from Jenkins to run executables,
+    set environment variables, and similar infrastructure.
+</p>
+<p>
+    This does <strong>not</strong> affect the shell used to run user code,
+    such as <code>sh</code> steps.
+    To run your scripts with a specific shell, use an interpreter line:
+</p>
+<pre><code>sh '''#!/bin/bash
+for x in {0..9}; do echo x; done
+'''</code></pre>
+<p>
+    or just use a subprocess and an externally versioned script:
+</p>
+<pre><code>sh 'bash ci.sh'</code></pre>
+<p>
+    Defaults to <code>sh</code>, which should be in <code>$PATH</code>.
+    Should not generally be overridden.
+</p>
