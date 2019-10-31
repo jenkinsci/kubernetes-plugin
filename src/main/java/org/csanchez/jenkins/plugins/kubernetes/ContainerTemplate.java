@@ -176,20 +176,28 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setRunAsUser(Long runAsUser) {
-        this.runAsUser = runAsUser;
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
     }
-    
-    public Long getRunAsUser() {
+
+    public String getRunAsUser() {
+        return runAsUser == null ? null : runAsUser.toString();
+    }
+
+    public Long getRunAsUserAsLong() {
         return runAsUser;
     }
 
     @DataBoundSetter
-    public void setRunAsGroup(Long runAsGroup) {
-        this.runAsGroup = runAsGroup;
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = PodTemplateUtils.parseLong(runAsGroup);
     }
-    
-    public Long getRunAsGroup() {
+
+    public String getRunAsGroup() {
+        return runAsGroup == null ? null : runAsGroup.toString();
+    }
+
+    public Long getRunAsGroupAsLong() {
         return runAsGroup;
     }
     

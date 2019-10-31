@@ -162,6 +162,7 @@ Either way it provides access to the following fields:
 * **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
+* **hostNetwork** Use the hosts network.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -321,36 +322,11 @@ slaveTemplates.dockerTemplate {
 There are cases where this implicit inheritance via nested declaration is not wanted or another explicit inheritance is preferred.
 In this case, use `inheritFrom ''` to remove any inheritance, or `inheritFrom 'otherParent'` to override it.
 
-```groovy
-    podTemplate(label: 'docker-linux', containers: [containerTemplate(image: 'docker', name: 'docker-linux', command: 'cat', ttyEnabled: true)]) {
-        // Will run on linux node
-        podTemplate(label: 'maven-windows', inheritFrom: '', nodeSelector: 'os:windows', containers: [containerTemplate(image: 'maven-windows-servercore', name: 'maven-windows', command: 'cat', ttyEnabled: true)]) {
-            // Will run on windows node without merging the docker pod
-        }
-    }
-```
-
 #### Using a different namespace
 
 There might be cases, where you need to have the agent pod run inside a different namespace than the one configured with the cloud definition.
 For example you may need the agent to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
-
-#### Specifying a different shell command other than /bin/sh
-
-By default, the shell command is /bin/sh. In some case, you would like to use another shell command like /bin/bash.
-
-```groovy
-podTemplate {
-  node(POD_LABEL) {
-    stage('Run specific shell') {
-      container(name:'mycontainer', shell:'/bin/bash') {
-        sh 'echo hello world'
-      }
-    }
-  }
-}
-```
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
@@ -566,6 +542,11 @@ containerLog 'mongodb'
 * **limitBytes** limit output to n bytes (from the beginning of the log, not exact).
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
+
+# Windows support
+
+You can run pods on Windows if your cluster has Windows nodes.
+See the [example](examples/windows.groovy).
 
 # Constraints
 

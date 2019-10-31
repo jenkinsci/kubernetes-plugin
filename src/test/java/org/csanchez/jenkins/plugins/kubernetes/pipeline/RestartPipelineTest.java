@@ -185,6 +185,25 @@ public class RestartPipelineTest {
         });
     }
 
+    @Test
+    public void windowsRestart() throws Exception {
+        assumeWindows();
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureAgentListener();
+            configureCloud();
+            cloud.setDirectConnection(false);
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("sleeping #0", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            r.assertLogContains("sleeping #9", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+            r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+        });
+    }
+
     @Issue("JENKINS-49707")
     @Test
     public void terminatedPodAfterRestart() throws Exception {

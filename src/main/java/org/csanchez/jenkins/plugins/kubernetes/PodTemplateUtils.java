@@ -51,7 +51,6 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.PodSpecFluent.SecurityContextNested;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
@@ -88,8 +87,8 @@ public class PodTemplateUtils {
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
-        Long runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
-        Long runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
+        String runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
+        String runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
         boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
@@ -238,6 +237,10 @@ public class PodTemplateUtils {
                 ? parent.getSpec().getServiceAccount()
                 : template.getSpec().getServiceAccount();
 
+        Boolean hostNetwork = template.getSpec().getHostNetwork() != null
+                ? template.getSpec().getHostNetwork()
+                : parent.getSpec().getHostNetwork();
+
         Map<String, String> podAnnotations = mergeMaps(parent.getMetadata().getAnnotations(),
                 template.getMetadata().getAnnotations());
         Map<String, String> podLabels = mergeMaps(parent.getMetadata().getLabels(), template.getMetadata().getLabels());
@@ -282,10 +285,12 @@ public class PodTemplateUtils {
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
+                .withHostNetwork(hostNetwork) //
                 .withContainers(Lists.newArrayList(combinedContainers.values())) //
                 .withVolumes(combinedVolumes) //
                 .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
+
 
         // Security context
         specBuilder.editOrNewSecurityContext()
@@ -406,6 +411,8 @@ public class PodTemplateUtils {
 
         podTemplate.setRunAsUser(template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser());
         podTemplate.setRunAsGroup(template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup());
+
+        podTemplate.setHostNetwork(template.isHostNetworkSet() ? template.isHostNetwork() : parent.isHostNetwork());
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
@@ -669,5 +676,18 @@ public class PodTemplateUtils {
         if (m2 != null)
             m.putAll(m2);
         return m;
+    }
+
+    static Long parseLong(String value) {
+        String s = Util.fixEmptyAndTrim(value);
+        if (s != null) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 }

@@ -80,7 +80,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private static final String DEFAULT_SHELL = "sh";
 
     /**
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
@@ -110,7 +109,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
-        this.shell = DEFAULT_SHELL;
     }
 
     @Deprecated
@@ -224,10 +222,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.ws = ws;
     }
 
-    public String getShell() {
-        return shell == null? DEFAULT_SHELL:shell;
-    }
-
     public void setShell(String shell) {
         this.shell = shell;
     }
@@ -294,7 +288,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + getPodName() + "]";
+                String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
+                String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
@@ -341,7 +336,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec(getShell());
+                    watch = execable.exec(sh);
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException(
@@ -376,6 +371,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     OutputStream stdin = watch.getInput();
+                    // stdin = new TeeOutputStream(stdin, new LogTaskListener(LOGGER, Level.FINEST).getLogger());
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -406,7 +402,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    this.setupEnvironmentVariable(envVars, stdin);
+                    this.setupEnvironmentVariable(envVars, stdin, sh.equals("cmd"));
 
                     doExec(stdin, printStream, masks, commands);
 
@@ -431,21 +427,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 int exitCode = doLaunch(
                         true, null, null, null, null,
+                        // TODO Windows
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, OutputStream out) throws IOException {
+            private void setupEnvironmentVariable(EnvVars vars, OutputStream out, boolean windows) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             out.write(
                                     String.format(
-                                            "export %s='%s'%s",
+                                            windows ? "set %s=%s%s" : "export %s='%s'%s",
                                             entry.getKey(),
-                                            entry.getValue().replace("'", "'\\''"),
+                                            windows ? entry.getValue() : entry.getValue().replace("'", "'\\''"),
                                             NEWLINE
                                     ).getBytes(StandardCharsets.UTF_8)
                             );

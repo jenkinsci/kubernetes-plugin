@@ -58,7 +58,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public boolean start() throws Exception {
 
-        Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+        Cloud cloud = Jenkins.get().getCloud(cloudName);
         if (cloud == null) {
             throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
         }
@@ -113,10 +113,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeSelector(step.getNodeSelector());
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
+        if (step.getHostNetwork() != null) {
+            newTemplate.setHostNetwork(step.getHostNetwork());
+        }
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
-            newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", ((KubernetesCloud)cloud).getJenkinsUrlOrDie()+run.getUrl()));
+            String url = ((KubernetesCloud)cloud).getJenkinsUrlOrNull();
+            if(url != null) {
+                newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
+            }
         }
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
@@ -204,7 +210,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void onResume() {
         super.onResume();
-        Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+        Cloud cloud = Jenkins.get().getCloud(cloudName);
         if (cloud == null) {
             throw new RuntimeException(String.format("Cloud does not exist: %s", cloudName));
         }
@@ -231,7 +237,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.getInstance().getCloud(cloudName);
+            Cloud cloud = Jenkins.get().getCloud(cloudName);
             if (cloud == null) {
                 LOGGER.log(Level.WARNING, "Cloud {0} no longer exists, cannot delete pod template {1}",
                         new Object[] { cloudName, podTemplate.getName() });

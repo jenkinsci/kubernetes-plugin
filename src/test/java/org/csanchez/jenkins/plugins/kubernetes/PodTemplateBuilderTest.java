@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import io.fabric8.kubernetes.api.model.PodSecurityContext;
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -115,8 +116,12 @@ public class PodTemplateBuilderTest {
         String yaml = loadYamlFile("pod-busybox.yaml");
         template.setYaml(yaml);
         assertEquals(yaml,template.getYaml());
+        template.setRunAsGroup("");
+        template.setRunAsUser("");
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod, directConnection);
+        assertNull(pod.getSpec().getSecurityContext().getRunAsUser());
+        assertNull(pod.getSpec().getSecurityContext().getRunAsGroup());
     }
 
     @Test
@@ -193,8 +198,10 @@ public class PodTemplateBuilderTest {
     public void testBuildFromTemplate(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
-        template.setRunAsUser(1000L);
-        template.setRunAsGroup(1000L);
+        template.setRunAsUser("1000");
+        template.setRunAsGroup("1000");
+
+        template.setHostNetwork(false);
 
         List<PodVolume> volumes = new ArrayList<PodVolume>();
         volumes.add(new HostPathVolume("/host/data", "/container/data"));
@@ -208,8 +215,8 @@ public class PodTemplateBuilderTest {
         List<TemplateEnvVar> envVars = new ArrayList<TemplateEnvVar>();
         envVars.add(new KeyValueEnvVar("CONTAINER_ENV_VAR", "container-env-var-value"));
         busyboxContainer.setEnvVars(envVars);
-        busyboxContainer.setRunAsUser(2000L);
-        busyboxContainer.setRunAsGroup(2000L);
+        busyboxContainer.setRunAsUser("2000");
+        busyboxContainer.setRunAsGroup("2000");
         containers.add(busyboxContainer);
         template.setContainers(containers);
 
@@ -217,6 +224,13 @@ public class PodTemplateBuilderTest {
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
         validatePod(pod, false, directConnection);
+
+        Map<String, Container> containersMap = toContainerMap(pod);
+        PodSecurityContext securityContext = pod.getSpec().getSecurityContext();
+        assertEquals(Long.valueOf(1000L), securityContext.getRunAsUser());
+        assertEquals(Long.valueOf(1000L), securityContext.getRunAsGroup());
+        assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
     }
 
     @Test
@@ -254,7 +268,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals("jenkins/jnlp-slave:alpine", containers.get("jnlp").getImage());
+        assertEquals(DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
 
         // check volumes and volume mounts
         Map<String, Volume> volumes = pod.getSpec().getVolumes().stream()
@@ -289,11 +303,6 @@ public class PodTemplateBuilderTest {
             assertThat(mounts, containsInAnyOrder(volumeMounts));
             assertThat(jnlpMounts, containsInAnyOrder(volumeMounts));
         }
-
-        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(1000L), pod.getSpec().getSecurityContext().getRunAsGroup());
-        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(2000L), containers.get("busybox").getSecurityContext().getRunAsGroup());
 
         validateContainers(pod, slave, directConnection);
     }
@@ -381,8 +390,8 @@ public class PodTemplateBuilderTest {
         container1.setResourceLimitMemory("1Gi");
         container1.setResourceRequestCpu("100m");
         container1.setResourceRequestMemory("156Mi");
-        container1.setRunAsUser(1000L);
-        container1.setRunAsGroup(2000L);
+        container1.setRunAsUser("1000");
+        container1.setRunAsGroup("2000");
         parent.setContainers(Arrays.asList(container1));
 
         PodTemplate template = new PodTemplate();
@@ -553,6 +562,49 @@ public class PodTemplateBuilderTest {
         Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
         assertTrue(hostVolume.isPresent());
         assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+    }
+
+    @Test
+    public void yamlOverrideHostNetwork() {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  hostNetwork: false\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 1000\n" +
+                "      runAsGroup: 1000\n" +
+                "    image: busybox\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  hostNetwork: true\n" +
+                "  containers:\n" +
+                "  - name: container\n" +
+                "    image: busybox2\n" +
+                "    securityContext:\n" +
+                "      runAsUser: 2000\n" +
+                "      runAsGroup: 2000\n" +
+                "    command:\n" +
+                "    - cat\n" +
+                "    tty: true\n"
+        );
+        child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result).build();
+        assertTrue(pod.getSpec().getHostNetwork());
     }
 
     @Test
