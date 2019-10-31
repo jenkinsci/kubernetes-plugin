@@ -381,7 +381,6 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
@@ -424,7 +423,6 @@ or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` 
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yamlFile 'KubernetesPod.yaml'
     }
   }
