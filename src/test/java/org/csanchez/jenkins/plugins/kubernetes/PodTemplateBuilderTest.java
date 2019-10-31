@@ -267,7 +267,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals("jenkins/jnlp-slave:alpine", containers.get("jnlp").getImage());
+        assertEquals(DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
 
         // check volumes and volume mounts
         Map<String, Volume> volumes = pod.getSpec().getVolumes().stream()
