@@ -562,9 +562,9 @@ If you want to provide your own Docker image for the JNLP slave, you **must** na
 
 # No delay provisioning
 
-By default Jenkins do estimate load to avoid over-provisioning of cloud nodes.
-This plugin will use its own provisioning strategy by default, with this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects need for more agents.
-In worse scenarios, this will results in some extra nodes provisioned on Kubernetes, which will be shortly terminated.
+By default, Jenkins estimates load to avoid over-provisioning cloud nodes.
+This plugin will use its own provisioning strategy by default. With this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects a need for more agents.
+In worst case scenarios, this will result in some extra nodes being provisioned on Kubernetes, which will be shortly terminated.
 
 If you want to turn off this Strategy you can set SystemProperty `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning=true`
 
