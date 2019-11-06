@@ -381,7 +381,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
         if (!labelSet.isEmpty()) {
             for (LabelAtom label : labelSet) {
-                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
+                builder.put("jenkins/label",label == null ? DEFAULT_ID : label.getName());
             }
         }
         return builder.build();
