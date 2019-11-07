@@ -3,6 +3,7 @@ import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
 import hudson.slaves.Cloud;
+import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -52,11 +53,17 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             Collections.shuffle(jenkinsClouds);
             for (Cloud cloud : jenkinsClouds) {
+                int workloadToProvision = currentDemand - availableCapacity;
                 if (!(cloud instanceof KubernetesCloud)) continue;
                 if (!cloud.canProvision(label)) continue;
-
-                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, currentDemand - availableCapacity);
+                for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
+                    if (cl.canProvision(cloud, strategyState.getLabel(), workloadToProvision) != null) {
+                        continue;
+                    }
+                }
+                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
+                fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
                 strategyState.recordPendingLaunches(plannedNodes);
                 availableCapacity += plannedNodes.size();
                 LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[]{availableCapacity, currentDemand});
@@ -72,4 +79,18 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         }
     }
 
+    private static void fireOnStarted(final Cloud cloud, final Label label,
+                                      final Collection<NodeProvisioner.PlannedNode> plannedNodes) {
+        for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
+            try {
+                cl.onStarted(cloud, label, plannedNodes);
+            } catch (Error e) {
+                throw e;
+            } catch (Throwable e) {
+                LOGGER.log(Level.SEVERE, "Unexpected uncaught exception encountered while "
+                        + "processing onStarted() listener call in " + cl + " for label "
+                        + label.toString(), e);
+            }
+        }
+    }
 }
