@@ -272,7 +272,7 @@ The example below composes two different podTemplates in order to create one wit
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
 For example one could create functions for their podTemplates and import them for use.
-Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
+Say here's our file `src/com/foo/utils/PodTemplates.groovy`:
 ```groovy
 package com.foo.utils
 
@@ -527,7 +527,7 @@ requested container to the build log.
 
 #### Required Parameters
 * **name** the name of the container to get logs from, as defined in `podTemplate`. Parameter name
-can be ommited in simple usage:
+can be omitted in simple usage:
 
 ```groovy
 containerLog 'mongodb'
@@ -591,7 +591,7 @@ Create a cluster
 
     gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
 
-and note the admin password and server certitifate.
+and note the admin password and server certificate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run
 
