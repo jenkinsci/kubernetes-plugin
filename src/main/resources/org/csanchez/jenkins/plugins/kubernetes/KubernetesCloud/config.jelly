@@ -86,7 +86,13 @@
     </f:entry>
 
     <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
-      <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}"/>
+      <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">
+        <f:block>
+          <div align="right">
+            <f:repeatableDeleteButton value="${%Delete Pod Template}"/>
+          </div>
+        </f:block>
+      </f:repeatableProperty>
     </f:entry>
 
 </j:jelly>
