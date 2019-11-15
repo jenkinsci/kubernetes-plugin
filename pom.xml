@@ -262,11 +262,6 @@
         <artifactId>commons-lang3</artifactId>
         <version>3.8.1</version>
       </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>script-security</artifactId>
-        <version>1.68-rc937.45b0df9e2982</version> <!-- TODO https://github.com/jenkinsci/script-security-plugin/pull/279 -->
-      </dependency>
     </dependencies>
   </dependencyManagement>
 

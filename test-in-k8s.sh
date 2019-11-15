@@ -12,7 +12,7 @@ kubectl cp src jenkins:/checkout/src
 kubectl cp settings-azure.xml jenkins:/settings-azure.xml
 if [ -v TEST ]
 then
-    args="-Dtest=$TEST -Dmaven.test.redirectTestOutputToFile test"
+    args="-Dtest=$TEST test"
 else
     args=verify
 fi

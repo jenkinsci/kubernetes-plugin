@@ -29,7 +29,6 @@ kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisione
 kubectl annotate storageclass local-path storageclass.beta.kubernetes.io/is-default-class=true
 kubectl delete storageclass standard
 
-export TEST='org.csanchez.jenkins.plugins.kubernetes.pipeline.**.*Test' # skip non-cluster tests
 bash test-in-k8s.sh
 rm -rf $WSTMP/surefire-reports
 kubectl cp jenkins:/checkout/target/surefire-reports $WSTMP/surefire-reports
