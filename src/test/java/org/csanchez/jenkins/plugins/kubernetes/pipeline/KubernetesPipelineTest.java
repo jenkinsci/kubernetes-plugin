@@ -41,7 +41,6 @@ import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import hudson.model.Executor;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -53,7 +52,6 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,6 +66,9 @@ import java.util.Locale;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
+/**
+ * @author Carlos Sanchez
+ */
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
@@ -83,23 +84,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
-    }
-
-    /**
-     * Ensure all builds are complete by the end of the test.
-     * (TODO should this be the default behavior of {@link JenkinsRule}?)
-     */
-    @After
-    public void allDead() throws Exception {
-        for (Computer c : r.jenkins.getComputers()) {
-            for (Executor e : c.getAllExecutors()) {
-                if (e.isBusy()) {
-                    LOGGER.warning(() -> "Had to interrupt " + e);
-                    e.interrupt();
-                }
-            }
-        }
-        r.waitUntilNoActivityUpTo(1000);
     }
 
     @Issue("JENKINS-57993")
