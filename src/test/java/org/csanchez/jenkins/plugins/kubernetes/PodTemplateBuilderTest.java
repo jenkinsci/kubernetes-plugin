@@ -117,10 +117,12 @@ public class PodTemplateBuilderTest {
         assertEquals(yaml,template.getYaml());
         template.setRunAsGroup("");
         template.setRunAsUser("");
+        template.setSupplementalGroups("");
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod, directConnection);
         assertNull(pod.getSpec().getSecurityContext().getRunAsUser());
         assertNull(pod.getSpec().getSecurityContext().getRunAsGroup());
+        assertEquals(new ArrayList<Long>(), pod.getSpec().getSecurityContext().getSupplementalGroups());
     }
 
     @Test
@@ -199,6 +201,7 @@ public class PodTemplateBuilderTest {
         PodTemplate template = new PodTemplate();
         template.setRunAsUser("1000");
         template.setRunAsGroup("1000");
+        template.setSupplementalGroups("5001,5002");
 
         template.setHostNetwork(false);
 
@@ -223,11 +226,15 @@ public class PodTemplateBuilderTest {
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
         pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
         validatePod(pod, false, directConnection);
+        ArrayList<Long> supplementalGroups = new ArrayList<Long>();
+        supplementalGroups.add(5001L);
+        supplementalGroups.add(5002L);
 
         Map<String, Container> containersMap = toContainerMap(pod);
         PodSecurityContext securityContext = pod.getSpec().getSecurityContext();
         assertEquals(Long.valueOf(1000L), securityContext.getRunAsUser());
         assertEquals(Long.valueOf(1000L), securityContext.getRunAsGroup());
+        assertEquals(supplementalGroups, securityContext.getSupplementalGroups());
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsUser());
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
     }
