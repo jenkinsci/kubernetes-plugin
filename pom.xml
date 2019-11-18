@@ -280,6 +280,7 @@
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
             <slaveAgentPort>${slaveAgentPort}</slaveAgentPort>
           </systemPropertyVariables>
+          <reuseForks>false</reuseForks> <!-- some tests in KubernetesPipelineTest fail to stop running builds -->
         </configuration>
       </plugin>
       <plugin>
