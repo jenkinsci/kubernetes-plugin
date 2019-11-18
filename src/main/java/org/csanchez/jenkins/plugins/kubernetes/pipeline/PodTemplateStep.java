@@ -68,6 +68,9 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private Boolean showRawYaml;
 
+    private String runAsUser;
+    private String runAsGroup;
+
     @DataBoundConstructor
     public PodTemplateStep() {}
 
@@ -273,7 +276,7 @@ public class PodTemplateStep extends Step implements Serializable {
         }
     }
 
-    
+
     public String getYaml() {
         return yaml;
     }
@@ -303,6 +306,24 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setShowRawYaml(boolean showRawYaml) {
         this.showRawYaml = Boolean.valueOf(showRawYaml);
+    }
+
+    public String getRunAsUser(){
+        return this.runAsUser;
+    }
+
+    @DataBoundSetter
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = runAsUser;
+    }
+
+    public String getRunAsGroup(){
+        return this.runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = runAsGroup;
     }
 
     @Extension

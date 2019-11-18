@@ -110,7 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
-    private boolean directConnection = true;
+    private boolean directConnection = false;
     private String jenkinsUrl;
     @CheckForNull
     private String jenkinsTunnel;

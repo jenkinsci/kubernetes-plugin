@@ -7,6 +7,7 @@ kubectl apply -f test-in-k8s.yaml
 kubectl wait --for=condition=Ready --timeout=15m pod/jenkins
 kubectl exec jenkins -- sh -c 'rm -rf /checkout && mkdir /checkout'
 kubectl cp pom.xml jenkins:/checkout/pom.xml
+kubectl cp .mvn jenkins:/checkout/.mvn
 kubectl cp src jenkins:/checkout/src
 kubectl cp settings-azure.xml jenkins:/settings-azure.xml
 if [ -v TEST ]

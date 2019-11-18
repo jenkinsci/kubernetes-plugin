@@ -272,7 +272,7 @@ The example below composes two different podTemplates in order to create one wit
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
 For example one could create functions for their podTemplates and import them for use.
-Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
+Say here's our file `src/com/foo/utils/PodTemplates.groovy`:
 ```groovy
 package com.foo.utils
 
@@ -381,7 +381,6 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
@@ -424,7 +423,6 @@ or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` 
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yamlFile 'KubernetesPod.yaml'
     }
   }
@@ -529,7 +527,7 @@ requested container to the build log.
 
 #### Required Parameters
 * **name** the name of the container to get logs from, as defined in `podTemplate`. Parameter name
-can be ommited in simple usage:
+can be omitted in simple usage:
 
 ```groovy
 containerLog 'mongodb'
@@ -564,9 +562,9 @@ If you want to provide your own Docker image for the JNLP slave, you **must** na
 
 # No delay provisioning
 
-By default Jenkins do estimate load to avoid over-provisioning of cloud nodes.
-This plugin will use its own provisioning strategy by default, with this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects need for more agents.
-In worse scenarios, this will results in some extra nodes provisioned on Kubernetes, which will be shortly terminated.
+By default, Jenkins estimates load to avoid over-provisioning cloud nodes.
+This plugin will use its own provisioning strategy by default. With this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects a need for more agents.
+In worst case scenarios, this will result in some extra nodes being provisioned on Kubernetes, which will be shortly terminated.
 
 If you want to turn off this Strategy you can set SystemProperty `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning=true`
 
@@ -593,7 +591,7 @@ Create a cluster
 
     gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
 
-and note the admin password and server certitifate.
+and note the admin password and server certificate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run
 

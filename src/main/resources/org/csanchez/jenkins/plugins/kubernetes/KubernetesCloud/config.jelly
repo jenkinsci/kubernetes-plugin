@@ -28,7 +28,7 @@
     <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
 
     <f:entry title="${%Direct Connection}" field="directConnection">
-      <f:checkbox default="true" />
+      <f:checkbox default="false" />
     </f:entry>
 
     <f:entry title="${%Jenkins URL}" field="jenkinsUrl">
@@ -86,7 +86,13 @@
     </f:entry>
 
     <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
-      <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}"/>
+      <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">
+        <f:block>
+          <div align="right">
+            <f:repeatableDeleteButton value="${%Delete Pod Template}"/>
+          </div>
+        </f:block>
+      </f:repeatableProperty>
     </f:entry>
 
 </j:jelly>
