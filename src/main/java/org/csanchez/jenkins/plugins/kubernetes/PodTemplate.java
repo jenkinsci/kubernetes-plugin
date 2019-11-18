@@ -37,6 +37,7 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Saveable;
+import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import hudson.util.XStream2;
@@ -922,4 +923,20 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls) +
                 '}';
     }
+    
+    
+    /* Adding task listener to fix https://issues.jenkins-ci.org/browse/JENKINS-53790 */
+    
+    @CheckForNull
+    private transient TaskListener listener;		// Listener for printing logs in Pod/Job's running console
+    
+    @Nonnull
+    public TaskListener getListener() {
+        return listener == null ? TaskListener.NULL : listener;
+    }
+
+    public void setListener(@CheckForNull TaskListener listener) {
+        this.listener = listener;
+    }
+    
 }

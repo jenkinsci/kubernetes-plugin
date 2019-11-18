@@ -11,6 +11,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import hudson.model.Label;
+import hudson.model.Queue;
+import hudson.model.TaskListener;
+import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -18,6 +25,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import jenkins.model.Jenkins;
 
 /**
  * A pod watcher reporting when all containers are running
@@ -32,9 +40,16 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private KubernetesClient client;
 
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
+    private boolean throwTimeoutError;
+
+    @Nonnull
+    private final TaskListener listener;
+
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener listener) {
         this.client = client;
         this.pod = pod;
+        this.listener = listener == null ? TaskListener.NULL : listener;
+        this.throwTimeoutError = false;
         updateState(pod);
     }
 
@@ -68,7 +83,41 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         for (ContainerStatus containerStatus : containerStatuses) {
             if (containerStatus != null) {
-                if (containerStatus.getState().getWaiting() != null) {
+                ContainerStateWaiting waitingState = containerStatus.getState().getWaiting();
+                if (waitingState != null) {
+                    String waitingStateMsg = waitingState.getMessage();
+                    if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
+                        LOGGER.log(Level.INFO, "Unable to pull Docker image");
+                        listener.error("Unable to pull Docker image \""+ containerStatus.getImage() +"\". Check if image name is spelled correctly..");
+                        Jenkins jenkins = Jenkins.getInstanceOrNull();
+
+                        if (jenkins != null) {
+                            Queue q = jenkins.getQueue();
+
+                            for (Queue.Item item : q.getItems()) {
+                                Label itemLabel = item.getAssignedLabel();
+                                // Check if the pod name starts with the item label + '-'
+                                if (itemLabel != null && pod.getMetadata().getName().startsWith(itemLabel.getDisplayName() + "-")) {
+                                    String itemTaskName = item.task.getFullDisplayName();
+                                    String jobName = getJobName(itemTaskName);
+                                    if (jobName.equals("")) {
+                                        String msg = "Unknown / Invalid job format name";
+                                        this.listener.getLogger().println(msg);
+                                        LOGGER.log(Level.WARNING, msg);
+                                        break;
+                                    }
+                                    String msg = "Cancelling the Queue..";
+                                    this.listener.getLogger().println(msg);
+                                    LOGGER.log(Level.WARNING, msg);
+                                    q.cancel(item);
+                                    // Stop the running timers and exit. this will avoid error building the next iteration of this job
+                                    // if triggered before timeout running at periodicAwait function
+                                    this.throwTimeoutError = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     return false;
                 }
                 if (containerStatus.getState().getTerminated() != null) {
@@ -174,6 +223,13 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         if (areAllContainersRunning(pod)) {
             return pod;
         }
+
+        if(this.throwTimeoutError) {
+            i = 0;  // Don't loop here anymore.
+            throw new KubernetesClientTimeoutException(pod, interval, TimeUnit.MILLISECONDS);
+        }
+
+
         try {
             return awaitWatcher(interval, TimeUnit.MILLISECONDS);
         } catch (KubernetesClientTimeoutException e) {
@@ -190,4 +246,23 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     public PodStatus getPodStatus() {
         return this.pod.getStatus();
     }
+
+
+    /*
+     * itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH>
+     * #<BUILD NUMBER>
+     */
+    /*
+     * <ORGANIZATION> and <BRANCH> are only there if Pipeline created through
+     * BlueOcean, else just <JOB NAME>
+     */
+    private String getJobName(String itemTaskName) {
+        final String partOfStr = "part of ";
+        int begin = partOfStr.length();
+        int end = itemTaskName.lastIndexOf(" #");
+        if (end < 0)
+            return "";
+        return itemTaskName.substring(begin, end);
+    }
+
 }

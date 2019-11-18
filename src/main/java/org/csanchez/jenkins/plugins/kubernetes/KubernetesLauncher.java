@@ -127,7 +127,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
-            watcher = new AllContainersRunningPodWatcher(client, pod);
+            watcher = new AllContainersRunningPodWatcher(client, pod, template.getListener());
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }

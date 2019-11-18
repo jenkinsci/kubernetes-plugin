@@ -26,6 +26,7 @@ import hudson.AbortException;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.slaves.Cloud;
 import java.util.Collections;
 import jenkins.model.Jenkins;
@@ -126,6 +127,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
             }
         }
+        newTemplate.setListener(getContext().get(TaskListener.class));
         newTemplate.setImagePullSecrets(
                 step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
         newTemplate.setYaml(step.getYaml());
