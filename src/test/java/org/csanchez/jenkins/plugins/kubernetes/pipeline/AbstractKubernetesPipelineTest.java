@@ -28,13 +28,10 @@ import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
-import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -59,7 +56,6 @@ import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
-import jenkins.model.JenkinsLocationConfiguration;
 
 public abstract class AbstractKubernetesPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -145,17 +141,7 @@ public abstract class AbstractKubernetesPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
-        URL url = r.getURL();
-
-        String hostAddress = System.getProperty("jenkins.host.address");
-        if (StringUtils.isBlank(hostAddress)) {
-            hostAddress = InetAddress.getLocalHost().getHostAddress();
-        }
-        System.err.println("Calling home to address: " + hostAddress);
-        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
-                url.getFile());
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+        setupHost();
 
         r.jenkins.clouds.add(cloud);
 
@@ -168,21 +154,16 @@ public abstract class AbstractKubernetesPipelineTest {
         r.jenkins.save();
     }
 
-    private PodTemplate buildPodTemplate(String label, String containerName, String image, String command, String args, Boolean ttyEnabled, Boolean setEnvVars) {
+    private PodTemplate buildBusyboxTemplate(String label) {
+        // Create a busybox template
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(label);
 
-        ContainerTemplate containerTemplate = new ContainerTemplate(containerName, image, command, args);
-        containerTemplate.setTtyEnabled(ttyEnabled);
+        ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
+        containerTemplate.setTtyEnabled(true);
         podTemplate.getContainers().add(containerTemplate);
-        if (setEnvVars)
-            setEnvVariables(podTemplate);
+        setEnvVariables(podTemplate);
         return podTemplate;
-    }
-
-    private PodTemplate buildBusyboxTemplate(String label) {
-        // Create a busybox template
-        return buildPodTemplate(label, "busybox", "busybox", "cat", "", true, true);
     }
 
     protected String loadPipelineScript(String name) {

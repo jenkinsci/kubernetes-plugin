@@ -7,10 +7,6 @@ Known issues
 
 See the full list of issues at [JIRA](https://issues.jenkins-ci.org/issues/?filter=15575)
 
-Unreleased
-----------
-* Check on ContainerWaitingState if the Docker image can't be found, prints message to build console and cancels and removes job from build queue. [#497](https://github.com/jenkinsci/kubernetes-plugin/pull/497) [JENKINS-53790](https://issues.jenkins-ci.org/browse/JENKINS-53790)
-
 1.16.5 and newer
 ------
 

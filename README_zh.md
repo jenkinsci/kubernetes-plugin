@@ -76,7 +76,7 @@ podTemplate(label: label) {
 可以在模板中自定义 `jnlp` 节点镜像
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.10-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 或者使用 `yaml` 语法
@@ -87,7 +87,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.10-1-alpine'
+    image: 'jenkins/jnlp-slave:3.35-5-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -392,7 +392,6 @@ pipeline {
   agent {
     kubernetes {
       label 'mypod'
-      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
@@ -436,7 +435,6 @@ pipeline {
   agent {
     kubernetes {
       label 'mypod'
-      defaultContainer 'jnlp'
       yamlFile 'KubernetesPod.yaml'
     }
   }

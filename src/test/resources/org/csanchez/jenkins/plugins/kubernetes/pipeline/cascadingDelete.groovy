@@ -28,6 +28,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+  serviceAccountName: jenkins
   securityContext:
     runAsUser: 1000
     fsGroup: 1000
@@ -69,6 +70,8 @@ spec:
                         args:
                           - -c
                           - 'sleep infinity'
+                      nodeSelector:
+                        kubernetes.io/os: linux
                 EOF
                 )
                 kubectl rollout status "$deploy"

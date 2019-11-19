@@ -25,9 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
@@ -39,13 +37,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
-
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -61,9 +59,11 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 /**
@@ -76,13 +76,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
+    @Rule
+    public LoggerRule warnings = new LoggerRule();
+
     @Before
     public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
-        logs.capture(1000);
+        warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
     }
 
+    @Issue("JENKINS-57993")
     @Test
     public void runInPod() throws Exception {
         SemaphoreStep.waitForStart("podTemplate/1", b);
@@ -101,16 +105,28 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
+        for (Computer c : r.jenkins.getComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+            new Thread(() -> {
+                long pos = 0;
+                try {
+                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
+                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                            pos = c.getLogText().writeLogTo(pos, System.out);
+                        }
+                        Thread.sleep(100);
+                    }
+                } catch (Exception x) {
+                    x.printStackTrace();
+                }
+            }, "watching logs for " + c.getDisplayName()).start();
+            System.out.println(c.getLog());
+        }
         PodList pods = cloud.connect().pods().withLabels(labels).list();
         assertThat(
                 "Expected one pod with labels " + labels + " but got: "
                         + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
                 pods.getItems(), hasSize(1));
         SemaphoreStep.success("pod/1", null);
-
-        for (String msg : logs.getMessages()) {
-            System.out.println(msg);
-        }
 
         PodTemplate template = templates.get(0);
         List<PodAnnotation> annotations = template.getAnnotations();
@@ -137,6 +153,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+        assertThat("routine build should not issue warnings",
+            warnings.getRecords().stream().
+                filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue()). // TODO .record(…, WARNING) does not accomplish this
+                map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage()).collect(Collectors.toList()), // LogRecord does not override toString
+            emptyIterable());
     }
 
     @Test
@@ -214,7 +235,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("image: \"jenkins/jnlp-slave:3.10-1-alpine\"", b);
+        r.assertLogContains("image: \"jenkins/jnlp-slave:3.35-5-alpine\"", b);
         r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
         r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
@@ -370,6 +391,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
+    @Test
+    public void interruptedPod() throws Exception {
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
     @Issue("JENKINS-58306")
     @Test
     public void cascadingDelete() throws Exception {
@@ -449,24 +478,62 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogNotContains(jnlpMac, b);
     }
 
-//    @Test
-//    public void runWithNonexistentDockerImageDoubleSuffix() throws Exception {
-//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-//    }
-//    @Test
-//    public void runWithNonexistentDockerImageSingleSuffix() throws Exception {
-//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-//    }
-//    @Test
-//    public void runWithNonexistentDockerImageSingleSuffixPlus() throws Exception {
-//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-//    }
-//    @Test
-//    public void runWithNonexistentDockerImageLongLabel() throws Exception {
-//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-//    }
+    @Test
+    public void jnlpWorkingDir() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Issue("JENKINS-57256")
+    @Test
+    public void basicWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-jnlp-slave/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
+        r.assertLogContains("C:\\Program Files (x86)", b); // powershell
+    }
+
+    @Issue("JENKINS-53500")
+    @Test
+    public void windowsContainer() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
+        r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
+        r.assertLogContains("got stuff: some value", b);
+    }
+
+    @Ignore("TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
+    @Test
+    public void interruptedPodWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
+    @Test
+    public void secretMaskingWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
+        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
+    }
+
+    @Test
+    public void dynamicPVC() throws Exception {
+        try {
+            cloud.connect().persistentVolumeClaims().list();
+        } catch (KubernetesClientException x) {
+            // Error from server (Forbidden): persistentvolumeclaims is forbidden: User "system:serviceaccount:kubernetes-plugin-test:default" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "kubernetes-plugin-test"
+            assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
+        }
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
 }

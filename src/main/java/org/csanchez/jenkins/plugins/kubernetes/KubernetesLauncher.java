@@ -24,15 +24,12 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.logging.Level.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,16 +37,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
-import hudson.model.Label;
-import hudson.model.Queue;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-import com.google.common.base.Throwables;
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
@@ -60,7 +53,6 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import static java.util.logging.Level.INFO;
-
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -132,34 +124,13 @@ public class KubernetesLauncher extends JNLPLauncher {
             pod = client.pods().inNamespace(namespace).create(pod);
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podId });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
-            TaskListener runListener = template.getListener();
-            runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
-            watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
+            template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
+            watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }
-//            } catch (IllegalStateException e) {
-//                if (e.getMessage().equals("BAD_DOCKER_IMAGE")) {
-//                    Jenkins jenkins = Jenkins.get();
-//                    Queue q = jenkins.getQueue();
-//                    String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-//                    for (Queue.Item item: q.getItems()) {
-//                        if (item.task.getUrl().equals(runUrl)) {
-//                            String itemTaskName = item.task.getFullDisplayName();
-//                            String jobName = getJobName(itemTaskName);
-//                            if (jobName.isEmpty()) {
-//                                LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-//                                break;
-//                            }
-//                            q.cancel(item);
-//                            break;
-//                        }
-//                    }
-//                }
-//                return;
-//            }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
 
             // We need the pod to be running and connected before returning
@@ -240,17 +211,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw Throwables.propagate(ex);
         }
-    }
-
-    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
-    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
-    private String getJobName(String itemTaskName) {
-        final String partOfStr = "part of ";
-        int begin = partOfStr.length();
-        int end = itemTaskName.lastIndexOf(" #");
-        if (end < 0)
-            return "";
-        return itemTaskName.substring(begin, end);
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,

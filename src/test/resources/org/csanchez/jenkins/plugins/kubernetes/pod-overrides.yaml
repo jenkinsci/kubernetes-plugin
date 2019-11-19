@@ -2,6 +2,9 @@ spec:
   containers:
   - name: jnlp
     image: jenkins-jnlp-override
+    securityContext:
+      runAsUser: 3000
+      runAsGroup: 4000
     volumeMounts:
     - mountPath: /home/jenkins/agent
       name: host-volume

@@ -11,10 +11,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.model.Label;
-import hudson.model.Queue;
-import hudson.model.TaskListener;
-import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -22,10 +18,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
-import jenkins.model.Jenkins;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * A pod watcher reporting when all containers are running
@@ -40,16 +32,9 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private KubernetesClient client;
 
-    private PodStatus podStatus;
-
-    @Nonnull
-    private final TaskListener runListener;
-
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
         this.client = client;
         this.pod = pod;
-        this.podStatus = pod.getStatus();
-        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 
@@ -72,7 +57,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
     }
 
-    boolean areAllContainersRunning(Pod pod) throws IllegalStateException {
+    boolean areAllContainersRunning(Pod pod) {
         PodStatus podStatus = pod.getStatus();
         if (podStatus == null) {
             return false;
@@ -83,13 +68,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         for (ContainerStatus containerStatus : containerStatuses) {
             if (containerStatus != null) {
-                ContainerStateWaiting waitingState = containerStatus.getState().getWaiting();
-                if (waitingState != null) {
-//                    String waitingStateMsg = waitingState.getMessage();
-//                    if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
-//                        runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
-//                        throw new IllegalStateException("BAD_DOCKER_IMAGE");
-//                    }
+                if (containerStatus.getState().getWaiting() != null) {
                     return false;
                 }
                 if (containerStatus.getState().getTerminated() != null) {

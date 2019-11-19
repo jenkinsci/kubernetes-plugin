@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.Util;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 
@@ -35,7 +36,7 @@ public class ContainerStep extends Step implements Serializable {
 
     @DataBoundSetter
     public void setShell(String shell){
-        this.shell = shell;
+        this.shell = Util.fixEmpty(shell);
     }
 
     public String getShell() {
@@ -62,11 +63,6 @@ public class ContainerStep extends Step implements Serializable {
 
         @Override
         public boolean takesImplicitBlockArgument() {
-            return true;
-        }
-
-        @Override
-        public boolean isAdvanced() {
             return true;
         }
 

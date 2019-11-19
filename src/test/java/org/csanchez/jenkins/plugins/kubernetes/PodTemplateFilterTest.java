@@ -45,9 +45,7 @@ public class PodTemplateFilterTest {
         podtemplates.add(podTemplate);
         List<PodTemplate> result = PodTemplateFilter.applyAll(null, podtemplates, Label.get("label"));
         assertEquals(1, result.size());
-        List<String> yamls = result.get(0).getYamls();
-        assertEquals(2, yamls.size());
-        assertThat(yamls, Matchers.containsInAnyOrder("yaml1", "yaml2"));
+        assertThat(result.get(0).getYamls(), Matchers.containsInAnyOrder("yaml1", "yaml2"));
     }
 
     private static PodTemplate addYaml(@Nonnull PodTemplate podTemplate, String yaml) {

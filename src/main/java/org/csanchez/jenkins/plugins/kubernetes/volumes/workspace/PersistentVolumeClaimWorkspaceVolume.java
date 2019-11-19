@@ -35,6 +35,8 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
+import java.util.Objects;
+
 public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
     private String claimName;
     @CheckForNull
@@ -56,7 +58,7 @@ public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
     }
 
     @Override
-    public Volume buildVolume(String volumeName) {
+    public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewPersistentVolumeClaim()
@@ -64,6 +66,20 @@ public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
                     .withReadOnly(getReadOnly())
                 .and()
                 .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PersistentVolumeClaimWorkspaceVolume that = (PersistentVolumeClaimWorkspaceVolume) o;
+        return Objects.equals(claimName, that.claimName) &&
+                Objects.equals(readOnly, that.readOnly);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(claimName, readOnly);
     }
 
     @Extension

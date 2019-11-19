@@ -24,9 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -53,6 +54,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -72,6 +74,11 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 
+import jenkins.model.Jenkins;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+
 /**
  * Helper class to build Pods from PodTemplates
  * 
@@ -87,8 +94,9 @@ public class PodTemplateBuilder {
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
-    private static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:alpine");
+    @VisibleForTesting
+    static final String DEFAULT_JNLP_IMAGE = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:3.35-5-alpine");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -137,15 +145,7 @@ public class PodTemplateBuilder {
             }
         }
 
-        if (template.getWorkspaceVolume() != null) {
-            LOGGER.log(Level.FINE, "Adding workspace volume from template: {0}",
-                    template.getWorkspaceVolume().toString());
-            volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME));
-        } else {
-            // add an empty volume to share the workspace across the pod
-            LOGGER.log(Level.FINE, "Adding empty workspace volume");
-            volumes.put(WORKSPACE_VOLUME_NAME, new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
-        }
+        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave != null ? slave.getPodName() : null));
 
         Map<String, Container> containers = new HashMap<>();
         // containers from pod template
@@ -199,6 +199,21 @@ public class PodTemplateBuilder {
 
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
+        Long runAsUser = template.getRunAsUserAsLong();
+        Long runAsGroup = template.getRunAsGroupAsLong();
+        PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
+        if (runAsUser != null) {
+            securityContext.withRunAsUser(runAsUser);
+        }
+        if (runAsGroup != null) {
+            securityContext.withRunAsGroup(runAsGroup);
+        }
+        securityContext.endSecurityContext();
+
+        if (template.isHostNetworkSet()) {
+            builder.withHostNetwork(template.isHostNetwork());
+        }
+
         // merge with the yaml fragments
         Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
@@ -209,6 +224,13 @@ public class PodTemplateBuilder {
             pod.getSpec().setRestartPolicy("Never");
         }
 
+        // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+        if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
+                (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
+            // TODO kubernetes.io/os for 1.14+? but: https://github.com/aws/containers-roadmap/issues/542
+            pod.getSpec().setNodeSelector(Collections.singletonMap("beta.kubernetes.io/os", "linux"));
+        }
+
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
                 .findFirst();
@@ -217,12 +239,13 @@ public class PodTemplateBuilder {
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
         }
+        pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
             jnlp.setImage(DEFAULT_JNLP_IMAGE);
         }
-        Map<String, EnvVar> envVars = defaultEnvVars(slave,
-                jnlp.getWorkingDir() != null ? jnlp.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR,
-                template.getEnvVars());
+        Map<String, EnvVar> envVars = new HashMap<>();
+        envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
+        envVars.putAll(defaultEnvVars(template.getEnvVars()));
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
 
@@ -242,8 +265,54 @@ public class PodTemplateBuilder {
         return pod;
     }
 
-    private Map<String, EnvVar> defaultEnvVars(KubernetesSlave slave, String workingDir,
-            Collection<TemplateEnvVar> globalEnvVars) {
+    private Map<String, EnvVar> defaultEnvVars(Collection<TemplateEnvVar> globalEnvVars) {
+        Map<String, String> env = new HashMap<>();
+        if (slave != null) {
+            KubernetesCloud cloud = slave.getKubernetesCloud();
+            if (cloud.isAddMasterProxyEnvVars()) {
+                // see if the env vars for proxy that the remoting.jar looks for
+                // are set on the master, and if so, propagate them to the slave
+                // vs. having to set on each pod template; if explicitly set already
+                // the processing of globalEnvVars below will override;
+                // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
+                String noProxy = System.getenv("no_proxy");
+                if (!StringUtils.isBlank(noProxy)) {
+                    env.put("no_proxy", noProxy);
+                }
+                String httpProxy = null;
+                if (System.getProperty("http.proxyHost") == null) {
+                    httpProxy = System.getenv("http_proxy");
+                }
+                if (!StringUtils.isBlank(httpProxy)) {
+                    env.put("http_proxy", httpProxy);
+                }
+            }
+
+            if (cloud.isOpenShift()) {
+                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
+                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
+                // and `?` for java build tools. So we force HOME to a safe location.
+                env.put("HOME", DEFAULT_HOME);
+            }
+        }
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
+
+        env.entrySet().forEach(item ->
+                envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
+        );
+
+        if (globalEnvVars != null) {
+            globalEnvVars.forEach(item ->
+                    envVarsMap.put(item.getKey(), item.buildEnvVar())
+            );
+        }
+        return envVarsMap;
+    }
+
+    private Map<String, EnvVar> jnlpEnvVars(String workingDir) {
+        if (workingDir == null) {
+            workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
+        }
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
@@ -264,57 +333,57 @@ public class PodTemplateBuilder {
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
-            String url = cloud.getJenkinsUrlOrDie();
-
-            env.put("JENKINS_URL", url);
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
 
-            if (slave.getKubernetesCloud().isAddMasterProxyEnvVars()) {
-                // see if the env vars for proxy that the remoting.jar looks for 
-                // are set on the master, and if so, propagate them to the slave
-                // vs. having to set on each pod template; if explicitly set already
-                // the processing of globalEnvVars below will override;
-                // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
-                String noProxy = System.getenv("no_proxy");
-                if (!StringUtils.isBlank(noProxy)) {
-                	env.put("no_proxy", noProxy);
-                }
-                String httpProxy = null;
-                if (System.getProperty("http.proxyHost") == null) {
-                    httpProxy = System.getenv("http_proxy");
-                }
-                if (!StringUtils.isBlank(httpProxy)) {
-                	env.put("http_proxy", httpProxy);
-                }
+            if (!cloud.isDirectConnection()) {
+                env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+            } else {
+                String host = getAdvertisedHost();
+                int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
+                env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
+                env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
+                env.put("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey());
             }
 
-            if (cloud.isOpenShift()) {
-                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
-                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
-                // and `?` for java build tools. So we force HOME to a safe location.
-                env.put("HOME", DEFAULT_HOME);
-            }
         }
-
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         env.entrySet().forEach(item ->
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
-
-        if (globalEnvVars != null) {
-            globalEnvVars.forEach(item ->
-                    envVarsMap.put(item.getKey(), item.buildEnvVar())
-            );
-        }
         return envVarsMap;
+    }
+
+    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
+    private String getAdvertisedHost() {
+        try {
+            return (String) TcpSlaveAgentListener.class.getMethod("getAdvertisedHost").invoke(Jenkins.get().getTcpSlaveAgentListener());
+        } catch (NoSuchMethodException x) {
+            // 2.197-, fine
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+        String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
+        if(StringUtils.isBlank(host)) {
+            try {
+                host = new URL(Jenkins.get().getRootUrl()).getHost();
+            } catch (MalformedURLException | NullPointerException e) {
+                throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
+            }
+        }
+        return host;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
             Collection<VolumeMount> volumeMounts) {
-        Map<String, EnvVar> envVarsMap = defaultEnvVars(slave, containerTemplate.getWorkingDir(), globalEnvVars);
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
+        String workingDir = substituteEnv(containerTemplate.getWorkingDir());
+        if (JNLP_NAME.equals(containerTemplate.getName())) {
+            envVarsMap.putAll(jnlpEnvVars(workingDir));
+        }
+        envVarsMap.putAll(defaultEnvVars(globalEnvVars));
 
         if (containerTemplate.getEnvVars() != null) {
             containerTemplate.getEnvVars().forEach(item ->
@@ -337,7 +406,7 @@ public class PodTemplateBuilder {
 
         ContainerPort[] ports = containerTemplate.getPorts().stream().map(entry -> entry.toPort()).toArray(size -> new ContainerPort[size]);
 
-        String workingDir = substituteEnv(containerTemplate.getWorkingDir());
+
         List<VolumeMount> containerMounts = getContainerVolumeMounts(volumeMounts, workingDir);
 
         ContainerLivenessProbe clp = containerTemplate.getLivenessProbe();
@@ -359,6 +428,8 @@ public class PodTemplateBuilder {
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
+                .withRunAsUser(containerTemplate.getRunAsUserAsLong())
+                .withRunAsGroup(containerTemplate.getRunAsGroupAsLong())
                 .endSecurityContext()
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
