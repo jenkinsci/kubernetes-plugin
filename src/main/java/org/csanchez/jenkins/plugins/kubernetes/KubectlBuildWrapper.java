@@ -171,7 +171,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
         status = launcher.launch()
                 .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
-                .masks(false, false, false, false, false, false, true)
+                .masks(false, false, false, false, false, true, true)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
