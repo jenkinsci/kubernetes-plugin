@@ -1,7 +1,7 @@
 pipeline {
     agent {
         kubernetes {
-            label "reallylongcontainersnamethatmaygetcutoff-${UUID.randomUUID().toString()}"
+            label "somelabel-${UUID.randomUUID().toString()}"
             defaultContainer "jnlpdocker"
             yaml """
          apiVersion: v1

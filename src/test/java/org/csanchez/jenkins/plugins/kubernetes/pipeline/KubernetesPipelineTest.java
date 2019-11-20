@@ -538,20 +538,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void runWithNonexistentDockerImageDoubleSuffix() throws Exception {
+    public void runWithNonexistentDockerImage() throws Exception {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
-    @Test
-    public void runWithNonexistentDockerImageSingleSuffix() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-    }
-    @Test
-    public void runWithNonexistentDockerImageSingleSuffixPlus() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-    }
+
     @Test
     public void runWithNonexistentDockerImageLongLabel() throws Exception {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
