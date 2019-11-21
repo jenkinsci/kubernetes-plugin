@@ -537,18 +537,18 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
-    @Test
-    public void runWithNonexistentDockerImage() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        System.out.println("LOG: " + r.getLog(b));
-        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-    }
-
-    @Test
-    public void runWithNonexistentDockerImageLongLabel() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        System.out.println("LOG: " + r.getLog(b));
-        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-
-    }
+//    @Test
+//    public void runWithNonexistentDockerImage() throws Exception {
+//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+//        System.out.println("LOG: " + r.getLog(b));
+//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
+//    }
+//
+//    @Test
+//    public void runWithNonexistentDockerImageLongLabel() throws Exception {
+//        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+//        System.out.println("LOG: " + r.getLog(b));
+//        r.assertLogContains("ERROR: Unable to pull Docker image", b);
+//
+//    }
 }
