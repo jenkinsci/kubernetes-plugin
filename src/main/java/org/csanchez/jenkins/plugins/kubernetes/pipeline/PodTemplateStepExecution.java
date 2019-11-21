@@ -9,6 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.model.TaskListener;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
@@ -119,6 +120,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             newTemplate.setHostNetwork(step.getHostNetwork());
         }
         newTemplate.setAnnotations(step.getAnnotations());
+        newTemplate.setListener(getContext().get(TaskListener.class));
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
             String url = ((KubernetesCloud)cloud).getJenkinsUrlOrNull();
