@@ -126,6 +126,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             String url = ((KubernetesCloud)cloud).getJenkinsUrlOrNull();
             if(url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
+                newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
             }
         }
         newTemplate.setImagePullSecrets(
