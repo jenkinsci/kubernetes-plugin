@@ -141,18 +141,16 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     }
 
     @Test
-    public void runWithNonexistentDockerImage() throws Exception {
+    public void declarativeWithNonexistentDockerImage() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        System.out.println("LOG: " + r.getLog(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
 
     @Test
-    public void runWithNonexistentDockerImageLongLabel() throws Exception {
+    public void declarativeWithNonexistentDockerImageLongLabel() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        System.out.println("LOG: " + r.getLog(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
 
     }

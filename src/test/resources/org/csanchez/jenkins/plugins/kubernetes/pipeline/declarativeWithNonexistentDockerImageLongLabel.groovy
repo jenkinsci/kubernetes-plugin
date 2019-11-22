@@ -2,17 +2,18 @@ pipeline {
   agent {
     kubernetes {
       label "reallylongcontainer123-${UUID.randomUUID().toString()}"
-      defaultContainer "jnlpdocker"
       yaml """
-apiVersion: v1
-kind: Pod
+metadata:
+  labels:
+    some-label: some-label-value
+    class: KubernetesDeclarativeAgentTest
 spec:
-containers:
-- name: container1
-  image: nonexistent-docker-image
-  command:
-  - cat
-  tty: true
+  containers:
+  - name: container1
+    image: nonexistent-docker-image
+    command:
+    - cat
+    tty: true
 """
      }
   }
