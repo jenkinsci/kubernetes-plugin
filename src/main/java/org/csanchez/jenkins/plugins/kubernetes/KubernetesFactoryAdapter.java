@@ -15,6 +15,7 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -88,8 +89,7 @@ public class KubernetesFactoryAdapter {
         }
 
         if (auth != null) {
-            // Using assignment here due to KubernetesAuthKubeconfig - it returns new ConfigBuilder
-            builder = auth.decorate(builder);
+            builder = auth.decorate(builder, new KubernetesAuthConfig(builder.getMasterUrl(), caCertData, skipTlsVerify));
         }
 
         if (skipTlsVerify) {

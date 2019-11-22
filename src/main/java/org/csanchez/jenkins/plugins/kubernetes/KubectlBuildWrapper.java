@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
@@ -18,6 +19,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.kohsuke.stapler.AncestorInPath;
@@ -29,6 +31,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
+import java.util.Collections;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -61,7 +64,6 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         return caCertificate;
     }
 
-
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
         FilePath configFile = workspace.createTempFile(".kube", "config");
@@ -70,26 +72,26 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.env("KUBECONFIG", configFile.getRemote());
         context.setDisposer(new CleanupDisposer(tempFiles));
 
-        final KubernetesAuth auth;
-        try {
-            auth = KubernetesAuthFactory.fromCredentialsId(credentialsId, serverUrl, null, true);
-        } catch (KubernetesAuthException e) {
-            throw new AbortException("Unable to get valid Kubernetes authentication from given credentialsId " + credentialsId + "\n" + e);
+        StandardCredentials credentials = CredentialsProvider.findCredentialById(credentialsId, StandardCredentials.class, build, Collections.emptyList());
+        if (credentials == null) {
+            throw new AbortException("No credentials found for id \"" + credentialsId + "\"");
         }
-
+        KubernetesAuth auth = AuthenticationTokens.convert(KubernetesAuth.class, credentials);
         if (auth == null) {
-            throw new AbortException("No credentials defined to setup Kubernetes CLI");
+            throw new AbortException("Unsupported Credentials type " + credentials.getClass().getName());
         }
-
         // create Kubeconfig
         try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
-            w.write(auth.buildKubeConfig(getServerUrl(), getCaCertificate()));
+            try {
+                w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), false)));
+            } catch (KubernetesAuthException e) {
+                throw new AbortException(e.getMessage());
+            }
         }
 
         int status = launcher.launch().cmdAsSingleString("kubectl version").join();
         if (status != 0) throw new IOException("Failed to run kubectl version " + status);
     }
-
 
     @Extension
     public static class DescriptorImpl extends BuildWrapperDescriptor {
