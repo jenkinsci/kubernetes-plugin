@@ -81,6 +81,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-51610")
     @Test
     public void declarativeWithNamespaceFromYaml() throws Exception {
+        createNamespaceIfNotExist(cloud.connect(), "kubernetes-plugin-test-overridden-namespace");
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
