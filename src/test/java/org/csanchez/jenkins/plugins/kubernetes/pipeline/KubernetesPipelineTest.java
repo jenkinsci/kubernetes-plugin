@@ -64,6 +64,8 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
@@ -79,6 +81,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Before
     public void setUp() throws Exception {
+        // Had some problems with FileChannel.close hangs from WorkflowRun.save:
+        r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
@@ -93,7 +97,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             LOGGER.warning(() -> "Had to interrupt " + b);
             b.getExecutor().interrupt();
         }
-        r.waitUntilNoActivityUpTo(1000);
+        r.waitUntilNoActivityUpTo(9999);
     }
 
     @Issue("JENKINS-57993")
