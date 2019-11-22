@@ -41,7 +41,6 @@ import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import hudson.model.Executor;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -87,17 +86,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     /**
      * Ensure all builds are complete by the end of the test.
-     * (TODO should this be the default behavior of {@link JenkinsRule}?)
      */
     @After
     public void allDead() throws Exception {
-        for (Computer c : r.jenkins.getComputers()) {
-            for (Executor e : c.getAllExecutors()) {
-                if (e.isBusy()) {
-                    LOGGER.warning(() -> "Had to interrupt " + e);
-                    e.interrupt();
-                }
-            }
+        if (b != null && b.isLogUpdated()) {
+            LOGGER.warning(() -> "Had to interrupt " + b);
+            b.getExecutor().interrupt();
         }
         r.waitUntilNoActivityUpTo(1000);
     }
