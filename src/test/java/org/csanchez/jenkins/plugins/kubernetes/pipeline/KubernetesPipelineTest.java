@@ -387,7 +387,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(deadlineTemplate);
         SemaphoreStep.success("podTemplate/1", null);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
-        r.assertLogNotContains("Hello from container!", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
     }
 
     @Test
