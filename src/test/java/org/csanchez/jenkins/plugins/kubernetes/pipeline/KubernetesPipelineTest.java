@@ -97,7 +97,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             LOGGER.warning(() -> "Had to interrupt " + b);
             b.getExecutor().interrupt();
         }
-        r.waitUntilNoActivityUpTo(9999);
+        for (int i = 0; i < 100 && r.isSomethingHappening(); i++) {
+            Thread.sleep(100);
+        }
     }
 
     @Issue("JENKINS-57993")
