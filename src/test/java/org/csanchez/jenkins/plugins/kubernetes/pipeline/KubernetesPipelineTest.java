@@ -52,6 +52,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,12 +64,11 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
-/**
- * @author Carlos Sanchez
- */
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
@@ -81,9 +81,25 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Before
     public void setUp() throws Exception {
+        // Had some problems with FileChannel.close hangs from WorkflowRun.save:
+        r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
+    }
+
+    /**
+     * Ensure all builds are complete by the end of the test.
+     */
+    @After
+    public void allDead() throws Exception {
+        if (b != null && b.isLogUpdated()) {
+            LOGGER.warning(() -> "Had to interrupt " + b);
+            b.getExecutor().interrupt();
+        }
+        for (int i = 0; i < 100 && r.isSomethingHappening(); i++) {
+            Thread.sleep(100);
+        }
     }
 
     @Issue("JENKINS-57993")
@@ -373,7 +389,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(deadlineTemplate);
         SemaphoreStep.success("podTemplate/1", null);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
-        r.assertLogNotContains("Hello from container!", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
     }
 
     @Test
