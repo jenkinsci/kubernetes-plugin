@@ -77,37 +77,38 @@
     <f:checkbox default="true"/>
   </f:entry>
 
-  <f:advanced>
+  <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}"
+    help="/plugin/kubernetes/help/imagePullSecrets.html">
+    <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="${%Add Image Pull Secret}"
+                                deleteCaption="${%Delete Image Pull Secret}" />
+  </f:entry>
 
-    <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}"
-      help="/plugin/kubernetes/help/imagePullSecrets.html">
-      <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="${%Add Image Pull Secret}"
-                                  deleteCaption="${%Delete Image Pull Secret}" />
-    </f:entry>
+  <f:entry field="serviceAccount" title="${%Service Account}"
+    help="/plugin/kubernetes/help/serviceAccount.html">
+        <f:textbox/>
+  </f:entry>
 
-    <f:entry field="serviceAccount" title="${%Service Account}"
-      help="/plugin/kubernetes/help/serviceAccount.html">
-          <f:textbox/>
-    </f:entry>
+  <f:entry field="runAsUser" title="${%Run As User ID}">
+    <f:textbox/>
+  </f:entry>
 
-    <f:entry field="nodeSelector" title="${%Node Selector}"
-      help="/plugin/kubernetes/help/nodeSelector.html">
-      <f:textbox/>
-    </f:entry>
+  <f:entry field="runAsGroup" title="${%Run As Group ID}">
+    <f:textbox/>
+  </f:entry>
 
-    <f:block>
-      <table>
-        <f:optionalBlock title="${%Use custom workspace volume}" field="customWorkspaceVolumeEnabled" inline="true">
-          <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
-            <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="${%Add Workspace Volume}"
-                                          deleteCaption="${%Delete Workspace Volume}" />
-          </f:entry>
-        </f:optionalBlock>
-      </table>
-    </f:block>
+  <f:entry field="hostNetwork" title="${%Host Network}">
+    <f:checkbox default="false"/>
+  </f:entry>
 
-    <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
+  <f:entry field="nodeSelector" title="${%Node Selector}"
+    help="/plugin/kubernetes/help/nodeSelector.html">
+    <f:textbox/>
+  </f:entry>
 
-  </f:advanced>
+  <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+    <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+  </f:entry>
+
+  <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 
 </j:jelly>

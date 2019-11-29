@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
@@ -13,9 +14,13 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.Symbol;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -125,12 +130,40 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
         return builder.build();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DynamicPVCWorkspaceVolume that = (DynamicPVCWorkspaceVolume) o;
+        return Objects.equals(storageClassName, that.storageClassName) &&
+                Objects.equals(requestsSize, that.requestsSize) &&
+                Objects.equals(accessModes, that.accessModes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(storageClassName, requestsSize, accessModes);
+    }
+
     @Extension
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
+
+        private static final ListBoxModel ACCESS_MODES_BOX = new ListBoxModel()
+                .add("ReadWriteOnce")
+                .add("ReadOnlyMany")
+                .add("ReadWriteMany");
+
         @Override
         public String getDisplayName() {
             return "Dynamic Persistent Volume Claim Workspace Volume";
+        }
+
+        @SuppressWarnings("unused") // by stapler
+        @RequirePOST
+        @Restricted(DoNotUse.class) // stapler only
+        public ListBoxModel doFillAccessModesItems(){
+            return ACCESS_MODES_BOX;
         }
     }
 }

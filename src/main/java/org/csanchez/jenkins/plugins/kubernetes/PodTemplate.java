@@ -75,6 +75,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String image;
 
     private boolean privileged;
+    
+    private Long runAsUser;
+    
+    private Long runAsGroup;
 
     private boolean capOnlyOnAlivePods;
 
@@ -110,8 +114,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceLimitMemory;
 
-    private boolean customWorkspaceVolumeEnabled;
-    private WorkspaceVolume workspaceVolume;
+    private Boolean hostNetwork;
+
+    private WorkspaceVolume workspaceVolume = WorkspaceVolume.getDefault();
 
     private final List<PodVolume> volumes = new ArrayList<PodVolume>();
 
@@ -425,6 +430,45 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::isPrivileged).orElse(false);
     }
 
+    @DataBoundSetter
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
+    }
+    
+    public String getRunAsUser() {
+        return runAsUser == null ? null : runAsUser.toString();
+    }
+
+    public Long getRunAsUserAsLong() {
+        return runAsUser;
+    }
+
+    @DataBoundSetter
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = PodTemplateUtils.parseLong(runAsGroup);
+    }
+
+    public String getRunAsGroup() {
+        return runAsGroup == null ? null : runAsGroup.toString();
+    }
+
+    public Long getRunAsGroupAsLong() {
+        return runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setHostNetwork(Boolean hostNetwork) {
+        this.hostNetwork = hostNetwork;
+    }
+
+    public Boolean isHostNetwork() {
+        return hostNetwork;
+    }
+
+    public boolean isHostNetworkSet() {
+        return hostNetwork != null;
+    }
+
     public String getServiceAccount() {
         return serviceAccount;
     }
@@ -587,15 +631,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return volumes;
     }
 
-    public boolean isCustomWorkspaceVolumeEnabled() {
-        return customWorkspaceVolumeEnabled;
-    }
-
-    @DataBoundSetter
-    public void setCustomWorkspaceVolumeEnabled(boolean customWorkspaceVolumeEnabled) {
-        this.customWorkspaceVolumeEnabled = customWorkspaceVolumeEnabled;
-    }
-
+    @Nonnull
     public WorkspaceVolume getWorkspaceVolume() {
         return workspaceVolume;
     }
@@ -687,6 +723,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
+            containerTemplate.setRunAsUser(getRunAsUser());
+            containerTemplate.setRunAsGroup(getRunAsGroup());
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(envVars);
             containerTemplate.setResourceRequestMemory(resourceRequestMemory);
@@ -704,6 +742,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             // value can still be null, so check for it here so 
             // as to not blow up things like termination path
             podRetention = PodRetention.getPodTemplateDefault();
+        }
+
+        if (workspaceVolume == null) {
+            workspaceVolume = WorkspaceVolume.getDefault();
         }
 
         if (annotations == null) {
@@ -826,12 +868,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
+        public WorkspaceVolume getDefaultWorkspaceVolume() {
+            return WorkspaceVolume.getDefault();
+        }
+
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
         public Descriptor getDefaultPodRetention() {
-            Jenkins jenkins = Jenkins.getInstanceOrNull();
-            if (jenkins == null) {
-                return null;
-            }
-            return jenkins.getDescriptor(PodRetention.getPodTemplateDefault().getClass());
+            return Jenkins.get().getDescriptor(PodRetention.getPodTemplateDefault().getClass());
         }
 
         @SuppressWarnings("unused") // Used by jelly
@@ -849,6 +893,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (namespace == null ? "" : ", namespace='" + namespace + '\'') +
                 (image == null ? "" : ", image='" + image + '\'') +
                 (!privileged ? "" : ", privileged=" + privileged) +
+                (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
+                (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
+                (!isHostNetworkSet() ? "" : ", hostNetwork=" + hostNetwork) +
                 (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
                 (command == null ? "" : ", command='" + command + '\'') +
                 (args == null ? "" : ", args='" + args + '\'') +
@@ -865,8 +912,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
-                (!customWorkspaceVolumeEnabled ? "" : ", customWorkspaceVolumeEnabled=" + customWorkspaceVolumeEnabled) +
-                (workspaceVolume == null ? "" : ", workspaceVolume=" + workspaceVolume) +
+                ", workspaceVolume=" + workspaceVolume +
                 (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
                 (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +

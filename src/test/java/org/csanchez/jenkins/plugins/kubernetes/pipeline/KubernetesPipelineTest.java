@@ -52,6 +52,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,11 +64,11 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
+import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
-/**
- * @author Carlos Sanchez
- */
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
@@ -80,9 +81,25 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Before
     public void setUp() throws Exception {
+        // Had some problems with FileChannel.close hangs from WorkflowRun.save:
+        r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
+    }
+
+    /**
+     * Ensure all builds are complete by the end of the test.
+     */
+    @After
+    public void allDead() throws Exception {
+        if (b != null && b.isLogUpdated()) {
+            LOGGER.warning(() -> "Had to interrupt " + b);
+            b.getExecutor().interrupt();
+        }
+        for (int i = 0; i < 100 && r.isSomethingHappening(); i++) {
+            Thread.sleep(100);
+        }
     }
 
     @Issue("JENKINS-57993")
@@ -234,7 +251,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("image: \"jenkins/jnlp-slave:3.10-1-alpine\"", b);
+        r.assertLogContains("image: \"jenkins/jnlp-slave:3.35-5-alpine\"", b);
         r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
         r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
@@ -372,7 +389,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(deadlineTemplate);
         SemaphoreStep.success("podTemplate/1", null);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
-        r.assertLogNotContains("Hello from container!", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
     }
 
     @Test
@@ -388,6 +406,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+    }
+
+    @Test
+    public void interruptedPod() throws Exception {
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
     }
 
     @Issue("JENKINS-58306")
@@ -472,6 +498,49 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void jnlpWorkingDir() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Issue("JENKINS-57256")
+    @Test
+    public void basicWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-jnlp-slave/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
+        r.assertLogContains("C:\\Program Files (x86)", b); // powershell
+    }
+
+    @Issue("JENKINS-53500")
+    @Test
+    public void windowsContainer() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
+        r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
+        r.assertLogContains("got stuff: some value", b);
+    }
+
+    @Ignore("TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
+    @Test
+    public void interruptedPodWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.waitForMessage("starting to sleep", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("shut down gracefully", b);
+    }
+
+    @Test
+    public void secretMaskingWindows() throws Exception {
+        assumeWindows();
+        cloud.setDirectConnection(false);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
+        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
     }
 
     @Test

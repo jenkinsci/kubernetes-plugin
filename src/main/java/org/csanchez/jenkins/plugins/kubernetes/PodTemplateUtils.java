@@ -87,6 +87,8 @@ public class PodTemplateUtils {
         String name = template.getName();
         String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
+        String runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
+        String runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
         boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
         String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
@@ -113,6 +115,8 @@ public class PodTemplateUtils {
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
+        combined.setRunAsUser(runAsUser);
+        combined.setRunAsGroup(runAsGroup);
         combined.setEnvVars(combineEnvVars(parent, template));
         combined.setPorts(new ArrayList<>(ports.values()));
         return combined;
@@ -138,6 +142,12 @@ public class PodTemplateUtils {
         Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
+        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
+                ? template.getSecurityContext().getRunAsUser()
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsUser() : null);
+        Long runAsGroup = template.getSecurityContext() != null && template.getSecurityContext().getRunAsGroup() != null
+                ? template.getSecurityContext().getRunAsGroup()
+                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsGroup() : null);
         String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
@@ -167,7 +177,11 @@ public class PodTemplateUtils {
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
-                .withNewSecurityContext().withPrivileged(privileged).endSecurityContext() //
+                .withNewSecurityContext()
+                .withPrivileged(privileged)
+                .withRunAsUser(runAsUser)
+                .withRunAsGroup(runAsGroup)
+                .endSecurityContext() //
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
                 .build();
 
@@ -223,6 +237,10 @@ public class PodTemplateUtils {
                 ? parent.getSpec().getServiceAccount()
                 : template.getSpec().getServiceAccount();
 
+        Boolean hostNetwork = template.getSpec().getHostNetwork() != null
+                ? template.getSpec().getHostNetwork()
+                : parent.getSpec().getHostNetwork();
+
         Map<String, String> podAnnotations = mergeMaps(parent.getMetadata().getAnnotations(),
                 template.getMetadata().getAnnotations());
         Map<String, String> podLabels = mergeMaps(parent.getMetadata().getLabels(), template.getMetadata().getLabels());
@@ -267,10 +285,26 @@ public class PodTemplateUtils {
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
+                .withHostNetwork(hostNetwork) //
                 .withContainers(Lists.newArrayList(combinedContainers.values())) //
                 .withVolumes(combinedVolumes) //
                 .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
+
+
+        // Security context
+        specBuilder.editOrNewSecurityContext()
+                .withRunAsUser(
+                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
+                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
+                        )
+                )
+                .withRunAsGroup(
+                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
+                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
+                        )
+                )
+                .endSecurityContext();
 
         // podTemplate.setLabel(label);
 //        podTemplate.setEnvVars(combineEnvVars(parent, template));
@@ -332,7 +366,7 @@ public class PodTemplateUtils {
         combinedVolumes.putAll(parentVolumes);
         combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
 
-        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
+        WorkspaceVolume workspaceVolume = WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
 
         //Tool location node properties
         PodTemplateToolLocation toolLocationNodeProperties = parent.getNodeProperties();
@@ -372,10 +406,13 @@ public class PodTemplateUtils {
         podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
 
-        podTemplate.setCustomWorkspaceVolumeEnabled(template.isCustomWorkspaceVolumeEnabled() ?
-                                                    template.isCustomWorkspaceVolumeEnabled() : parent.isCustomWorkspaceVolumeEnabled());
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
+
+        podTemplate.setRunAsUser(template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser());
+        podTemplate.setRunAsGroup(template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup());
+
+        podTemplate.setHostNetwork(template.isHostNetworkSet() ? template.isHostNetwork() : parent.isHostNetwork());
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
@@ -639,5 +676,18 @@ public class PodTemplateUtils {
         if (m2 != null)
             m.putAll(m2);
         return m;
+    }
+
+    static Long parseLong(String value) {
+        String s = Util.fixEmptyAndTrim(value);
+        if (s != null) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 }

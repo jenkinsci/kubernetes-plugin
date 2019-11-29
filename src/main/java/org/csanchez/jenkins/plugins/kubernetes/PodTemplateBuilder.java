@@ -24,6 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +41,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -50,6 +54,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
@@ -68,6 +73,8 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+
+import jenkins.model.Jenkins;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
@@ -87,8 +94,9 @@ public class PodTemplateBuilder {
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
-    private static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:alpine");
+    @VisibleForTesting
+    static final String DEFAULT_JNLP_IMAGE = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:3.35-5-alpine");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -137,17 +145,7 @@ public class PodTemplateBuilder {
             }
         }
 
-        if (template.getWorkspaceVolume() != null) {
-            LOGGER.log(Level.FINE, "Adding workspace volume from template: {0}",
-                    template.getWorkspaceVolume().toString());
-            if (slave != null) {
-                volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave.getPodName()));
-            }
-        } else {
-            // add an empty volume to share the workspace across the pod
-            LOGGER.log(Level.FINE, "Adding empty workspace volume");
-            volumes.put(WORKSPACE_VOLUME_NAME, new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
-        }
+        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave != null ? slave.getPodName() : null));
 
         Map<String, Container> containers = new HashMap<>();
         // containers from pod template
@@ -201,6 +199,21 @@ public class PodTemplateBuilder {
 
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
+        Long runAsUser = template.getRunAsUserAsLong();
+        Long runAsGroup = template.getRunAsGroupAsLong();
+        PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
+        if (runAsUser != null) {
+            securityContext.withRunAsUser(runAsUser);
+        }
+        if (runAsGroup != null) {
+            securityContext.withRunAsGroup(runAsGroup);
+        }
+        securityContext.endSecurityContext();
+
+        if (template.isHostNetworkSet()) {
+            builder.withHostNetwork(template.isHostNetwork());
+        }
+
         // merge with the yaml fragments
         Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
@@ -209,6 +222,13 @@ public class PodTemplateBuilder {
         // default restart policy
         if (StringUtils.isBlank(pod.getSpec().getRestartPolicy())) {
             pod.getSpec().setRestartPolicy("Never");
+        }
+
+        // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+        if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
+                (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
+            // TODO kubernetes.io/os for 1.14+? but: https://github.com/aws/containers-roadmap/issues/542
+            pod.getSpec().setNodeSelector(Collections.singletonMap("beta.kubernetes.io/os", "linux"));
         }
 
         // default jnlp container
@@ -313,12 +333,20 @@ public class PodTemplateBuilder {
 
             KubernetesCloud cloud = slave.getKubernetesCloud();
 
-            String url = cloud.getJenkinsUrlOrDie();
-
-            env.put("JENKINS_URL", url);
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
+
+            if (!cloud.isDirectConnection()) {
+                env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+            } else {
+                String host = getAdvertisedHost();
+                int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
+                env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
+                env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
+                env.put("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey());
+            }
+
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
@@ -326,6 +354,26 @@ public class PodTemplateBuilder {
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
         return envVarsMap;
+    }
+
+    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
+    private String getAdvertisedHost() {
+        try {
+            return (String) TcpSlaveAgentListener.class.getMethod("getAdvertisedHost").invoke(Jenkins.get().getTcpSlaveAgentListener());
+        } catch (NoSuchMethodException x) {
+            // 2.197-, fine
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+        String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
+        if(StringUtils.isBlank(host)) {
+            try {
+                host = new URL(Jenkins.get().getRootUrl()).getHost();
+            } catch (MalformedURLException | NullPointerException e) {
+                throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
+            }
+        }
+        return host;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
@@ -380,6 +428,8 @@ public class PodTemplateBuilder {
                 .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
                 .withNewSecurityContext()
                 .withPrivileged(containerTemplate.isPrivileged())
+                .withRunAsUser(containerTemplate.getRunAsUserAsLong())
+                .withRunAsGroup(containerTemplate.getRunAsGroupAsLong())
                 .endSecurityContext()
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))

@@ -1,0 +1,25 @@
+<p>
+    Specifies a shell which will run inside the container
+    and process requests from Jenkins to run executables,
+    set environment variables, and similar infrastructure.
+</p>
+<p>
+    This does <strong>not</strong> affect the shell used to run user code,
+    such as <code>sh</code> steps.
+    To run your scripts with a specific shell on Linux, use an interpreter line:
+</p>
+<pre><code>sh '''#!/bin/bash
+for x in {0..9}; do echo x; done
+'''</code></pre>
+<p>
+    or just use a subprocess and an externally versioned script:
+</p>
+<pre><code>sh 'bash ci.sh'</code></pre>
+<p>
+    On Windows, choose between the <code>bat</code> or <code>powershell</code> steps.
+</p>
+<p>
+    For a pod running on Linux, defaults to <code>sh</code>, which should be in <code>$PATH</code>;
+    for a pod running on Windows, defaults to <code>cmd</code>, which should be in <code>%Path%</code>.
+    Should not generally be overridden.
+</p>

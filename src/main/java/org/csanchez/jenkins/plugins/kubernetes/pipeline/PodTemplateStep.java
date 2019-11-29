@@ -55,6 +55,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private int slaveConnectTimeout = PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
     private int activeDeadlineSeconds;
 
+    private Boolean hostNetwork;
+
     private String serviceAccount;
     private String nodeSelector;
     private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
@@ -65,6 +67,9 @@ public class PodTemplateStep extends Step implements Serializable {
     private PodRetention podRetention;
 
     private Boolean showRawYaml;
+
+    private String runAsUser;
+    private String runAsGroup;
 
     @DataBoundConstructor
     public PodTemplateStep() {}
@@ -198,6 +203,15 @@ public class PodTemplateStep extends Step implements Serializable {
         this.activeDeadlineSeconds = activeDeadlineSeconds;
     }
 
+    public Boolean getHostNetwork() {
+        return hostNetwork;
+    }
+
+    @DataBoundSetter
+    public void setHostNetwork(boolean hostNetwork) {
+        this.hostNetwork = hostNetwork;
+    }
+
     public String getServiceAccount() { return serviceAccount; }
 
     @DataBoundSetter
@@ -262,7 +276,7 @@ public class PodTemplateStep extends Step implements Serializable {
         }
     }
 
-    
+
     public String getYaml() {
         return yaml;
     }
@@ -294,6 +308,24 @@ public class PodTemplateStep extends Step implements Serializable {
         this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
+    public String getRunAsUser(){
+        return this.runAsUser;
+    }
+
+    @DataBoundSetter
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = runAsUser;
+    }
+
+    public String getRunAsGroup(){
+        return this.runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = runAsGroup;
+    }
+
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
 
@@ -309,11 +341,6 @@ public class PodTemplateStep extends Step implements Serializable {
 
         @Override
         public boolean takesImplicitBlockArgument() {
-            return true;
-        }
-
-        @Override
-        public boolean isAdvanced() {
             return true;
         }
 
