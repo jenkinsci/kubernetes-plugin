@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -181,5 +183,12 @@ public abstract class AbstractKubernetesPipelineTest {
                 "container-secret", SECRET_KEY);
         podTemplate.getContainers().get(0)
                 .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
+    }
+
+    protected void createNamespaceIfNotExist(KubernetesClient client, String namespace) {
+        if (client.namespaces().withName(namespace).get() == null) {
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(namespace).endMetadata().build());
+        }
     }
 }
