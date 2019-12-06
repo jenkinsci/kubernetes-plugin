@@ -202,11 +202,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
-        if (retentionTimeout < DEFAULT_RETENTION_TIMEOUT_MINUTES) {
-            this.retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
-        } else {
-            this.retentionTimeout = retentionTimeout;
-        }
+        this.retentionTimeout = Math.max(DEFAULT_RETENTION_TIMEOUT_MINUTES, retentionTimeout);
     }
 
     public String getDefaultsProviderTemplate() {
