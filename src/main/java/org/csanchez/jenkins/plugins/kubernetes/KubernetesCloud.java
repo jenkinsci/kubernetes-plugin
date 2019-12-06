@@ -94,7 +94,7 @@ public class KubernetesCloud extends Cloud {
     public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
-    private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
+    public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
     private String defaultsProviderTemplate;
 
@@ -202,7 +202,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
-        this.retentionTimeout = retentionTimeout;
+        this.retentionTimeout = Math.max(DEFAULT_RETENTION_TIMEOUT_MINUTES, retentionTimeout);
     }
 
     public String getDefaultsProviderTemplate() {
@@ -913,6 +913,7 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        setRetentionTimeout(retentionTimeout);
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }
