@@ -36,6 +36,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.recipes.LocalData;
 import org.mockito.Mockito;
 
 import hudson.model.Label;
@@ -321,6 +322,21 @@ public class KubernetesCloudTest {
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
     }
 
+    @Test
+    public void minRetentionTimeout() {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
+        cloud.setRetentionTimeout(0);
+        assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
+    }
+
+    @Test
+    @LocalData
+    public void minRetentionTimeoutReadResolve() {
+        KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
+        assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
+    }
+
     public HtmlInput getInputByName(DomElement root, String name) {
         DomNodeList<HtmlElement> inputs = root.getElementsByTagName("input");
         for (HtmlElement input : inputs) {
@@ -330,6 +346,5 @@ public class KubernetesCloudTest {
         }
         return null;
     }
-
 
 }
