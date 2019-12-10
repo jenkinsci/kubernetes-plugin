@@ -27,6 +27,10 @@
 
     <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
 
+    <f:entry title="${%WebSocket}" field="webSocket">
+      <f:checkbox/>
+    </f:entry>
+
     <f:entry title="${%Direct Connection}" field="directConnection">
       <f:checkbox default="false" />
     </f:entry>

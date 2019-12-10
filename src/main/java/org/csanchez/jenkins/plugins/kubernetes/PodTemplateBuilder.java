@@ -339,6 +339,9 @@ public class PodTemplateBuilder {
 
             if (!cloud.isDirectConnection()) {
                 env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+                if (cloud.isWebSocket()) {
+                    env.put("JENKINS_WEB_SOCKET", "true");
+                }
             } else {
                 String host = getAdvertisedHost();
                 int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();

@@ -110,6 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private boolean webSocket;
     private boolean directConnection = false;
     private String jenkinsUrl;
     @CheckForNull
@@ -155,6 +156,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
+        this.webSocket = source.webSocket;
         this.directConnection = source.directConnection;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
@@ -351,6 +353,15 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
+    }
+
+    public boolean isWebSocket() {
+        return webSocket;
+    }
+
+    @DataBoundSetter
+    public void setWebSocket(boolean webSocket) {
+        this.webSocket = webSocket;
     }
 
     public boolean isDirectConnection() {
@@ -822,12 +833,16 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
-        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl, @QueryParameter boolean webSocket) throws IOException, ServletException {
             int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
             if(slaveAgentPort == -1) return FormValidation.warning(
                     "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
 
             if(value) {
+                if (webSocket) {
+                    return FormValidation.error("Direct connection and WebSocket mode are mutually exclusive");
+                    // TODO there may be other conflicts with webSocket, such as jenkinsTunnel
+                }
                 if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
                 if(slaveAgentPort == 0) return FormValidation.warning(
