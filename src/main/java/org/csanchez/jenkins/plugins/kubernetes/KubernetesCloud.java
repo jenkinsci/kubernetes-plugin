@@ -74,6 +74,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import jenkins.websocket.WebSockets;
 
 /**
  * Kubernetes cloud provider.
@@ -835,8 +836,9 @@ public class KubernetesCloud extends Cloud {
 
         public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl, @QueryParameter boolean webSocket) throws IOException, ServletException {
             int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
-            if(slaveAgentPort == -1) return FormValidation.warning(
-                    "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
+            if (slaveAgentPort == -1 && !webSocket) {
+                return FormValidation.warning("'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without this or WebSocket mode!");
+            }
 
             if(value) {
                 if (webSocket) {
@@ -865,6 +867,21 @@ public class KubernetesCloud extends Cloud {
                 if(!isEmpty(value)) new URL(value);
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, "Invalid Jenkins URL");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckWebSocket(@QueryParameter boolean webSocket, @QueryParameter boolean directConnection, @QueryParameter String tunnel) {
+            if (webSocket) {
+                if (!WebSockets.isSupported()) {
+                    return FormValidation.error("WebSocket support is not enabled in this Jenkins installation");
+                }
+                if (directConnection) {
+                    return FormValidation.error("WebSocket and direct connection mode are mutually exclusive");
+                }
+                if (tunnel != null) {
+                    return FormValidation.error("Tunneling is not currently supported in WebSocket mode");
+                }
             }
             return FormValidation.ok();
         }
