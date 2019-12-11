@@ -24,8 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -343,11 +341,12 @@ public class PodTemplateBuilder {
                     env.put("JENKINS_WEB_SOCKET", "true");
                 }
             } else {
-                String host = getAdvertisedHost();
-                int port = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
+                TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
+                String host = tcpSlaveAgentListener.getAdvertisedHost();
+                int port = tcpSlaveAgentListener.getAdvertisedPort();
                 env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
                 env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
-                env.put("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey());
+                env.put("JENKINS_INSTANCE_IDENTITY", tcpSlaveAgentListener.getIdentityPublicKey());
             }
 
         }
@@ -357,26 +356,6 @@ public class PodTemplateBuilder {
                 envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null))
         );
         return envVarsMap;
-    }
-
-    //TODO: Switch to TcpSlaveAgentListener.getAdvertisedHost() in 2.198+
-    private String getAdvertisedHost() {
-        try {
-            return (String) TcpSlaveAgentListener.class.getMethod("getAdvertisedHost").invoke(Jenkins.get().getTcpSlaveAgentListener());
-        } catch (NoSuchMethodException x) {
-            // 2.197-, fine
-        } catch (Exception x) {
-            LOGGER.log(Level.WARNING, null, x);
-        }
-        String host = System.getProperty(TcpSlaveAgentListener.class.getName()+".hostName");
-        if(StringUtils.isBlank(host)) {
-            try {
-                host = new URL(Jenkins.get().getRootUrl()).getHost();
-            } catch (MalformedURLException | NullPointerException e) {
-                throw new IllegalStateException("Could not get TcpSlaveAgentListener host name", e);
-            }
-        }
-        return host;
     }
 
     private Container createContainer(ContainerTemplate containerTemplate, Collection<TemplateEnvVar> globalEnvVars,
