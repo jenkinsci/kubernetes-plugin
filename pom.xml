@@ -52,6 +52,7 @@
     <useBeta>true</useBeta>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
+    <slf4jVersion>1.7.26</slf4jVersion>
   </properties>
 
   <dependencies>
