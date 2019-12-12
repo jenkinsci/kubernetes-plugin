@@ -121,7 +121,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
-        for (Computer c : r.jenkins.getComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+        for (Computer c : Arrays.stream(r.jenkins.getComputers()).filter(c -> c instanceof SlaveComputer).collect(Collectors.toList())) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
             new Thread(() -> {
                 long pos = 0;
                 try {
