@@ -843,7 +843,6 @@ public class KubernetesCloud extends Cloud {
             if(value) {
                 if (webSocket) {
                     return FormValidation.error("Direct connection and WebSocket mode are mutually exclusive");
-                    // TODO there may be other conflicts with webSocket, such as jenkinsTunnel
                 }
                 if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
@@ -871,15 +870,12 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok();
         }
 
-        public FormValidation doCheckWebSocket(@QueryParameter boolean webSocket, @QueryParameter boolean directConnection, @QueryParameter String tunnel) {
+        public FormValidation doCheckWebSocket(@QueryParameter boolean webSocket, @QueryParameter boolean directConnection, @QueryParameter String jenkinsTunnel) {
             if (webSocket) {
                 if (!WebSockets.isSupported()) {
                     return FormValidation.error("WebSocket support is not enabled in this Jenkins installation");
                 }
-                if (directConnection) {
-                    return FormValidation.error("WebSocket and direct connection mode are mutually exclusive");
-                }
-                if (tunnel != null) {
+                if (Util.fixEmpty(jenkinsTunnel) != null) {
                     return FormValidation.error("Tunneling is not currently supported in WebSocket mode");
                 }
             }
