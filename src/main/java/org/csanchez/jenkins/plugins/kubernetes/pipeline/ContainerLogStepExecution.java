@@ -18,20 +18,17 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
+import io.fabric8.kubernetes.api.model.DoneablePod;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.ContainerResource;
-import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TailPrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,13 +75,13 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             client = nodeContext.connectToCloud();
 
             String podName = nodeContext.getPodName();
-            ContainerResource<String, LogWatch, InputStream, PipedOutputStream, OutputStream, PipedInputStream,
-                    String, ExecWatch, Boolean, InputStream> container = client.pods() //
+            PodResource<Pod, DoneablePod> pod = client.pods() //
                     .inNamespace(nodeContext.getNamespace()) //
-                    .withName(podName) //
-                    .inContainer(containerName);
+                    .withName(podName);
 
-            TimeTailPrettyLoggable<String, LogWatch> limited = limitBytes > 0 ? container.limitBytes(limitBytes) : container;
+            TimeTailPrettyLoggable<String, LogWatch> limited = limitBytes > 0
+                    ? pod.inContainer(containerName).limitBytes(limitBytes)
+                    : pod.inContainer(containerName);
 
             TailPrettyLoggable<String, LogWatch> since = sinceSeconds > 0 ? limited.sinceSeconds(sinceSeconds) : limited;
 
