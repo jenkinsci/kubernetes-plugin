@@ -111,7 +111,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     Set<String> values = secrets.get(c);
                     if (values != null) {
                         LOGGER.log(Level.FINE, "Using cached secrets for {0}", c);
-                        return new SecretsMasker(values);
+                        return TaskListenerDecorator.merge(context.get(TaskListenerDecorator.class), new SecretsMasker(values));
                     } else {
                         LOGGER.log(Level.FINE, "Cached absence of secrets for {0}", c);
                         return null;
