@@ -35,6 +35,8 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
+import java.util.Objects;
+
 public class NfsWorkspaceVolume extends WorkspaceVolume {
     private String serverAddress;
     private String serverPath;
@@ -48,7 +50,7 @@ public class NfsWorkspaceVolume extends WorkspaceVolume {
         this.readOnly = readOnly;
     }
 
-    public Volume buildVolume(String volumeName) {
+    public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewNfs(getServerPath(), getReadOnly(), getServerAddress())
@@ -66,6 +68,21 @@ public class NfsWorkspaceVolume extends WorkspaceVolume {
     @Nonnull
     public Boolean getReadOnly() {
         return readOnly != null && readOnly;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        NfsWorkspaceVolume that = (NfsWorkspaceVolume) o;
+        return Objects.equals(serverAddress, that.serverAddress) &&
+                Objects.equals(serverPath, that.serverPath) &&
+                Objects.equals(readOnly, that.readOnly);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(serverAddress, serverPath, readOnly);
     }
 
     @Extension

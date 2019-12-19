@@ -1,11 +1,17 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.nio.charset.StandardCharsets.*;
+import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,6 +70,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Kubernetes cloud provider.
@@ -84,7 +91,7 @@ public class KubernetesCloud extends Cloud {
     public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
-    private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
+    public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
     private String defaultsProviderTemplate;
 
@@ -100,6 +107,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private boolean directConnection = false;
     private String jenkinsUrl;
     @CheckForNull
     private String jenkinsTunnel;
@@ -144,6 +152,7 @@ public class KubernetesCloud extends Cloud {
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
+        this.directConnection = source.directConnection;
         this.jenkinsUrl = source.jenkinsUrl;
         this.jenkinsTunnel = source.jenkinsTunnel;
         this.credentialsId = source.credentialsId;
@@ -190,7 +199,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
-        this.retentionTimeout = retentionTimeout;
+        this.retentionTimeout = Math.max(DEFAULT_RETENTION_TIMEOUT_MINUTES, retentionTimeout);
     }
 
     public String getDefaultsProviderTemplate() {
@@ -306,6 +315,26 @@ public class KubernetesCloud extends Cloud {
      */
     @Nonnull
     public String getJenkinsUrlOrDie() {
+        String url = getJenkinsUrlOrNull();
+        if (url == null) {
+            throw new IllegalStateException("Jenkins URL for Kubernetes is null");
+        }
+        return url;
+    }
+
+    /**
+     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     *
+     * Uses in order:
+     * * cloud configuration
+     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
+     * * Jenkins Location URL
+     *
+     * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     *         Null if no Jenkins URL could be computed.
+     */
+    @CheckForNull
+    public String getJenkinsUrlOrNull() {
         JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
         String url = StringUtils.defaultIfBlank(
                 getJenkinsUrl(),
@@ -315,10 +344,19 @@ public class KubernetesCloud extends Cloud {
                 )
         );
         if (url == null) {
-            throw new IllegalStateException("Jenkins URL for Kubernetes is null");
+            return null;
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
+    }
+
+    public boolean isDirectConnection() {
+        return directConnection;
+    }
+
+    @DataBoundSetter
+    public void setDirectConnection(boolean directConnection) {
+        this.directConnection = directConnection;
     }
 
     @DataBoundSetter
@@ -777,6 +815,38 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+            int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
+            if(slaveAgentPort == -1) return FormValidation.warning(
+                    "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
+
+            if(value) {
+                if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
+
+                if(slaveAgentPort == 0) return FormValidation.warning(
+                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
+            } else {
+                if (isEmpty(jenkinsUrl)) {
+                    String url = StringUtils.defaultIfBlank(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")), JenkinsLocationConfiguration.get().getUrl());
+                    if (url != null) {
+                        return FormValidation.ok("Will connect using " + url);
+                    } else {
+                        return FormValidation.warning("Configure either Direct Connection or Jenkins URL");
+                    }
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection) throws IOException, ServletException {
+            try {
+                if(!isEmpty(value)) new URL(value);
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, "Invalid Jenkins URL");
+            }
+            return FormValidation.ok();
+        }
+
         public List<Descriptor<PodRetention>> getAllowedPodRetentions() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -836,6 +906,7 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        setRetentionTimeout(retentionTimeout);
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }

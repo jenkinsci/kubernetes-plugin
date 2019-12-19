@@ -2,15 +2,19 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.util.concurrent.Futures;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
@@ -160,6 +164,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return Jenkins.getInstance().getCloud(getCloudName());
     }
 
+    public Optional<Pod> getPod() {
+        return pod == null ? Optional.empty() : Optional.of(pod);
+    }
+
     /**
      * Returns the cloud instance which created this agent.
      * @return the cloud instance which created this agent.
@@ -256,7 +264,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
         // Tell the slave to stop JNLP reconnects.
         VirtualChannel ch = computer.getChannel();
         if (ch != null) {
-            ch.call(new SlaveDisconnector());
+            Future<Void> disconnectorFuture = ch.callAsync(new SlaveDisconnector());
+            try {
+                disconnectorFuture.get(DISCONNECTION_TIMEOUT, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                String msg = String.format("Ignoring error sending order to not reconnect agent %s: %s", name, e.getMessage());
+                LOGGER.log(Level.INFO, msg, e);
+            }
         }
 
         // Disconnect the master from the slave agent

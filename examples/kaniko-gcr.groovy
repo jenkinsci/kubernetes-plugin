@@ -10,8 +10,6 @@
 
 podTemplate(yaml: """
 kind: Pod
-metadata:
-  name: kaniko
 spec:
   containers:
   - name: kaniko
@@ -36,12 +34,8 @@ spec:
   node(POD_LABEL) {
     stage('Build with Kaniko') {
       git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
-      container(name: 'kaniko', shell: '/busybox/sh') {
-        withEnv(['PATH+EXTRA=/busybox:/kaniko']) {
-          sh '''#!/busybox/sh
-          /kaniko/executor -c `pwd` --cache=true --destination=gcr.io/myprojectid/myimage
-          '''
-        }
+      container('kaniko') {
+        sh '/kaniko/executor -c `pwd` --cache=true --destination=gcr.io/myprojectid/myimage'
       }
     }
   }

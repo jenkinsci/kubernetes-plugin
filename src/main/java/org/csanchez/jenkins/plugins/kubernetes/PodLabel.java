@@ -9,7 +9,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,8 +51,8 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      * @param labels collection of pod labels to convert to a map
      * @return immutable map of pod labels
      */
-    @NotNull
-    static Map<String, String> toMap(@NotNull Iterable<PodLabel> labels) {
+    @Nonnull
+    static Map<String, String> toMap(@Nonnull Iterable<PodLabel> labels) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         for (PodLabel podLabel : labels) {
             builder.put(podLabel.getKey(), substituteEnv(podLabel.getValue()));
@@ -66,8 +65,8 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      * @param labels labels map
      * @return list of pod labels
      */
-    @NotNull
-    static List<PodLabel> fromMap(@NotNull Map<String, String> labels) {
+    @Nonnull
+    static List<PodLabel> fromMap(@Nonnull Map<String, String> labels) {
         List<PodLabel> list = new ArrayList<>();
         for (Map.Entry<String, String> label : labels.entrySet()) {
             list.add(new PodLabel(label.getKey(), label.getValue()));

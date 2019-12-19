@@ -32,6 +32,8 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
+import java.util.Objects;
+
 public class HostPathWorkspaceVolume extends WorkspaceVolume {
     private String hostPath;
 
@@ -40,7 +42,7 @@ public class HostPathWorkspaceVolume extends WorkspaceVolume {
         this.hostPath = hostPath;
     }
 
-    public Volume buildVolume(String volumeName) {
+    public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder() //
                 .withName(volumeName) //
                 .withNewHostPath().withPath(getHostPath()).endHostPath() //
@@ -49,6 +51,19 @@ public class HostPathWorkspaceVolume extends WorkspaceVolume {
 
     public String getHostPath() {
         return hostPath;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        HostPathWorkspaceVolume that = (HostPathWorkspaceVolume) o;
+        return Objects.equals(hostPath, that.hostPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(hostPath);
     }
 
     @Extension

@@ -28,8 +28,6 @@ import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,7 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -66,7 +63,6 @@ import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.RetentionStrategy;
-import jenkins.model.JenkinsLocationConfiguration;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -128,19 +124,15 @@ public class RestartPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
-        URL url = story.j.getURL();
-
-        String hostAddress = System.getProperty("jenkins.host.address");
-        if (StringUtils.isBlank(hostAddress)) {
-            hostAddress = InetAddress.getLocalHost().getHostAddress();
-        }
-        System.err.println("Calling home to address: " + hostAddress);
-        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
-                url.getFile());
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+        setupHost();
 
         story.j.jenkins.clouds.add(cloud);
+    }
+    
+    public void configureAgentListener() throws IOException {
+      //Take random port and fix it, to be the same after Jenkins restart
+      int fixedPort = story.j.jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
+      story.j.jenkins.setSlaveAgentPort(fixedPort);
     }
 
     protected String loadPipelineScript(String name) {
@@ -155,6 +147,7 @@ public class RestartPipelineTest {
     public void runInPodWithRestartWithMultipleContainerCalls() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
@@ -175,6 +168,7 @@ public class RestartPipelineTest {
     public void runInPodWithRestartWithLongSleep() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
@@ -191,11 +185,31 @@ public class RestartPipelineTest {
         });
     }
 
+    @Test
+    public void windowsRestart() throws Exception {
+        assumeWindows();
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureAgentListener();
+            configureCloud();
+            cloud.setDirectConnection(false);
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("sleeping #0", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            r.assertLogContains("sleeping #9", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+            r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+        });
+    }
+
     @Issue("JENKINS-49707")
     @Test
     public void terminatedPodAfterRestart() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
@@ -220,6 +234,7 @@ public class RestartPipelineTest {
     public void getContainerLogWithRestart() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
+            configureAgentListener();
             configureCloud();
             r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
                     Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,

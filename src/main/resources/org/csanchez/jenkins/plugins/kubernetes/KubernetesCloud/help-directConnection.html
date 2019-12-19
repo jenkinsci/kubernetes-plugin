@@ -1,0 +1,35 @@
+<div>
+  <p>
+  With this option is is possible to connect directly to the TCP agent listener port.
+  This skips the connect to an HTTP(S) port to retrieve the connection information. 
+  </p>
+
+  <p>
+  This is useful in scenarios where the master does not expose an HTTP(S) port, for example
+  <a target="_blank" href="https://github.com/jenkinsci/jenkinsfile-runner">Jenkinsfile Runner</a>.
+  </p>
+
+  <p>
+  Here is an example how the connect on agent side would look like. Most parameters are provided automatically when you enable the <i>Direct Connection</i> option.
+  <pre>
+  java -cp agent.jar hudson.remoting.jnlp.Main \
+    -headless \
+    -workDir &lt;WORK_DIRECTORY&gt; \
+    -direct &lt;MASTER_HOST:TCP_AGENT_LISTENER_PORT&gt; \
+    -protocols JNLP4-connect \
+    -instanceIdentity &lt;INSTANCE_IDENTITY&gt; \
+    &lt;SECRET_STRING&gt; &lt;AGENT_NAME&gt;
+  </pre>
+  </p>
+  
+  <p>
+    You find more information in the <a target="_blank" href="https://github.com/jenkinsci/remoting">Jenkins Remoting</a> project.
+  </p>
+
+  <p>
+    <b>Note:</b> In <i>Direct Connection</i> mode agents will not be able to reconnect to a restarted master if a <i>Random</i> 'TCP port for inbound agents' is configured!<br/>
+    <b>Note:</b> <i>Direct Connection</i> requires a <a target="_blank" href="https://hub.docker.com/r/jenkins/jnlp-slave/tags">jnlp-slave</a> image with a version equal or higher than 3.35-5.
+    <br/><b>Note:</b> <i>Direct Connection</i> does not work with the currently available <code>jenkins/jnlp-agent:latest-windows</code> image.
+  </p>
+
+</div>

@@ -24,7 +24,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.logging.Level.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,6 +52,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+import static java.util.logging.Level.INFO;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -126,6 +126,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
+            template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
             watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);

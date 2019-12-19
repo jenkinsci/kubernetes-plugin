@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.Extension;
 import hudson.console.LineTransformationOutputStream;
 import hudson.remoting.Channel;
+import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
@@ -43,6 +44,7 @@ import javax.annotation.CheckForNull;
 import okhttp3.Response;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.DynamicContext;
 
@@ -109,7 +111,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     Set<String> values = secrets.get(c);
                     if (values != null) {
                         LOGGER.log(Level.FINE, "Using cached secrets for {0}", c);
-                        return new SecretsMasker(values);
+                        return TaskListenerDecorator.merge(context.get(TaskListenerDecorator.class), new SecretsMasker(values));
                     } else {
                         LOGGER.log(Level.FINE, "Cached absence of secrets for {0}", c);
                         return null;
@@ -158,8 +160,13 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     LOGGER.fine(() -> "looking for " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName + " secrets named " + secretContainerKeys);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     Semaphore semaphore = new Semaphore(0);
-                    try (ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
-                            .writingOutput(baos).writingError(System.err).writingErrorChannel(System.err)
+                    Boolean unix = c.isUnix();
+                    if (unix == null) {
+                        return null;
+                    }
+                    try (OutputStream errs = new LogTaskListener(LOGGER, Level.FINE).getLogger();
+                         ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
+                            .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
                             .usingListener(new ExecListener() {
                                 @Override
                                 public void onOpen(Response response) {
@@ -173,14 +180,14 @@ public final class SecretsMasker extends TaskListenerDecorator {
                                     semaphore.release();
                                 }
                             })
-                            .exec("env")) {
+                            .exec(unix ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
-                    } catch (Exception x) {
+                    } catch (RuntimeException | KubernetesAuthException x) {
                         LOGGER.log(Level.FINE, "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName, x);
                     }
-                    for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\n")) {
+                    for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {
                         int equals = line.indexOf('=');
                         if (equals != -1) {
                             String key = line.substring(0, equals);

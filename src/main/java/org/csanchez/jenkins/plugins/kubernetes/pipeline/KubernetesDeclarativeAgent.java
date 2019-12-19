@@ -2,7 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgent;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentDescriptor;
@@ -47,6 +47,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String defaultContainer;
     private String yaml;
     private String yamlFile;
+    private YamlMergeStrategy yamlMergeStrategy;
 
     @DataBoundConstructor
     public KubernetesDeclarativeAgent() {
@@ -215,17 +216,21 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.yamlFile = yamlFile;
     }
 
+    public YamlMergeStrategy getYamlMergeStrategy() {
+        return yamlMergeStrategy;
+    }
+
+    @DataBoundSetter
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+        this.yamlMergeStrategy = yamlMergeStrategy;
+    }
+
     public Map<String, Object> getAsArgs() {
         Map<String, Object> argMap = new TreeMap<>();
 
         if (label != null) {
             argMap.put("label", label);
         }
-
-        if (!StringUtils.isEmpty(customWorkspace)) {
-            argMap.put("customWorkspace", customWorkspace);
-        }
-
         List<ContainerTemplate> containerTemplates = getContainerTemplates();
         if (containerTemplate != null) {
             LOGGER.log(Level.WARNING,
@@ -241,6 +246,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
         if (!StringUtils.isEmpty(yaml)) {
             argMap.put("yaml", yaml);
+        }
+        if (yamlMergeStrategy != null) {
+            argMap.put("yamlMergeStrategy", yamlMergeStrategy);
         }
         if (!StringUtils.isEmpty(cloud)) {
             argMap.put("cloud", cloud);

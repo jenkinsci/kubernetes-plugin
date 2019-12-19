@@ -16,7 +16,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static com.google.common.base.Preconditions.*;
 
 import java.io.Serializable;
 import java.util.ArrayDeque;
@@ -28,6 +27,9 @@ import com.google.common.annotations.GwtCompatible;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ForwardingQueue;
 import com.google.common.collect.Iterables;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * COPIED FROM GUAVA until it is upgraded in Jenkins core

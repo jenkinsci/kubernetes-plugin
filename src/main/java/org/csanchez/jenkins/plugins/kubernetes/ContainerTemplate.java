@@ -26,7 +26,6 @@ import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.annotation.Nonnull;
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -34,15 +33,21 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public static final String DEFAULT_WORKING_DIR = "/home/jenkins/agent";
 
+    private static final String OLD_DEFAULT_WORKING_DIR = "/home/jenkins";
+
     private String name;
 
     private String image;
 
     private boolean privileged;
 
+    private Long runAsUser;
+    
+    private Long runAsGroup;
+
     private boolean alwaysPullImage;
 
-    private String workingDir = DEFAULT_WORKING_DIR;
+    private String workingDir;
 
     private String command;
 
@@ -88,6 +93,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.setName(from.getName());
         this.setImage(from.getImage());
         this.setPrivileged(from.isPrivileged());
+        this.setRunAsUser(from.getRunAsUser());
+        this.setRunAsGroup(from.getRunAsGroup());
         this.setAlwaysPullImage(from.isAlwaysPullImage());
         this.setWorkingDir(from.getWorkingDir());
         this.setCommand(from.getCommand());
@@ -168,6 +175,32 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         return privileged;
     }
 
+    @DataBoundSetter
+    public void setRunAsUser(String runAsUser) {
+        this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
+    }
+
+    public String getRunAsUser() {
+        return runAsUser == null ? null : runAsUser.toString();
+    }
+
+    public Long getRunAsUserAsLong() {
+        return runAsUser;
+    }
+
+    @DataBoundSetter
+    public void setRunAsGroup(String runAsGroup) {
+        this.runAsGroup = PodTemplateUtils.parseLong(runAsGroup);
+    }
+
+    public String getRunAsGroup() {
+        return runAsGroup == null ? null : runAsGroup.toString();
+    }
+
+    public Long getRunAsGroupAsLong() {
+        return runAsGroup;
+    }
+    
     @DataBoundSetter
     public void setAlwaysPullImage(boolean alwaysPullImage) {
         this.alwaysPullImage = alwaysPullImage;
@@ -294,6 +327,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (name == null ? "" : "name='" + name + '\'') +
                 (image == null ? "" : ", image='" + image + '\'') +
                 (!privileged ? "" : ", privileged=" + privileged) +
+                (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
+                (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
                 (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
                 (workingDir == null ? "" : ", workingDir='" + workingDir + '\'') +
                 (command == null ? "" : ", command='" + command + '\'') +
@@ -321,6 +356,12 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         ContainerTemplate that = (ContainerTemplate) o;
 
         if (privileged != that.privileged) {
+            return false;
+        }
+        if (runAsUser != null ? !runAsUser.equals(that.runAsUser) : that.runAsUser != null) {
+            return false;
+        }
+        if (runAsGroup != null ? !runAsGroup.equals(that.runAsGroup) : that.runAsGroup != null) {
             return false;
         }
         if (alwaysPullImage != that.alwaysPullImage) {
@@ -373,6 +414,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         int result = name != null ? name.hashCode() : 0;
         result = 31 * result + (image != null ? image.hashCode() : 0);
         result = 31 * result + (privileged ? 1 : 0);
+        result = 31 * result + (runAsUser != null ? runAsUser.hashCode() : 0);
+        result = 31 * result + (runAsGroup != null ? runAsGroup.hashCode() : 0);
         result = 31 * result + (alwaysPullImage ? 1 : 0);
         result = 31 * result + (workingDir != null ? workingDir.hashCode() : 0);
         result = 31 * result + (command != null ? command.hashCode() : 0);
@@ -391,6 +434,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private Object readResolve() {
         this.workingDir = Util.fixEmpty(workingDir);
+        if (OLD_DEFAULT_WORKING_DIR.equals(workingDir)) {
+            this.workingDir = DEFAULT_WORKING_DIR;
+        }
         return this;
     }
 }

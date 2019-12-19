@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry field="cloud" title="The cloud to use">
-      <f:textbox default="kubernetes"/>
+    <f:entry field="name" title="${%Container name}">
+        <f:textbox/>
     </f:entry>
-    <f:entry field="pod" title="The name of the pod to use">
-		<f:textbox/>
-	</f:entry>
-	<f:entry field="name" title="The name of the container to select">
-		<f:textbox/>
-	</f:entry>
+    <f:advanced>
+        <f:entry field="shell" title="${%Shell}">
+            <f:textbox/>
+        </f:entry>
+    </f:advanced>
 </j:jelly>

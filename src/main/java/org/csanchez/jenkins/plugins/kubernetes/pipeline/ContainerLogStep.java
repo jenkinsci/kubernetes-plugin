@@ -104,13 +104,8 @@ public class ContainerLogStep extends Step implements Serializable {
         }
 
         @Override
-        public boolean takesImplicitBlockArgument() {
-            return false;
-        }
-
-        @Override
         public boolean isAdvanced() {
-            return false;
+            return true;
         }
 
         @Override

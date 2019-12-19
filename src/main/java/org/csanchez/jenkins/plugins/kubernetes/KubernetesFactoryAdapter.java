@@ -1,8 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.nio.charset.StandardCharsets.*;
 
-import static java.util.logging.Level.*;
 import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
@@ -19,6 +17,10 @@ import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.logging.Level.FINE;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>

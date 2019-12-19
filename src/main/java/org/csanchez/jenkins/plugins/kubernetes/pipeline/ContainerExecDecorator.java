@@ -16,7 +16,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -26,19 +25,24 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import io.fabric8.kubernetes.api.model.Container;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -58,6 +62,8 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -79,7 +85,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
-    private static final String DEFAULT_SHELL = "sh";
 
     /**
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
@@ -109,7 +114,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
         this.ws = ws;
-        this.shell = DEFAULT_SHELL;
     }
 
     @Deprecated
@@ -223,10 +227,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.ws = ws;
     }
 
-    public String getShell() {
-        return shell == null? DEFAULT_SHELL:shell;
-    }
-
     public void setShell(String shell) {
         this.shell = shell;
     }
@@ -245,29 +245,91 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
+
+                // find container working dir
+                KubernetesSlave slave = (KubernetesSlave) node;
+                FilePath containerWorkingDirFilePath = starter.pwd();
+                String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
+                        ? containerWorkingDirFilePath.getRemote() : ContainerTemplate.DEFAULT_WORKING_DIR;
+                String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
+                if (slave != null && slave.getPod().isPresent() && containerName != null) {
+                    Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
+                            .filter(container1 -> container1.getName().equals(containerName))
+                            .findAny();
+                    Optional<String> containerWorkingDir = Optional.empty();
+                    if (container.isPresent() && container.get().getWorkingDir() != null) {
+                        containerWorkingDir = Optional.of(container.get().getWorkingDir());
+                    }
+                    if (containerWorkingDir.isPresent()) {
+                        containerWorkingDirStr = containerWorkingDir.get();
+                    }
+
+                    if (containerWorkingDir.isPresent() && ! containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
+                        // Container has a custom workingDir, updated the pwd to match container working dir
+                        containerWorkingDirFilePathStr = containerWorkingDirFilePath.getRemote().replaceFirst(
+                                ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                        containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirFilePathStr);
+                        LOGGER.log(Level.FINEST, "Modified the pwd to match {0} containers workspace directory : {1}",
+                                new String[]{containerName, containerWorkingDirFilePathStr});
+                    }
+                }
+
                 String[] envVars = starter.envs();
+                // modify the working dir on envvars part of starter env vars
+                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                    for (int i = 0; i < envVars.length; i++) {
+                        String keyValue = envVars[i];
+                        String[] split = keyValue.split("=", 2);
+                        if (split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                            // Container has a custom workingDir, update env vars with right workspace folder
+                            split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                            envVars[i] = split[0] + "=" + split[1];
+                            LOGGER.log(Level.FINEST, "Updated the starter environment variable, key: {0}, Value: {1}",
+                                    new String[]{split[0], split[1]});
+                        }
+                    }
+                }
+
                 if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
                     final Computer computer = node.toComputer();
                     if (computer != null) {
                         List<String> resultEnvVar = new ArrayList<>();
                         try {
                             EnvVars environment = computer.getEnvironment();
-                            String[] envs = starter.envs();
-                            for (String keyValue : envs) {
-                                String[] split = keyValue.split("=", 2);
-                                if (!split[1].equals(environment.get(split[0]))) {
-                                    // Only keep environment variables that differ from Computer's environment
-                                    resultEnvVar.add(keyValue);
+                            if (environment != null) {
+                                Set<String> overriddenKeys = new HashSet<>();
+                                for (String keyValue : envVars) {
+                                    String[] split = keyValue.split("=", 2);
+                                    if (!split[1].equals(environment.get(split[0]))) {
+                                        // Only keep environment variables that differ from Computer's environment
+                                        resultEnvVar.add(keyValue);
+                                        overriddenKeys.add(split[0]);
+                                    }
                                 }
+
+                                // modify the working dir on envvars part of Computer
+                                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                    for (Map.Entry<String, String> entry : environment.entrySet()) {
+                                        if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
+                                                && !overriddenKeys.contains(entry.getKey())) {
+                                            // Value should be overridden and is not overridden earlier
+                                            String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                            String keyValue = entry.getKey() + "=" + newValue;
+                                            LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
+                                                    new String[]{entry.getKey(), newValue});
+                                            resultEnvVar.add(keyValue);
+                                        }
+                                    }
+                                }
+                                envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
                             }
-                            envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
                         } catch (InterruptedException e) {
                             throw new IOException("Unable to retrieve environment variables", e);
                         }
                     }
                 }
-                return doLaunch(starter.quiet(), envVars, starter.stdout(), starter.pwd(), starter.masks(),
-                        getCommands(starter));
+                return doLaunch(starter.quiet(), envVars, starter.stdout(), containerWorkingDirFilePath, starter.masks(),
+                        getCommands(starter, containerWorkingDirFilePathStr));
             }
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
@@ -293,7 +355,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String msg = "Executing shell script inside container [" + containerName + "] of pod [" + getPodName() + "]";
+                String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
+                String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
@@ -340,7 +403,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ExecWatch watch;
                 try {
-                    watch = execable.exec(getShell());
+                    watch = execable.exec(sh);
                 } catch (KubernetesClientException e) {
                     if (e.getCause() instanceof InterruptedException) {
                         throw new IOException(
@@ -375,6 +438,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     OutputStream stdin = watch.getInput();
+                    // stdin = new TeeOutputStream(stdin, new LogTaskListener(LOGGER, Level.FINEST).getLogger());
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -405,7 +469,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    this.setupEnvironmentVariable(envVars, stdin);
+                    this.setupEnvironmentVariable(envVars, stdin, sh.equals("cmd"));
 
                     doExec(stdin, printStream, masks, commands);
 
@@ -430,21 +494,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 int exitCode = doLaunch(
                         true, null, null, null, null,
+                        // TODO Windows
                         "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
                 ).join();
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, OutputStream out) throws IOException {
+            private void setupEnvironmentVariable(EnvVars vars, OutputStream out, boolean windows) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             out.write(
                                     String.format(
-                                            "export %s='%s'%s",
+                                            windows ? "set %s=%s%s" : "export %s='%s'%s",
                                             entry.getKey(),
-                                            entry.getValue().replace("'", "'\\''"),
+                                            windows ? entry.getValue() : entry.getValue().replace("'", "'\\''"),
                                             NEWLINE
                                     ).getBytes(StandardCharsets.UTF_8)
                             );
@@ -533,12 +598,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    static String[] getCommands(Launcher.ProcStarter starter) {
+    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr) {
         List<String> allCommands = new ArrayList<String>();
 
         // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
-            allCommands.add(cmd.replaceAll("\\$\\$", "\\\\\\$"));
+            String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
+
+            String oldRemoteDir = null;
+            FilePath oldRemoteDirFilepath = starter.pwd();
+            if (oldRemoteDirFilepath != null) {
+                oldRemoteDir = oldRemoteDirFilepath.getRemote();
+            }
+            if (oldRemoteDir != null && ! oldRemoteDir.isEmpty() &&
+                    !oldRemoteDir.equals(containerWorkingDirStr) && fixedCommand.contains(oldRemoteDir)) {
+                // Container has a custom workingDir, update the dir in commands
+                fixedCommand = fixedCommand.replaceAll(oldRemoteDir, containerWorkingDirStr);
+            }
+            allCommands.add(fixedCommand);
         }
         return allCommands.toArray(new String[allCommands.size()]);
     }

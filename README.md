@@ -47,7 +47,7 @@ use this cloud configuration you will need to add it in the jobs folder's config
 
 Nodes can be defined in a pipeline and then used, however, default execution always goes to the jnlp container.  You will need to specify the container you want to execute your task in.
 
-*Please note the `Pod_LABEL` is a new feature to automatically label the generated pod in versions `1.17.0` or higher, older versions of the Kubernetes Plugin will need to manually label the podTemplate*
+*Please note the `POD_LABEL` is a new feature to automatically label the generated pod in versions `1.17.0` or higher, older versions of the Kubernetes Plugin will need to manually label the podTemplate*
 
 This will run in jnlp container
 ```groovy
@@ -78,7 +78,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.27-1-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax
@@ -89,7 +89,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.27-1-alpine'
+    image: 'jenkins/jnlp-slave:3.35-5-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -160,6 +160,9 @@ Either way it provides access to the following fields:
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
+* **runAsUser** The user ID to run all containers in the pod as.
+* **runAsGroup** The group ID to run all containers in the pod as. 
+* **hostNetwork** Use the hosts network.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -174,6 +177,8 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not support httpGet liveness probes)
 * **ports** Expose ports on the container.
 * **alwaysPullImage** The container will pull the image upon starting.
+* **runAsUser** The user ID to run the container as.
+* **runAsGroup** The group ID to run the container as.
 
 #### Specifying a different default agent connection timeout
 
@@ -267,7 +272,7 @@ The example below composes two different podTemplates in order to create one wit
 This feature is extra useful, pipeline library developers as it allows you to wrap podTemplates into functions and let users, nest those functions according to their needs.
 
 For example one could create functions for their podTemplates and import them for use.
-Say heres our file `src/com/foo/utils/PodTemplates.groovy`:
+Say here's our file `src/com/foo/utils/PodTemplates.groovy`:
 ```groovy
 package com.foo.utils
 
@@ -317,36 +322,11 @@ slaveTemplates.dockerTemplate {
 There are cases where this implicit inheritance via nested declaration is not wanted or another explicit inheritance is preferred.
 In this case, use `inheritFrom ''` to remove any inheritance, or `inheritFrom 'otherParent'` to override it.
 
-```groovy
-    podTemplate(label: 'docker-linux', containers: [containerTemplate(image: 'docker', name: 'docker-linux', command: 'cat', ttyEnabled: true)]) {
-        // Will run on linux node
-        podTemplate(label: 'maven-windows', inheritFrom: '', nodeSelector: 'os:windows', containers: [containerTemplate(image: 'maven-windows-servercore', name: 'maven-windows', command: 'cat', ttyEnabled: true)]) {
-            // Will run on windows node without merging the docker pod
-        }
-    }
-```
-
 #### Using a different namespace
 
 There might be cases, where you need to have the agent pod run inside a different namespace than the one configured with the cloud definition.
 For example you may need the agent to run inside an `ephemeral` namespace for the sake of testing.
 For those cases you can explicitly configure a namespace either using the ui or the pipeline.
-
-#### Specifying a different shell command other than /bin/sh
-
-By default, the shell command is /bin/sh. In some case, you would like to use another shell command like /bin/bash.
-
-```groovy
-podTemplate {
-  node(POD_LABEL) {
-    stage('Run specific shell') {
-      container(name:'mycontainer', shell:'/bin/bash') {
-        sh 'echo hello world'
-      }
-    }
-  }
-}
-```
 
 ## Container Configuration
 When configuring a container in a pipeline podTemplate the following options are available:
@@ -401,7 +381,6 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yaml """
 apiVersion: v1
 kind: Pod
@@ -444,7 +423,6 @@ or using `yamlFile` to keep the pod template in a separate `KubernetesPod.yaml` 
 pipeline {
   agent {
     kubernetes {
-      defaultContainer 'jnlp'
       yamlFile 'KubernetesPod.yaml'
     }
   }
@@ -549,7 +527,7 @@ requested container to the build log.
 
 #### Required Parameters
 * **name** the name of the container to get logs from, as defined in `podTemplate`. Parameter name
-can be ommited in simple usage:
+can be omitted in simple usage:
 
 ```groovy
 containerLog 'mongodb'
@@ -563,6 +541,11 @@ containerLog 'mongodb'
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
 
+# Windows support
+
+You can run pods on Windows if your cluster has Windows nodes.
+See the [example](examples/windows.groovy).
+
 # Constraints
 
 Multiple containers can be defined in a pod.
@@ -575,17 +558,15 @@ just runs something and exit then it should be overridden with something like `c
 **WARNING**
 If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
 
-# Over provisioning flags
 
-By default, Jenkins spawns agents conservatively. Say, if there are 2 builds in queue, it won't spawn 2 executors immediately.
-It will spawn one executor and wait for sometime for the first executor to be freed before deciding to spawn the second executor.
-Jenkins makes sure every executor it spawns is utilized to the maximum.
-If you want to override this behaviour and spawn an executor for each build in queue immediately without waiting,
-you can use these flags during Jenkins startup:
 
-    -Dhudson.slaves.NodeProvisioner.initialDelay=0
-    -Dhudson.slaves.NodeProvisioner.MARGIN=50
-    -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85
+# No delay provisioning
+
+By default, Jenkins estimates load to avoid over-provisioning cloud nodes.
+This plugin will use its own provisioning strategy by default. With this strategy, a new node is created on Kubernetes as soon as NodeProvisioner detects a need for more agents.
+In worst case scenarios, this will result in some extra nodes being provisioned on Kubernetes, which will be shortly terminated.
+
+If you want to turn off this Strategy you can set SystemProperty `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning=true`
 
 # Configuration on minikube
 
@@ -610,7 +591,7 @@ Create a cluster
 
     gcloud container clusters create jenkins --num-nodes 1 --machine-type g1-small
 
-and note the admin password and server certitifate.
+and note the admin password and server certificate.
 
 Or use Google Developer Console to create a Container Engine cluster, then run
 
@@ -695,20 +676,10 @@ just run as
 
 ### Integration Tests in a Different Cluster
 
-Ensure you create the namespaces and roles with the following commands, then run the tests
-in namespace `kubernetes-plugin` with the service account `jenkins`
-(edit `src/test/kubernetes/service-account.yml` to use a different service account)
+Try
 
-```
-kubectl create namespace kubernetes-plugin-test
-kubectl create namespace kubernetes-plugin-test-overridden-namespace
-kubectl create namespace kubernetes-plugin-test-overridden-namespace2
-kubectl apply -n kubernetes-plugin-test -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/main/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test -f src/test/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace -f src/test/kubernetes/service-account.yml
-kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubernetes/service-account.yml
+```bash
+bash test-in-k8s.sh
 ```
 
 # Docker image
