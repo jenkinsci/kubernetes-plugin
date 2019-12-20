@@ -101,6 +101,7 @@ public class KubernetesCloud extends Cloud {
     @Nonnull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
+    private String httpsProxy;
     @CheckForNull
     private String serverCertificate;
 
@@ -152,6 +153,7 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = source.defaultsProviderTemplate;
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
+        this.httpsProxy = source.httpsProxy;
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
@@ -251,6 +253,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setServerUrl(@Nonnull String serverUrl) {
         this.serverUrl = serverUrl;
+    }
+
+    public String getHttpsProxy() {
+        return httpsProxy;
+    }
+
+    @DataBoundSetter
+    public void setHttpsProxy(@Nonnull String httpsProxy) {
+        this.httpsProxy = httpsProxy;
     }
 
     public String getServerCertificate() {
@@ -765,6 +776,7 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
+                                               @QueryParameter String httpsProxy,
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -772,7 +784,7 @@ public class KubernetesCloud extends Cloud {
             if (StringUtils.isBlank(name))
                 return FormValidation.error("name is required");
 
-            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
+            try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, httpsProxy, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
                         connectionTimeout, readTimeout).createClient()) {
                     // test listing pods

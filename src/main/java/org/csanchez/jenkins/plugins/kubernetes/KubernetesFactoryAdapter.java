@@ -70,23 +70,24 @@ public class KubernetesFactoryAdapter {
     private final int connectTimeout;
     private final int readTimeout;
     private final int maxRequestsPerHost;
+    private final String httpsProxy;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
-        this(serviceAddress, null, caCertData, credentials, skipTlsVerify);
+        this(serviceAddress, null, null, caCertData, credentials, skipTlsVerify);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+    public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String httpsProxy, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+        this(serviceAddress, httpsProxy, namespace, caCertData, credentials, skipTlsVerify, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+    public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String httpsProxy, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
+        this(serviceAddress, httpsProxy, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
+    public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String httpsProxy, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
@@ -96,6 +97,7 @@ public class KubernetesFactoryAdapter {
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.maxRequestsPerHost = maxRequestsPerHost;
+        this.httpsProxy = httpsProxy != null && !httpsProxy.isEmpty() ? httpsProxy : null;
     }
 
     private StandardCredentials getCredentials(String credentials) {
@@ -169,6 +171,11 @@ public class KubernetesFactoryAdapter {
 
         builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
+
+        if(httpsProxy != null && !httpsProxy.isEmpty()) {
+            LOGGER.info("Https Proxy used is " + httpsProxy);
+            builder.withHttpsProxy(httpsProxy);
+        }
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);

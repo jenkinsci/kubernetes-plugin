@@ -64,13 +64,15 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     private final String serverUrl;
     private final String credentialsId;
     private final String caCertificate;
+    private final String httpsProxy;
 
     @DataBoundConstructor
     public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
-            @Nonnull String caCertificate) {
+            @Nonnull String caCertificate, String httpsProxy) {
         this.serverUrl = serverUrl;
         this.credentialsId = credentialsId;
         this.caCertificate = caCertificate;
+        this.httpsProxy = httpsProxy;
     }
 
     public String getServerUrl() {
@@ -85,6 +87,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         return caCertificate;
     }
 
+    public String getHttpsProxy() {
+        return httpsProxy;
+    }
+
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
 
@@ -95,6 +101,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.setDisposer(new CleanupDisposer(tempFiles));
 
         String tlsConfig;
+        String kubectlBegin = "";
         if (caCertificate != null && !caCertificate.isEmpty()) {
             FilePath caCrtFile = workspace.createTempFile("cert-auth", "crt");
             String ca = caCertificate;
@@ -109,8 +116,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             tlsConfig = " --insecure-skip-tls-verify=true";
         }
 
-        int status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote()
+        kubectlBegin += "kubectl config --kubeconfig=\"";
+
+        int status = launcher.launch().envs("HTTPS_PROXY="+this.httpsProxy)
+                .cmdAsSingleString(kubectlBegin + configFile.getRemote()
                         + "\" set-cluster k8s --server=" + serverUrl + tlsConfig)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
@@ -169,19 +178,19 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             throw new AbortException("Unsupported Credentials type " + c.getClass().getName());
         }
 
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
+        status = launcher.launch().envs("HTTPS_PROXY="+this.httpsProxy)
+                .cmdAsSingleString(kubectlBegin + configFile.getRemote() + "\" set-credentials cluster-admin " + login)
                 .masks(false, false, false, false, false, false, true)
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" set-context k8s --cluster=k8s --user=cluster-admin")
+        status = launcher.launch().envs("HTTPS_PROXY="+this.httpsProxy)
+                .cmdAsSingleString(kubectlBegin + configFile.getRemote() + "\" set-context k8s --cluster=k8s --user=cluster-admin")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
 
-        status = launcher.launch()
-                .cmdAsSingleString("kubectl config --kubeconfig=\"" + configFile.getRemote() + "\" use-context k8s")
+        status = launcher.launch().envs("HTTPS_PROXY="+this.httpsProxy)
+                .cmdAsSingleString(kubectlBegin + configFile.getRemote() + "\" use-context k8s")
                 .join();
         if (status != 0) throw new IOException("Failed to run kubectl config "+status);
     }
