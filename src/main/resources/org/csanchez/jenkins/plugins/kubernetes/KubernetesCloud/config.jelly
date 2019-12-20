@@ -40,15 +40,15 @@
     </f:entry>
 
     <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
-        <f:textbox default="5"/>
+        <f:number min="${descriptor.defaultConnectTimeout}" default="${descriptor.defaultConnectTimeout}" checkMethod="post"/>
     </f:entry>
 
     <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
-        <f:textbox default="15"/>
+        <f:number min="${descriptor.defaultReadTimeout}" default="${descriptor.defaultReadTimeout}" checkMethod="post"/>
     </f:entry>
 
     <f:entry title="${%Concurrency Limit}" field="containerCapStr">
-        <f:textbox default="10"/>
+        <f:number default="10"/>
     </f:entry>
 
     <f:entry title="${%Pod Labels}" field="podLabels">
@@ -60,16 +60,16 @@
         descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" /> 
 
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
-        <f:textbox default="32" checkMethod="post"/>
+        <f:number default="32" checkMethod="post"/>
     </f:entry>
 
     <f:entry title="Seconds to wait for pod to be running" field="waitForPodSec">
-        <f:number clazz="required number" min="0" step="1" default="600"/>
+        <f:number clazz="required number" min="0" step="1" default="${descriptor.defaultWaitForPod}"/>
     </f:entry>
 
     <f:advanced>
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
-        <f:textbox default="5"/>
+        <f:number min="${descriptor.defaultRetentionTimeout}" default="${descriptor.defaultRetentionTimeout}" checkMethod="post"/>
       </f:entry>
 
       <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
