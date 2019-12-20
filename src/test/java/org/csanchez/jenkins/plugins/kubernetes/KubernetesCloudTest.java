@@ -284,7 +284,7 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        ArrayList<String> objectProperties = Lists.newArrayList("templates", "podRetention", "podLabels", "labels");
+        ArrayList<String> objectProperties = Lists.newArrayList("templates", "podRetention", "podLabels", "labels", "serverCertificate");
         for (String property: PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
@@ -307,13 +307,14 @@ public class KubernetesCloudTest {
                 }
             }
         }
+        cloud.setServerCertificate("-----BEGIN CERTIFICATE-----");
         cloud.setTemplates(Collections.singletonList(pt));
         cloud.setPodRetention(new Always());
         cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
         cloud.setLabels(ImmutableMap.of("foo", "bar"));
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
-
+        assertEquals("copy", copy.name);
         assertEquals("Expected cloud from copy constructor to be equal to the source except for name", cloud, copy);
     }
 

@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
@@ -28,6 +29,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import hudson.util.XStream2;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -153,27 +155,11 @@ public class KubernetesCloud extends Cloud {
      */
     public KubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
         super(name);
-        this.defaultsProviderTemplate = source.defaultsProviderTemplate;
+        XStream2 xs = new XStream2();
+        xs.omitField(Cloud.class, "name");
+        xs.omitField(KubernetesCloud.class, "templates"); // TODO PodTemplate and fields needs to implement equals
+        xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(source))), this);
         this.templates.addAll(source.templates);
-        this.serverUrl = source.serverUrl;
-        this.serverCertificate = source.serverCertificate;
-        this.skipTlsVerify = source.skipTlsVerify;
-        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
-        this.namespace = source.namespace;
-        this.directConnection = source.directConnection;
-        this.jenkinsUrl = source.jenkinsUrl;
-        this.jenkinsTunnel = source.jenkinsTunnel;
-        this.credentialsId = source.credentialsId;
-        this.containerCap = source.containerCap;
-        this.retentionTimeout = source.retentionTimeout;
-        this.connectTimeout = source.connectTimeout;
-        this.readTimeout = source.readTimeout;
-        this.usageRestricted = source.usageRestricted;
-        this.maxRequestsPerHost = source.maxRequestsPerHost;
-        this.podRetention = source.podRetention;
-        this.waitForPodSec = source.waitForPodSec;
-        this.capOnlyOnAlivePods = source.capOnlyOnAlivePods;
-        setPodLabels(source.podLabels);
     }
 
     @Deprecated
@@ -824,12 +810,25 @@ public class KubernetesCloud extends Cloud {
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckMaxRequestsPerHostStr(@QueryParameter String value) throws IOException, ServletException {
-            try {
-                Integer.parseInt(value);
-                return FormValidation.ok();
-            } catch (NumberFormatException e) {
-                return FormValidation.error("Please supply an integer");
-            }
+            return FormValidation.validatePositiveInteger(value);
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckConnectTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_CONNECT_TIMEOUT_SECONDS, Integer.MAX_VALUE);
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckReadTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_READ_TIMEOUT_SECONDS, Integer.MAX_VALUE);
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckRetentionTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_RETENTION_TIMEOUT_MINUTES, Integer.MAX_VALUE);
         }
 
         @SuppressWarnings("unused") // used by jelly
