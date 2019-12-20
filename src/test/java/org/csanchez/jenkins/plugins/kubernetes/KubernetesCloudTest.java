@@ -297,6 +297,8 @@ public class KubernetesCloudTest {
                     }
                 } else if (propertyType == int.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextInt());
+                } else if (propertyType == Integer.class) {
+                    PropertyUtils.setProperty(cloud, property, Integer.valueOf(RandomUtils.nextInt()));
                 } else if (propertyType == boolean.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextBoolean());
                 }
