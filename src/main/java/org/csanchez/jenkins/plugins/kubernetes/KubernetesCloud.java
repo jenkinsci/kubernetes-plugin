@@ -96,6 +96,10 @@ public class KubernetesCloud extends Cloud {
     /** Default timeout for idle workers that don't correctly indicate exit. */
     public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
 
+    public static final int DEFAULT_READ_TIMEOUT_SECONDS = 15;
+
+    public static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 5;
+
     private String defaultsProviderTemplate;
 
     @Nonnull
@@ -118,8 +122,8 @@ public class KubernetesCloud extends Cloud {
     private String credentialsId;
     private int containerCap = Integer.MAX_VALUE;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
-    private int connectTimeout;
-    private int readTimeout;
+    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
+    private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
     /** @deprecated Stored as a list of PodLabels */
     @Deprecated
     private transient Map<String, String> labels;
@@ -168,6 +172,7 @@ public class KubernetesCloud extends Cloud {
         this.maxRequestsPerHost = source.maxRequestsPerHost;
         this.podRetention = source.podRetention;
         this.waitForPodSec = source.waitForPodSec;
+        this.capOnlyOnAlivePods = source.capOnlyOnAlivePods;
         setPodLabels(source.podLabels);
     }
 
@@ -414,7 +419,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setReadTimeout(int readTimeout) {
-        this.readTimeout = readTimeout;
+        this.readTimeout = Math.max(DEFAULT_READ_TIMEOUT_SECONDS, readTimeout);
     }
 
     public int getConnectTimeout() {
@@ -488,7 +493,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setConnectTimeout(int connectTimeout) {
-        this.connectTimeout = connectTimeout;
+        this.connectTimeout = Math.max(DEFAULT_CONNECT_TIMEOUT_SECONDS, connectTimeout);
     }
 
     /**
@@ -763,6 +768,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
@@ -792,6 +798,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             return new StandardListBoxModel().withEmptySelection() //
@@ -815,6 +822,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckMaxRequestsPerHostStr(@QueryParameter String value) throws IOException, ServletException {
             try {
                 Integer.parseInt(value);
@@ -824,6 +832,7 @@ public class KubernetesCloud extends Cloud {
             }
         }
 
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
             int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
             if(slaveAgentPort == -1) return FormValidation.warning(
@@ -847,6 +856,7 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok();
         }
 
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection) throws IOException, ServletException {
             try {
                 if(!isEmpty(value)) new URL(value);
@@ -856,6 +866,7 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok();
         }
 
+        @SuppressWarnings("unused") // used by jelly
         public List<Descriptor<PodRetention>> getAllowedPodRetentions() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -864,13 +875,32 @@ public class KubernetesCloud extends Cloud {
             return DescriptorVisibilityFilter.apply(this, jenkins.getDescriptorList(PodRetention.class));
         }
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings({"rawtypes", "unused"}) // used by jelly
         public Descriptor getDefaultPodRetention() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
                 return null;
             }
             return jenkins.getDescriptor(PodRetention.getKubernetesCloudDefault().getClass());
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultReadTimeout() {
+            return DEFAULT_READ_TIMEOUT_SECONDS;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultConnectTimeout() {
+            return DEFAULT_CONNECT_TIMEOUT_SECONDS;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultRetentionTimeout() {
+            return DEFAULT_RETENTION_TIMEOUT_MINUTES;
+        }
+
+        public int getDefaultWaitForPod() {
+            return DEFAULT_WAIT_FOR_POD_SEC;
         }
 
     }
@@ -915,6 +945,7 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        setReadTimeout(readTimeout);
         setRetentionTimeout(retentionTimeout);
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;

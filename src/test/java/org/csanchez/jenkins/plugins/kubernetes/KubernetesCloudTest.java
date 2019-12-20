@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -26,6 +27,9 @@ import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -274,29 +278,32 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void copyConstructor() {
+    public void copyConstructor() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         PodTemplate pt = new PodTemplate();
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        cloud.setDefaultsProviderTemplate("default");
+        Map<String, Object> describe = PropertyUtils.describe(cloud);
+        for (String property: describe.keySet()) {
+            if (PropertyUtils.isWriteable(cloud, property)) {
+                Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
+                if (propertyType == String.class) {
+                    if (property.endsWith("Str")) {
+                        // setContainerCapStr
+                        // setMaxRequestsPerHostStr
+                        PropertyUtils.setProperty(cloud, property, Integer.toString(RandomUtils.nextInt()));
+                    } else {
+                        PropertyUtils.setProperty(cloud, property, RandomStringUtils.randomAlphabetic(10));
+                    }
+                } else if (propertyType == int.class) {
+                    PropertyUtils.setProperty(cloud, property, RandomUtils.nextInt());
+                } else if (propertyType == boolean.class) {
+                    PropertyUtils.setProperty(cloud, property, RandomUtils.nextBoolean());
+                }
+            }
+        }
         cloud.setTemplates(Collections.singletonList(pt));
-        cloud.setServerUrl("serverUrl");
-        cloud.setServerCertificate("----BEGIN CERTIFICATE---");
-        cloud.setSkipTlsVerify(true);
-        cloud.setAddMasterProxyEnvVars(true);
-        cloud.setNamespace("namespace");
-        cloud.setJenkinsUrl("jenkinsUrl");
-        cloud.setJenkinsTunnel("tunnel");
-        cloud.setCredentialsId("abcd");
-        cloud.setContainerCapStr("100");
-        cloud.setRetentionTimeout(1000);
-        cloud.setConnectTimeout(123);
-        cloud.setReadTimeout(123);
-        cloud.setUsageRestricted(true);
-        cloud.setMaxRequestsPerHostStr("42");
         cloud.setPodRetention(new Always());
-        cloud.setWaitForPodSec(245);
         cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);

@@ -40,11 +40,11 @@
     </f:entry>
 
     <f:entry title="${%Connection Timeout (seconds)}" field="connectTimeout">
-        <f:textbox default="5"/>
+        <f:textbox default="${descriptor.defaultConnectTimeout}"/>
     </f:entry>
 
     <f:entry title="${%Read Timeout (seconds)}" field="readTimeout">
-        <f:textbox default="15"/>
+        <f:textbox default="${descriptor.defaultReadTimeout}"/>
     </f:entry>
 
     <f:entry title="${%Concurrency Limit}" field="containerCapStr">
@@ -64,12 +64,12 @@
     </f:entry>
 
     <f:entry title="Seconds to wait for pod to be running" field="waitForPodSec">
-        <f:number clazz="required number" min="0" step="1" default="600"/>
+        <f:number clazz="required number" min="0" step="1" default="${descriptor.defaultWaitForPod}"/>
     </f:entry>
 
     <f:advanced>
       <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
-        <f:textbox default="5"/>
+        <f:textbox default="${descriptor.defaultRetentionTimeout}"/>
       </f:entry>
 
       <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
