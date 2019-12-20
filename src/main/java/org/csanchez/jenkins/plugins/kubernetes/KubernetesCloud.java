@@ -152,6 +152,7 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = source.defaultsProviderTemplate;
         this.templates.addAll(source.templates);
         this.serverUrl = source.serverUrl;
+        this.serverCertificate = source.serverCertificate;
         this.skipTlsVerify = source.skipTlsVerify;
         this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
         this.namespace = source.namespace;
@@ -162,6 +163,7 @@ public class KubernetesCloud extends Cloud {
         this.containerCap = source.containerCap;
         this.retentionTimeout = source.retentionTimeout;
         this.connectTimeout = source.connectTimeout;
+        this.readTimeout = source.readTimeout;
         this.usageRestricted = source.usageRestricted;
         this.maxRequestsPerHost = source.maxRequestsPerHost;
         this.podRetention = source.podRetention;
