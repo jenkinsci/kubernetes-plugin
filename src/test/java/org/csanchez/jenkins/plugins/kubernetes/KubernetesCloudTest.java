@@ -282,6 +282,7 @@ public class KubernetesCloudTest {
         cloud.setDefaultsProviderTemplate("default");
         cloud.setTemplates(Collections.singletonList(pt));
         cloud.setServerUrl("serverUrl");
+        cloud.setServerCertificate("----BEGIN CERTIFICATE---");
         cloud.setSkipTlsVerify(true);
         cloud.setAddMasterProxyEnvVars(true);
         cloud.setNamespace("namespace");
@@ -291,6 +292,7 @@ public class KubernetesCloudTest {
         cloud.setContainerCapStr("100");
         cloud.setRetentionTimeout(1000);
         cloud.setConnectTimeout(123);
+        cloud.setReadTimeout(123);
         cloud.setUsageRestricted(true);
         cloud.setMaxRequestsPerHostStr("42");
         cloud.setPodRetention(new Always());
