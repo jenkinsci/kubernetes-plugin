@@ -131,6 +131,19 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Workspace dir is", b);
     }
 
+    @Issue("JENKINS-58975")
+    @Test
+    public void declarativeCustomWorkingDir() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[jnlp] current dir is /home/jenkins/agent/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[jnlp] WORKSPACE=/home/jenkins/agent/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[default:maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[default:maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
+    }
+
     @Issue("JENKINS-57548")
     @Test
     public void declarativeWithNestedExplicitInheritance() throws Exception {
