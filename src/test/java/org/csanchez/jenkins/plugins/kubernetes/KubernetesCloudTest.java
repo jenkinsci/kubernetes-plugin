@@ -27,6 +27,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -283,15 +284,15 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        Map<String, Object> describe = PropertyUtils.describe(cloud);
-        for (String property: describe.keySet()) {
+        ArrayList<String> objectProperties = Lists.newArrayList("templates", "podRetention", "podLabels", "labels");
+        for (String property: PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
                 if (propertyType == String.class) {
                     if (property.endsWith("Str")) {
                         // setContainerCapStr
                         // setMaxRequestsPerHostStr
-                        PropertyUtils.setProperty(cloud, property, Integer.toString(RandomUtils.nextInt()));
+                        PropertyUtils.setProperty(cloud, property, RandomStringUtils.randomNumeric(3));
                     } else {
                         PropertyUtils.setProperty(cloud, property, RandomStringUtils.randomAlphabetic(10));
                     }
@@ -301,12 +302,15 @@ public class KubernetesCloudTest {
                     PropertyUtils.setProperty(cloud, property, Integer.valueOf(RandomUtils.nextInt()));
                 } else if (propertyType == boolean.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextBoolean());
+                } else if (!objectProperties.contains(property)) {
+                    fail("Unhandled field in copy constructor: " + property);
                 }
             }
         }
         cloud.setTemplates(Collections.singletonList(pt));
         cloud.setPodRetention(new Always());
         cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
+        cloud.setLabels(ImmutableMap.of("foo", "bar"));
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
 
