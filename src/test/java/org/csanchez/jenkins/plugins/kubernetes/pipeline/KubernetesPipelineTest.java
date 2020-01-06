@@ -52,6 +52,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,12 +64,11 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
-/**
- * @author Carlos Sanchez
- */
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
@@ -81,9 +81,25 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Before
     public void setUp() throws Exception {
+        // Had some problems with FileChannel.close hangs from WorkflowRun.save:
+        r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
+    }
+
+    /**
+     * Ensure all builds are complete by the end of the test.
+     */
+    @After
+    public void allDead() throws Exception {
+        if (b != null && b.isLogUpdated()) {
+            LOGGER.warning(() -> "Had to interrupt " + b);
+            b.getExecutor().interrupt();
+        }
+        for (int i = 0; i < 100 && r.isSomethingHappening(); i++) {
+            Thread.sleep(100);
+        }
     }
 
     @Issue("JENKINS-57993")
@@ -105,7 +121,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
-        for (Computer c : r.jenkins.getComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+        for (Computer c : Arrays.stream(r.jenkins.getComputers()).filter(c -> c instanceof SlaveComputer).collect(Collectors.toList())) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
             new Thread(() -> {
                 long pos = 0;
                 try {
@@ -142,12 +158,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         }
         assertTrue(foundBuildUrl);
         assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins/" + name.getMethodName(), "true"));
+        assertThat(template.getLabelsMap(), hasEntry("jenkins/label", name.getMethodName()));
 
         Pod pod = pods.getItems().get(0);
         LOGGER.log(Level.INFO, "One pod found: {0}", pod);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/" + name.getMethodName(), "true"));
+        assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/label", name.getMethodName()));
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
@@ -167,10 +183,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate template1 = podTemplatesWithLabel(label1, cloud.getAllTemplates()).get(0);
         SemaphoreStep.success("podTemplate1/1", null);
         assertEquals(Integer.MAX_VALUE, template1.getInstanceCap());
-        assertThat(template1.getLabelsMap(), hasEntry("jenkins/" + label1, "true"));
+        assertThat(template1.getLabelsMap(), hasEntry("jenkins/label", label1));
         SemaphoreStep.waitForStart("pod1/1", b);
         Map<String, String> labels1 = getLabels(cloud, this, name);
-        labels1.put("jenkins/"+label1, "true");
+        labels1.put("jenkins/label",label1);
         PodList pods = cloud.connect().pods().withLabels(labels1).list();
         assertTrue(!pods.getItems().isEmpty());
         SemaphoreStep.success("pod1/1", null);
@@ -180,11 +196,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate template2 = podTemplatesWithLabel(label2, cloud.getAllTemplates()).get(0);
         SemaphoreStep.success("podTemplate2/1", null);
         assertEquals(Integer.MAX_VALUE, template2.getInstanceCap());
-        assertThat(template2.getLabelsMap(), hasEntry("jenkins/" + label2, "true"));
+        assertThat(template2.getLabelsMap(), hasEntry("jenkins/label", label2));
         assertNull(label2 + " should not inherit from anything", template2.getInheritFrom());
         SemaphoreStep.waitForStart("pod2/1", b);
         Map<String, String> labels2 = getLabels(cloud, this, name);
-        labels1.put("jenkins/" + label2, "true");
+        labels1.put("jenkins/label", label2);
         PodList pods2 = cloud.connect().pods().withLabels(labels2).list();
         assertTrue(!pods2.getItems().isEmpty());
         SemaphoreStep.success("pod2/1", null);
@@ -373,7 +389,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(deadlineTemplate);
         SemaphoreStep.success("podTemplate/1", null);
         assertEquals(10, deadlineTemplate.getActiveDeadlineSeconds());
-        r.assertLogNotContains("Hello from container!", b);
+        b.getExecutor().interrupt();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
     }
 
     @Test

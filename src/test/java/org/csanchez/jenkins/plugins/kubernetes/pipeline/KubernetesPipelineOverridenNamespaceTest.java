@@ -16,12 +16,8 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
     public void runWithCloudOverriddenNamespace() throws Exception {
         String overriddenNamespace = testingNamespace + "-overridden-namespace";
         cloud.setNamespace(overriddenNamespace);
-        KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
-        if (client.namespaces().withName(overriddenNamespace).get() == null) {
-            client.namespaces().createOrReplace(
-                    new NamespaceBuilder().withNewMetadata().withName(overriddenNamespace).endMetadata().build());
-        }
+        createNamespaceIfNotExist(cloud.connect(), overriddenNamespace);
 
         assertNotNull(createJobThenScheduleRun());
 
@@ -37,12 +33,8 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
         String overriddenNamespace = testingNamespace + "-overridden-namespace";
         String stepNamespace = testingNamespace + "-overridden-namespace2";
         cloud.setNamespace(overriddenNamespace);
-        KubernetesClient client = cloud.connect();
         // Run in our own testing namespace
-        if (client.namespaces().withName(stepNamespace).get() == null) {
-            client.namespaces().createOrReplace(
-                    new NamespaceBuilder().withNewMetadata().withName(stepNamespace).endMetadata().build());
-        }
+        createNamespaceIfNotExist(cloud.connect(), stepNamespace);
 
         Map<String, String> env = new HashMap<>();
         env.put("OVERRIDDEN_NAMESPACE", stepNamespace);

@@ -377,14 +377,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        Set<LabelAtom> labelSet = getLabelSet();
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        if (!labelSet.isEmpty()) {
-            for (LabelAtom label : labelSet) {
-                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
-            }
-        }
-        return builder.build();
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : label);
     }
 
     @DataBoundSetter
