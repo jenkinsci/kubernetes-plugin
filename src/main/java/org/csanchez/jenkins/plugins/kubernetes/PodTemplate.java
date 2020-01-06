@@ -80,6 +80,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     
     private Long runAsGroup;
 
+    private String supplementalGroups;
+
     private boolean capOnlyOnAlivePods;
 
     private boolean alwaysPullImage;
@@ -447,6 +449,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public Long getRunAsGroupAsLong() {
         return runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setSupplementalGroups(String supplementalGroups) {
+        this.supplementalGroups = supplementalGroups;
+    }
+
+    public String getSupplementalGroups() {
+        return this.supplementalGroups;
     }
 
     @DataBoundSetter

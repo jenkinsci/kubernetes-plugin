@@ -48,6 +48,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String yaml;
     private String yamlFile;
     private YamlMergeStrategy yamlMergeStrategy;
+    private String supplementalGroups;
 
     @DataBoundConstructor
     public KubernetesDeclarativeAgent() {
@@ -225,6 +226,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
+    @DataBoundSetter
+    public void setSupplementalGroups(String supplementalGroups) {
+        this.supplementalGroups = supplementalGroups;
+    }
+
+    public String getSupplementalGroups() {
+        return this.supplementalGroups;
+    }
+
     public Map<String, Object> getAsArgs() {
         Map<String, Object> argMap = new TreeMap<>();
 
@@ -277,9 +287,11 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (slaveConnectTimeout != 0) {
             argMap.put("slaveConnectTimeout", slaveConnectTimeout);
         }
-
         if (instanceCap > 0) {
             argMap.put("instanceCap", instanceCap);
+        }
+        if (!StringUtils.isEmpty(supplementalGroups)){
+            argMap.put("supplementalGroups", supplementalGroups);
         }
 
         return argMap;
