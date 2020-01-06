@@ -264,7 +264,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         containerWorkingDirStr = containerWorkingDir.get();
                     }
 
-                    if (containerWorkingDir.isPresent() && ! containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
+                    if (containerWorkingDir.isPresent() &&
+                            containerWorkingDirFilePath != null &&
+                            ! containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
                         // Container has a custom workingDir, updated the pwd to match container working dir
                         containerWorkingDirFilePathStr = containerWorkingDirFilePath.getRemote().replaceFirst(
                                 ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
