@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +47,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -380,6 +382,26 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void runInPodWithLivenessProbe() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Still alive", b);
+    }
+
+    @Test
+    public void podTemplateWithMultipleLabels() throws Exception {
+        PodTemplate pt = new PodTemplate();
+        pt.setName("podTemplate");
+        pt.setLabel("label1 label2");
+        ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jenkins/jnlp-slave:3.35-5-alpine");
+        pt.setContainers(Collections.singletonList(jnlp));
+        cloud.addTemplate(pt);
+        SemaphoreStep.waitForStart("pod/1", b);
+        Map<String, String> labels = getLabels(cloud, this, name);
+        labels.put("jenkins/label","label1_label2");
+        PodList pods = cloud.connect().pods().withLabels(labels).list();
+        assertThat(
+                "Expected one pod with labels " + labels + " but got: "
+                        + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
+                pods.getItems(), hasSize(1));
+        SemaphoreStep.success("pod/1", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
     @Test

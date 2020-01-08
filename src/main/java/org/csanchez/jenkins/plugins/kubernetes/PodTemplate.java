@@ -379,7 +379,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : label);
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : sanitizeLabel(label));
+    }
+
+    private String sanitizeLabel(String input) {
+        String label = input;
+        int max = 63; // Kubernetes limit
+        if (label.length() > max) {
+            label = label.substring(label.length() - max);
+        }
+        label = label.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        return label;
     }
 
     @DataBoundSetter
