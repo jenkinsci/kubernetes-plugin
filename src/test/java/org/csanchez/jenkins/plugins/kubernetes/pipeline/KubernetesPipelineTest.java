@@ -500,6 +500,23 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
+    @Issue("JENKINS-60517")
+    @Test
+    public void runInDynamicallyCreatedContainer() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        while (templates.isEmpty()) {
+            LOGGER.log(Level.INFO, "Waiting for template to be created");
+            templates = cloud.getTemplates();
+            Thread.sleep(1000);
+        }
+        assertFalse(templates.isEmpty());
+        PodTemplate template = templates.get(0);
+        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("whoami", b);
+        r.assertLogContains("root", b);
+    }
+
     @Issue("JENKINS-57256")
     @Test
     public void basicWindows() throws Exception {

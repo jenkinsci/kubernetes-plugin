@@ -96,6 +96,12 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="supplementalGroups"
+           title="${%Supplemental Groups}"
+           help="/plugin/kubernetes/help/supplementalGroups.html">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="hostNetwork" title="${%Host Network}">
     <f:checkbox default="false"/>
   </f:entry>

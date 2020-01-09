@@ -60,6 +60,9 @@
         <f:entry title="${%Pod Retention}">
           <f:dropdownDescriptorSelector field="podRetention"/>
         </f:entry>
+        <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
+          <f:textbox/>
+        </f:entry>
         <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
        </f:entry>

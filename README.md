@@ -674,6 +674,21 @@ just run as
 
     mvn clean install -Pmicrok8s
 
+This assumes that from a pod, the host system is accessible as IP address `10.1.1.1`.
+It might be some variant such as `10.1.37.1`,
+in which case you would need to set `-DconnectorHost=… -Djenkins.host.address=…` instead.
+To see the actual address, try:
+
+```bash
+ifdata -pa cni0
+```
+
+Or to verify the networking inside a pod:
+
+```bash
+kubectl run --rm --image=praqma/network-multitool --restart=Never --attach sh ip route | fgrep 'default via'
+```
+
 ### Integration Tests in a Different Cluster
 
 Try

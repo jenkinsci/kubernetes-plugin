@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -201,12 +202,16 @@ public class PodTemplateBuilder {
 
         Long runAsUser = template.getRunAsUserAsLong();
         Long runAsGroup = template.getRunAsGroupAsLong();
+        String supplementalGroups = template.getSupplementalGroups();
         PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
         if (runAsUser != null) {
             securityContext.withRunAsUser(runAsUser);
         }
         if (runAsGroup != null) {
             securityContext.withRunAsGroup(runAsGroup);
+        }
+        if (supplementalGroups != null) {
+            securityContext.withSupplementalGroups(parseSupplementalGroupList(supplementalGroups));
         }
         securityContext.endSecurityContext();
 
@@ -545,5 +550,24 @@ public class PodTemplateBuilder {
             }
             return builder.build();
         }
+    }
+
+    private List<Long> parseSupplementalGroupList(String gids) {
+        if (Strings.isNullOrEmpty(gids)) {
+            return ImmutableList.of();
+        }
+        ImmutableList.Builder<Long> builder = ImmutableList.builder();
+        for (String gid : gids.split(",")) {
+            try {
+                if (!Strings.isNullOrEmpty(gid)) {
+                    builder = builder.add(Long.parseLong(gid));
+                } else {
+                    LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's cannot be empty or null.", gid);
+                }
+            } catch (NumberFormatException nfe) {
+                LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's must be valid longs.", gid);
+            }
+        }
+        return builder.build();
     }
 }
