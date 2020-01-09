@@ -80,7 +80,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.4.1</version>
+      <version>0.5.0</version>
     </dependency>
 
     <dependency> <!-- Requires Permission -->
