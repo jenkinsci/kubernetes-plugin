@@ -382,7 +382,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : sanitizeLabel(label));
     }
 
-    private String sanitizeLabel(String input) {
+    static String sanitizeLabel(String input) {
         String label = input;
         int max = 63; // Kubernetes limit
         if (label.length() > max) {

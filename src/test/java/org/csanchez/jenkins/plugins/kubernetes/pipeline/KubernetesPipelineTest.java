@@ -42,6 +42,7 @@ import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.model.Label;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -395,6 +396,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         SemaphoreStep.waitForStart("pod/1", b);
         Map<String, String> labels = getLabels(cloud, this, name);
         labels.put("jenkins/label","label1_label2");
+        KubernetesSlave node = r.jenkins.getNodes().stream()
+                .filter(KubernetesSlave.class::isInstance)
+                .map(KubernetesSlave.class::cast)
+                .findAny().get();
+        assertTrue(node.getAssignedLabels().containsAll(Label.parse("label1 label2")));
         PodList pods = cloud.connect().pods().withLabels(labels).list();
         assertThat(
                 "Expected one pod with labels " + labels + " but got: "
