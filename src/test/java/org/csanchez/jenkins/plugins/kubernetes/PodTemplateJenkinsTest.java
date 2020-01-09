@@ -24,6 +24,6 @@ public class PodTemplateJenkinsTest {
     public void multiLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo bar");
-        assertEquals("foo bar", podTemplate.getLabelsMap().get("jenkins/label"));
+        assertEquals("foo_bar", podTemplate.getLabelsMap().get("jenkins/label"));
     }
 }
