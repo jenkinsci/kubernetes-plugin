@@ -46,7 +46,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     private final String caCertificate;
 
     @DataBoundConstructor
-    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId, @Nonnull String caCertificate) {
+    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
+            @Nonnull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = credentialsId;
         this.caCertificate = caCertificate;

@@ -1,10 +1,17 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import java.util.Collections;
 import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import hudson.security.ACL;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.model.Jenkins;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
@@ -68,7 +75,7 @@ public class KubernetesFactoryAdapter {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
-        this.auth = credentialsId != null ? KubernetesAuthFactory.fromCredentialsId(credentialsId, serviceAddress, caCertData, skipTlsVerify) : null;
+        this.auth = AuthenticationTokens.convert(KubernetesAuth.class, resolveCredentials(credentialsId));
         this.skipTlsVerify = skipTlsVerify;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
@@ -121,5 +128,24 @@ public class KubernetesFactoryAdapter {
         return "KubernetesFactoryAdapter [serviceAddress=" + serviceAddress + ", namespace=" + namespace
                 + ", caCertData=" + caCertData + ", credentials=" + auth + ", skipTlsVerify=" + skipTlsVerify
                 + ", connectTimeout=" + connectTimeout + ", readTimeout=" + readTimeout + "]";
+    }
+
+    @CheckForNull
+    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) {
+        if (credentialsId == null) {
+            return null;
+        }
+        return CredentialsMatchers.firstOrNull(
+                CredentialsProvider.lookupCredentials(
+                        StandardCredentials.class,
+                        Jenkins.get(),
+                        ACL.SYSTEM,
+                        Collections.emptyList()
+                ),
+                CredentialsMatchers.allOf(
+                        AuthenticationTokens.matcher(KubernetesAuth.class),
+                        CredentialsMatchers.withId(credentialsId)
+                )
+        );
     }
 }
