@@ -9,10 +9,6 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -793,7 +789,6 @@ public class KubernetesCloud extends Cloud {
                 serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
                             : Collections.EMPTY_LIST,
                 CredentialsMatchers.anyOf(
-                    CredentialsMatchers.instanceOf(org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
                     AuthenticationTokens.matcher(KubernetesAuth.class)
                 )
             );
