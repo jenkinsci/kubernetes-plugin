@@ -522,7 +522,7 @@ public class KubernetesCloud extends Cloud {
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getDisplayName() });
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label, i)) {
                         break;
