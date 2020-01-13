@@ -220,7 +220,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.17</version>
+      <version>2.18</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -253,7 +253,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.176.x</artifactId>
-        <version>4</version>
+        <version>5</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
