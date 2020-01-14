@@ -31,7 +31,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +44,7 @@ import javax.annotation.CheckForNull;
 import okhttp3.Response;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.DynamicContext;
 
@@ -111,7 +111,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     Set<String> values = secrets.get(c);
                     if (values != null) {
                         LOGGER.log(Level.FINE, "Using cached secrets for {0}", c);
-                        return new SecretsMasker(values);
+                        return TaskListenerDecorator.merge(context.get(TaskListenerDecorator.class), new SecretsMasker(values));
                     } else {
                         LOGGER.log(Level.FINE, "Cached absence of secrets for {0}", c);
                         return null;
@@ -184,7 +184,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
                             LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
                         }
-                    } catch (RuntimeException | GeneralSecurityException x) {
+                    } catch (RuntimeException | KubernetesAuthException x) {
                         LOGGER.log(Level.FINE, "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName, x);
                     }
                     for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {

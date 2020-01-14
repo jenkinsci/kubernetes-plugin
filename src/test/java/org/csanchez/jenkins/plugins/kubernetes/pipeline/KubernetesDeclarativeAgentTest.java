@@ -82,6 +82,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-51610")
     @Test
     public void declarativeWithNamespaceFromYaml() throws Exception {
+        createNamespaceIfNotExist(cloud.connect(), "kubernetes-plugin-test-overridden-namespace");
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -129,6 +130,19 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogContains("Workspace dir is", b);
+    }
+
+    @Issue("JENKINS-58975")
+    @Test
+    public void declarativeCustomWorkingDir() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[jnlp] current dir is /home/jenkins/agent/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[jnlp] WORKSPACE=/home/jenkins/agent/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[default:maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[default:maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
     }
 
     @Issue("JENKINS-57548")

@@ -75,6 +75,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     
     private Long runAsGroup;
 
+    private String supplementalGroups;
+
     private boolean capOnlyOnAlivePods;
 
     private boolean alwaysPullImage;
@@ -378,14 +380,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        Set<LabelAtom> labelSet = getLabelSet();
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder();
-        if (!labelSet.isEmpty()) {
-            for (LabelAtom label : labelSet) {
-                builder.put(label == null ? DEFAULT_ID : "jenkins/" + label.getName(), "true");
-            }
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : sanitizeLabel(label));
+    }
+
+    static String sanitizeLabel(String input) {
+        String label = input;
+        int max = 63; // Kubernetes limit
+        if (label.length() > max) {
+            label = label.substring(label.length() - max);
         }
-        return builder.build();
+        label = label.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        return label;
     }
 
     @DataBoundSetter
@@ -455,6 +460,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     public Long getRunAsGroupAsLong() {
         return runAsGroup;
+    }
+
+    @DataBoundSetter
+    public void setSupplementalGroups(String supplementalGroups) {
+        this.supplementalGroups = supplementalGroups;
+    }
+
+    public String getSupplementalGroups() {
+        return this.supplementalGroups;
     }
 
     @DataBoundSetter

@@ -3,15 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,15 +25,15 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import hudson.util.XStream2;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
-import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
-import org.jenkinsci.plugins.plaincredentials.FileCredentials;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -44,11 +41,8 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -73,6 +67,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -94,7 +89,11 @@ public class KubernetesCloud extends Cloud {
     public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
-    private static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
+    public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
+
+    public static final int DEFAULT_READ_TIMEOUT_SECONDS = 15;
+
+    public static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 5;
 
     private String defaultsProviderTemplate;
 
@@ -118,8 +117,8 @@ public class KubernetesCloud extends Cloud {
     private String credentialsId;
     private int containerCap = Integer.MAX_VALUE;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
-    private int connectTimeout;
-    private int readTimeout;
+    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
+    private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
     /** @deprecated Stored as a list of PodLabels */
     @Deprecated
     private transient Map<String, String> labels;
@@ -149,24 +148,11 @@ public class KubernetesCloud extends Cloud {
      */
     public KubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
         super(name);
-        this.defaultsProviderTemplate = source.defaultsProviderTemplate;
+        XStream2 xs = new XStream2();
+        xs.omitField(Cloud.class, "name");
+        xs.omitField(KubernetesCloud.class, "templates"); // TODO PodTemplate and fields needs to implement equals
+        xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(source))), this);
         this.templates.addAll(source.templates);
-        this.serverUrl = source.serverUrl;
-        this.skipTlsVerify = source.skipTlsVerify;
-        this.addMasterProxyEnvVars = source.addMasterProxyEnvVars;
-        this.namespace = source.namespace;
-        this.directConnection = source.directConnection;
-        this.jenkinsUrl = source.jenkinsUrl;
-        this.jenkinsTunnel = source.jenkinsTunnel;
-        this.credentialsId = source.credentialsId;
-        this.containerCap = source.containerCap;
-        this.retentionTimeout = source.retentionTimeout;
-        this.connectTimeout = source.connectTimeout;
-        this.usageRestricted = source.usageRestricted;
-        this.maxRequestsPerHost = source.maxRequestsPerHost;
-        this.podRetention = source.podRetention;
-        this.waitForPodSec = source.waitForPodSec;
-        setPodLabels(source.podLabels);
     }
 
     @Deprecated
@@ -202,7 +188,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setRetentionTimeout(int retentionTimeout) {
-        this.retentionTimeout = retentionTimeout;
+        this.retentionTimeout = Math.max(DEFAULT_RETENTION_TIMEOUT_MINUTES, retentionTimeout);
     }
 
     public String getDefaultsProviderTemplate() {
@@ -412,7 +398,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setReadTimeout(int readTimeout) {
-        this.readTimeout = readTimeout;
+        this.readTimeout = Math.max(DEFAULT_READ_TIMEOUT_SECONDS, readTimeout);
     }
 
     public int getConnectTimeout() {
@@ -486,7 +472,7 @@ public class KubernetesCloud extends Cloud {
 
     @DataBoundSetter
     public void setConnectTimeout(int connectTimeout) {
-        this.connectTimeout = connectTimeout;
+        this.connectTimeout = Math.max(DEFAULT_CONNECT_TIMEOUT_SECONDS, connectTimeout);
     }
 
     /**
@@ -515,8 +501,7 @@ public class KubernetesCloud extends Cloud {
      * @return Kubernetes client.
      */
     @SuppressFBWarnings({ "IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK" })
-    public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
-            IOException, CertificateEncodingException {
+    public KubernetesClient connect() throws KubernetesAuthException, IOException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
@@ -537,7 +522,7 @@ public class KubernetesCloud extends Cloud {
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getDisplayName() });
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label, i)) {
                         break;
@@ -761,6 +746,7 @@ public class KubernetesCloud extends Cloud {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
@@ -790,38 +776,50 @@ public class KubernetesCloud extends Cloud {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            return new StandardListBoxModel().withEmptySelection() //
-                    .withMatching( //
-                            CredentialsMatchers.anyOf(
-                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(FileCredentials.class),
-                                    CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(
-                                            org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(StringCredentials.class),//
-                                    CredentialsMatchers.instanceOf(DockerServerCredentials.class)),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class, //
-                                    Jenkins.getInstance(), //
-                                    ACL.SYSTEM, //
-                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                            : Collections.EMPTY_LIST //
-                            ));
 
+            StandardListBoxModel result = new StandardListBoxModel();
+            result.includeEmptyValue();
+            result.includeMatchingAs(
+                ACL.SYSTEM,
+                Jenkins.get(),
+                StandardCredentials.class,
+                serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
+                            : Collections.EMPTY_LIST,
+                CredentialsMatchers.anyOf(
+                    AuthenticationTokens.matcher(KubernetesAuth.class)
+                )
+            );
+            return result;
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckMaxRequestsPerHostStr(@QueryParameter String value) throws IOException, ServletException {
-            try {
-                Integer.parseInt(value);
-                return FormValidation.ok();
-            } catch (NumberFormatException e) {
-                return FormValidation.error("Please supply an integer");
-            }
+            return FormValidation.validatePositiveInteger(value);
         }
 
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckConnectTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_CONNECT_TIMEOUT_SECONDS, Integer.MAX_VALUE);
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckReadTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_READ_TIMEOUT_SECONDS, Integer.MAX_VALUE);
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckRetentionTimeout(@QueryParameter String value) {
+            return FormValidation.validateIntegerInRange(value, DEFAULT_RETENTION_TIMEOUT_MINUTES, Integer.MAX_VALUE);
+        }
+
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
             int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
             if(slaveAgentPort == -1) return FormValidation.warning(
@@ -845,6 +843,7 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok();
         }
 
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection) throws IOException, ServletException {
             try {
                 if(!isEmpty(value)) new URL(value);
@@ -854,6 +853,7 @@ public class KubernetesCloud extends Cloud {
             return FormValidation.ok();
         }
 
+        @SuppressWarnings("unused") // used by jelly
         public List<Descriptor<PodRetention>> getAllowedPodRetentions() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -862,13 +862,32 @@ public class KubernetesCloud extends Cloud {
             return DescriptorVisibilityFilter.apply(this, jenkins.getDescriptorList(PodRetention.class));
         }
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings({"rawtypes", "unused"}) // used by jelly
         public Descriptor getDefaultPodRetention() {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
                 return null;
             }
             return jenkins.getDescriptor(PodRetention.getKubernetesCloudDefault().getClass());
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultReadTimeout() {
+            return DEFAULT_READ_TIMEOUT_SECONDS;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultConnectTimeout() {
+            return DEFAULT_CONNECT_TIMEOUT_SECONDS;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public int getDefaultRetentionTimeout() {
+            return DEFAULT_RETENTION_TIMEOUT_MINUTES;
+        }
+
+        public int getDefaultWaitForPod() {
+            return DEFAULT_WAIT_FOR_POD_SEC;
         }
 
     }
@@ -913,6 +932,9 @@ public class KubernetesCloud extends Cloud {
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
+        setConnectTimeout(connectTimeout);
+        setReadTimeout(readTimeout);
+        setRetentionTimeout(retentionTimeout);
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }
