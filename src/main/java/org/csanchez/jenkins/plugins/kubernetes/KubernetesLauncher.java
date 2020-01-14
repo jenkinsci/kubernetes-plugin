@@ -144,12 +144,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                     String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
                     for (Queue.Item item: q.getItems()) {
                         if (item.task.getUrl().equals(runUrl)) {
-                            String itemTaskName = item.task.getFullDisplayName();
-                            String jobName = getJobName(itemTaskName);
-                            if (jobName.isEmpty()) {
-                                LOGGER.log(Level.WARNING, "Unknown / Invalid job format name");
-                                break;
-                            }
                             q.cancel(item);
                             break;
                         }
@@ -237,17 +231,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw Throwables.propagate(ex);
         }
-    }
-
-    /* itemTaskName is format of "part of <ORGANIZATION> <JOB NAME> >> <BRANCH> #<BUILD NUMBER> */
-    /* <ORGANIZATION> and <BRANCH> are only there if Pipeline created through BlueOcean, else just <JOB NAME>  */
-    private String getJobName(String itemTaskName) {
-        final String partOfStr = "part of ";
-        int begin = partOfStr.length();
-        int end = itemTaskName.lastIndexOf(" #");
-        if (end < 0)
-            return "";
-        return itemTaskName.substring(begin, end);
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
