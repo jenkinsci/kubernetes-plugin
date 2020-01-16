@@ -38,6 +38,8 @@ public class PodTemplateTest {
         assertEquals("label1_label2", sanitizeLabel("label1 label2"));
         assertEquals("el1_label2_verylooooooooooooooooooooooooooooonglabelover63chars", sanitizeLabel("label1 label2 verylooooooooooooooooooooooooooooonglabelover63chars"));
         assertEquals("xfoo_bar", sanitizeLabel(":foo:bar"));
+        assertEquals("xfoo_barx", sanitizeLabel(":foo:bar:"));
+        assertEquals("l2_verylooooooooooooooooooooooooooooonglabelendinginunderscorex", sanitizeLabel("label1 label2 verylooooooooooooooooooooooooooooonglabelendinginunderscore_"));
     }
 
 }
