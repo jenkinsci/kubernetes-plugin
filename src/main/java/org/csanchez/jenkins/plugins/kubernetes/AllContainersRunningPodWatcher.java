@@ -81,8 +81,9 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
                 if (waitingState != null) {
                     String waitingStateMsg = waitingState.getMessage();
                     if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
-                        runListener.error("Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image name is spelled correctly");
-                        throw new IllegalStateException("BAD_DOCKER_IMAGE");
+                        String errorMsg = "Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image tag name is spelled correctly.";
+                        runListener.error(errorMsg);
+                        throw new InvalidDockerImageException(errorMsg);
                     }
                     return false;
                 }
