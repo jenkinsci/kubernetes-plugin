@@ -1,10 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
@@ -17,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.model.PeriodicWork;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -87,8 +84,7 @@ public class KubernetesClientProvider {
     private KubernetesClientProvider() {
     }
 
-    static KubernetesClient createClient(KubernetesCloud cloud) throws NoSuchAlgorithmException,
-            UnrecoverableKeyException, KeyStoreException, IOException, CertificateEncodingException {
+    static KubernetesClient createClient(KubernetesCloud cloud) throws KubernetesAuthException, IOException {
         String displayName = cloud.getDisplayName();
         final Client c = clients.getIfPresent(displayName);
         if (c == null) {
