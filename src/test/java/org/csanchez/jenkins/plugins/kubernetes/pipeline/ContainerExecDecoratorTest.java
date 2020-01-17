@@ -59,6 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
@@ -89,6 +90,9 @@ public class ContainerExecDecoratorTest {
     private ContainerExecDecorator decorator;
     private Pod pod;
     private KubernetesSlave agent;
+
+    @Rule
+    public Timeout timeout = new Timeout(3, TimeUnit.MINUTES);
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
@@ -146,7 +150,7 @@ public class ContainerExecDecoratorTest {
      * 
      * @throws Exception
      */
-    @Test(timeout = 10000)
+    @Test
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
@@ -376,7 +380,7 @@ public class ContainerExecDecoratorTest {
             Thread.sleep(100);
         }
         assertFalse("proc is alive", proc.isAlive());
-        int exitCode = proc.joinWithTimeout(20, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
+        int exitCode = proc.join();
         return new ProcReturn(proc, exitCode, out.toString());
     }
 
