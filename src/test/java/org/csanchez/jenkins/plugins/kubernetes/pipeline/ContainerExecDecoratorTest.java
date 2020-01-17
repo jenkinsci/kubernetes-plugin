@@ -161,8 +161,8 @@ public class ContainerExecDecoratorTest {
         }
         assertEquals("Not all threads finished successfully", t.length, results.size());
         for (ProcReturn r : results) {
+            assertEquals("Command didn't complete in time or failed", 0, r.exitCode);
             assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
-            assertEquals(0, r.exitCode);
             assertFalse(r.proc.isAlive());
         }
     }
@@ -376,7 +376,7 @@ public class ContainerExecDecoratorTest {
             Thread.sleep(100);
         }
         assertFalse("proc is alive", proc.isAlive());
-        int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
+        int exitCode = proc.joinWithTimeout(20, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
         return new ProcReturn(proc, exitCode, out.toString());
     }
 
