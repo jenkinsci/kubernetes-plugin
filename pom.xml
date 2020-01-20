@@ -9,7 +9,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>1.23.1</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -19,7 +19,7 @@
     <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
     <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
-    <tag>${scmTag}</tag>
+    <tag>kubernetes-1.23.1</tag>
   </scm>
 
   <licenses>
