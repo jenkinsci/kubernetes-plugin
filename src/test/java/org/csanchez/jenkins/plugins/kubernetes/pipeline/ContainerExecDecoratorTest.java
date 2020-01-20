@@ -172,14 +172,11 @@ public class ContainerExecDecoratorTest {
     }
 
     private Thread newThread(int i, List<ProcReturn> results) {
-        return new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    command(results, i);
-                } finally {
-                    System.out.println("Thread " + i + " finished");
-                }
+        return new Thread(() -> {
+            try {
+                command(results, i);
+            } finally {
+                System.out.println("Thread " + i + " finished");
             }
         }, "test-" + i);
     }
@@ -191,7 +188,9 @@ public class ContainerExecDecoratorTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        results.add(r);
+        synchronized (results) {
+            results.add(r);
+        }
     }
 
     @Test
