@@ -59,6 +59,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
@@ -91,6 +92,9 @@ public class ContainerExecDecoratorTest {
     private KubernetesSlave agent;
 
     @Rule
+    public Timeout timeout = new Timeout(3, TimeUnit.MINUTES);
+
+    @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
             .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
@@ -116,7 +120,7 @@ public class ContainerExecDecoratorTest {
                 .withCommand("cat").withTty(true).withWorkingDir("/home/jenkins/agent1").build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
-                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux")).endSpec().build());
+                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux")).withTerminationGracePeriodSeconds(0L).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
@@ -146,7 +150,7 @@ public class ContainerExecDecoratorTest {
      * 
      * @throws Exception
      */
-    @Test(timeout = 10000)
+    @Test
     public void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
@@ -161,8 +165,8 @@ public class ContainerExecDecoratorTest {
         }
         assertEquals("Not all threads finished successfully", t.length, results.size());
         for (ProcReturn r : results) {
+            assertEquals("Command didn't complete in time or failed", 0, r.exitCode);
             assertTrue("Output should contain pid: " + r.output, PID_PATTERN.matcher(r.output).find());
-            assertEquals(0, r.exitCode);
             assertFalse(r.proc.isAlive());
         }
     }
@@ -376,7 +380,7 @@ public class ContainerExecDecoratorTest {
             Thread.sleep(100);
         }
         assertFalse("proc is alive", proc.isAlive());
-        int exitCode = proc.joinWithTimeout(10, TimeUnit.SECONDS, StreamTaskListener.fromStderr());
+        int exitCode = proc.join();
         return new ProcReturn(proc, exitCode, out.toString());
     }
 

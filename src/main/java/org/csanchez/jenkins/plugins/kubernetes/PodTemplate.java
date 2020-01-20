@@ -132,6 +132,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private PodTemplateToolLocation nodeProperties;
 
+    private Long terminationGracePeriodSeconds;
+
     /**
      * Persisted yaml fragment
      */
@@ -384,11 +386,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     static String sanitizeLabel(String input) {
         String label = input;
-        int max = 63; // Kubernetes limit
+        int max = 63;
+        // Kubernetes limit
+        // a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must
+        // start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used
+        // for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
         if (label.length() > max) {
             label = label.substring(label.length() - max);
         }
-        label = label.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        label = label.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x").replaceFirst("[^a-zA-Z0-9]$", "x");
         return label;
     }
 
@@ -727,6 +733,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             podRetention = PodRetention.getPodTemplateDefault();
         }
         this.podRetention = podRetention;
+    }
+
+    public Long getTerminationGracePeriodSeconds() {
+        return terminationGracePeriodSeconds;
+    }
+
+    public void setTerminationGracePeriodSeconds(Long terminationGracePeriodSeconds) {
+        this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
     protected Object readResolve() {
