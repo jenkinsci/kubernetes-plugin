@@ -132,6 +132,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private PodTemplateToolLocation nodeProperties;
 
+    private Long terminationGracePeriodSeconds;
+
     /**
      * Persisted yaml fragment
      */
@@ -731,6 +733,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             podRetention = PodRetention.getPodTemplateDefault();
         }
         this.podRetention = podRetention;
+    }
+
+    public Long getTerminationGracePeriodSeconds() {
+        return terminationGracePeriodSeconds;
+    }
+
+    public void setTerminationGracePeriodSeconds(Long terminationGracePeriodSeconds) {
+        this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
     protected Object readResolve() {

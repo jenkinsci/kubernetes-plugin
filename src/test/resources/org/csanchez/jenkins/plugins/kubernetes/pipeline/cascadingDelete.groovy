@@ -62,6 +62,7 @@ spec:
                       labels:
                         app: cascading-delete
                     spec:
+                      terminationGracePeriodSeconds: 0
                       containers:
                       - name: ubuntu
                         image: ubuntu

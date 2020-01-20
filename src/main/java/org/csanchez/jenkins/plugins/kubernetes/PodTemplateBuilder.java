@@ -198,6 +198,9 @@ public class PodTemplateBuilder {
             builder.withNodeSelector(nodeSelector);
         }
 
+        if (template.getTerminationGracePeriodSeconds() != null) {
+            builder.withTerminationGracePeriodSeconds(template.getTerminationGracePeriodSeconds());
+        }
         builder.withContainers(containers.values().toArray(new Container[containers.size()]));
 
         Long runAsUser = template.getRunAsUserAsLong();

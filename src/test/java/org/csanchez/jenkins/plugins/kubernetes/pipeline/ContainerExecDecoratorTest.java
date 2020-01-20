@@ -120,7 +120,7 @@ public class ContainerExecDecoratorTest {
                 .withCommand("cat").withTty(true).withWorkingDir("/home/jenkins/agent1").build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
-                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux")).endSpec().build());
+                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux")).withTerminationGracePeriodSeconds(0L).endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
 
