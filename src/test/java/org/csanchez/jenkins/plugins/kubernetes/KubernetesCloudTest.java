@@ -326,8 +326,12 @@ public class KubernetesCloudTest {
         JenkinsRule.WebClient wc = j.createWebClient();
         HtmlPage p = wc.goTo("configure");
         HtmlForm f = p.getFormByName("config");
-        HtmlButton button = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
-        button.click();
+        HtmlButton buttonExtends = HtmlFormUtil.getButtonByCaption(f, "Pod Templates...");
+        buttonExtends.click();
+        HtmlButton buttonAdd = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
+        buttonAdd.click();
+        HtmlButton buttonDetails = HtmlFormUtil.getButtonByCaption(f, "Pod Template details...");
+        buttonDetails.click();
         DomElement templates = p.getElementByName("templates");
         HtmlInput templateName = getInputByName(templates, "_.name");
         templateName.setValueAttribute("default-workspace-volume");

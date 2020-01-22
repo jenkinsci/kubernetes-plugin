@@ -111,18 +111,21 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         if (action == Watcher.Action.DELETED) {
             String ns = pod.getMetadata().getNamespace();
             String name = pod.getMetadata().getName();
-            for (Node n : new ArrayList<>(Jenkins.get().getNodes())) {
-                if (!(n instanceof KubernetesSlave)) {
-                    continue;
-                }
-                KubernetesSlave ks = (KubernetesSlave) n;
-                if (ks.getNamespace().equals(ns) && ks.getPodName().equals(name)) {
-                    LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
-                    try {
-                        Jenkins.get().removeNode(ks);
-                        return;
-                    } catch (Exception x) {
-                        LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            if (jenkins != null) {
+                for (Node n : new ArrayList<>(jenkins.getNodes())) {
+                    if (!(n instanceof KubernetesSlave)) {
+                        continue;
+                    }
+                    KubernetesSlave ks = (KubernetesSlave) n;
+                    if (ks.getNamespace().equals(ns) && ks.getPodName().equals(name)) {
+                        LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
+                        try {
+                            jenkins.removeNode(ks);
+                            return;
+                        } catch (Exception x) {
+                            LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
+                        }
                     }
                 }
             }
