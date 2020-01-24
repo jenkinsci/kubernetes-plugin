@@ -47,10 +47,12 @@ public class KubernetesClientProvider {
             .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
 
     /**
-     * Time in seconds after which we will close the unused clients, default to one hour
+     * Time in seconds after which we will close the unused clients.
+     *
+     * Defaults to 5 minutes.
      */
     private static final Long EXPIRED_CLIENTS_PURGE_TIME = Long.getLong(
-            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", 1 * 60 * 60);
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", 5 * 60);
     /**
      * How often to check if we need to close clients, default to {@link #EXPIRED_CLIENTS_PURGE_TIME}/2
      */
@@ -59,10 +61,12 @@ public class KubernetesClientProvider {
             EXPIRED_CLIENTS_PURGE_TIME / 2);
 
     /**
-     * Client expiration in seconds, default to one day
+     * Client expiration in seconds.
+     *
+     * Some providers such as Amazon EKS use a token with 15 minutes expiration, so expire clients after 10 minutes.
      */
     private static final Integer CACHE_EXPIRATION = Integer.getInteger(
-            KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 24 * 60 * 60);
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 10 * 60);
 
     private static final Queue<Client> expiredClients = new ConcurrentLinkedQueue<>();
 
