@@ -10,6 +10,7 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.Run;
@@ -50,7 +51,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             @Nonnull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = credentialsId;
-        this.caCertificate = caCertificate;
+        this.caCertificate = Util.fixEmptyAndTrim(caCertificate);
     }
 
     public String getServerUrl() {
@@ -84,14 +85,14 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         // create Kubeconfig
         try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
             try {
-                w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), false)));
+                w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
             } catch (KubernetesAuthException e) {
                 throw new AbortException(e.getMessage());
             }
         }
 
         int status = launcher.launch().cmdAsSingleString("kubectl version").join();
-        if (status != 0) throw new IOException("Failed to run kubectl version " + status);
+        if (status != 0) throw new AbortException("Failed to run kubectl version. Returned status code " + status + ".");
     }
 
     @Extension
