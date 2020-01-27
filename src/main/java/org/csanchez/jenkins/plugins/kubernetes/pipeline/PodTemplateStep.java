@@ -70,6 +70,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private String runAsUser;
     private String runAsGroup;
+    private String supplementalGroups;
 
     @DataBoundConstructor
     public PodTemplateStep() {}
@@ -324,6 +325,15 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setRunAsGroup(String runAsGroup) {
         this.runAsGroup = runAsGroup;
+    }
+
+    public String getSupplementalGroups() {
+        return supplementalGroups;
+    }
+
+    @DataBoundSetter
+    public void setSupplementalGroups(String supplementalGroups) {
+        this.supplementalGroups = supplementalGroups;
     }
 
     @Extension

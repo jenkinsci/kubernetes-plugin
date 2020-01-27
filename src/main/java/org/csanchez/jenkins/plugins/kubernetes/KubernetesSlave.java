@@ -1,10 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -243,8 +240,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         KubernetesClient client;
         try {
             client = cloud.connect();
-        } catch (UnrecoverableKeyException | CertificateEncodingException | NoSuchAlgorithmException
-                | KeyStoreException e) {
+        } catch (KubernetesAuthException | IOException e) {
             String msg = String.format("Failed to connect to cloud %s. There may be leftover resources on the Kubernetes cluster.", getCloudName());
             e.printStackTrace(listener.fatalError(msg));
             LOGGER.log(Level.SEVERE, msg);

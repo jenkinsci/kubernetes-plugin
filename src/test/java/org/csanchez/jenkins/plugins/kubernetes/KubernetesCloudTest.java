@@ -160,7 +160,7 @@ public class KubernetesCloudTest {
     public void testInstanceCap() {
         KubernetesCloud cloud = new KubernetesCloud("name") {
             @Override
-            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+            public KubernetesClient connect() {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
                 MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
@@ -195,7 +195,7 @@ public class KubernetesCloudTest {
     public void testContainerCap() {
         KubernetesCloud cloud = new KubernetesCloud("name") {
             @Override
-            public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, IOException, CertificateEncodingException {
+            public KubernetesClient connect()  {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
                 MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
@@ -326,8 +326,12 @@ public class KubernetesCloudTest {
         JenkinsRule.WebClient wc = j.createWebClient();
         HtmlPage p = wc.goTo("configure");
         HtmlForm f = p.getFormByName("config");
-        HtmlButton button = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
-        button.click();
+        HtmlButton buttonExtends = HtmlFormUtil.getButtonByCaption(f, "Pod Templates...");
+        buttonExtends.click();
+        HtmlButton buttonAdd = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
+        buttonAdd.click();
+        HtmlButton buttonDetails = HtmlFormUtil.getButtonByCaption(f, "Pod Template details...");
+        buttonDetails.click();
         DomElement templates = p.getElementByName("templates");
         HtmlInput templateName = getInputByName(templates, "_.name");
         templateName.setValueAttribute("default-workspace-volume");

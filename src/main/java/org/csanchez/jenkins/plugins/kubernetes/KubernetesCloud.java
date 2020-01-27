@@ -9,10 +9,6 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,9 +32,8 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
-import org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials;
-import org.jenkinsci.plugins.plaincredentials.FileCredentials;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -46,11 +41,8 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCertificateCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -75,6 +67,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import jenkins.websocket.WebSockets;
 
@@ -519,8 +512,7 @@ public class KubernetesCloud extends Cloud {
      * @return Kubernetes client.
      */
     @SuppressFBWarnings({ "IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK" })
-    public KubernetesClient connect() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
-            IOException, CertificateEncodingException {
+    public KubernetesClient connect() throws KubernetesAuthException, IOException {
 
         LOGGER.log(Level.FINE, "Building connection to Kubernetes {0} URL {1} namespace {2}",
                 new String[] { getDisplayName(), serverUrl, namespace });
@@ -541,7 +533,7 @@ public class KubernetesCloud extends Cloud {
             List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
 
             for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getDisplayName() });
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
                     if (!addProvisionedSlave(t, label, i)) {
                         break;
@@ -798,24 +790,20 @@ public class KubernetesCloud extends Cloud {
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            return new StandardListBoxModel().withEmptySelection() //
-                    .withMatching( //
-                            CredentialsMatchers.anyOf(
-                                    CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class),
-                                    CredentialsMatchers.instanceOf(FileCredentials.class),
-                                    CredentialsMatchers.instanceOf(TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(
-                                            org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
-                                    CredentialsMatchers.instanceOf(StandardCertificateCredentials.class),
-                                    CredentialsMatchers.instanceOf(StringCredentials.class),//
-                                    CredentialsMatchers.instanceOf(DockerServerCredentials.class)),
-                            CredentialsProvider.lookupCredentials(StandardCredentials.class, //
-                                    Jenkins.getInstance(), //
-                                    ACL.SYSTEM, //
-                                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                            : Collections.EMPTY_LIST //
-                            ));
 
+            StandardListBoxModel result = new StandardListBoxModel();
+            result.includeEmptyValue();
+            result.includeMatchingAs(
+                ACL.SYSTEM,
+                Jenkins.get(),
+                StandardCredentials.class,
+                serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
+                            : Collections.EMPTY_LIST,
+                CredentialsMatchers.anyOf(
+                    AuthenticationTokens.matcher(KubernetesAuth.class)
+                )
+            );
+            return result;
         }
 
         @RequirePOST
