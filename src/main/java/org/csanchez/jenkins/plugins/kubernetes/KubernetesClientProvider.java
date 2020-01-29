@@ -49,10 +49,10 @@ public class KubernetesClientProvider {
     /**
      * Time in seconds after which we will close the unused clients.
      *
-     * Defaults to 5 minutes.
+     * Defaults to 1 minute.
      */
     private static final Long EXPIRED_CLIENTS_PURGE_TIME = Long.getLong(
-            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", TimeUnit.MINUTES.toSeconds(5));
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", TimeUnit.MINUTES.toSeconds(1));
     /**
      * How often to check if we need to close clients, default to {@link #EXPIRED_CLIENTS_PURGE_TIME}/2
      */
