@@ -31,6 +31,7 @@ import static org.junit.Assert.*;
 
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -151,5 +152,19 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
+    }
+
+    @Issue("JENKINS-60886")
+    @Test
+    public void declarativeWithPodRetention() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Apache Maven 3.3.9", b);
+        FlowNode podTemplateNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("podTemplate"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
+        assertNotNull("recorded arguments for podTemplate", podTemplateNode);
+        Map<String, Object> arguments = podTemplateNode.getAction(ArgumentsAction.class).getArguments();
+        UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
+        assertNotNull(podRetention);
+        assertTrue("no junk in arguments: " + podRetention.getModel().getType(), podRetention.getModel().getType().equals(OnFailure.class));
     }
 }

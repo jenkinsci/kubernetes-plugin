@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgent;
@@ -41,6 +42,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String workingDir;
     private int activeDeadlineSeconds;
     private int slaveConnectTimeout;
+    private PodRetention podRetention;
 
     private ContainerTemplate containerTemplate;
     private List<ContainerTemplate> containerTemplates;
@@ -208,6 +210,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.slaveConnectTimeout = slaveConnectTimeout;
     }
 
+    public PodRetention getPodRetention() {
+        return podRetention;
+    }
+
+    @DataBoundSetter
+    public void setPodRetention(PodRetention podRetention) {
+        this.podRetention = podRetention;
+    }
+
     public String getYamlFile() {
         return yamlFile;
     }
@@ -286,6 +297,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         }
         if (slaveConnectTimeout != 0) {
             argMap.put("slaveConnectTimeout", slaveConnectTimeout);
+        }
+        if (podRetention != null) {
+            argMap.put("podRetention", podRetention);
         }
         if (instanceCap > 0) {
             argMap.put("instanceCap", instanceCap);
