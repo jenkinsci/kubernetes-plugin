@@ -49,7 +49,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
-    @Issue({"JENKINS-41758", "JENKINS-57827"})
+    @Issue({"JENKINS-41758", "JENKINS-57827", "JENKINS-60886"})
     @Test
     public void declarative() throws Exception {
         assertNotNull(createJobThenScheduleRun());
@@ -66,6 +66,10 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         assertFalse("no junk in arguments: " + arguments, containers.get(0).getArguments().containsKey("alwaysPullImage"));
         FlowNode containerNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("container"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
         assertNotNull("recorded arguments for container", containerNode);
+        // JENKINS-60886
+        UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
+        assertNotNull(podRetention);
+        assertTrue(podRetention.getModel().getType().equals(OnFailure.class));
     }
 
     @Issue("JENKINS-48135")
@@ -152,19 +156,5 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
-    }
-
-    @Issue("JENKINS-60886")
-    @Test
-    public void declarativeWithPodRetention() throws Exception {
-        assertNotNull(createJobThenScheduleRun());
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Apache Maven 3.3.9", b);
-        FlowNode podTemplateNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("podTemplate"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
-        assertNotNull("recorded arguments for podTemplate", podTemplateNode);
-        Map<String, Object> arguments = podTemplateNode.getAction(ArgumentsAction.class).getArguments();
-        UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
-        assertNotNull(podRetention);
-        assertTrue("no junk in arguments: " + podRetention.getModel().getType(), podRetention.getModel().getType().equals(OnFailure.class));
     }
 }

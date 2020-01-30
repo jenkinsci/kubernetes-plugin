@@ -7,6 +7,7 @@ pipeline {
         ttyEnabled true
         command 'cat'
       }
+      podRetention onFailure()
     }
   }
   environment {
