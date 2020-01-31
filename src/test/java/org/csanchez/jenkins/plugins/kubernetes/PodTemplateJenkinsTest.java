@@ -26,4 +26,12 @@ public class PodTemplateJenkinsTest {
         podTemplate.setLabel("foo bar");
         assertEquals("foo_bar", podTemplate.getLabelsMap().get("jenkins/label"));
     }
+    
+    @Test
+    @Issue("JENKINS-60937")
+    public void defaultLabel() {
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setLabel(null);
+        assertEquals("slave-default", podTemplate.getLabelsMap().get("jenkins/label"));
+    }
 }
