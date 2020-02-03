@@ -80,7 +80,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.5.0</version>
+      <version>0.6.1-rc83.76c66431124a</version> <!-- https://github.com/jenkinsci/kubernetes-credentials-plugin/pull/19 -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
