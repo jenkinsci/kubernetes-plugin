@@ -41,7 +41,7 @@ public class ExistingVolume extends PodVolume {
     private String volumeName;
 
     @DataBoundConstructor
-    public ExistingDirVolume(String volumeName, String mountPath) {
+    public ExistingVolume(String volumeName, String mountPath) {
         this.volumeName = volumeName;
         this.mountPath = mountPath;
     }
