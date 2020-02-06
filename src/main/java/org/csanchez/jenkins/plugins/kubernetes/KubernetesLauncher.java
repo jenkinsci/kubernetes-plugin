@@ -138,7 +138,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (InvalidDockerImageException e) {
-                if (e.getMessage().equals("Unable to pull Docker image")) {
+                if (e.getMessage().contains("Unable to pull Docker image")) {
                     Jenkins jenkins = Jenkins.get();
                     Queue q = jenkins.getQueue();
                     String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
