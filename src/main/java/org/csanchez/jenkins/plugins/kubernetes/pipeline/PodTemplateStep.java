@@ -223,7 +223,6 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setInstanceCap(int instanceCap) {
         this.instanceCap = instanceCap;
-       }
     }
 
     public int getIdleMinutes() {
