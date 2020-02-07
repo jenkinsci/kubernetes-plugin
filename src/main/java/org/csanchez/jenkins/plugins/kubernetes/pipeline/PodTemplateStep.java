@@ -12,11 +12,10 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -53,22 +52,14 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String namespace;
 
-    @CheckForNull
     private List<ContainerTemplate> containers = new ArrayList<>();
-
-    @CheckForNull
     private List<TemplateEnvVar> envVars = new ArrayList<>();
-
-    @CheckForNull
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
 
     @CheckForNull
     private WorkspaceVolume workspaceVolume;
 
-    @CheckForNull
     private List<PodAnnotation> annotations = new ArrayList<>();
-
-    @CheckForNull
     private List<String> imagePullSecrets = new ArrayList<>();
 
     private int instanceCap;
@@ -84,16 +75,12 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String nodeSelector;
 
-    @CheckForNull
     private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
-
-    @CheckForNull
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
     @CheckForNull
     private String yaml;
 
-    @CheckForNull
     private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
 
     @CheckForNull
@@ -163,23 +150,21 @@ public class PodTemplateStep extends Step implements Serializable {
         this.inheritFrom = Util.fixEmpty(inheritFrom);
     }
 
-    @CheckForNull
     public List<ContainerTemplate> getContainers() {
         return containers;
     }
 
     @DataBoundSetter
-    public void setContainers(@CheckForNull List<ContainerTemplate> containers) {
-        this.containers = Util.fixNull(containers);
+    public void setContainers(List<ContainerTemplate> containers) {
+        this.containers = containers;
     }
 
-    @CheckForNull
     public List<TemplateEnvVar> getEnvVars() {
         return envVars == null ? Collections.emptyList() : envVars;
     }
 
     @DataBoundSetter
-    public void setEnvVars(@CheckForNull List<TemplateEnvVar> envVars) {
+    public void setEnvVars(List<TemplateEnvVar> envVars) {
         if (envVars != null) {
             this.envVars.clear();
             this.envVars.addAll(envVars);
@@ -192,18 +177,17 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     @DataBoundSetter
-    public void setYamlMergeStrategy(@CheckForNull YamlMergeStrategy yamlMergeStrategy) {
+    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
         this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
-    @CheckForNull
     public List<PodVolume> getVolumes() {
         return volumes;
     }
 
     @DataBoundSetter
-    public void setVolumes(@CheckForNull List<PodVolume> volumes) {
-        this.volumes = Util.fixNull(volumes);
+    public void setVolumes(List<PodVolume> volumes) {
+        this.volumes = volumes;
     }
 
     @CheckForNull
@@ -217,7 +201,7 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     public int getInstanceCap() {
-        return instanceCap;// == null ? DescriptorImpl.defaultInstanceCap : instanceCap;
+        return instanceCap;
     }
 
     @DataBoundSetter
@@ -418,7 +402,7 @@ public class PodTemplateStep extends Step implements Serializable {
             return ContainerTemplate.DEFAULT_WORKING_DIR;
         }
 
-        public static final PodRetention defaultPodRetention = new Always();
-        public static final WorkspaceVolume defaultWorkspaceVolume = new DynamicPVCWorkspaceVolume(null, null, "ReadWriteOnce");
+        public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
+        public static final WorkspaceVolume defaultWorkspaceVolume = new EmptyDirWorkspaceVolume(false);
     }
 }

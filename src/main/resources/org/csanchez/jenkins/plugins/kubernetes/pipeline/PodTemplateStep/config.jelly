@@ -58,7 +58,7 @@
           <f:textbox default="0"/>
         </f:entry>
         <f:entry title="${%Pod Retention}">
-          <f:dropdownDescriptorSelector field="podRetention"/>
+          <f:dropdownDescriptorSelector field="podRetention" default="${descriptor.defaultPodRetention}"/>
         </f:entry>
         <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
           <f:textbox/>
@@ -87,7 +87,7 @@
             <f:optionalBlock title="${%Use custom workspace volume}" checked="${instance.workspaceVolume != null}" inline="true">
               <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
                 <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="Add Workspace Volume"
-                                              deleteCaption="Delete Workspace Volume" />
+                                              deleteCaption="Delete Workspace Volume" default="${descriptor.defaultWorkspaceVolume}"/>
               </f:entry>
             </f:optionalBlock>
           </table>
