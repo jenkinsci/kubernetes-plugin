@@ -15,7 +15,7 @@ public class PodTemplateStepTest {
     @Rule
     public JenkinsRule rule = new JenkinsRule();
 
-    @Issue({"JENKINS-57828", "CPLT2-6206"})
+    @Issue("JENKINS-57828")
     @Test
     public void configRoundTrip() throws Exception {
         SnippetizerTester st = new SnippetizerTester(rule);
