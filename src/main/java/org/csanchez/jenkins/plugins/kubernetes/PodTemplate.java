@@ -58,7 +58,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
-    private static final String DEFAULT_ID = "jenkins/slave-default";
+    private static final String DEFAULT_LABEL = "slave-default";
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
@@ -389,7 +389,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : sanitizeLabel(label));
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label));
     }
 
     static String sanitizeLabel(String input) {

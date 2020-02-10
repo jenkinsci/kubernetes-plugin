@@ -32,6 +32,7 @@ import static org.junit.Assert.*;
 import hudson.model.Result;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -49,7 +50,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
-    @Issue({"JENKINS-41758", "JENKINS-57827"})
+    @Issue({"JENKINS-41758", "JENKINS-57827", "JENKINS-60886"})
     @Test
     public void declarative() throws Exception {
         assertNotNull(createJobThenScheduleRun());
@@ -66,6 +67,10 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         assertFalse("no junk in arguments: " + arguments, containers.get(0).getArguments().containsKey("alwaysPullImage"));
         FlowNode containerNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("container"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
         assertNotNull("recorded arguments for container", containerNode);
+        // JENKINS-60886
+        UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
+        assertNotNull(podRetention);
+        assertTrue(podRetention.getModel().getType().equals(OnFailure.class));
     }
 
     @Issue("JENKINS-48135")
