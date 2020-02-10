@@ -32,6 +32,10 @@ public class KubernetesSamplesTest extends AbstractKubernetesPipelineTest {
     // TODO tried without success to use Parameterized here (need to construct parameters _after_ JenkinsRule starts)
     @Rule public ErrorCollector errors = new ErrorCollector();
 
+    {
+        r.timeout *= 2; // again, without Parameterized we are running a bunch of builds in one test case
+    }
+
     @Before public void setUp() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
     }

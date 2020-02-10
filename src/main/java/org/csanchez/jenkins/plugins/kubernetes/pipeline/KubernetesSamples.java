@@ -55,7 +55,19 @@ public class KubernetesSamples {
 
     }
 
-    @Extension(ordinal = 1_000) public static final class Maven extends Static {
+    @Extension(ordinal = 1500) public static final class Declarative extends Static {
+
+        @Override public String name() {
+            return "kubernetes-declarative";
+        }
+
+        @Override public String title() {
+            return "Declarative (Kubernetes)";
+        }
+
+    }
+
+    @Extension(ordinal = 1000) public static final class Maven extends Static {
 
         @Override public String name() {
             return "kubernetes-maven";
