@@ -67,7 +67,7 @@ public class KubernetesSamples {
 
     }
 
-    @Extension(ordinal = 1000) public static final class Maven extends Static {
+    @Extension(ordinal = 1400) public static final class Maven extends Static {
 
         @Override public String name() {
             return "kubernetes-maven";
@@ -75,6 +75,18 @@ public class KubernetesSamples {
 
         @Override public String title() {
             return "Maven (Kubernetes)";
+        }
+
+    }
+
+    @Extension(ordinal = 1300) public static final class Windows extends Static {
+
+        @Override public String name() {
+            return "kubernetes-windows";
+        }
+
+        @Override public String title() {
+            return "Windows (Kubernetes)";
         }
 
     }

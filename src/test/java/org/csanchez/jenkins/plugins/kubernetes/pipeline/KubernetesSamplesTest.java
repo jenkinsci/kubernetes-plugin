@@ -17,8 +17,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.ExtensionList;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.GroovySample;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -42,6 +41,10 @@ public class KubernetesSamplesTest extends AbstractKubernetesPipelineTest {
 
     @Test public void smokes() throws Exception {
         for (GroovySample gs : ExtensionList.lookup(GroovySample.class)) {
+            if (gs.name().equals("kubernetes-windows") && !isWindows()) {
+                System.err.println("==== Skipping " + gs.title() + " ====");
+                continue;
+            }
             System.err.println("==== " + gs.title() + " ====");
             p = r.createProject(WorkflowJob.class, gs.name());
             p.setDefinition(new CpsFlowDefinition(gs.script(), true));
