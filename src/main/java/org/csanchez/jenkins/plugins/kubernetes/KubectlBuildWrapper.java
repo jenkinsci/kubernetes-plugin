@@ -28,6 +28,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
@@ -42,15 +43,15 @@ import static com.google.common.collect.Sets.newHashSet;
  */
 public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
-    private final String serverUrl;
-    private final String credentialsId;
-    private final String caCertificate;
+    private String serverUrl;
+    private String credentialsId;
+    private String caCertificate;
 
     @DataBoundConstructor
     public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
             @Nonnull String caCertificate) {
         this.serverUrl = serverUrl;
-        this.credentialsId = credentialsId;
+        this.credentialsId = Util.fixEmpty(credentialsId);
         this.caCertificate = Util.fixEmptyAndTrim(caCertificate);
     }
 
@@ -66,8 +67,17 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         return caCertificate;
     }
 
+    protected Object readResolve() {
+        this.credentialsId = Util.fixEmpty(credentialsId);
+        this.caCertificate = Util.fixEmptyAndTrim(caCertificate);
+        return this;
+    }
+
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
+        if (credentialsId == null) {
+            throw new AbortException("No credentials defined to setup Kubernetes CLI");
+        }
         FilePath configFile = workspace.createTempFile(".kube", "config");
         Set<String> tempFiles = newHashSet(configFile.getRemote());
 
@@ -90,9 +100,16 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                 throw new AbortException(e.getMessage());
             }
         }
-
-        int status = launcher.launch().cmdAsSingleString("kubectl version").join();
-        if (status != 0) throw new AbortException("Failed to run kubectl version. Returned status code " + status + ".");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        String cmd = "kubectl version";
+        int status = launcher.launch().cmdAsSingleString(cmd).stdout(out).stderr(err).quiet(true).envs("KUBECONFIG="+configFile.getRemote()).join();
+        if (status != 0) {
+            StringBuilder msgBuilder = new StringBuilder("Failed to run \"").append(cmd).append("\". Returned status code ").append(status).append(".\n");
+            msgBuilder.append("stdout:\n").append(out).append("\n");
+            msgBuilder.append("stderr:\n").append(err);
+            throw new AbortException(msgBuilder.toString());
+        }
     }
 
     @Extension
