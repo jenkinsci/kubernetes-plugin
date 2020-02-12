@@ -269,7 +269,7 @@ public class PodTemplateBuilder {
                                 c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
                 .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
 
-        LOGGER.log(Level.FINE, "Pod built: {0}", pod);
+        LOGGER.log(Level.FINEST, "Pod built: {0}", pod);
         return pod;
     }
 

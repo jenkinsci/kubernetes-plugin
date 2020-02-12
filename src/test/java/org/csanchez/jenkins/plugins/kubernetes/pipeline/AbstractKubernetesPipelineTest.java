@@ -72,7 +72,7 @@ public abstract class AbstractKubernetesPipelineTest {
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
     @Rule
-    public LoggerRule logs = new LoggerRule().recordPackage(KubernetesCloud.class, Level.ALL);
+    public LoggerRule logs = new LoggerRule().recordPackage(KubernetesCloud.class, Level.FINE);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
