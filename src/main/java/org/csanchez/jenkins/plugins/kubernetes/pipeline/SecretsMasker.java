@@ -27,6 +27,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.SecretKeySelector;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -143,7 +144,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
             Pod pod = slave.getTemplate().build(slave);
             Set<String> values = new HashSet<>();
             values.add(c.getJnlpMac());
-            LOGGER.finer(() -> "inspecting " + pod);
+            LOGGER.finer(() -> "inspecting " + Serialization.asYaml(pod));
             for (Container container : pod.getSpec().getContainers()) {
                 Set<String> secretContainerKeys = new TreeSet<>();
                 for (EnvVar envVar : container.getEnv()) {
