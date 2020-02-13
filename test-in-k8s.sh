@@ -13,7 +13,6 @@ kubectl exec jenkins -- mkdir /checkout
 kubectl cp pom.xml jenkins:/checkout/pom.xml
 kubectl cp .mvn jenkins:/checkout/.mvn
 kubectl cp src jenkins:/checkout/src
-kubectl cp settings-azure.xml jenkins:/settings-azure.xml
 if [ -v TEST ]
 then
     args="-Dtest=$TEST test"
@@ -24,7 +23,6 @@ kubectl exec jenkins -- \
         mvn \
         -B \
         -ntp \
-        -s /settings-azure.xml \
         -f /checkout \
         -DconnectorHost=0.0.0.0 \
         -Dport=$http_port \
