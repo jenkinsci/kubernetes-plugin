@@ -69,6 +69,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.net.InetAddress;
 import java.net.URL;
 import jenkins.model.Jenkins;
@@ -263,16 +264,16 @@ public class KubernetesTestUtil {
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
 
-        LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created container secret: " + Serialization.asYaml(secret));
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
-        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
 
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
                 .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
-        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
     }
 
     public static String generateProjectName(String name) {
