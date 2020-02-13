@@ -27,7 +27,7 @@ parallel kind: {
     node('maven-11') {
         timeout(60) {
             checkout scm
-            sh 'mvn -B -ntp -s settings-azure.xml -Dset.changelist -Dmaven.test.failure.ignore clean install'
+            sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
             infra.prepareToPublishIncrementals()
             junit 'target/surefire-reports/*.xml'
         }
