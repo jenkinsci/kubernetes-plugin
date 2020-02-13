@@ -74,6 +74,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
@@ -269,7 +270,7 @@ public class PodTemplateBuilder {
                                 c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
                 .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
 
-        LOGGER.log(Level.FINEST, "Pod built: {0}", pod);
+        LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(pod));
         return pod;
     }
 

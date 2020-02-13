@@ -18,6 +18,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.utils.Serialization;
 
 /**
  * A pod watcher reporting when all containers are running
@@ -158,7 +159,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
             throw new IllegalStateException(String.format("Pod is no longer available: %s/%s",
                     this.pod.getMetadata().getNamespace(), this.pod.getMetadata().getName()));
         } else {
-            LOGGER.finest(() -> "Updating pod for " + this.pod.getMetadata().getNamespace() + "/" + this.pod.getMetadata().getName() + " : " + pod);
+            LOGGER.finest(() -> "Updating pod for " + this.pod.getMetadata().getNamespace() + "/" + this.pod.getMetadata().getName() + " : " + Serialization.asYaml(pod));
             this.pod = pod;
         }
         List<ContainerStatus> terminatedContainers = getTerminatedContainers(pod);

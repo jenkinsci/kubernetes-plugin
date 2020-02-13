@@ -61,6 +61,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 
 import static hudson.Util.replaceMacro;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -228,8 +229,7 @@ public class PodTemplateUtils {
             return template;
         }
 
-        LOGGER.log(Level.FINEST, "Combining pods, parent: {0}", parent);
-        LOGGER.log(Level.FINEST, "Combining pods, template: {0}", template);
+        LOGGER.finest(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: " + Serialization.asYaml(template));
 
         Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
                 template.getSpec().getNodeSelector());
@@ -314,7 +314,7 @@ public class PodTemplateUtils {
 //        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
         Pod pod = specBuilder.endSpec().build();
-        LOGGER.log(Level.FINEST, "Pods combined: {0}", pod);
+        LOGGER.finest(() -> "Pods combined: " + Serialization.asYaml(pod));
         return pod;
     }
 
@@ -566,7 +566,7 @@ public class PodTemplateUtils {
             } catch (IOException | KubernetesClientException e) {
                 throw new RuntimeException(String.format("Failed to parse yaml: \"%s\"", yaml), e);
             }
-            LOGGER.log(Level.FINEST, "Parsed pod template from yaml: {0}", podFromYaml);
+            LOGGER.finest(() -> "Parsed pod template from yaml: " + Serialization.asYaml(podFromYaml));
             // yaml can be just a fragment, avoid NPEs
             if (podFromYaml.getMetadata() == null) {
                 podFromYaml.setMetadata(new ObjectMeta());
