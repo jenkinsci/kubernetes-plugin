@@ -270,7 +270,7 @@ public class PodTemplateBuilder {
                                 c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
                 .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
 
-        LOGGER.fine(() -> "Pod built: " + Serialization.asYaml(pod));
+        LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(pod));
         return pod;
     }
 
