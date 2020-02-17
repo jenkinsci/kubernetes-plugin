@@ -30,8 +30,8 @@ spec:
     args:
       - infinity
     ports:
-      - containerPort: 8000
-      - containerPort: 50000
+      - containerPort: @HTTP_PORT@
+      - containerPort: @TCP_PORT@
     volumeMounts:
     - name: m2repo
       mountPath: /root/.m2/repository
@@ -51,12 +51,12 @@ spec:
     app: jenkins
   ports:
     - name: http
-      port: 8000
-      targetPort: 8000
+      port: @HTTP_PORT@
+      targetPort: @HTTP_PORT@
       protocol: TCP
     - name: agent
-      port: 50000
-      targetPort: 50000
+      port: @TCP_PORT@
+      targetPort: @TCP_PORT@
       protocol: TCP
 ---
 kind: ClusterRole
