@@ -26,6 +26,6 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
         } catch (IOException | Descriptor.FormException e) {
             f = Futures.immediateFailedFuture(e);
         }
-        return new NodeProvisioner.PlannedNode(t.getDisplayName(), f, getNumExecutors());
+        return new NodeProvisioner.PlannedNode(t.getName(), f, getNumExecutors());
     }
 }
