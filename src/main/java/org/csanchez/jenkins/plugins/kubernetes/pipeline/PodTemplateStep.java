@@ -62,7 +62,7 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<PodAnnotation> annotations = new ArrayList<>();
     private List<String> imagePullSecrets = new ArrayList<>();
 
-    private int instanceCap;
+    private Integer instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
     private int slaveConnectTimeout = PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
     private int activeDeadlineSeconds;
@@ -200,13 +200,17 @@ public class PodTemplateStep extends Step implements Serializable {
         this.workspaceVolume = (workspaceVolume == null || workspaceVolume.equals(DescriptorImpl.defaultWorkspaceVolume)) ? null : workspaceVolume;
     }
 
-    public int getInstanceCap() {
+    public Integer getInstanceCap() {
         return instanceCap;
     }
 
     @DataBoundSetter
-    public void setInstanceCap(int instanceCap) {
-        this.instanceCap = instanceCap;
+    public void setInstanceCap(@CheckForNull Integer instanceCap) {
+        if (instanceCap == null || instanceCap.intValue() <= 0) {
+            this.instanceCap = Integer.MAX_VALUE;
+        } else {
+            this.instanceCap = instanceCap;
+        }
     }
 
     public int getIdleMinutes() {
@@ -402,6 +406,7 @@ public class PodTemplateStep extends Step implements Serializable {
             return ContainerTemplate.DEFAULT_WORKING_DIR;
         }
 
+        public static final Integer defaultInstanceCap = Integer.MAX_VALUE;
         public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
         public static final WorkspaceVolume defaultWorkspaceVolume = new EmptyDirWorkspaceVolume(false);
     }
