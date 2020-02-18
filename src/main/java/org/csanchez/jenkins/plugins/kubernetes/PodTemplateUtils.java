@@ -229,7 +229,7 @@ public class PodTemplateUtils {
             return template;
         }
 
-        LOGGER.fine(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: " + Serialization.asYaml(template));
+        LOGGER.finest(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: " + Serialization.asYaml(template));
 
         Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
                 template.getSpec().getNodeSelector());
@@ -314,7 +314,7 @@ public class PodTemplateUtils {
 //        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
         Pod pod = specBuilder.endSpec().build();
-        LOGGER.fine(() -> "Pods combined: " + Serialization.asYaml(pod));
+        LOGGER.finest(() -> "Pods combined: " + Serialization.asYaml(pod));
         return pod;
     }
 

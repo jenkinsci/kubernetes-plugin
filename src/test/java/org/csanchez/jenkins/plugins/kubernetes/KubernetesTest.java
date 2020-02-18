@@ -92,7 +92,8 @@ public class KubernetesTest {
         PodTemplate pt = cloud.getTemplate(Label.get("java"));
         assertNotNull(pt);
         for (ContainerTemplate ct : pt.getContainers()) {
-            assertEquals(ContainerTemplate.DEFAULT_WORKING_DIR, ct.getWorkingDir());
+            // Retain working dir used in previous version
+            assertEquals("/home/jenkins", ct.getWorkingDir());
         }
     }
 

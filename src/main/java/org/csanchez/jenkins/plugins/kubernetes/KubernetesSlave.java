@@ -363,7 +363,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 if (currentExecutable != null && executables.add(currentExecutable)) {
                     listener.getLogger().println(Messages.KubernetesSlave_AgentIsProvisionedFromTemplate(
                             ModelHyperlinkNote.encodeTo("/computer/" + getNodeName(), getNodeName()),
-                            getTemplate().getDisplayName())
+                            getTemplate().getName())
                     );
                     printAgentDescription(listener);
                     checkHomeAndWarnIfNeeded(listener);
