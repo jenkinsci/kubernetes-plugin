@@ -157,11 +157,6 @@
       </exclusions>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency> <!-- SnippetizerTest -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
