@@ -15,7 +15,7 @@ fi
 
 export cluster=ci$RANDOM
 export KUBECONFIG=$WSTMP/kubeconfig-$cluster
-kind create cluster --name $cluster --wait 5m
+kind create cluster --name $cluster --wait 5m --config kind.yaml
 function cleanup() {
     kind export logs --name $cluster $WSTMP/kindlogs || :
     kind delete cluster --name $cluster || :
