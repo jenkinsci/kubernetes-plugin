@@ -17,15 +17,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.Computer;
 import hudson.model.Node;
 import hudson.model.TaskListener;
+import hudson.model.listeners.ItemListener;
 import hudson.slaves.Cloud;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,10 +54,28 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     private static final Logger LOGGER = Logger.getLogger(Reaper.class.getName());
 
     /**
+     * Only useful for tests which shutdown Jenkins without terminating the JVM.
+     * Close the watch so that we don't end up with spam in logs
+     */
+    @Extension
+    public static class ReaperShutdownListener extends ItemListener {
+        @Override
+        public void onBeforeShutdown() {
+            Reaper.getInstance().closeWatch();
+        }
+    }
+
+    public static Reaper getInstance() {
+        return ExtensionList.lookupSingleton(Reaper.class);
+    }
+
+    /**
      * Activate this feature only if and when some Kubernetes agent is actually used.
      * Avoids touching the API server when this plugin is not even in use.
      */
     private final AtomicBoolean activated = new AtomicBoolean();
+
+    private Watch watch;
 
     @Override
     public void onOnline(Computer c, TaskListener listener) throws IOException, InterruptedException {
@@ -99,7 +120,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             KubernetesCloud kc = (KubernetesCloud) c;
             try {
                 KubernetesClient client = kc.connect();
-                client.pods().inNamespace(client.getNamespace()).watch(this);
+                watch = client.pods().inNamespace(client.getNamespace()).watch(this);
             } catch (Exception x) {
                 LOGGER.log(Level.WARNING, "failed to set up watcher on " + kc.getDisplayName(), x);
             }
@@ -142,4 +163,9 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         // and you need to rerun the watch. Does the fabric8io client wrap this?)
     }
 
+    private void closeWatch() {
+        if (watch != null) {
+            watch.close();
+        }
+    }
 }
