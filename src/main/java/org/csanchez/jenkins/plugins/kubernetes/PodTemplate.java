@@ -252,6 +252,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::getArgs).orElse(null);
     }
 
+    @Deprecated // why would you use this method? It returns the constant "Kubernetes Pod Template".
     public String getDisplayName() {
         return "Kubernetes Pod Template";
     }
@@ -822,7 +823,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     public String getDescriptionForLogging() {
         return String.format("Agent specification [%s] (%s): %n%s",
-                getDisplayName(),
+                getName(),
                 getLabel(),
                 getContainersDescriptionForLogging());
     }

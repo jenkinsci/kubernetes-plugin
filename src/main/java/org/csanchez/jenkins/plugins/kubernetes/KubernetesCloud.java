@@ -530,7 +530,7 @@ public class KubernetesCloud extends Cloud {
                     r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
                 }
                 LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
-                        new Object[] { t.getDisplayName(), r.size() });
+                        new Object[] { t.getName(), r.size() });
                 if (r.size() > 0) {
                     // Already found a matching template
                     return r;
