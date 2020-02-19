@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
+import hudson.model.Queue;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -124,12 +126,28 @@ public class KubernetesLauncher extends JNLPLauncher {
             pod = client.pods().inNamespace(namespace).create(pod);
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podId });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
+
+            TaskListener runListener = template.getListener();
+            runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
+
+
             String podName = pod.getMetadata().getName();
             String namespace1 = pod.getMetadata().getNamespace();
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
-            watcher = new AllContainersRunningPodWatcher(client, pod);
+            watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+            } catch (InvalidDockerImageException e) {
+                Jenkins jenkins = Jenkins.get();
+                Queue q = jenkins.getQueue();
+                String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+                for (Queue.Item item: q.getItems()) {
+                    if (item.task.getUrl().equals(runUrl)) {
+                        q.cancel(item);
+                        break;
+                    }
+                }
+                return;
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
 
