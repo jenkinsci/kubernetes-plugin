@@ -734,14 +734,6 @@ Get the url to connect to with
 
     minikube service jenkins --namespace kubernetes-plugin --url
 
-## Running with a remote Kubernetes Cloud in AWS EKS
-
-EKS enforces authentication to the cluster through [aws-iam-authenticator](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html). The token expires after 15 minutes
-so the kubernetes client cache needs to be set to something below this by setting a [java argument](https://support.cloudbees.com/hc/en-us/articles/209715698-How-to-add-Java-arguments-to-Jenkins-), like so:
-```
-JAVA_ARGS="-Dorg.csanchez.jenkins.plugins.kubernetes.clients.cacheExpiration=60"
-```
-
 ## Running in Google Container Engine GKE
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and agents there.

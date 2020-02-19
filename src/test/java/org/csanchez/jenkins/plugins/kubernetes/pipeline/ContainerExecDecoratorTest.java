@@ -301,8 +301,7 @@ public class ContainerExecDecoratorTest {
         cloud.connect();
 
         // this should not close the connection because we have execs still pending
-        boolean expireClients = KubernetesClientProvider.closeExpiredClients();
-        assertFalse(expireClients);
+        assertFalse("No connection should have been expired", KubernetesClientProvider.closeExpiredClients());
 
         threads.stream().forEach(t -> t.start());
         threads.stream().forEach(t -> {
