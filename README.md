@@ -25,6 +25,32 @@ Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
 
 It is not required to run the Jenkins master inside Kubernetes. 
+# Generic Setup
+### Prerequisites
+* A running Kubernetes cluster
+* An instances of Jenkins installed
+* The Jenkins Kubernetes plugin installed
+
+It first should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
+existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
+Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
+
+Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
+“Manage Jenkins -> Configure System -> Cloud -> Kubernetes” and enter in the ‘Kubernetes URL’ and ‘Jenkins URL’ 
+appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work. To test this connection is successful you can use the **Test Connection** button to ensure there is 
+adequate communication from Jenkins to the Kubernetes cluster, as seen below
+
+![image](Screen%20Shot%202020-02-20%20at%202.00.28%20PM.png)
+
+In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
+spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
+for your agent, you can use the default Jenkins agent image available on the official Docker hub repository. In the 
+‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
+Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
+be run automatically during builds
+Docker image - the docker image name that will be used as a reference to spin up a new Jenkins agent, as seen below
+
+![image](Screen%20Shot%202020-02-20%20at%202.01.48%20PM.png)
 
 # Kubernetes Cloud Configuration
 
