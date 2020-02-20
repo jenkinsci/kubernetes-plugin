@@ -27,10 +27,6 @@ import static java.util.logging.Level.*;
 import static org.junit.Assume.*;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,12 +65,12 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.net.InetAddress;
 import java.net.URL;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import static org.junit.Assert.*;
-import org.junit.AssumptionViolatedException;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -165,16 +161,20 @@ public class KubernetesTestUtil {
      * Note that running the <em>master</em> on Windows is untested.
      */
     public static void assumeWindows() {
+        assumeTrue("Cluster seems to contain no Windows nodes", isWindows());
+    }
+
+    public static boolean isWindows() {
         try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
             for (Node n : client.nodes().list().getItems()) {
                 String os = n.getMetadata().getLabels().get("kubernetes.io/os");
                 LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
                 if ("windows".equals(os)) {
-                    return;
+                    return true;
                 }
             }
         }
-        throw new AssumptionViolatedException("Cluster seems to contain no Windows nodes");
+        return false;
     }
 
     public static Map<String, String> getLabels(Object o, TestName name) {
@@ -263,16 +263,16 @@ public class KubernetesTestUtil {
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
 
-        LOGGER.log(Level.INFO, "Created container secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created container secret: " + Serialization.asYaml(secret));
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
-        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
 
         secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
                 .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
-        LOGGER.log(Level.INFO, "Created pod secret: {0}", secret);
+        LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
     }
 
     public static String generateProjectName(String name) {

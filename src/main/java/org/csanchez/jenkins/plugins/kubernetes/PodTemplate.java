@@ -14,6 +14,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.Saveable;
+import hudson.model.TaskListener;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -31,12 +39,6 @@ import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.Saveable;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import hudson.util.XStream2;
@@ -56,7 +58,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private static final String FALLBACK_ARGUMENTS = "${computer.jnlpmac} ${computer.name}";
 
-    private static final String DEFAULT_ID = "jenkins/slave-default";
+    private static final String DEFAULT_LABEL = "slave-default";
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
@@ -161,6 +163,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private Boolean showRawYaml;
 
+    /**
+     * Listener of the run that created this pod template, if applicable
+     */
+    @CheckForNull
+    private transient TaskListener listener;
+
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
 
@@ -252,6 +260,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::getArgs).orElse(null);
     }
 
+    @Deprecated // why would you use this method? It returns the constant "Kubernetes Pod Template".
     public String getDisplayName() {
         return "Kubernetes Pod Template";
     }
@@ -381,7 +390,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_ID : sanitizeLabel(label));
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label));
     }
 
     static String sanitizeLabel(String input) {
@@ -735,6 +744,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.podRetention = podRetention;
     }
 
+    @Nonnull
+    public TaskListener getListener() {
+        return listener == null ? TaskListener.NULL : listener;
+    }
+
+    public void setListener(@CheckForNull TaskListener listener) {
+        this.listener = listener;
+    }
+
     public Long getTerminationGracePeriodSeconds() {
         return terminationGracePeriodSeconds;
     }
@@ -822,7 +840,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     public String getDescriptionForLogging() {
         return String.format("Agent specification [%s] (%s): %n%s",
-                getDisplayName(),
+                getName(),
                 getLabel(),
                 getContainersDescriptionForLogging());
     }

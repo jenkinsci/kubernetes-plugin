@@ -47,10 +47,12 @@ public class KubernetesClientProvider {
             .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
 
     /**
-     * Time in seconds after which we will close the unused clients, default to one hour
+     * Time in seconds after which we will close the unused clients.
+     *
+     * Defaults to 5 minutes.
      */
     private static final Long EXPIRED_CLIENTS_PURGE_TIME = Long.getLong(
-            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", 1 * 60 * 60);
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.expiredClientsPurgeTime", TimeUnit.MINUTES.toSeconds(5));
     /**
      * How often to check if we need to close clients, default to {@link #EXPIRED_CLIENTS_PURGE_TIME}/2
      */
@@ -59,10 +61,12 @@ public class KubernetesClientProvider {
             EXPIRED_CLIENTS_PURGE_TIME / 2);
 
     /**
-     * Client expiration in seconds, default to one day
+     * Client expiration in seconds.
+     *
+     * Some providers such as Amazon EKS use a token with 15 minutes expiration, so expire clients after 10 minutes.
      */
-    private static final Integer CACHE_EXPIRATION = Integer.getInteger(
-            KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", 24 * 60 * 60);
+    private static final long CACHE_EXPIRATION = Long.getLong(
+            KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", TimeUnit.MINUTES.toSeconds(10));
 
     private static final Queue<Client> expiredClients = new ConcurrentLinkedQueue<>();
 
@@ -161,11 +165,11 @@ public class KubernetesClientProvider {
         if (expiredClients.isEmpty()) {
             return b;
         }
-        LOGGER.log(Level.FINE, "Closing expired clients: ({0}) {1}",
-                new Object[] { expiredClients.size(), expiredClients });
+        LOGGER.log(Level.FINE, "Closing {0} expired clients",
+                new Object[] { expiredClients.size() });
         if (expiredClients.size() > 10) {
-            LOGGER.log(Level.WARNING, "High number of expired clients, may cause memory leaks: ({0}) {1}",
-                    new Object[] { expiredClients.size(), expiredClients });
+            LOGGER.log(Level.WARNING, "High number of expired clients ({0}), may cause memory leaks",
+                    new Object[] { expiredClients.size() });
         }
         for (Iterator<Client> it = expiredClients.iterator(); it.hasNext();) {
             Client expiredClient = it.next();

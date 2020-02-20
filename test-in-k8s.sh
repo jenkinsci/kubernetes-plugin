@@ -3,13 +3,16 @@ set -euxo pipefail
 kubectl get ns kubernetes-plugin-test || kubectl create ns kubernetes-plugin-test
 kubectl get ns kubernetes-plugin-test-overridden-namespace || kubectl create ns kubernetes-plugin-test-overridden-namespace
 kubectl config set-context --current --namespace=kubernetes-plugin-test
-kubectl apply -f test-in-k8s.yaml
+port_offset=$RANDOM
+http_port=$((2000 + $port_offset))
+tcp_port=$((2001 + $port_offset))
+kubectl delete --ignore-not-found --now pod jenkins
+sed "s/@HTTP_PORT@/$http_port/g; s/@TCP_PORT@/$tcp_port/g" < test-in-k8s.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready --timeout=15m pod/jenkins
-kubectl exec jenkins -- sh -c 'rm -rf /checkout && mkdir /checkout'
+kubectl exec jenkins -- mkdir /checkout
 kubectl cp pom.xml jenkins:/checkout/pom.xml
 kubectl cp .mvn jenkins:/checkout/.mvn
 kubectl cp src jenkins:/checkout/src
-kubectl cp settings-azure.xml jenkins:/settings-azure.xml
 if [ -v TEST ]
 then
     args="-Dtest=$TEST test"
@@ -20,11 +23,10 @@ kubectl exec jenkins -- \
         mvn \
         -B \
         -ntp \
-        -s /settings-azure.xml \
         -f /checkout \
         -DconnectorHost=0.0.0.0 \
-        -Dport=8000 \
-        -DslaveAgentPort=50000 \
+        -Dport=$http_port \
+        -DslaveAgentPort=$tcp_port \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test.svc.cluster.local \
         -Dmaven.test.failure.ignore \
         $args
