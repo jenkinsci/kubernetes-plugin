@@ -175,6 +175,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     // Copied from Slave#getRootPath because this uses the underlying field
     @CheckForNull
+    @Override
     public FilePath getRootPath() {
         final SlaveComputer computer = getComputer();
         if (computer == null) {
