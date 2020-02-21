@@ -35,6 +35,12 @@ If _Kubernetes URL_ is not set, the connection options will be autoconfigured fr
 
 When running the Jenkins master outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
 
+If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
+This is unnecessary when the Jenkins master runs in the same Kubernetes cluster,
+but can greatly simplify setup when agents are in an external cluster
+and the Jenkins master is not directly accessible (for example, it is behind a reverse proxy).
+See [JEP-222](https://jenkins.io/jep/222) for more.
+
 ### Restricting what jobs can use your configured cloud
 
 Clouds can be configured to only allow certain jobs to use them.
