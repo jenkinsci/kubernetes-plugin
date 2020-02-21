@@ -31,7 +31,7 @@ It is not required to run the Jenkins master inside Kubernetes.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
 
-It first should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
+It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
 existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
 Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
 
