@@ -3,9 +3,9 @@ podTemplate(containers: [
 ]) {
     node (POD_LABEL) {
         stage('Run') {
-            sh 'env | sort'
+            sh '[ "$(pwd)" = "/home/jenkins/agent/workspace/$JOB_NAME" ]'
             container('busybox') {
-                sh 'env | sort'
+                sh '[ "$(pwd)" = "/src/workspace/$JOB_NAME" ]'
             }
         }
     }
