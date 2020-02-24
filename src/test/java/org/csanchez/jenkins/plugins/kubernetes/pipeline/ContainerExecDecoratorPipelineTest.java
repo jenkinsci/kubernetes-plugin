@@ -82,7 +82,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
 
     @Issue("JENKINS-58290")
     @Test
-    public void websocket() throws Exception {
+    public void closedWebSocketExit() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         containerExecLogs.capture(1000);
         r.waitForMessage("have started user process", b);

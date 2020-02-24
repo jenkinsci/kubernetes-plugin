@@ -69,6 +69,7 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import jenkins.websocket.WebSockets;
 
 /**
  * Kubernetes cloud provider.
@@ -109,6 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private boolean webSocket;
     private boolean directConnection = false;
     private String jenkinsUrl;
     @CheckForNull
@@ -337,6 +339,15 @@ public class KubernetesCloud extends Cloud {
         }
         url = url.endsWith("/") ? url : url + "/";
         return url;
+    }
+
+    public boolean isWebSocket() {
+        return webSocket;
+    }
+
+    @DataBoundSetter
+    public void setWebSocket(boolean webSocket) {
+        this.webSocket = webSocket;
     }
 
     public boolean isDirectConnection() {
@@ -820,12 +831,16 @@ public class KubernetesCloud extends Cloud {
         }
 
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl) throws IOException, ServletException {
+        public FormValidation doCheckDirectConnection(@QueryParameter boolean value, @QueryParameter String jenkinsUrl, @QueryParameter boolean webSocket) throws IOException, ServletException {
             int slaveAgentPort = Jenkins.get().getSlaveAgentPort();
-            if(slaveAgentPort == -1) return FormValidation.warning(
-                    "'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without it!");
+            if (slaveAgentPort == -1 && !webSocket) {
+                return FormValidation.warning("'TCP port for inbound agents' is disabled in Global Security settings. Connecting Kubernetes agents will not work without this or WebSocket mode!");
+            }
 
             if(value) {
+                if (webSocket) {
+                    return FormValidation.error("Direct connection and WebSocket mode are mutually exclusive");
+                }
                 if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
                 if(slaveAgentPort == 0) return FormValidation.warning(
@@ -849,6 +864,18 @@ public class KubernetesCloud extends Cloud {
                 if(!isEmpty(value)) new URL(value);
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, "Invalid Jenkins URL");
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckWebSocket(@QueryParameter boolean webSocket, @QueryParameter boolean directConnection, @QueryParameter String jenkinsTunnel) {
+            if (webSocket) {
+                if (!WebSockets.isSupported()) {
+                    return FormValidation.error("WebSocket support is not enabled in this Jenkins installation");
+                }
+                if (Util.fixEmpty(jenkinsTunnel) != null) {
+                    return FormValidation.error("Tunneling is not currently supported in WebSocket mode");
+                }
             }
             return FormValidation.ok();
         }
