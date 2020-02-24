@@ -167,10 +167,6 @@ public class KubernetesClientProvider {
         }
         LOGGER.log(Level.FINE, "Closing {0} expired clients",
                 new Object[] { expiredClients.size() });
-        if (expiredClients.size() > 10) {
-            LOGGER.log(Level.WARNING, "High number of expired clients ({0}), may cause memory leaks",
-                    new Object[] { expiredClients.size() });
-        }
         for (Iterator<Client> it = expiredClients.iterator(); it.hasNext();) {
             Client expiredClient = it.next();
             // only purge it if the EXPIRED_CLIENTS_PURGE time has elapsed
