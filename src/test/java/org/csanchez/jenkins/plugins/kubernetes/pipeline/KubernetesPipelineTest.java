@@ -528,6 +528,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
+    @Issue("JENKINS-61178")
+    @Test
+    public void sidecarWorkingDir() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
     @Issue("JENKINS-60517")
     @Test
     public void runInDynamicallyCreatedContainer() throws Exception {
