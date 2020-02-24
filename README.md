@@ -40,7 +40,7 @@ Fill in the Kubernetes plugin configuration. In order to do that, you will open 
 appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work. To test this connection is successful you can use the **Test Connection** button to ensure there is 
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
-![image](Screen%20Shot%202020-02-20%20at%202.00.28%20PM.png)
+![image](images/cloud-configuration.png)
 
 In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
 spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
@@ -50,7 +50,7 @@ Kubernetes Pod Template Name - can be any and will be shown as a prefix for uniq
 be run automatically during builds
 Docker image - the docker image name that will be used as a reference to spin up a new Jenkins agent, as seen below
 
-![image](Screen%20Shot%202020-02-20%20at%202.01.48%20PM.png)
+![image](images/pod-template-configuration.png)
 
 # Kubernetes Cloud Configuration
 
