@@ -25,6 +25,32 @@ Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
 see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
 
 It is not required to run the Jenkins master inside Kubernetes. 
+# Generic Setup
+### Prerequisites
+* A running Kubernetes cluster
+* A Jenkins instance installed
+* The Jenkins Kubernetes plugin installed
+
+It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
+existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
+Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
+
+Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
+“Manage Jenkins -> Configure System -> Cloud -> Kubernetes” and enter in the ‘Kubernetes URL’ and ‘Jenkins URL’ 
+appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work. To test this connection is successful you can use the **Test Connection** button to ensure there is 
+adequate communication from Jenkins to the Kubernetes cluster, as seen below
+
+![image](images/cloud-configuration.png)
+
+In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
+spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
+for your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the 
+‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
+Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
+be run automatically during builds
+Docker image - the docker image name that will be used as a reference to spin up a new Jenkins agent, as seen below
+
+![image](images/pod-template-configuration.png)
 
 # Kubernetes Cloud Configuration
 
@@ -34,6 +60,12 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
 When running the Jenkins master outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
+
+If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
+This is unnecessary when the Jenkins master runs in the same Kubernetes cluster,
+but can greatly simplify setup when agents are in an external cluster
+and the Jenkins master is not directly accessible (for example, it is behind a reverse proxy).
+See [JEP-222](https://jenkins.io/jep/222) for more.
 
 ### Restricting what jobs can use your configured cloud
 
@@ -734,14 +766,6 @@ Get the url to connect to with
 
     minikube service jenkins --namespace kubernetes-plugin --url
 
-## Running with a remote Kubernetes Cloud in AWS EKS
-
-EKS enforces authentication to the cluster through [aws-iam-authenticator](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html). The token expires after 15 minutes
-so the kubernetes client cache needs to be set to something below this by setting a [java argument](https://support.cloudbees.com/hc/en-us/articles/209715698-How-to-add-Java-arguments-to-Jenkins-), like so:
-```
-JAVA_ARGS="-Dorg.csanchez.jenkins.plugins.kubernetes.clients.cacheExpiration=60"
-```
-
 ## Running in Google Container Engine GKE
 
 Assuming you created a Kubernetes cluster named `jenkins` this is how to run both Jenkins and agents there.
@@ -828,7 +852,7 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 ## Building
 
     docker build -t csanchez/jenkins-kubernetes .
-
+ 
 # Related Projects
 
 * [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds

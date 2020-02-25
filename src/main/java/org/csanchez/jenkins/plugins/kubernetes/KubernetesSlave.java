@@ -14,8 +14,10 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.util.concurrent.Futures;
+import hudson.FilePath;
+import hudson.Util;
 import hudson.slaves.SlaveComputer;
+import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
@@ -50,6 +52,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
+
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -125,16 +129,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
     protected KubernetesSlave(String name, @Nonnull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
-        super(name,
-                nodeDescription,
-                template.getRemoteFs(),
-                1,
-                template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL,
-                labelStr,
-                computerLauncher,
-                rs,
-                template.getNodeProperties());
-
+        super(name, null, computerLauncher);
+        setNodeDescription(nodeDescription);
+        setNumExecutors(1);
+        setMode(template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL);
+        setLabelString(labelStr);
+        setRetentionStrategy(rs);
+        setNodeProperties(template.getNodeProperties());
         this.cloudName = cloudName;
         this.template = template;
     }
@@ -154,6 +155,35 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     public String getPodName() {
         return PodTemplateUtils.substituteEnv(getNodeName());
+    }
+
+    private String remoteFS;
+
+    @Override
+    public String getRemoteFS() {
+        if (remoteFS == null) {
+            Optional<Pod> optionalPod = getPod();
+            if (optionalPod.isPresent()) {
+                Optional<Container> optionalJnlp = optionalPod.get().getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName())).findFirst();
+                if (optionalJnlp.isPresent()) {
+                    remoteFS = StringUtils.defaultIfBlank(optionalJnlp.get().getWorkingDir(), ContainerTemplate.DEFAULT_WORKING_DIR);
+                }
+            }
+        }
+        return Util.fixNull(remoteFS);
+    }
+
+    // Copied from Slave#getRootPath because this uses the underlying field
+    @CheckForNull
+    @Override
+    public FilePath getRootPath() {
+        final SlaveComputer computer = getComputer();
+        if (computer == null) {
+            // if computer is null then channel is null and thus we were going to return null anyway
+            return null;
+        } else {
+            return createPath(StringUtils.defaultString(computer.getAbsoluteRemoteFs(), getRemoteFS()));
+        }
     }
 
     /**
@@ -378,7 +408,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     private void printAgentDescription(TaskListener listener) {
-        if (pod != null) {
+        if (pod != null && template.isShowRawYaml()) {
             listener.getLogger().println(podAsYaml());
         }
     }
@@ -518,9 +548,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
-                    computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher,
+                    computerLauncher == null ? defaultLauncher() : computerLauncher,
                     retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
         }
+
+        private KubernetesLauncher defaultLauncher() {
+            KubernetesLauncher launcher = new KubernetesLauncher(cloud.getJenkinsTunnel(), null);
+            launcher.setWebSocket(cloud.isWebSocket());
+            return launcher;
+        }
+
     }
 
 

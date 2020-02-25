@@ -302,7 +302,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         // check that we are getting the correct java home
         r.assertLogContains("INSIDE_JAVA_HOME =\n", b);
-        r.assertLogContains("JNLP_JAVA_HOME = /usr/lib/jvm/java-1.8-openjdk\n", b);
+        r.assertLogContains("JNLP_JAVA_HOME = /usr/local/openjdk-8\n", b);
         r.assertLogContains("JAVA7_HOME = /usr/lib/jvm/java-1.7-openjdk/jre\n", b);
         r.assertLogContains("JAVA8_HOME = /usr/lib/jvm/java-1.8-openjdk/jre\n", b);
 
@@ -525,6 +525,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void jnlpWorkingDir() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Issue("JENKINS-61178")
+    @Test
+    public void sidecarWorkingDir() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 

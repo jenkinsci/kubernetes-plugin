@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import static org.junit.Assert.*;
 
+import hudson.model.Result;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
@@ -157,4 +158,20 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
     }
+
+    @Test
+    public void declarativeWithNonexistentDockerImage() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Unable to pull Docker image", b);
+    }
+
+    @Test
+    public void declarativeWithNonexistentDockerImageLongLabel() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Unable to pull Docker image", b);
+
+    }
+
 }

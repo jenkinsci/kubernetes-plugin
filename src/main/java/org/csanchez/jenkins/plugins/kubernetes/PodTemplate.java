@@ -14,6 +14,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.Saveable;
+import hudson.model.TaskListener;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -31,12 +39,6 @@ import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.Saveable;
 import hudson.model.labels.LabelAtom;
 import hudson.slaves.NodeProperty;
 import hudson.util.XStream2;
@@ -160,6 +162,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     private Boolean showRawYaml;
+
+    /**
+     * Listener of the run that created this pod template, if applicable
+     */
+    @CheckForNull
+    private transient TaskListener listener;
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
@@ -734,6 +742,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             podRetention = PodRetention.getPodTemplateDefault();
         }
         this.podRetention = podRetention;
+    }
+
+    @Nonnull
+    public TaskListener getListener() {
+        return listener == null ? TaskListener.NULL : listener;
+    }
+
+    public void setListener(@CheckForNull TaskListener listener) {
+        this.listener = listener;
     }
 
     public Long getTerminationGracePeriodSeconds() {

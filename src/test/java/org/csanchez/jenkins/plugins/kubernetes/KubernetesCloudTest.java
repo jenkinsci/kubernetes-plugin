@@ -324,7 +324,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configure");
+        HtmlPage p = wc.goTo("configureClouds/");
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = HtmlFormUtil.getButtonByCaption(f, "Pod Templates...");
         buttonExtends.click();
