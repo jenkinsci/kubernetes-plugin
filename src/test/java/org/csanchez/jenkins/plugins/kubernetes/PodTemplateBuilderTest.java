@@ -345,14 +345,6 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
-        if (jnlp.getResources() != null) {
-            if (jnlp.getResources().getRequests() != null) {
-                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
-            }
-            if (jnlp.getResources().getLimits() != null) {
-                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
-            }
-        }
     }
 
     @Test
