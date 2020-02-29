@@ -369,6 +369,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName) //
                         .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
                         .writingOutput(stream).writingError(stream).writingErrorChannel(error)
+                        .withTTY() // JENKINS-56764
                         .usingListener(new ExecListener() {
                             @Override
                             public void onOpen(Response response) {
