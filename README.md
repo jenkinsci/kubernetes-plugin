@@ -588,6 +588,8 @@ This issue can be circumvented in various ways:
 * build a docker image for OpenShift in order to behave when running using an arbitrary uid.
 * override HOME environment variable in the pod spec to use `/home/jenkins` and mount a volume to `/home/jenkins` to ensure the user running the container can write to it
 
+See this [example](examples/openshift-home-yaml.groovy) configuration.
+
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
