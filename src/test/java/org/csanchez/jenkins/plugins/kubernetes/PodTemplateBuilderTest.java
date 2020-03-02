@@ -239,21 +239,6 @@ public class PodTemplateBuilderTest {
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
     }
 
-    @Test
-    public void homeIsSetOnOpenShift() {
-        when(slave.getKubernetesCloud()).thenReturn(cloud);
-        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
-        doReturn(true).when(cloud).isOpenShift();
-
-        PodTemplate template = new PodTemplate();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
-
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
-        Container jnlp = containers.get("jnlp");
-        assertThat(jnlp.getEnv(), hasItems(new EnvVar("HOME", "/home/jenkins", null)));
-    }
-
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -345,14 +330,6 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
-        if (jnlp.getResources() != null) {
-            if (jnlp.getResources().getRequests() != null) {
-                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
-            }
-            if (jnlp.getResources().getLimits() != null) {
-                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
-            }
-        }
     }
 
     @Test

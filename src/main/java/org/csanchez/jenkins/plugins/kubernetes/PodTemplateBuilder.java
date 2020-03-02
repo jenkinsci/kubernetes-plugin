@@ -101,8 +101,6 @@ public class PodTemplateBuilder {
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
 
-    private static final String DEFAULT_HOME = System.getProperty(PodTemplateBuilder.class.getName() + ".defaultHome", "/home/jenkins");
-
     private PodTemplate template;
 
     @CheckForNull
@@ -293,13 +291,6 @@ public class PodTemplateBuilder {
                 if (!StringUtils.isBlank(httpProxy)) {
                     env.put("http_proxy", httpProxy);
                 }
-            }
-
-            if (cloud.isOpenShift()) {
-                // Running on OpenShift Enterprise, security concerns force use of arbitrary user ID
-                // As a result, container is running without a home set for user, resulting into using `/` for some tools,
-                // and `?` for java build tools. So we force HOME to a safe location.
-                env.put("HOME", DEFAULT_HOME);
             }
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();

@@ -202,17 +202,6 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = defaultsProviderTemplate;
     }
 
-    public boolean isOpenShift() {
-        try {
-            if (connect().isAdaptable(OpenShiftClient.class)) {
-                return true;
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return false;
-    }
-
     @Nonnull
     public List<PodTemplate> getTemplates() {
         return templates;
