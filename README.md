@@ -573,6 +573,23 @@ containerLog 'mongodb'
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
 
+# Running on OpenShift
+
+OpenShift runs containers using a 'random' UID that is overriding what is specified in Docker images.
+For this reason, you may end up with the following warning in your build
+
+```
+[WARNING] HOME is set to / in the jnlp container. You may encounter troubles when using tools or ssh client. This usually happens if the uid doesnt have any entry in /etc/passwd. Please add a user to your Dockerfile or set the HOME environment variable to a valid directory in the pod template definition.
+```
+
+At the moment the jenkinsci agent image is not built for OpenShift and will issue this warning.
+
+This issue can be circumvented in various ways:
+* build a docker image for OpenShift in order to behave when running using an arbitrary uid.
+* override HOME environment variable in the pod spec to use `/home/jenkins` and mount a volume to `/home/jenkins` to ensure the user running the container can write to it
+
+See this [example](examples/openshift-home-yaml.groovy) configuration.
+
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
