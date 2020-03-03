@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -338,6 +339,7 @@ public class PodTemplateBuilderTest {
     public void testOverridesFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
+        template.setContainers(Collections.singletonList(new ContainerTemplate("jnlp", "image1")));
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
@@ -345,6 +347,7 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
+        assertThat(jnlp.getImage(), equalTo("jenkins-jnlp-override"));
         assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
         assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
         assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
@@ -354,9 +357,11 @@ public class PodTemplateBuilderTest {
     }
 
     /**
-     * This is counter intuitive, the yaml contents are ignored because the parent fields are merged first with the
-     * child ones. Then the fields override what is defined in the yaml, so in effect the parent resource limits and
-     * requests are used.
+     * Configuration is applied in this order :
+     * - parent (UI)
+     * - template (UI)
+     * - parent (yaml)
+     * - template (yaml)
      */
     @Test
     @TestCaseName("{method}(directConnection={0})")
@@ -384,12 +389,12 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
-        assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
+        assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
+        assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
+        assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
+        assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
+        assertEquals(Long.valueOf(3000L), jnlp.getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(4000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave, directConnection);
     }
 
