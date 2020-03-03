@@ -60,6 +60,12 @@ public class PodTemplateStepTest {
         st.assertRoundTrip(step, "podTemplate(activeDeadlineSeconds: 60) {\n    // some block\n}");
         step.setActiveDeadlineSeconds(0);
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
+        step.setInheritFrom("fooBar");
+        st.assertRoundTrip(step, "podTemplate(inheritFrom: 'fooBar') {\n    // some block\n}");
+        step.setInheritFrom(",default,");
+        assertEquals("inheritFrom not changed from \",default,\" to \"\" by setter", "", step.getInheritFrom());
+        step.setInheritFrom(null);
+        st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
     }
 
 }

@@ -24,7 +24,7 @@
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
     help="/plugin/kubernetes/help/inheritFrom.html">
-    <f:textbox/>
+    <f:textbox default=",default,"/>
   </f:entry>
 
   <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
