@@ -534,6 +534,7 @@ public class PodTemplateUtilsTest {
         assertThat(combine(template1, template2).getPorts(), contains(port2));
     }
 
+    @Test
     public void shouldCombineAllResources() {
         Container container1 = new Container();
         container1.setResources(new ResourceRequirementsBuilder() //
