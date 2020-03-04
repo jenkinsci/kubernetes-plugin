@@ -553,10 +553,20 @@ public class PodTemplateUtilsTest {
 
         Container result = combine(container1, container2);
 
-        assertEquals(new Quantity("2"), result.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), result.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), result.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), result.getResources().getRequests().get("memory"));
+        assertQuantity("2", result.getResources().getLimits().get("cpu"));
+        assertQuantity("2Gi", result.getResources().getLimits().get("memory"));
+        assertQuantity("200m", result.getResources().getRequests().get("cpu"));
+        assertQuantity("256Mi", result.getResources().getRequests().get("memory"));
+    }
+
+    /**
+     * Use instead of {@link org.junit.Assert#assertEquals(Object, Object)} on {@link Quantity}.
+     * @see <a href="https://github.com/fabric8io/kubernetes-client/issues/2034">kubernetes-client #2034</a>
+     */
+    public static void assertQuantity(String expected, Quantity actual) {
+        if (Quantity.getAmountInBytes(new Quantity(expected)).compareTo(Quantity.getAmountInBytes(actual)) != 0) {
+            fail("expected: " + expected + " but was: " + actual.getAmount() + actual.getFormat());
+        }
     }
 
     @Test
