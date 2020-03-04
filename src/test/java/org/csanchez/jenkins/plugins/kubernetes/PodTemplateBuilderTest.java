@@ -56,6 +56,7 @@ import jenkins.model.Jenkins;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import junitparams.naming.TestCaseName;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(JUnitParamsRunner.class)
 public class PodTemplateBuilderTest {
@@ -84,6 +85,7 @@ public class PodTemplateBuilderTest {
     @Mock
     private KubernetesComputer computer;
 
+    @WithoutJenkins
     @Test
     public void testParseDockerCommand() {
         assertNull(parseDockerCommand(""));
@@ -93,6 +95,7 @@ public class PodTemplateBuilderTest {
         assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
     }
 
+    @WithoutJenkins
     @Test
     public void testParseLivenessProbe() {
         assertNull(parseLivenessProbe(""));
