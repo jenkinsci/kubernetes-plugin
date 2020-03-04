@@ -49,6 +49,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -56,6 +57,7 @@ import jenkins.model.Jenkins;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import junitparams.naming.TestCaseName;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(JUnitParamsRunner.class)
 public class PodTemplateBuilderTest {
@@ -84,6 +86,7 @@ public class PodTemplateBuilderTest {
     @Mock
     private KubernetesComputer computer;
 
+    @WithoutJenkins
     @Test
     public void testParseDockerCommand() {
         assertNull(parseDockerCommand(""));
@@ -93,6 +96,7 @@ public class PodTemplateBuilderTest {
         assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
     }
 
+    @WithoutJenkins
     @Test
     public void testParseLivenessProbe() {
         assertNull(parseLivenessProbe(""));
@@ -333,6 +337,18 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void defaultRequests() throws Exception {
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template).build();
+        ResourceRequirements resources = pod.getSpec().getContainers().get(0).getResources();
+        assertNotNull(resources);
+        Map<String, Quantity> requests = resources.getRequests();
+        assertNotNull(requests);
+        assertTrue(requests.containsKey("cpu"));
+        assertTrue(requests.containsKey("memory"));
+    }
+
+    @Test
     @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testOverridesFromYaml(boolean directConnection) throws Exception {
@@ -346,10 +362,10 @@ public class PodTemplateBuilderTest {
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
-        assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("2", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("2Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("200m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("256Mi", jnlp.getResources().getRequests().get("memory"));
         validateContainers(pod, slave, directConnection);
     }
 
@@ -384,10 +400,10 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("1", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("1Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("100m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("156Mi", jnlp.getResources().getRequests().get("memory"));
         assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
         assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave, directConnection);
