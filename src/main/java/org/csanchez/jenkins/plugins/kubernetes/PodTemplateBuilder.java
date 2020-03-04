@@ -253,6 +253,9 @@ public class PodTemplateBuilder {
         envVars.putAll(defaultEnvVars(template.getEnvVars()));
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
+        if (jnlp.getResources() == null) {
+            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity("100m")).addToRequests("memory", new Quantity("256Mi")).endResources().build().getResources());
+        }
 
         // default workspace volume, add an empty volume to share the workspace across the pod
         if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {

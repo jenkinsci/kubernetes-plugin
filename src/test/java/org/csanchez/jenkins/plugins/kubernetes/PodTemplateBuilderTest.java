@@ -49,6 +49,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -333,6 +334,18 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
+    }
+
+    @Test
+    public void defaultRequests() throws Exception {
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template).build();
+        ResourceRequirements resources = pod.getSpec().getContainers().get(0).getResources();
+        assertNotNull(resources);
+        Map<String, Quantity> requests = resources.getRequests();
+        assertNotNull(requests);
+        assertTrue(requests.containsKey("cpu"));
+        assertTrue(requests.containsKey("memory"));
     }
 
     @Test
