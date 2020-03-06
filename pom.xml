@@ -149,10 +149,6 @@
           <groupId>org.jboss.marshalling</groupId>
           <artifactId>jboss-marshalling-river</artifactId>
         </exclusion>
-        <exclusion>
-          <groupId>org.jboss.marshalling</groupId>
-          <artifactId>jboss-marshalling</artifactId>
-        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
