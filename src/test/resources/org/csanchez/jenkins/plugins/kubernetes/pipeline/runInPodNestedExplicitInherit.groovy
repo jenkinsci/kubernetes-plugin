@@ -2,7 +2,7 @@ podTemplate(label: '$NAME-parent', containers: [
 		containerTemplate(name: 'golang', image: 'golang:1.6.3-alpine', ttyEnabled: true, command: '/bin/cat'),
 	]) {
 
-	podTemplate(inheritFrom: '-',  containers: [
+	podTemplate(inheritFrom: '<noInherit>',  containers: [
 		containerTemplate(name: 'maven', image: 'maven:3.3.9-jdk-8-alpine', ttyEnabled: true, command: '/bin/cat'),
 	]) {
 
