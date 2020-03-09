@@ -36,8 +36,18 @@ existing projects (incl. freestyle) to run on Kubernetes without changing job de
 Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
 
 Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
-“Manage Jenkins -> Configure System -> Cloud -> Kubernetes” and enter in the ‘Kubernetes URL’ and ‘Jenkins URL’ 
-appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work. To test this connection is successful you can use the **Test Connection** button to ensure there is 
+**Manage Jenkins -> Configure System -> Cloud -> Kubernetes** and enter in the *Kubernetes URL* and *Jenkins URL*
+appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work.
+
+Supported credentials include:
+
+* Username/password
+* Secret File (kubeconfig file) (AKS)
+* Secret text (Token-based authentication) (OpenShift)
+* Google Service Account from private key (GKE authentication)
+* X.509 Client Certificate
+
+To test this connection is successful you can use the **Test Connection** button to ensure there is
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
 ![image](images/cloud-configuration.png)
