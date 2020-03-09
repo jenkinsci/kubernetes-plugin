@@ -62,8 +62,8 @@ public class PodTemplateStepTest {
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setInheritFrom("fooBar");
         st.assertRoundTrip(step, "podTemplate(inheritFrom: 'fooBar') {\n    // some block\n}");
-        step.setInheritFrom("<noInherit>");
-        assertEquals("inheritFrom not changed from \"<noInherit>\" to \"\" by setter", "", step.getInheritFrom());
+        step.setInheritFrom("");
+        st.assertRoundTrip(step, "podTemplate(inheritFrom: '') {\n    // some block\n}");
         step.setInheritFrom(null);
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
     }
