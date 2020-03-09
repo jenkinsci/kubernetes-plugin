@@ -144,6 +144,12 @@
       <artifactId>workflow-support</artifactId>
       <classifier>tests</classifier>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jboss.marshalling</groupId>
+          <artifactId>jboss-marshalling-river</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
@@ -167,34 +173,12 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>git</artifactId>
       <scope>test</scope>
-      <exclusions>
-        <!-- Already included through pipeline-model-extensions and causing them to be packaged -->
-        <exclusion>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>ssh-credentials</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>joda-time</groupId>
-          <artifactId>joda-time</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>git</artifactId>
       <classifier>tests</classifier>
       <scope>test</scope>
-      <exclusions>
-        <!-- Already included through pipeline-model-extensions and causing them to be packaged -->
-        <exclusion>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>ssh-credentials</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>joda-time</groupId>
-          <artifactId>joda-time</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -213,16 +197,12 @@
           <groupId>org.apache.sshd</groupId>
           <artifactId>sshd-core</artifactId>
         </exclusion>
-        <exclusion>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>ssh-credentials</artifactId>
-        </exclusion>
       </exclusions>
     </dependency>
-    <dependency> <!-- TODO for #sshagent pending https://github.com/jenkinsci/ssh-credentials-plugin/pull/47 -->
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>trilead-api</artifactId>
-      <version>1.0.5</version>
+      <artifactId>ssh-credentials</artifactId>
+      <version>1.18</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -246,6 +226,7 @@
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>instance-identity</artifactId>
       <version>2.2</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>pl.pragmatists</groupId>
@@ -264,6 +245,13 @@
         <version>5</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <!-- Avoid it from being bundled -->
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>3.0.2</version>
+        <scope>provided</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
