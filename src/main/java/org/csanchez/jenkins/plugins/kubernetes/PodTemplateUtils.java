@@ -619,6 +619,11 @@ public class PodTemplateUtils {
         return StringUtils.isBlank(label) ? true : label.length() <= 63 && LABEL_VALIDATION.matcher(label).matches();
     }
 
+    /** TODO perhaps enforce https://docs.docker.com/engine/reference/commandline/tag/#extended-description */
+    public static boolean validateImage(String image) {
+        return image != null && image.matches("\\S+");
+    }
+
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
         Map<String,EnvVar> combinedEnvVars = mergeMaps(envVarstoMap(parent.getEnv()),envVarstoMap(template.getEnv()));
         return combinedEnvVars.entrySet().stream()

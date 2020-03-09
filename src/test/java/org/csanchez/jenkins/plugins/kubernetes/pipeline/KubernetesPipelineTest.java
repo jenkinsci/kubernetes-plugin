@@ -302,7 +302,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         // check that we are getting the correct java home
         r.assertLogContains("INSIDE_JAVA_HOME =\n", b);
+        /* Varies according to agent image:
         r.assertLogContains("JNLP_JAVA_HOME = /usr/local/openjdk-8\n", b);
+        */
         r.assertLogContains("JAVA7_HOME = /usr/lib/jvm/java-1.7-openjdk/jre\n", b);
         r.assertLogContains("JAVA8_HOME = /usr/lib/jvm/java-1.8-openjdk/jre\n", b);
 

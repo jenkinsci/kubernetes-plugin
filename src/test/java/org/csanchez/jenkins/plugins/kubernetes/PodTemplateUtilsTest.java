@@ -61,7 +61,6 @@ import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 
 public class PodTemplateUtilsTest {
 
@@ -534,6 +533,7 @@ public class PodTemplateUtilsTest {
         assertThat(combine(template1, template2).getPorts(), contains(port2));
     }
 
+    @Test
     public void shouldCombineAllResources() {
         Container container1 = new Container();
         container1.setResources(new ResourceRequirementsBuilder() //
@@ -553,10 +553,20 @@ public class PodTemplateUtilsTest {
 
         Container result = combine(container1, container2);
 
-        assertEquals(new Quantity("2"), result.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), result.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), result.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), result.getResources().getRequests().get("memory"));
+        assertQuantity("2", result.getResources().getLimits().get("cpu"));
+        assertQuantity("2Gi", result.getResources().getLimits().get("memory"));
+        assertQuantity("200m", result.getResources().getRequests().get("cpu"));
+        assertQuantity("256Mi", result.getResources().getRequests().get("memory"));
+    }
+
+    /**
+     * Use instead of {@link org.junit.Assert#assertEquals(Object, Object)} on {@link Quantity}.
+     * @see <a href="https://github.com/fabric8io/kubernetes-client/issues/2034">kubernetes-client #2034</a>
+     */
+    public static void assertQuantity(String expected, Quantity actual) {
+        if (Quantity.getAmountInBytes(new Quantity(expected)).compareTo(Quantity.getAmountInBytes(actual)) != 0) {
+            fail("expected: " + expected + " but was: " + actual.getAmount() + actual.getFormat());
+        }
     }
 
     @Test

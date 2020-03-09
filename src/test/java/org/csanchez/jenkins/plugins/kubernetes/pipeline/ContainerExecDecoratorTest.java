@@ -281,17 +281,15 @@ public class ContainerExecDecoratorTest {
         final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
             final String name = "Thread " + i;
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
-                                + " - " + httpClient.connectionPool().idleConnectionCount());
-                        ProcReturn r = execCommand(false, "echo", "test");
-                    } catch (Exception e) {
-                        errors.incrementAndGet();
-                        System.out.println(e.getMessage());
-                    }
-                };
+            Thread t = new Thread(() -> {
+                try {
+                    System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
+                            + " - " + httpClient.connectionPool().idleConnectionCount());
+                    ProcReturn r = execCommand(false, "echo", "test");
+                } catch (Exception e) {
+                    errors.incrementAndGet();
+                    System.out.println(e.getMessage());
+                }
             });
             threads.add(t);
         }
@@ -299,10 +297,6 @@ public class ContainerExecDecoratorTest {
         // force expiration of client
         KubernetesClientProvider.invalidate(cloud.getDisplayName());
         cloud.connect();
-
-        // this should not close the connection because we have execs still pending
-        assertFalse("No connection should have been expired", KubernetesClientProvider.closeExpiredClients());
-
         threads.stream().forEach(t -> t.start());
         threads.stream().forEach(t -> {
             try {
