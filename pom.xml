@@ -50,7 +50,7 @@
     <jenkins.version>2.217</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
-    <pipeline-model-definition.version>1.3.7</pipeline-model-definition.version>
+    <pipeline-model-definition.version>1.6.0</pipeline-model-definition.version>
     <slf4jVersion>1.7.26</slf4jVersion>
     <useBeta>true</useBeta>
   </properties>
@@ -210,17 +210,6 @@
       <artifactId>bouncycastle-api</artifactId>
       <version>2.18</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>docker-workflow</artifactId>
-      <version>1.21</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>docker-commons</artifactId>
-      <version>1.14</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
