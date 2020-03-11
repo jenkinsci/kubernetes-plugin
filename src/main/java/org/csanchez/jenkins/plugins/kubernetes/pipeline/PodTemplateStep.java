@@ -147,7 +147,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     @DataBoundSetter
     public void setInheritFrom(@CheckForNull String inheritFrom) {
-        if (DescriptorImpl.defaultInheritFrom.equals(inheritFrom)) { // Added to make KubernetesPipelineTest.runInPodNestedExplicitInherit() pass
+        if (DescriptorImpl.defaultInheritFrom.equals(inheritFrom)) {
             this.inheritFrom = null;
         } else {
             this.inheritFrom = inheritFrom;
