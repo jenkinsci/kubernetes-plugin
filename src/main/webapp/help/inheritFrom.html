@@ -9,4 +9,5 @@ Volume inheritance works exactly as Container templates.
 
 Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
 
-Leaving this value empty will cause the podTemplate to inherit from a default build agent template.
+By default, pod template inherits outer pod template definitions. 
+Inheritance can be stopped by using the empty string.
