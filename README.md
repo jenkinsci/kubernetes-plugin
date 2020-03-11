@@ -36,8 +36,18 @@ existing projects (incl. freestyle) to run on Kubernetes without changing job de
 Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
 
 Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
-“Manage Jenkins -> Configure System -> Cloud -> Kubernetes” and enter in the ‘Kubernetes URL’ and ‘Jenkins URL’ 
-appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work. To test this connection is successful you can use the **Test Connection** button to ensure there is 
+**Manage Jenkins -> Configure System -> Cloud -> Kubernetes** and enter in the *Kubernetes URL* and *Jenkins URL*
+appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work.
+
+Supported credentials include:
+
+* Username/password
+* Secret File (kubeconfig file) (AKS)
+* Secret text (Token-based authentication) (OpenShift)
+* Google Service Account from private key (GKE authentication)
+* X.509 Client Certificate
+
+To test this connection is successful you can use the **Test Connection** button to ensure there is
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
 ![image](images/cloud-configuration.png)
@@ -195,6 +205,7 @@ Either way it provides access to the following fields:
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
+* **workspaceVolume** The type of volume to use for the workspace. Can be `emptyDirWorkspaceVolume` (default), `dynamicPVC()`, `hostPathWorkspaceVolume()`, `nfsWorkspaceVolume()`, or `persistentVolumeClaimWorkspaceVolume()`.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -572,6 +583,23 @@ containerLog 'mongodb'
 * **limitBytes** limit output to n bytes (from the beginning of the log, not exact).
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
+
+# Running on OpenShift
+
+OpenShift runs containers using a 'random' UID that is overriding what is specified in Docker images.
+For this reason, you may end up with the following warning in your build
+
+```
+[WARNING] HOME is set to / in the jnlp container. You may encounter troubles when using tools or ssh client. This usually happens if the uid doesnt have any entry in /etc/passwd. Please add a user to your Dockerfile or set the HOME environment variable to a valid directory in the pod template definition.
+```
+
+At the moment the jenkinsci agent image is not built for OpenShift and will issue this warning.
+
+This issue can be circumvented in various ways:
+* build a docker image for OpenShift in order to behave when running using an arbitrary uid.
+* override HOME environment variable in the pod spec to use `/home/jenkins` and mount a volume to `/home/jenkins` to ensure the user running the container can write to it
+
+See this [example](examples/openshift-home-yaml.groovy) configuration.
 
 # Windows support
 

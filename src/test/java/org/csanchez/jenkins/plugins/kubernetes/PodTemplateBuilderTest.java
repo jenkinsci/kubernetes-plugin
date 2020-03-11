@@ -49,6 +49,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -56,6 +57,7 @@ import jenkins.model.Jenkins;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import junitparams.naming.TestCaseName;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(JUnitParamsRunner.class)
 public class PodTemplateBuilderTest {
@@ -84,6 +86,7 @@ public class PodTemplateBuilderTest {
     @Mock
     private KubernetesComputer computer;
 
+    @WithoutJenkins
     @Test
     public void testParseDockerCommand() {
         assertNull(parseDockerCommand(""));
@@ -93,6 +96,7 @@ public class PodTemplateBuilderTest {
         assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
     }
 
+    @WithoutJenkins
     @Test
     public void testParseLivenessProbe() {
         assertNull(parseLivenessProbe(""));
@@ -239,21 +243,6 @@ public class PodTemplateBuilderTest {
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
     }
 
-    @Test
-    public void homeIsSetOnOpenShift() {
-        when(slave.getKubernetesCloud()).thenReturn(cloud);
-        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
-        doReturn(true).when(cloud).isOpenShift();
-
-        PodTemplate template = new PodTemplate();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
-
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
-        Container jnlp = containers.get("jnlp");
-        assertThat(jnlp.getEnv(), hasItems(new EnvVar("HOME", "/home/jenkins", null)));
-    }
-
     private void setupStubs() {
         doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
         when(computer.getName()).thenReturn(AGENT_NAME);
@@ -345,14 +334,18 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
-        if (jnlp.getResources() != null) {
-            if (jnlp.getResources().getRequests() != null) {
-                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
-            }
-            if (jnlp.getResources().getLimits() != null) {
-                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
-            }
-        }
+    }
+
+    @Test
+    public void defaultRequests() throws Exception {
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template).build();
+        ResourceRequirements resources = pod.getSpec().getContainers().get(0).getResources();
+        assertNotNull(resources);
+        Map<String, Quantity> requests = resources.getRequests();
+        assertNotNull(requests);
+        assertTrue(requests.containsKey("cpu"));
+        assertTrue(requests.containsKey("memory"));
     }
 
     @Test
@@ -369,10 +362,10 @@ public class PodTemplateBuilderTest {
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
-        assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("2", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("2Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("200m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("256Mi", jnlp.getResources().getRequests().get("memory"));
         validateContainers(pod, slave, directConnection);
     }
 
@@ -407,10 +400,10 @@ public class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("1", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("1Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("100m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("156Mi", jnlp.getResources().getRequests().get("memory"));
         assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
         assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave, directConnection);

@@ -74,15 +74,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundConstructor
     public ContainerTemplate(String name, String image) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
+        Preconditions.checkArgument(PodTemplateUtils.validateImage(image));
         this.name = name;
         this.image = image;
     }
 
     public ContainerTemplate(String name, String image, String command, String args) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
-        this.name = name;
-        this.image = image;
+        this(name, image);
         this.command = command;
         this.args = args;
     }
@@ -311,6 +309,16 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 return FormValidation.error(Messages.RFC1123_error(value));
             }
             return FormValidation.ok();
+        }
+
+        public FormValidation doCheckImage(@QueryParameter String value) {
+            if (StringUtils.isEmpty(value)) {
+                return FormValidation.ok("Image is mandatory");
+            } else if (PodTemplateUtils.validateImage(value)) {
+                return FormValidation.ok();
+            } else {
+                return FormValidation.error("Malformed image");
+            }
         }
 
         @SuppressWarnings("unused") // jelly
