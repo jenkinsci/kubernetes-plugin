@@ -412,7 +412,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
         public static final Integer defaultInstanceCap = Integer.MAX_VALUE;
         public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
-        public static final WorkspaceVolume defaultWorkspaceVolume = new EmptyDirWorkspaceVolume(false);
+        public static final WorkspaceVolume defaultWorkspaceVolume = WorkspaceVolume getDefault();
         /** Only used for snippet generation. */
         public static final String defaultInheritFrom = "<default>";
     }
