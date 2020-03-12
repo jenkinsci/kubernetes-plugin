@@ -15,7 +15,6 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -412,7 +411,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
         public static final Integer defaultInstanceCap = Integer.MAX_VALUE;
         public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
-        public static final WorkspaceVolume defaultWorkspaceVolume = WorkspaceVolume getDefault();
+        public static final WorkspaceVolume defaultWorkspaceVolume = WorkspaceVolume.getDefault();
         /** Only used for snippet generation. */
         public static final String defaultInheritFrom = "<default>";
     }
