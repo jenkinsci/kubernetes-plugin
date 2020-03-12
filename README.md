@@ -47,6 +47,126 @@ Supported credentials include:
 * Google Service Account from private key (GKE authentication)
 * X.509 Client Certificate
 
+## Configuring Credentials to access Kubernetes cluster, using kubeconfig
+
+If you have access to `kube-admin` configuration (typically found under `~/.kube/config`) then you can use it to
+complete the Kubernetes cluster access setup.
+
+### Kubernetes server certificate key
+
+Grab the `cluster: certificate-authority-data` value from your `~/.kube/config` file:
+
+```
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LSuperLongBase64EncodedString==
+```
+
+and decode it to get the `X509` certificate:
+
+```
+echo LSuperLongBase64EncodedString== | base64 -d > ca.crt
+```
+
+Your output should look something like:
+
+```
+-----BEGIN CERTIFICATE-----
+MIIAnotherSuperLongSeritificateValueString
+-----END CERTIFICATE-----
+```
+
+Copy and paste the content of the `ca.crt` file into the Kubernetes server certificate. For this specific step
+we only need the certificate value, but the `ca.crt` file will be used in subsequent steps.
+
+Without the server certificate, you may get the following SSL Error
+
+![image](images/kubernescloudconfigurationsslerror1.png)
+
+You can disable https certificate check by selecting the check box.
+
+### Credentials
+
+After you either provided the server certificate (or skipped the SSL check altogether), testing the connection
+may return following access error:
+
+![image](images/kubernescloudconfigurationaccesserror.png)
+
+Now we can add the Kubernetes cluster credentials using Kubernetes user certificates (also found in the `~/.kube.config` file)
+
+First, we need to grab the base64 encoded client-certificate-data and client-key-data
+
+```
+user:
+  client-certificate-data: LSuperLongBase64EncodedString==
+  client-key-data: LAnotherSuperLongBase64EncodedString==
+```
+
+Using the same step as with ca.crt we will decode and create:
+* client.crt with client-certificate-data
+* client.key with client-key-data
+
+### Client P12 Certificate File
+Using all three files we need to generate client certificate file in PKCS12 format
+
+```
+openssl pkcs12 -export -out cert.pfx -inkey client.key -in client.crt -certfile ca.crt
+```
+
+NOTE: It is important that you provide a passphrase (as you will see later)
+
+At this point, you are ready to add a new Kubernetes client certificate to Jenkins.
+
+![image](images/kubernescloudconfigurationaddcredentials.png)
+
+Click `Add` -> `Jenkins`
+
+Make sure `Kind` is set to `Certificate`
+
+![image](images/screen-shot-2017-08-25-at-6-08-36-pm.png)
+
+Screen Shot 2017-08-25 at 6.08.36 PM
+
+Select **Upload PKCS#12** certificate and then hit **Upload Certificate**.
+
+You should see a certificate file selector:
+
+![image](images/screen-shot-2017-08-25-at-6-09-28-pm.png)
+
+Navigate to the **client.pfx** file you generated and hit **Upload**.
+Note: You will still see the message which you can ignore:
+
+![image](images/screen-shot-2017-08-25-at-6-17-19-pm.png)
+
+Enter the password you used for **client.pfx**. If you provided the correct password you should see the above error message (‘No certificate uploaded’) changed to a warning (‘Could retrieve key “1”. You may need to provide a password’). You can ignore this warning as well.
+
+Complete the form with an ID and a description. I recommend using (or including) the Kubernetes cluster name as a part of both the ID and the description.
+
+![image](images/screen-shot-2017-08-25-at-6-23-56-pm.png)
+
+Hit **Add** and that’s all for creating the Kubernetes client certificate. The Jenkins Credential Provider window will close and you should return to the Configuration view.
+
+Select the newly created certificate in the Credentials drop-down.
+
+![image](images/screen-shot-2017-08-25-at-6-25-52-pm.png)
+
+Now, hit Test Connection again. This time you should see **Connection Successful message**
+
+![image](images/screen-shot-2017-08-25-at-6-28-21-pm.png)
+
+### PCKS Certificate Without Passphrase
+
+If you set up the PCKS client certificate without a passphrase, Jenkins will not complain and will accept the certificate. However, using this certificate will result in a somewhat obscure error message:
+
+![image](images/screen-shot-2017-08-25-at-6-32-47-pm.png)
+
+Other tell-tell signs that your certificate wasn’t “successfully” accepted are:
+
+* You won’t get the warning message ‘Could retrieve key “1”. You may need to provide a password’, and the error message ‘No certificate uploaded’ will remain
+* The credentials drop-down box will not include ‘CN=kube-admin’ as a part of the certificate name.
+
+### Testing Connection
 To test this connection is successful you can use the **Test Connection** button to ensure there is
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
