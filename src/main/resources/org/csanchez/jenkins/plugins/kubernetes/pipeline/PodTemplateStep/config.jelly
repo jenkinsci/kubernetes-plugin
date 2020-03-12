@@ -82,15 +82,8 @@
         <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
           <f:textbox default="${descriptor.workingDir}"/>
         </f:entry>
-        <f:block>
-          <table>
-            <f:optionalBlock title="${%Use custom workspace volume}" checked="${instance.workspaceVolume != null}" inline="true">
-              <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
-                <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="Add Workspace Volume"
-                                              deleteCaption="Delete Workspace Volume" default="${descriptor.defaultWorkspaceVolume}"/>
-              </f:entry>
-            </f:optionalBlock>
-          </table>
-        </f:block>
+        <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+            <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+        </f:entry>
 	</f:advanced>
 </j:jelly>
