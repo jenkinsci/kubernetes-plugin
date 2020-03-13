@@ -24,7 +24,7 @@
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
     help="/plugin/kubernetes/help/inheritFrom.html">
-    <f:textbox/>
+    <f:textbox default="${descriptor.defaultInheritFrom}"/>
   </f:entry>
 
   <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
@@ -58,7 +58,7 @@
           <f:textbox default="0"/>
         </f:entry>
         <f:entry title="${%Pod Retention}">
-          <f:dropdownDescriptorSelector field="podRetention"/>
+          <f:dropdownDescriptorSelector field="podRetention" default="${descriptor.defaultPodRetention}"/>
         </f:entry>
         <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
           <f:textbox/>
@@ -82,15 +82,8 @@
         <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
           <f:textbox default="${descriptor.workingDir}"/>
         </f:entry>
-        <f:block>
-          <table>
-            <f:optionalBlock title="${%Use custom workspace volume}" checked="${instance.workspaceVolume != null}" inline="true">
-              <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
-                <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="Add Workspace Volume"
-                                              deleteCaption="Delete Workspace Volume" />
-              </f:entry>
-            </f:optionalBlock>
-          </table>
-        </f:block>
+        <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+            <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+        </f:entry>
 	</f:advanced>
 </j:jelly>

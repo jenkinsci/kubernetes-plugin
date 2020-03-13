@@ -164,6 +164,12 @@
       </exclusions>
       <scope>test</scope>
     </dependency>
+    <dependency> <!-- SnippetizerTest -->
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
