@@ -46,6 +46,7 @@ import hudson.model.Label;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -449,14 +450,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-58306")
     @Test
     public void cascadingDelete() throws Exception {
+        KubernetesClient client = cloud.connect();
+        String sa = "jenkins";
+        assumeNotNull(sa + " service account not set up", client.serviceAccounts().withName(sa).get());
         try {
-            cloud.connect().apps().deployments().withName("cascading-delete").delete();
+            client.apps().deployments().withName("cascading-delete").delete();
         } catch (KubernetesClientException x) {
             // Failure executing: DELETE at: https://…/apis/apps/v1/namespaces/kubernetes-plugin-test/deployments/cascading-delete. Message: Forbidden!Configured service account doesn't have access. Service account may have been revoked. deployments.apps "cascading-delete" is forbidden: User "system:serviceaccount:…:…" cannot delete resource "deployments" in API group "apps" in the namespace "kubernetes-plugin-test".
             assumeNoException("was not permitted to clean up any previous deployment, so presumably cannot run test either", x);
         }
-        cloud.connect().apps().replicaSets().withLabel("app", "cascading-delete").delete();
-        cloud.connect().pods().withLabel("app", "cascading-delete").delete();
+        client.apps().replicaSets().withLabel("app", "cascading-delete").delete();
+        client.pods().withLabel("app", "cascading-delete").delete();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
