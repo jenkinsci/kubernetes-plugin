@@ -171,7 +171,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
-
+        r.assertLogContains("Back-off pulling image \"nonexistent-docker-image\"", b);
     }
 
 }
