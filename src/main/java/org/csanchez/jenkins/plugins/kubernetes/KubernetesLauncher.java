@@ -145,6 +145,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                         break;
                     }
                 }
+                slave.terminate();
                 return;
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
