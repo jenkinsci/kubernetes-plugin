@@ -134,7 +134,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
-                watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+                if (watcher != null) {
+                    watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+                }
             } catch (InvalidDockerImageException e) {
                 Jenkins jenkins = Jenkins.get();
                 Queue q = jenkins.getQueue();
