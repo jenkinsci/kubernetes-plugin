@@ -1,4 +1,4 @@
-package io.jenkins.plugins.kubernetes;
+package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.Functions;
 import hudson.model.TaskListener;
@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
-public class TaskListenerEventWatcher implements Watcher<Event> {
+class TaskListenerEventWatcher implements Watcher<Event> {
 
     private static final Logger LOGGER = Logger.getLogger(TaskListenerEventWatcher.class.getName());
 

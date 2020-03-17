@@ -39,7 +39,6 @@ import javax.annotation.CheckForNull;
 
 import hudson.model.Queue;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.jenkins.plugins.kubernetes.TaskListenerEventWatcher;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
