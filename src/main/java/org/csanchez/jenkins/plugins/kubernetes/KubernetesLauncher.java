@@ -263,7 +263,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             if (!StringUtils.isBlank(log)) {
                 String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
                 LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                        new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
+                        new Object[] { slave, slave.getTemplate(), containerName, msg, tailingLines.getLog() });
             }
         }
     }
