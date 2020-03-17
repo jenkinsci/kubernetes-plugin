@@ -241,6 +241,26 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
+    @Override
+    public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
+        // return if it is not a KubernetesComputer
+        if (!(computer instanceof KubernetesComputer)) {
+            return;
+        }
+
+        KubernetesSlave slave = (KubernetesSlave) computer.getNode();
+        // if slave is null, we should not proceed as it might haven't create a slave
+        if (slave == null) {
+            return;
+        }
+
+        try {
+            slave.terminate();
+        } catch (IOException | InterruptedException e) {
+            listener.getLogger().printf("Failed to terminate slave %s after disconnect", slave.getNodeName());
+        }
+    }
+
     /**
      * Log the last lines of containers logs
      */
