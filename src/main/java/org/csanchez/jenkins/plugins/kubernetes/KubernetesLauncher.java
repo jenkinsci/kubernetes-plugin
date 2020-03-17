@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import hudson.model.Queue;
-import io.fabric8.kubernetes.api.model.authorization.SelfSubjectAccessReview;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.jenkins.plugins.kubernetes.TaskListenerEventWatcher;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
@@ -133,7 +133,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
-                 Watch w2 = canWatchEvents(client, namespace) ? client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener)) : null) {
+                 Watch w2 = eventWatch(client, podName, namespace, runListener)) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (InvalidDockerImageException e) {
                 Jenkins jenkins = Jenkins.get();
@@ -229,18 +229,13 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
-    private boolean canWatchEvents(KubernetesClient client, String namespace) {
-        SelfSubjectAccessReview authCheck = client.subjectAccessReviewAuth().inAnyNamespace() //
-            .createNew() //
-                .withNewSpec() //
-                    .withNewResourceAttributes() //
-                        .withNamespace(namespace) //
-                        .withName("events") //
-                        .withVerb("watch") //
-                    .endResourceAttributes() //
-                .endSpec() //
-            .done();
-        return authCheck.getStatus().getAllowed();
+    private Watch eventWatch(KubernetesClient client, String podName, String namespace, TaskListener runListener) {
+        try {
+            return client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener));
+        } catch (KubernetesClientException e) {
+            LOGGER.log(Level.FINE, e, () -> "Cannot watch events on " + namespace + "/" +podName);
+        }
+        return () -> {};
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
