@@ -25,7 +25,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import hudson.model.Queue;
+import io.fabric8.kubernetes.api.model.authorization.SelfSubjectAccessReview;
 import io.jenkins.plugins.kubernetes.TaskListenerEventWatcher;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
@@ -133,7 +133,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
-                 Watch w2 = client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener))) {
+                 Watch w2 = canWatchEvents(client, namespace) ? client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener)) : null) {
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (InvalidDockerImageException e) {
                 Jenkins jenkins = Jenkins.get();
@@ -229,11 +229,18 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
-    private WatchList setupWatches(KubernetesClient client, String namespace, String name, TaskListener taskListener) {
-        List<Watch> watches = new ArrayList<>();
-        watches.add(client.pods().inNamespace(namespace).withName(name).watch(watcher));
-        watches.add(client.events().inNamespace(namespace).withField("involvedObject.name", name).watch(new TaskListenerEventWatcher(name, taskListener)));
-        return new WatchList(watches);
+    private boolean canWatchEvents(KubernetesClient client, String namespace) {
+        SelfSubjectAccessReview authCheck = client.subjectAccessReviewAuth().inAnyNamespace() //
+            .createNew() //
+                .withNewSpec() //
+                    .withNewResourceAttributes() //
+                        .withNamespace(namespace) //
+                        .withName("events") //
+                        .withVerb("watch") //
+                    .endResourceAttributes() //
+                .endSpec() //
+            .done();
+        return authCheck.getStatus().getAllowed();
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
@@ -261,33 +268,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             if (!StringUtils.isBlank(log)) {
                 String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
                 LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                        new Object[] { slave, slave.getTemplate(), containerName, msg, tailingLines.getLog() });
-            }
-        }
-    }
-
-    private static class WatchList implements Closeable {
-        private List<Watch> watches;
-
-        public WatchList(List<Watch> watches) {
-            this.watches = watches;
-        }
-
-        @Override
-        public void close() throws IOException {
-            RuntimeException r = null;
-            for (Watch watch: watches) {
-                try {
-                    watch.close();
-                } catch(RuntimeException e) {
-                    if (r == null) {
-                        r = new RuntimeException();
-                    }
-                    r.addSuppressed(e);
-                }
-            }
-            if (r != null) {
-                throw r;
+                        new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
             }
         }
     }
