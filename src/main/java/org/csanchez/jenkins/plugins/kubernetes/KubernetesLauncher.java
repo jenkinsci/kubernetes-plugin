@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import hudson.model.Queue;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -112,7 +113,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             Pod pod = template.build(slave);
             slave.assignPod(pod);
 
-            String podId = pod.getMetadata().getName();
+            String podName = pod.getMetadata().getName();
 
             String namespace = Arrays.asList( //
                     pod.getMetadata().getNamespace(),
@@ -120,20 +121,19 @@ public class KubernetesLauncher extends JNLPLauncher {
                     .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
             slave.setNamespace(namespace);
 
-            LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podId });
+            LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
             pod = client.pods().inNamespace(namespace).create(pod);
-            LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podId });
-            listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podId);
+            LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podName });
+            listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
             TaskListener runListener = template.getListener();
-            runListener.getLogger().printf("Created Pod: %s in namespace %s%n", podId, namespace);
+            runListener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
-
-            String podName = pod.getMetadata().getName();
-            String namespace1 = pod.getMetadata().getNamespace();
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
-            try (Watch _w = client.pods().inNamespace(namespace1).withName(podName).watch(watcher)) {
+            try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
+                 Watch w2 = eventWatch(client, podName, namespace, runListener)) {
+                assert watcher != null; // assigned 3 lines above
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             } catch (InvalidDockerImageException e) {
                 Jenkins jenkins = Jenkins.get();
@@ -148,7 +148,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                 slave.terminate();
                 return;
             }
-            LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podId });
+            LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podName });
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
@@ -171,9 +171,9 @@ public class KubernetesLauncher extends JNLPLauncher {
                 }
 
                 // Check that the pod hasn't failed already
-                pod = client.pods().inNamespace(namespace).withName(podId).get();
+                pod = client.pods().inNamespace(namespace).withName(podName).get();
                 if (pod == null) {
-                    throw new IllegalStateException("Pod no longer exists: " + podId);
+                    throw new IllegalStateException("Pod no longer exists: " + podName);
                 }
                 status = pod.getStatus().getPhase();
                 if (!validStates.contains(status)) {
@@ -187,24 +187,24 @@ public class KubernetesLauncher extends JNLPLauncher {
                         if (info.getState().getTerminated() != null) {
                             // Container has errored
                             LOGGER.log(INFO, "Container is terminated {0} [{2}]: {1}",
-                                    new Object[] { podId, info.getState().getTerminated(), info.getName() });
-                            listener.getLogger().printf("Container is terminated %1$s [%3$s]: %2$s%n", podId,
+                                    new Object[] { podName, info.getState().getTerminated(), info.getName() });
+                            listener.getLogger().printf("Container is terminated %1$s [%3$s]: %2$s%n", podName,
                                     info.getState().getTerminated(), info.getName());
                             terminatedContainers.add(info);
                         }
                     }
                 }
 
-                checkTerminatedContainers(terminatedContainers, podId, namespace, slave, client);
+                checkTerminatedContainers(terminatedContainers, podName, namespace, slave, client);
 
                 LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
-                        new Object[] { podId, waitedForSlave, waitForSlaveToConnect });
-                listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podId, waitedForSlave,
+                        new Object[] { podName, waitedForSlave, waitForSlaveToConnect });
+                listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
                         waitForSlaveToConnect);
                 Thread.sleep(1000);
             }
             if (slaveComputer == null || slaveComputer.isOffline()) {
-                logLastLines(containerStatuses, podId, namespace, slave, null, client);
+                logLastLines(containerStatuses, podName, namespace, slave, null, client);
                 throw new IllegalStateException(
                         "Agent is not connected after " + waitedForSlave + " seconds, status: " + status);
             }
@@ -228,6 +228,15 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw Throwables.propagate(ex);
         }
+    }
+
+    private Watch eventWatch(KubernetesClient client, String podName, String namespace, TaskListener runListener) {
+        try {
+            return client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener));
+        } catch (KubernetesClientException e) {
+            LOGGER.log(Level.INFO, e, () -> "Cannot watch events on " + namespace + "/" +podName);
+        }
+        return () -> {};
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
