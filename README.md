@@ -42,7 +42,7 @@ appropriately, this is unless Jenkins is running in Kubernetes in which case the
 Supported credentials include:
 
 * Username/password
-* Secret File (kubeconfig file) (AKS)
+* Secret File (kubeconfig file)
 * Secret text (Token-based authentication) (OpenShift)
 * Google Service Account from private key (GKE authentication)
 * X.509 Client Certificate
