@@ -25,6 +25,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import hudson.model.ItemGroup;
 import hudson.util.XStream2;
 import io.fabric8.openshift.client.OpenShiftClient;
 import org.apache.commons.codec.binary.Base64;
@@ -35,6 +36,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -777,14 +779,13 @@ public class KubernetesCloud extends Cloud {
 
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String serverUrl) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context, @QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(
                 ACL.SYSTEM,
-                Jenkins.get(),
+                context,
                 StandardCredentials.class,
                 serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build()
                             : Collections.EMPTY_LIST,
