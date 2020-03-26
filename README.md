@@ -42,7 +42,7 @@ appropriately, this is unless Jenkins is running in Kubernetes in which case the
 Supported credentials include:
 
 * Username/password
-* Secret File (kubeconfig file) (AKS)
+* Secret File (kubeconfig file)
 * Secret text (Token-based authentication) (OpenShift)
 * Google Service Account from private key (GKE authentication)
 * X.509 Client Certificate
@@ -139,7 +139,7 @@ spec:
 
 Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
 
-The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
+The `container` statement allows to execute commands directly into each container.
 
 ```groovy
 podTemplate(containers: [
