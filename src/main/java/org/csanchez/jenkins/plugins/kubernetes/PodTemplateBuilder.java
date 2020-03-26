@@ -287,10 +287,7 @@ public class PodTemplateBuilder {
                 if (!StringUtils.isBlank(noProxy)) {
                     env.put("no_proxy", noProxy);
                 }
-                String httpProxy = null;
-                if (System.getProperty("http.proxyHost") == null) {
-                    httpProxy = System.getenv("http_proxy");
-                }
+                String httpProxy = System.getenv("http_proxy");
                 if (!StringUtils.isBlank(httpProxy)) {
                     env.put("http_proxy", httpProxy);
                 }
