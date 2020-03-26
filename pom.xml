@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.217</jenkins.version>
+    <jenkins.version>2.222.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.6.0</pipeline-model-definition.version>
