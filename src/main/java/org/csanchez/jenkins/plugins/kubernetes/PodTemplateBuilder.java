@@ -256,6 +256,12 @@ public class PodTemplateBuilder {
         if (jnlp.getResources() == null) {
             jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity("100m")).addToRequests("memory", new Quantity("256Mi")).endResources().build().getResources());
         }
+        
+        // If the volume mounts of any container has been set to null, set it to empty list.
+        // Without this being done the code below would throw a NPE if such null existed.
+        pod.getSpec().getContainers().stream()
+               .filter(c -> c.getVolumeMounts() == null)
+               .forEach(c -> c.setVolumeMounts(new ArrayList<>()));
 
         // default workspace volume, add an empty volume to share the workspace across the pod
         if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {
