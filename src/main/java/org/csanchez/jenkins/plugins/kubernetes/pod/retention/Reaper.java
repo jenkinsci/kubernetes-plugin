@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -139,7 +140,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                         continue;
                     }
                     KubernetesSlave ks = (KubernetesSlave) n;
-                    if (ks.getNamespace().equals(ns) && ks.getPodName().equals(name)) {
+                    if (StringUtils.equals(ks.getNamespace(), ns) && StringUtils.equals(ks.getPodName(), name)) {
                         LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
                         try {
                             jenkins.removeNode(ks);
