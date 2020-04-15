@@ -25,6 +25,7 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -39,12 +40,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import io.fabric8.kubernetes.api.model.Container;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -444,7 +443,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     OutputStream stdin = watch.getInput();
-                    PrintStream in = new PrintStream(stdin);
+                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -577,7 +576,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         private static final String MASK_STRING = "********";
 
         private final boolean[] masks;
-        private final char separator = ' ';
+        private final static char SEPARATOR = ' ';
         private int index;
         private boolean wrote;
 
@@ -608,7 +607,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
 
         private boolean isSeparator(int b) {
-            return b == separator;
+            return b == SEPARATOR;
         }
     }
 
@@ -620,20 +619,26 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // Mask sensitive output
         MaskOutputStream maskedOutput = new MaskOutputStream(teeOutput, masks);
         // Tee everything together
-        PrintStream tee = new PrintStream(new TeeOutputStream(in, maskedOutput));
-        // To output things that shouldn't be considered for masking
-        PrintStream unmasked = new PrintStream(teeOutput);
-        unmasked.print("Executing command: ");
-        for (int i = 0; i < statements.length; i++) {
-            tee.append("\"")
-               .append(statements[i])
-               .append("\" ");
+        PrintStream tee = null;
+        try {
+            String encoding = StandardCharsets.UTF_8.name();
+            tee = new PrintStream(new TeeOutputStream(in, maskedOutput), false, encoding);
+            // To output things that shouldn't be considered for masking
+            PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
+            unmasked.print("Executing command: ");
+            for (int i = 0; i < statements.length; i++) {
+                tee.append("\"")
+                   .append(statements[i])
+                   .append("\" ");
+            }
+            tee.println();
+            LOGGER.log(Level.FINEST, loggingOutput.toString(encoding));
+            // We need to exit so that we know when the command has finished.
+            tee.println(EXIT);
+            tee.flush();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        tee.println();
-        LOGGER.log(Level.FINEST, loggingOutput.toString());
-        // We need to exit so that we know when the command has finished.
-        tee.println(EXIT);
-        tee.flush();
     }
 
     static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr) {
