@@ -32,6 +32,7 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -139,7 +140,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                         continue;
                     }
                     KubernetesSlave ks = (KubernetesSlave) n;
-                    if (ks.getNamespace().equals(ns) && ks.getPodName().equals(name)) {
+                    if (Objects.equals(ks.getNamespace(), ns) && Objects.equals(ks.getPodName(), name)) {
                         LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
                         try {
                             jenkins.removeNode(ks);
