@@ -53,7 +53,6 @@
     <pipeline-model-definition.version>1.6.0</pipeline-model-definition.version>
     <slf4jVersion>1.7.26</slf4jVersion>
     <useBeta>true</useBeta>
-    <configuration-as-code.version>1.36</configuration-as-code.version>
   </properties>
 
   <dependencies>
@@ -231,13 +230,11 @@
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <version>${configuration-as-code.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
-      <version>${configuration-as-code.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
