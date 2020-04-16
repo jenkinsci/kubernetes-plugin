@@ -1,0 +1,38 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        containerCapStr: "10"
+        jenkinsUrl: "http://jenkinshost:8080/jenkins/"
+        maxRequestsPerHostStr: "32"
+        name: "kubernetes"
+        templates:
+          - hostNetwork: false
+            label: "java"
+            name: "default-java"
+            yamlMergeStrategy: "override"
+          - hostNetwork: false
+            label: "dynamic-pvc"
+            name: "dynamic-pvc"
+            workspaceVolume:
+              dynamicPVC:
+                accessModes: "ReadWriteOnce"
+                requestsSize: "1"
+                storageClassName: "hostpath"
+            yamlMergeStrategy: "override"
+          - containers:
+              - args: "cat"
+                command: "/bin/sh -c"
+                image: "maven:3.6.3-jdk-8"
+                livenessProbe:
+                  failureThreshold: 1
+                  initialDelaySeconds: 2
+                  periodSeconds: 3
+                  successThreshold: 4
+                  timeoutSeconds: 5
+                name: "maven"
+                ttyEnabled: true
+                workingDir: "/src"
+            hostNetwork: false
+            label: "test"
+            name: "test"
+            yamlMergeStrategy: "merge"
