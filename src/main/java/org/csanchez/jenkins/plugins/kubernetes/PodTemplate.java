@@ -277,6 +277,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(ContainerTemplate.DEFAULT_WORKING_DIR);
     }
 
+    @DataBoundSetter
     public void setInstanceCap(int instanceCap) {
         if (instanceCap < 0) {
             this.instanceCap = Integer.MAX_VALUE;
@@ -289,6 +290,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return instanceCap;
     }
 
+    @DataBoundSetter
     public void setSlaveConnectTimeout(int slaveConnectTimeout) {
         if (slaveConnectTimeout <= 0) {
             LOGGER.log(Level.WARNING, "Agent -> Jenkins connection timeout " +
@@ -336,6 +338,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return String.valueOf(slaveConnectTimeout);
     }
 
+    @DataBoundSetter
     public void setIdleMinutes(int i) {
         this.idleMinutes = i;
     }
@@ -344,6 +347,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return idleMinutes;
     }
 
+    @DataBoundSetter
     public void setActiveDeadlineSeconds(int i) {
         this.activeDeadlineSeconds = i;
     }

@@ -1,15 +1,19 @@
 jenkins:
   clouds:
     - kubernetes:
-        containerCapStr: "10"
+        containerCap: 10
         jenkinsUrl: "http://jenkinshost:8080/jenkins/"
-        maxRequestsPerHostStr: "32"
+        maxRequestsPerHost: 32
         name: "kubernetes"
         templates:
           - hostNetwork: false
             label: "java"
             name: "default-java"
             yamlMergeStrategy: "override"
+            instanceCap: 10
+            slaveConnectTimeout: 123
+            idleMinutes: 5
+            activeDeadlineSeconds: 66
           - hostNetwork: false
             label: "dynamic-pvc"
             name: "dynamic-pvc"

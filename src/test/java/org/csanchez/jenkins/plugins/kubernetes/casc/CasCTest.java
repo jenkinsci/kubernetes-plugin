@@ -24,9 +24,9 @@ public class CasCTest extends RoundTripAbstractTest {
     protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
         KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
-        assertEquals("10",cloud.getContainerCapStr());
+        assertEquals(10,cloud.getContainerCap());
         assertEquals("http://jenkinshost:8080/jenkins/", cloud.getJenkinsUrl());
-        assertEquals("32", cloud.getMaxRequestsPerHostStr());
+        assertEquals(32, cloud.getMaxRequestsPerHost());
         assertEquals("kubernetes", cloud.name);
         List<PodTemplate> templates = cloud.getTemplates();
         assertNotNull(templates);
@@ -35,6 +35,10 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals(false, podTemplate.isHostNetwork());
         assertEquals("java", podTemplate.getLabel());
         assertEquals("default-java", podTemplate.getName());
+        assertEquals(10, podTemplate.getInstanceCap());
+        assertEquals(123, podTemplate.getSlaveConnectTimeout());
+        assertEquals(5, podTemplate.getIdleMinutes());
+        assertEquals(66, podTemplate.getActiveDeadlineSeconds());
         assertThat(podTemplate.getYamlMergeStrategy(), isA(Overrides.class));
         podTemplate = templates.get(1);
         assertEquals(false, podTemplate.isHostNetwork());

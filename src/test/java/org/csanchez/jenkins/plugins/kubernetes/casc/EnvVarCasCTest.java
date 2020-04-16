@@ -40,10 +40,6 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
     protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
         KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
-        assertEquals("10",cloud.getContainerCapStr());
-        assertEquals("http://jenkinshost:8080/jenkins/", cloud.getJenkinsUrl());
-        assertEquals("32", cloud.getMaxRequestsPerHostStr());
-        assertEquals("kubernetes", cloud.name);
         List<PodTemplate> templates = cloud.getTemplates();
         assertNotNull(templates);
         assertEquals(1, templates.size());

@@ -1,9 +1,6 @@
 jenkins:
   clouds:
     - kubernetes:
-        containerCapStr: "10"
-        jenkinsUrl: "http://jenkinshost:8080/jenkins/"
-        maxRequestsPerHostStr: "32"
         name: "kubernetes"
         templates:
           - volumes:
