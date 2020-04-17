@@ -1,0 +1,14 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - hostNetwork: false
+            label: "dynamic-pvc"
+            name: "dynamic-pvc"
+            workspaceVolume:
+              dynamicPVC:
+                accessModes: "ReadWriteOnce"
+                requestsSize: "1"
+                storageClassName: "hostpath"
+            yamlMergeStrategy: "override"

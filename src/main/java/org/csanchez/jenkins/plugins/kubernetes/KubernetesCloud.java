@@ -380,9 +380,18 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setContainerCapStr(String containerCapStr) {
         if (containerCapStr.equals("")) {
+            setContainerCap(Integer.MAX_VALUE);
+        } else {
+            setContainerCap(Integer.parseInt(containerCapStr));
+        }
+    }
+
+    @DataBoundSetter
+    public void setContainerCap(int containerCap) {
+        if (containerCap < 0) {
             this.containerCap = Integer.MAX_VALUE;
         } else {
-            this.containerCap = Integer.parseInt(containerCapStr);
+            this.containerCap = containerCap;
         }
     }
 
@@ -458,9 +467,18 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setMaxRequestsPerHostStr(String maxRequestsPerHostStr) {
         try  {
-            this.maxRequestsPerHost = Integer.parseInt(maxRequestsPerHostStr);
+            setMaxRequestsPerHost(Integer.parseInt(maxRequestsPerHostStr));
         } catch (NumberFormatException e) {
-            maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
+            setMaxRequestsPerHost(DEFAULT_MAX_REQUESTS_PER_HOST);
+        }
+    }
+
+    @DataBoundSetter
+    public void setMaxRequestsPerHost(int maxRequestsPerHost) {
+        if (maxRequestsPerHost < 0) {
+            this.maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
+        } else {
+            this.maxRequestsPerHost = maxRequestsPerHost;
         }
     }
 
