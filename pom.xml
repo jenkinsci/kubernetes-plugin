@@ -143,24 +143,11 @@
       <artifactId>workflow-support</artifactId>
       <classifier>tests</classifier>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jboss.marshalling</groupId>
-          <artifactId>jboss-marshalling-river</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
       <version>${pipeline-model-definition.version}</version>
-      <exclusions>
-        <exclusion>
-          <!-- version conflict with jth -->
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-lang3</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SnippetizerTest -->
@@ -198,6 +185,7 @@
       <version>1.17</version>
       <scope>test</scope>
       <exclusions>
+        <!-- conflict with sshd module -->
         <exclusion>
           <groupId>org.apache.sshd</groupId>
           <artifactId>sshd-core</artifactId>
@@ -248,13 +236,6 @@
         <version>9</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <dependency>
-        <!-- Avoid it from being bundled -->
-        <groupId>com.google.code.findbugs</groupId>
-        <artifactId>jsr305</artifactId>
-        <version>3.0.2</version>
-        <scope>provided</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
