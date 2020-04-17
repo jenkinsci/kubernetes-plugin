@@ -1,0 +1,8 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - workspaceVolume:
+              hostPath:
+                hostPath: "/host/path"
