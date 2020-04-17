@@ -49,9 +49,7 @@
     <java.level>8</java.level>
     <jenkins.version>2.222.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
     <pipeline-model-definition.version>1.6.0</pipeline-model-definition.version>
-    <slf4jVersion>1.7.26</slf4jVersion>
     <useBeta>true</useBeta>
   </properties>
 
