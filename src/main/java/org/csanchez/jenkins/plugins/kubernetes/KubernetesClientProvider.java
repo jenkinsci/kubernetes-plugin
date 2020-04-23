@@ -96,7 +96,7 @@ public class KubernetesClientProvider {
                     cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
                     cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost()).createClient();
             clients.put(displayName, new Client(getValidity(cloud), client));
-            LOGGER.log(Level.INFO, "Created new Kubernetes client: {0} {1}", new Object[] { displayName, client });
+            LOGGER.log(Level.FINE, "Created new Kubernetes client: {0} {1}", new Object[] { displayName, client });
             return client;
         }
         return c.getClient();
@@ -198,7 +198,7 @@ public class KubernetesClientProvider {
         int runningCallsCount = dispatcher.runningCallsCount();
         int queuedCallsCount = dispatcher.queuedCallsCount();
         if (runningCallsCount == 0 && queuedCallsCount == 0) {
-            LOGGER.log(Level.INFO, "Closing {0}", client.toString());
+            LOGGER.log(Level.FINE, "Closing {0}", client.toString());
             client.close();
             return true;
         } else {
