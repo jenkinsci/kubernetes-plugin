@@ -43,17 +43,17 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import hudson.model.Descriptor;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 /**
  * @author Carlos Sanchez
- * @since
- *
  */
 public class KubernetesSlaveTest {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
+    @WithoutJenkins
     @Test
     public void testGetSlaveName() {
         List<? extends PodVolume> volumes = Collections.emptyList();
@@ -65,6 +65,7 @@ public class KubernetesSlaveTest {
                 ("^a-name-[0-9a-z]{5}$"));
         assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("an_other_name", volumes, containers)),
                 ("^an-other-name-[0-9a-z]{5}$"));
+        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)), ("jenkins-agent-[0-9a-z]{5}"));
     }
 
     @Test
