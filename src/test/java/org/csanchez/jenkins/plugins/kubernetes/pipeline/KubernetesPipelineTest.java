@@ -436,7 +436,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+        r.waitForMessage("Container jnlp was terminated", b);
+    }
+
+    @Issue("JENKINS-59340")
+    @Test
+    public void containerTerminated() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Container jnlp was terminated (Exit Code: 137, Reason: OOMKilled)", b);
     }
 
     @Test

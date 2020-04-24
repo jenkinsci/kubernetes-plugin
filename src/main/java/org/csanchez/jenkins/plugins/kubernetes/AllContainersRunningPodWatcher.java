@@ -2,8 +2,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.stream.Collectors.joining;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -68,55 +66,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     }
 
     boolean areAllContainersRunning(Pod pod) {
-        PodStatus podStatus = pod.getStatus();
-        if (podStatus == null) {
-            return false;
-        }
-        List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-        if (containerStatuses.isEmpty()) {
-            return false;
-        }
-        for (ContainerStatus containerStatus : containerStatuses) {
-            if (containerStatus != null) {
-                ContainerStateWaiting waitingState = containerStatus.getState().getWaiting();
-                if (waitingState != null) {
-                    String waitingStateMsg = waitingState.getMessage();
-                    if (waitingStateMsg != null && waitingStateMsg.contains("Back-off pulling image")) {
-                        String errorMsg = "Unable to pull Docker image \""+containerStatus.getImage()+"\". Check if image tag name is spelled correctly.";
-                        runListener.error(errorMsg);
-                        throw new InvalidDockerImageException(errorMsg);
-                    }
-                    return false;
-                }
-                if (containerStatus.getState().getTerminated() != null) {
-                    return false;
-                }
-                if (!containerStatus.getReady()) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private List<ContainerStatus> getTerminatedContainers(Pod pod) {
-        PodStatus podStatus = pod.getStatus();
-        if (podStatus == null) {
-            return Collections.emptyList();
-        }
-        List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-        if (containerStatuses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<ContainerStatus> result = new ArrayList<>();
-        for (ContainerStatus containerStatus : containerStatuses) {
-            if (containerStatus != null) {
-                if (containerStatus.getState().getTerminated() != null) {
-                    result.add(containerStatus);
-                }
-            }
-        }
-        return result;
+        return pod.getSpec().getContainers().size() == pod.getStatus().getContainerStatuses().size() && !PodUtils.getContainerStatus(pod).stream().anyMatch(cs -> !cs.getReady());
     }
 
     @Override
@@ -178,7 +128,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
             LOGGER.finest(() -> "Updating pod for " + this.pod.getMetadata().getNamespace() + "/" + this.pod.getMetadata().getName() + " : " + Serialization.asYaml(pod));
             this.pod = pod;
         }
-        List<ContainerStatus> terminatedContainers = getTerminatedContainers(pod);
+        List<ContainerStatus> terminatedContainers = PodUtils.getTerminatedContainers(pod);
         if (!terminatedContainers.isEmpty()) {
             throw new IllegalStateException(String.format("Pod has terminated containers: %s/%s (%s)",
                     this.pod.getMetadata().getNamespace(),

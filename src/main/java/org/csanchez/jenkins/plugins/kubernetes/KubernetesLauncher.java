@@ -135,18 +135,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
                 assert watcher != null; // assigned 3 lines above
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            } catch (InvalidDockerImageException e) {
-                Jenkins jenkins = Jenkins.get();
-                Queue q = jenkins.getQueue();
-                String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-                for (Queue.Item item: q.getItems()) {
-                    if (item.task.getUrl().equals(runUrl)) {
-                        q.cancel(item);
-                        break;
-                    }
-                }
-                slave.terminate();
-                return;
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podName });
 
@@ -254,17 +242,19 @@ public class KubernetesLauncher extends JNLPLauncher {
     /**
      * Log the last lines of containers logs
      */
-    private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
+    private void logLastLines(@CheckForNull List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
             Map<String, Integer> errors, KubernetesClient client) {
-        for (ContainerStatus containerStatus : containers) {
-            String containerName = containerStatus.getName();
-            PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
-                    .inContainer(containerStatus.getName()).tailingLines(30);
-            String log = tailingLines.getLog();
-            if (!StringUtils.isBlank(log)) {
-                String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
-                LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                        new Object[] { slave, slave.getTemplate(), containerName, msg, tailingLines.getLog() });
+        if (containers != null) {
+            for (ContainerStatus containerStatus : containers) {
+                String containerName = containerStatus.getName();
+                PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
+                        .inContainer(containerStatus.getName()).tailingLines(30);
+                String log = tailingLines.getLog();
+                if (!StringUtils.isBlank(log)) {
+                    String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
+                    LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
+                            new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
+                }
             }
         }
     }

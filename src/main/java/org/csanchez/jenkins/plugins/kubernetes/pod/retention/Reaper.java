@@ -16,15 +16,22 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.ExtensionPoint;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.model.Queue;
+import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.slaves.Cloud;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
+import io.fabric8.kubernetes.api.model.ContainerStateTerminated;
+import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -32,14 +39,19 @@ import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import io.fabric8.kubernetes.client.utils.Serialization;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
 
 /**
  * Checks for deleted pods corresponding to {@link KubernetesSlave} and ensures the node is removed from Jenkins too.
@@ -130,29 +142,25 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     @Override
     public void eventReceived(Watcher.Action action, Pod pod) {
-        if (action == Watcher.Action.DELETED) {
-            String ns = pod.getMetadata().getNamespace();
-            String name = pod.getMetadata().getName();
-            Jenkins jenkins = Jenkins.getInstanceOrNull();
-            if (jenkins != null) {
-                for (Node n : new ArrayList<>(jenkins.getNodes())) {
-                    if (!(n instanceof KubernetesSlave)) {
-                        continue;
-                    }
-                    KubernetesSlave ks = (KubernetesSlave) n;
-                    if (Objects.equals(ks.getNamespace(), ns) && Objects.equals(ks.getPodName(), name)) {
-                        LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
-                        try {
-                            jenkins.removeNode(ks);
-                            return;
-                        } catch (Exception x) {
-                            LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
-                        }
-                    }
-                }
-            }
-            LOGGER.fine(() -> "received deletion notice for " + ns + "/" + name + " which does not seem to correspond to any Jenkins agent");
+        String ns = pod.getMetadata().getNamespace();
+        String name = pod.getMetadata().getName();
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null) {
+            return;
         }
+        Optional<KubernetesSlave> optionalNode = resolveNode(jenkins, ns, name);
+        if (!optionalNode.isPresent()) {
+            return;
+        }
+        ExtensionList.lookup(Listener.class).forEach(listener -> listener.onEvent(action, optionalNode.get(), pod));
+    }
+
+    private static Optional<KubernetesSlave> resolveNode(@NonNull Jenkins jenkins, String namespace, String name) {
+        return new ArrayList<>(jenkins.getNodes()).stream()
+                .filter(n -> n instanceof KubernetesSlave)
+                .map(n -> (KubernetesSlave) n)
+                .filter(ks -> Objects.equals(ks.getNamespace(), namespace) && Objects.equals(ks.getPodName(), name))
+                .findFirst();
     }
 
     @Override
@@ -167,6 +175,101 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     private void closeWatch() {
         if (watch != null) {
             watch.close();
+        }
+    }
+
+    /**
+     * Listener called when a Kubernetes event related to a Kubernetes agent happens.
+     */
+    public static abstract class Listener implements ExtensionPoint {
+        /**
+         *
+         * @param action the kind of event that happened to the referred pod
+         * @param node The affected node
+         * @param pod The affected pod
+         */
+        public abstract void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod);
+    }
+
+    @Extension
+    public static class RemoveAgentOnPodDeleted extends Listener {
+        @Override
+        public void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+            if (action != Action.DELETED) {
+                return;
+            }
+            String ns = pod.getMetadata().getNamespace();
+            String name = pod.getMetadata().getName();
+            LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
+            try {
+                Jenkins.get().removeNode(node);
+            } catch (Exception x) {
+                LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
+            }
+        }
+    }
+
+    @Extension
+    public static class TerminateAgentOnContainerTerminated extends Listener {
+        @Override
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+            if (action != Action.MODIFIED) {
+                return;
+            }
+            List<ContainerStatus> terminatedContainers = PodUtils.getTerminatedContainers(pod);
+            if (!terminatedContainers.isEmpty()) {
+                String ns = pod.getMetadata().getNamespace();
+                String name = pod.getMetadata().getName();
+                TaskListener runListener = node.getTemplate().getListener();
+                terminatedContainers.forEach(c -> {
+                    ContainerStateTerminated t = c.getState().getTerminated();
+                    LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
+                    runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
+                });
+                Computer computer = node.toComputer();
+                if (computer != null) {
+                    computer.getExecutors().forEach(exec -> exec.interrupt());
+                }
+                try {
+                    node.terminate();
+                } catch (Exception x) {
+                    LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
+                }
+            }
+        }
+    }
+
+    @Extension
+    public static class TerminateAgentOnImagePullBackOff extends Listener {
+
+        @Override
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+            String ns = pod.getMetadata().getNamespace();
+            String name = pod.getMetadata().getName();
+            List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
+                ContainerStateWaiting waiting = cs.getState().getWaiting();
+                return waiting != null && waiting.getMessage() != null && waiting.getMessage().contains("Back-off pulling image");
+            });
+            if (backOffContainers.isEmpty()) {
+                return;
+            }
+            backOffContainers.forEach(cs -> {
+                TaskListener runListener = node.getTemplate().getListener();
+                runListener.error("Unable to pull Docker image \""+cs.getImage()+"\". Check if image tag name is spelled correctly.");
+            });
+            Queue q = Jenkins.get().getQueue();
+            String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+            for (Queue.Item item: q.getItems()) {
+                if (item.task.getUrl().equals(runUrl)) {
+                    q.cancel(item);
+                    break;
+                }
+            }
+            try {
+                node.terminate();
+            } catch (Exception x) {
+                LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
+            }
         }
     }
 }
