@@ -19,11 +19,13 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
 import io.fabric8.kubernetes.api.model.Container;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
@@ -62,8 +65,8 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
 import okhttp3.Response;
+
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
 
 /**
  * This decorator interacts directly with the Kubernetes exec API to run commands inside a container. It does not use
@@ -440,11 +443,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     OutputStream stdin = watch.getInput();
-                    // stdin = new TeeOutputStream(stdin, new LogTaskListener(LOGGER, Level.FINEST).getLogger());
+                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        stdin.write(String.format("cd \"%s\"%s", pwd, NEWLINE).getBytes(StandardCharsets.UTF_8));
+                        in.println(String.format("cd \"%s\"", pwd));
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -471,9 +474,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    this.setupEnvironmentVariable(envVars, stdin, sh.equals("cmd"));
+                    setupEnvironmentVariable(envVars, in, sh.equals("cmd"));
 
-                    doExec(stdin, printStream, masks, commands);
+                    doExec(in, printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "]");
@@ -503,17 +506,16 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
 
-            private void setupEnvironmentVariable(EnvVars vars, OutputStream out, boolean windows) throws IOException {
+            private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            out.write(
+                            out.println(
                                     String.format(
-                                            windows ? "set %s=%s%s" : "export %s='%s'%s",
+                                            windows ? "set %s=%s" : "export %s='%s'",
                                             entry.getKey(),
-                                            windows ? entry.getValue() : entry.getValue().replace("'", "'\\''"),
-                                            NEWLINE
-                                    ).getBytes(StandardCharsets.UTF_8)
+                                            windows ? entry.getValue() : entry.getValue().replace("'", "'\\''")
+                                    )
                             );
                         }
                     }
@@ -566,37 +568,76 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(OutputStream stdin, PrintStream out, boolean[] masks, String... statements) {
-        try {
-            out.print("Executing command: ");
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < statements.length; i++) {
-                String s = String.format("\"%s\" ", statements[i]);
-                if (masks != null && masks[i]) {
-                    sb.append("******** ");
-                    out.print("******** ");
-                } else {
-                    sb.append(s);
-                    out.print(s);
+    /**
+     * Process given stream and mask as specified by the bitfield.
+     * Uses space as a separator to determine which fragments to hide.
+     */
+    private static class MaskOutputStream extends FilterOutputStream {
+        private static final String MASK_STRING = "********";
+
+        private final boolean[] masks;
+        private final static char SEPARATOR = ' ';
+        private int index;
+        private boolean wrote;
+
+
+        public MaskOutputStream(OutputStream out, boolean[] masks) {
+            super(out);
+            this.masks = masks;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (masks == null || index >= masks.length) {
+                out.write(b);
+            } else if (isSeparator(b)) {
+                out.write(b);
+                index++;
+                wrote = false;
+            } else if (masks[index]) {
+                if (!wrote) {
+                    wrote = true;
+                    for (char c : MASK_STRING.toCharArray()) {
+                        out.write(c);
+                    }
                 }
-                stdin.write(s.getBytes(StandardCharsets.UTF_8));
+            } else {
+                out.write(b);
             }
-            sb.append(NEWLINE);
-            out.println();
-            stdin.write(NEWLINE.getBytes(StandardCharsets.UTF_8));
+        }
 
-            // get the command exit code and print it padded so it is easier to parse in ContainerExecProc
+        private boolean isSeparator(int b) {
+            return b == SEPARATOR;
+        }
+    }
+
+    private static void doExec(PrintStream in, PrintStream out, boolean[] masks, String... statements) {
+        // For logging
+        ByteArrayOutputStream loggingOutput = new ByteArrayOutputStream();
+        // Tee both outputs
+        TeeOutputStream teeOutput = new TeeOutputStream(out, loggingOutput);
+        // Mask sensitive output
+        MaskOutputStream maskedOutput = new MaskOutputStream(teeOutput, masks);
+        // Tee everything together
+        PrintStream tee = null;
+        try {
+            String encoding = StandardCharsets.UTF_8.name();
+            tee = new PrintStream(new TeeOutputStream(in, maskedOutput), false, encoding);
+            // To output things that shouldn't be considered for masking
+            PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
+            unmasked.print("Executing command: ");
+            for (int i = 0; i < statements.length; i++) {
+                tee.append("\"")
+                   .append(statements[i])
+                   .append("\" ");
+            }
+            tee.println();
+            LOGGER.log(Level.FINEST, loggingOutput.toString(encoding));
             // We need to exit so that we know when the command has finished.
-            sb.append(EXIT + NEWLINE);
-            out.print(EXIT + NEWLINE);
-            LOGGER.log(Level.FINEST, "Executing command: {0}", sb);
-            stdin.write((EXIT + NEWLINE).getBytes(StandardCharsets.UTF_8));
-
-            out.flush();
-            stdin.flush();
-        } catch (IOException e) {
-            e.printStackTrace(out);
-            throw new RuntimeException(e);
+            tee.println(EXIT);
+            tee.flush();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
     }
 
