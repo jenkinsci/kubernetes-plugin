@@ -157,8 +157,8 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     private static Optional<KubernetesSlave> resolveNode(@NonNull Jenkins jenkins, String namespace, String name) {
         return new ArrayList<>(jenkins.getNodes()).stream()
-                .filter(n -> n instanceof KubernetesSlave)
-                .map(n -> (KubernetesSlave) n)
+                .filter(KubernetesSlave.class::isInstance)
+                .map(KubernetesSlave.class::cast)
                 .filter(ks -> Objects.equals(ks.getNamespace(), namespace) && Objects.equals(ks.getPodName(), name))
                 .findFirst();
     }
