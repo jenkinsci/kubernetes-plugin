@@ -45,7 +45,7 @@ public final class PodUtils {
         if (podStatus == null) {
             return Collections.emptyList();
         }
-        return pod.getStatus().getContainerStatuses();
+        return podStatus.getContainerStatuses();
     }
 
     public static List<ContainerStatus> getContainers(Pod pod, Predicate<ContainerStatus> predicate) {
