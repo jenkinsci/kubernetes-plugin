@@ -66,7 +66,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     }
 
     boolean areAllContainersRunning(Pod pod) {
-        return pod.getSpec().getContainers().size() == pod.getStatus().getContainerStatuses().size() && !PodUtils.getContainerStatus(pod).stream().anyMatch(cs -> !cs.getReady());
+        return pod.getSpec().getContainers().size() == pod.getStatus().getContainerStatuses().size() && PodUtils.getContainerStatus(pod).stream().allMatch(ContainerStatus::getReady);
     }
 
     @Override
