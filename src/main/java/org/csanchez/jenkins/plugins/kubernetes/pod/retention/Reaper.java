@@ -156,7 +156,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             try {
                 listener.onEvent(action, optionalNode.get(), pod);
             } catch (Exception x) {
-                LOGGER.log(Level.WARNING, "Listener " + listener + " failed for" + ns + "/" + name, x);
+                LOGGER.log(Level.WARNING, "Listener " + listener + " failed for " + ns + "/" + name, x);
             }
         });
     }
