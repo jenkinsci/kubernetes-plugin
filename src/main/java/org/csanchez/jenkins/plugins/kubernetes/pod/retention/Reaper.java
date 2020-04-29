@@ -264,8 +264,6 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
         @Override
         public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
-            String ns = pod.getMetadata().getNamespace();
-            String name = pod.getMetadata().getName();
             List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
                 ContainerStateWaiting waiting = cs.getState().getWaiting();
                 return waiting != null && waiting.getMessage() != null && waiting.getMessage().contains("Back-off pulling image");
