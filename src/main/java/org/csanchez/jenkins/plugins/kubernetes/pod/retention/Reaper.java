@@ -238,6 +238,28 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     }
 
     @Extension
+    public static class TerminateAgentOnPodFailed implements Listener {
+        @Override
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
+            if (action != Action.MODIFIED) {
+                return;
+            }
+            if ("Failed".equals(pod.getStatus().getPhase())) {
+                String ns = pod.getMetadata().getNamespace();
+                String name = pod.getMetadata().getName();
+                TaskListener runListener = node.getTemplate().getListener();
+                LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
+                runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
+            }
+            Computer computer = node.toComputer();
+            if (computer != null) {
+                computer.getExecutors().forEach(exec -> exec.interrupt());
+            }
+            node.terminate();
+        }
+    }
+
+    @Extension
     public static class TerminateAgentOnImagePullBackOff implements Listener {
 
         @Override

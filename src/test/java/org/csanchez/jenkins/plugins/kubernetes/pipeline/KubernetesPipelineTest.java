@@ -446,6 +446,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage("Container jnlp was terminated (Exit Code: 137, Reason: OOMKilled)", b);
     }
 
+    @Issue("JENKINS-59340")
+    @Test
+    public void podDeadlineExceeded() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+    }
+
     @Test
     public void interruptedPod() throws Exception {
         r.waitForMessage("starting to sleep", b);
