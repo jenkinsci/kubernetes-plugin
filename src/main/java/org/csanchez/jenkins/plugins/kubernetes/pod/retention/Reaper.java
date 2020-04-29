@@ -152,7 +152,13 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         if (!optionalNode.isPresent()) {
             return;
         }
-        ExtensionList.lookup(Listener.class).forEach(listener -> listener.onEvent(action, optionalNode.get(), pod));
+        ExtensionList.lookup(Listener.class).forEach(listener -> {
+            try {
+                listener.onEvent(action, optionalNode.get(), pod);
+            } catch (Exception x) {
+                LOGGER.log(Level.WARNING, "Listener " + listener + " failed for" + ns + "/" + name, x);
+            }
+        });
     }
 
     private static Optional<KubernetesSlave> resolveNode(@NonNull Jenkins jenkins, String namespace, String name) {
@@ -181,38 +187,34 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     /**
      * Listener called when a Kubernetes event related to a Kubernetes agent happens.
      */
-    public static abstract class Listener implements ExtensionPoint {
+    public interface Listener extends ExtensionPoint {
         /**
          *
          * @param action the kind of event that happened to the referred pod
          * @param node The affected node
          * @param pod The affected pod
          */
-        public abstract void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod);
+        void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException;
     }
 
     @Extension
-    public static class RemoveAgentOnPodDeleted extends Listener {
+    public static class RemoveAgentOnPodDeleted implements Listener {
         @Override
-        public void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+        public void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException {
             if (action != Action.DELETED) {
                 return;
             }
             String ns = pod.getMetadata().getNamespace();
             String name = pod.getMetadata().getName();
             LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
-            try {
-                Jenkins.get().removeNode(node);
-            } catch (Exception x) {
-                LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
-            }
+            Jenkins.get().removeNode(node);
         }
     }
 
     @Extension
-    public static class TerminateAgentOnContainerTerminated extends Listener {
+    public static class TerminateAgentOnContainerTerminated implements Listener {
         @Override
-        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
             if (action != Action.MODIFIED) {
                 return;
             }
@@ -230,20 +232,16 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 if (computer != null) {
                     computer.getExecutors().forEach(exec -> exec.interrupt());
                 }
-                try {
-                    node.terminate();
-                } catch (Exception x) {
-                    LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
-                }
+                node.terminate();
             }
         }
     }
 
     @Extension
-    public static class TerminateAgentOnImagePullBackOff extends Listener {
+    public static class TerminateAgentOnImagePullBackOff implements Listener {
 
         @Override
-        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) {
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
             String ns = pod.getMetadata().getNamespace();
             String name = pod.getMetadata().getName();
             List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
@@ -265,11 +263,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                     break;
                 }
             }
-            try {
-                node.terminate();
-            } catch (Exception x) {
-                LOGGER.log(Level.WARNING, "failed to reap " + ns + "/" + name, x);
-            }
+            node.terminate();
         }
     }
 }
