@@ -308,16 +308,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         // Disconnect the master from the slave agent
-        OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "offline"));
-
-        Future<?> disconnected = computer.disconnect(offlineCause);
-        // wait a bit for disconnection to avoid stack traces in logs
-        try {
-            disconnected.get(DISCONNECTION_TIMEOUT, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            String msg = String.format("Ignoring error waiting for agent disconnection %s: %s", name, e.getMessage());
-            LOGGER.log(Level.INFO, msg, e);
-        }
+        OfflineCause offlineCause = OfflineCause.create(new Localizable(HOLDER, "Setting offline before shutting down"));
+        computer.setTemporarilyOffline(true, offlineCause);
 
         if (getCloudName() == null) {
             String msg = String.format("Cloud name is not set for agent, can't terminate: %s", name);

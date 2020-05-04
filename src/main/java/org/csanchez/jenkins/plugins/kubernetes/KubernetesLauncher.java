@@ -61,6 +61,8 @@ import static java.util.logging.Level.INFO;
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
  */
 public class KubernetesLauncher extends JNLPLauncher {
+    // Report progress every 30 seconds
+    private static final long REPORT_INTERVAL = TimeUnit.SECONDS.toMillis(30L);
 
     @CheckForNull
     private transient AllContainersRunningPodWatcher watcher;
@@ -149,6 +151,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
+            long lastReportTimestamp = System.currentTimeMillis();
             for (waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
                 slaveComputer = slave.getComputer();
                 if (slaveComputer == null) {
@@ -185,10 +188,13 @@ public class KubernetesLauncher extends JNLPLauncher {
 
                 checkTerminatedContainers(terminatedContainers, podName, namespace, slave, client);
 
-                LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
-                        new Object[] { podName, waitedForSlave, waitForSlaveToConnect });
-                listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
-                        waitForSlaveToConnect);
+                if (lastReportTimestamp + REPORT_INTERVAL < System.currentTimeMillis()) {
+                    LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
+                            new Object[]{podName, waitedForSlave, waitForSlaveToConnect});
+                    listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
+                            waitForSlaveToConnect);
+                    lastReportTimestamp = System.currentTimeMillis();
+                }
                 Thread.sleep(1000);
             }
             if (slaveComputer == null || slaveComputer.isOffline()) {
