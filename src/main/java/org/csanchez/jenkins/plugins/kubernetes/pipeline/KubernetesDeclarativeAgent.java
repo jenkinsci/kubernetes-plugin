@@ -1,7 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ExtensionList;
+import hudson.Util;
+import hudson.util.ListBoxModel;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -13,11 +19,9 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.Util;
-
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,29 +33,41 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
 
+    @CheckForNull
     private String label;
-    private String customWorkspace;
 
+    @CheckForNull
     private String cloud;
+    @CheckForNull
     private String inheritFrom;
 
     private int idleMinutes;
-    private int instanceCap;
+    private int instanceCap = Integer.MAX_VALUE;
+    @CheckForNull
     private String serviceAccount;
+    @CheckForNull
     private String nodeSelector;
+    @CheckForNull
     private String namespace;
+    @CheckForNull
     private String workingDir;
     private int activeDeadlineSeconds;
     private int slaveConnectTimeout;
+    @CheckForNull
     private PodRetention podRetention;
 
     private ContainerTemplate containerTemplate;
     private List<ContainerTemplate> containerTemplates;
+    @CheckForNull
     private String defaultContainer;
+    @CheckForNull
     private String yaml;
+    @CheckForNull
     private String yamlFile;
     private YamlMergeStrategy yamlMergeStrategy;
+    @CheckForNull
     private WorkspaceVolume workspaceVolume;
+    @CheckForNull
     private String supplementalGroups;
 
     @DataBoundConstructor
@@ -73,23 +89,13 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         this.label = Util.fixEmpty(label);
     }
 
-    @CheckForNull
-    public String getCustomWorkspace() {
-        return customWorkspace;
-    }
-
-    @DataBoundSetter
-    public void setCustomWorkspace(String customWorkspace) {
-        this.customWorkspace = customWorkspace;
-    }
-
     public String getCloud() {
         return cloud;
     }
 
     @DataBoundSetter
     public void setCloud(String cloud) {
-        this.cloud = cloud;
+        this.cloud = Util.fixEmpty(cloud);
     }
 
     public int getIdleMinutes() {
@@ -107,7 +113,11 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     @DataBoundSetter
     public void setInheritFrom(String inheritFrom) {
-        this.inheritFrom = inheritFrom;
+        if (PodTemplateStep.DescriptorImpl.defaultInheritFrom.equals(inheritFrom)) {
+            this.inheritFrom = null;
+        } else {
+            this.inheritFrom = inheritFrom;
+        }
     }
 
     public int getInstanceCap() {
@@ -116,7 +126,11 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     @DataBoundSetter
     public void setInstanceCap(int instanceCap) {
-        this.instanceCap = instanceCap;
+        if (instanceCap <= 0) {
+            this.instanceCap = Integer.MAX_VALUE;
+        } else {
+            this.instanceCap = instanceCap;
+        }
     }
 
     public String getServiceAccount() {
@@ -213,12 +227,12 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     }
 
     public PodRetention getPodRetention() {
-        return podRetention;
+        return this.podRetention == null ? PodTemplateStep.DescriptorImpl.defaultPodRetention : this.podRetention;
     }
 
     @DataBoundSetter
-    public void setPodRetention(PodRetention podRetention) {
-        this.podRetention = podRetention;
+    public void setPodRetention(@CheckForNull PodRetention podRetention) {
+        this.podRetention = (podRetention == null || podRetention.equals(PodTemplateStep.DescriptorImpl.defaultPodRetention)) ? null : podRetention;
     }
 
     public String getYamlFile() {
@@ -240,17 +254,17 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     }
 
     public WorkspaceVolume getWorkspaceVolume() {
-        return workspaceVolume;
+        return workspaceVolume == null ? PodTemplateStep.DescriptorImpl.defaultWorkspaceVolume : this.workspaceVolume;
     }
 
     @DataBoundSetter
     public void setWorkspaceVolume(WorkspaceVolume workspaceVolume) {
-        this.workspaceVolume = workspaceVolume;
+        this.workspaceVolume = (workspaceVolume == null || workspaceVolume.equals(PodTemplateStep.DescriptorImpl.defaultWorkspaceVolume)) ? null : workspaceVolume;
     }
 
     @DataBoundSetter
     public void setSupplementalGroups(String supplementalGroups) {
-        this.supplementalGroups = supplementalGroups;
+        this.supplementalGroups = Util.fixEmpty(supplementalGroups);
     }
 
     public String getSupplementalGroups() {
@@ -274,7 +288,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
                         "Ignoring containerTemplate option as containerTemplates is also defined");
             }
         }
-        argMap.put("containers", containerTemplates);
+        if (containerTemplates != null && !containerTemplates.isEmpty()) {
+            argMap.put("containers", containerTemplates);
+        }
 
         if (!StringUtils.isEmpty(yaml)) {
             argMap.put("yaml", yaml);
@@ -315,7 +331,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (podRetention != null) {
             argMap.put("podRetention", podRetention);
         }
-        if (instanceCap > 0) {
+        if (instanceCap > 0 && instanceCap < Integer.MAX_VALUE) {
             argMap.put("instanceCap", instanceCap);
         }
         if (!StringUtils.isEmpty(supplementalGroups)){
@@ -328,5 +344,32 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @OptionalExtension(requirePlugins = "pipeline-model-extensions")
     @Symbol("kubernetes")
     public static class DescriptorImpl extends DeclarativeAgentDescriptor<KubernetesDeclarativeAgent> {
+
+        public static final String[] POD_TEMPLATE_FIELDS = {"namespace", "inheritFrom", "yaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+
+        public DescriptorImpl() {
+            for (String field: new String[] {"cloud", "label"}) {
+                addHelpFileRedirect(field, PodTemplateStep.class, field);
+            }
+            for (String field: POD_TEMPLATE_FIELDS) {
+                addHelpFileRedirect(field, PodTemplate.class, field);
+            }
+        }
+
+        @Nonnull
+        @Override
+        public String getDisplayName() {
+            return Messages.KubernetesDeclarativeAgent_displayName();
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillCloudItems() {
+            return ExtensionList.lookupSingleton(PodTemplateStep.DescriptorImpl.class).doFillCloudItems();
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillInheritFromItems(@QueryParameter("cloud") String cloudName) {
+            return ExtensionList.lookupSingleton(PodTemplateStep.DescriptorImpl.class).doFillInheritFromItems(cloudName);
+        }
     }
 }

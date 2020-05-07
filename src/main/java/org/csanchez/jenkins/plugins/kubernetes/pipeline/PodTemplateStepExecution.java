@@ -58,14 +58,21 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     @Override
     public boolean start() throws Exception {
-
-        Cloud cloud = Jenkins.get().getCloud(cloudName);
-        if (cloud == null) {
-            throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
-        }
-        if (!(cloud instanceof KubernetesCloud)) {
-            throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
-                    cloud.getClass().getName()));
+        Cloud cloud;
+        if (cloudName == null) {
+            cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
+            if (cloud == null) {
+                throw new AbortException("No Kubernetes cloud was found.");
+            }
+        } else {
+            cloud = Jenkins.get().getCloud(cloudName);
+            if (cloud == null) {
+                throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
+            }
+            if (!(cloud instanceof KubernetesCloud)) {
+                throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
+                        cloud.getClass().getName()));
+            }
         }
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
 

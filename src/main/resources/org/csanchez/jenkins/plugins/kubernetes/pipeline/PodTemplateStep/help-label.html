@@ -2,5 +2,14 @@
     Jenkins node label to bind.
     If left blank, one will be generated for you,
     and inside the step it will be bound to the variable <code>POD_LABEL</code>
-    so you can use this as the argument to the <code>node</code> step.
+    so you can use this as the argument to the <code>node</code> step.<br/>
+
+    Example:
+    <pre>
+        podTemplate (...) {
+            node(POD_LABEL) {
+                // some steps
+            }
+        }
+    </pre>
 </div>

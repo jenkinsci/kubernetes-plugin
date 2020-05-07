@@ -18,7 +18,7 @@
     <f:checkbox/>
   </f:entry>
 
-  <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
+  <f:entry field="workingDir" title="${%Working directory}">
     <f:textbox default="${descriptor.workingDir}"/>
   </f:entry>
 
@@ -34,7 +34,7 @@
     <f:checkbox default="true"/>
   </f:entry>
 
-    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in agent pod}">
+    <f:entry title="${%Environment Variables}" field="envVars" description="${%List of environment variables to set in agent pod}">
       <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="${%Add Environment Variable}"
                                   deleteCaption="${%Delete Environment Variable}" />
     </f:entry>
@@ -75,7 +75,7 @@
         <st:include from="${descriptor}" page="${descriptor.configPage}" />
       </f:rowSet>
     </f:entry>
-    <f:entry title="${%PortMappings}" description="${%List of exposed ports}">
+    <f:entry title="${%Port Mappings}" description="${%List of exposed ports}">
       <f:repeatableHeteroProperty field="ports" hasHeader="true" addCaption="${%Add Port Mapping}"
                                     deleteCaption="${%Delete Port Mapping}" />
     </f:entry>

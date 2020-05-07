@@ -22,28 +22,31 @@
        <f:enum default="EXCLUSIVE">${it.description}</f:enum>
     </f:entry>
 
-    <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
-      help="/plugin/kubernetes/help/inheritFrom.html">
+    <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
       <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
+    <f:entry field="containers"  title="${%Containers}" description="${%List of container in the agent pod}">
         <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="${%Add Container}"
                                       deleteCaption="${%Delete Container}" />
     </f:entry>
 
-    <f:entry title="${%EnvVars}" description="${%List of environment variables to set in all container of the pod}">
+    <f:entry field="envVars" title="${%Environment variables}" description="${%List of environment variables to set in all container of the pod}">
           <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="${%Add Environment Variable}"
                                       deleteCaption="${%Delete Environment Variable}" />
     </f:entry>
 
-    <f:entry title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
+    <f:entry field="volumes" title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
       <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="${%Add Volume}"
                                   deleteCaption="${%Delete Volume}" />
     </f:entry>
 
-    <f:entry field="instanceCapStr" title="${%Concurrency Limit}"
-      help="/plugin/kubernetes/help/instanceCap.html">
+    <f:entry field="annotations" title="${%Annotations}" description="${%List of annotations to set in slave pod}">
+      <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="${%Add Annotation}"
+                                  deleteCaption="${%Delete annotation Variable}" />
+    </f:entry>
+
+    <f:entry field="instanceCapStr" title="${%Concurrency Limit}">
       <f:textbox/>
     </f:entry>
 
@@ -53,8 +56,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="activeDeadlineSecondsStr" title="${%Time in seconds for Pod deadline}"
-      help="/plugin/kubernetes/help/activeDeadlineSeconds.html">
+    <f:entry field="activeDeadlineSecondsStr" title="${%Time in seconds for Pod deadline}">
       <f:number/>
     </f:entry>
 
@@ -62,13 +64,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Annotations}" description="${%List of annotations to set in slave pod}"
-      field="annotations" help="/plugin/kubernetes/help/annotations.html">
-      <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="${%Add Annotation}"
-                                  deleteCaption="${%Delete annotation Variable}" />
-    </f:entry>
-
-    <f:entry field="yaml" title="${%Raw yaml for the Pod}" help="/plugin/kubernetes/help/yaml.html">
+    <f:entry field="yaml" title="${%Raw yaml for the Pod}">
       <f:textarea/>
     </f:entry>
 
@@ -78,14 +74,12 @@
       <f:checkbox default="true"/>
     </f:entry>
 
-    <f:entry title="${%ImagePullSecrets}" description="${%List of image pull secrets}"
-      help="/plugin/kubernetes/help/imagePullSecrets.html">
+    <f:entry title="${%ImagePullSecrets}" field="imagePullSecrets" description="${%List of image pull secrets}">
       <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="${%Add Image Pull Secret}"
                                   deleteCaption="${%Delete Image Pull Secret}" />
     </f:entry>
 
-    <f:entry field="serviceAccount" title="${%Service Account}"
-      help="/plugin/kubernetes/help/serviceAccount.html">
+    <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
     </f:entry>
 
@@ -97,9 +91,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="supplementalGroups"
-             title="${%Supplemental Groups}"
-             help="/plugin/kubernetes/help/supplementalGroups.html">
+    <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
       <f:textbox/>
     </f:entry>
 
@@ -107,15 +99,14 @@
       <f:checkbox default="false"/>
     </f:entry>
 
-    <f:entry field="nodeSelector" title="${%Node Selector}"
-      help="/plugin/kubernetes/help/nodeSelector.html">
+    <f:entry field="nodeSelector" title="${%Node Selector}">
       <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+    <f:entry title="${%Workspace Volume}" field="workspaceVolume">
       <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
     </f:entry>
-    
+
     <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 
   </f:advanced>
