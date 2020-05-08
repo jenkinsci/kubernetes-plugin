@@ -604,7 +604,7 @@ See this [example](examples/openshift-home-yaml.groovy) configuration.
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
-See the [example](examples/windows.groovy).
+See the [example](src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/windows.groovy).
 
 # Constraints
 
