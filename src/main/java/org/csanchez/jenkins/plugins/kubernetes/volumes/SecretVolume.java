@@ -38,22 +38,25 @@ public class SecretVolume extends PodVolume {
     private String mountPath;
     private String secretName;
     private String defaultMode;
+    private Boolean optional;
 
     @DataBoundConstructor
-    public SecretVolume(String mountPath, String secretName, String defaultMode) {
+    public SecretVolume(String mountPath, String secretName, String defaultMode, Boolean optional) {
         this.mountPath = mountPath;
         this.secretName = secretName;
         this.defaultMode = defaultMode;
+        this.optional = optional;
     }
 
     public SecretVolume(String mountPath, String secretName) {
-        this(mountPath, secretName, null);
+        this(mountPath, secretName, null, false);
     }
 
     @Override
     public Volume buildVolume(String volumeName) {
         SecretVolumeSource secretVolumeSource = new SecretVolumeSource();
         secretVolumeSource.setSecretName(getSecretName());
+        secretVolumeSource.setOptional(getOptional());
 
         if (StringUtils.isNotBlank(defaultMode)) {
             secretVolumeSource.setDefaultMode(Integer.parseInt(getDefaultMode()));
@@ -79,10 +82,14 @@ public class SecretVolume extends PodVolume {
         return defaultMode;
     }
 
+    public Boolean getOptional() {
+        return optional;
+    }
+
     @Override
     public String toString() {
         return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName
-                + ", defaultMode=" + defaultMode + "]";
+            + ", defaultMode=" + defaultMode + ", optional=" + String.valueOf(optional) + "]";
     }
 
     @Extension
