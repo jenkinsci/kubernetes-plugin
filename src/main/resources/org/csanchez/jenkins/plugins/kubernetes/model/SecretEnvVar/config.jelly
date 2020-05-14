@@ -17,4 +17,8 @@
     <f:textbox/>
   </f:entry>
 
+  <f:entry field="optional" title="${%Optional}">
+    <f:checkbox/>
+  </f:entry>
+
 </j:jelly>
