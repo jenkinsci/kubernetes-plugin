@@ -434,8 +434,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-59340")
     @Test
     public void containerTerminated() throws Exception {
-        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage("Container jnlp was terminated (Exit Code: 137, Reason: OOMKilled)", b);
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.waitForMessage("Container stress-ng was terminated (Exit Code: 0, Reason: OOMKilled)", b);
     }
 
     @Issue("JENKINS-59340")
