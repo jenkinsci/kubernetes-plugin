@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -128,8 +129,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             new Thread(() -> {
                 long pos = 0;
                 try {
-                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
-                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                    while (true) {
+                        Jenkins j = Jenkins.getInstanceOrNull();
+                        if (j == null) break;
+                        // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
+                        File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
+                        if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
                             pos = c.getLogText().writeLogTo(pos, System.out);
                         }
                         Thread.sleep(100);
