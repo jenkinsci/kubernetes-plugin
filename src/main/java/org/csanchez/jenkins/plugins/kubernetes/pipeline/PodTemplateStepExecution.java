@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.stream.Collectors.toList;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Collection;
@@ -222,6 +223,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (!(cloud instanceof KubernetesCloud)) {
             throw new RuntimeException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
                     cloud.getClass().getName()));
+        }
+        try {
+            newTemplate.setListener(getContext().get(TaskListener.class));
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.WARNING, "Unable to inject task listener", e);
         }
         KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
         kubernetesCloud.addDynamicTemplate(newTemplate);
