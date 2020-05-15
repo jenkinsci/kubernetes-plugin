@@ -206,7 +206,9 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             }
             String ns = pod.getMetadata().getNamespace();
             String name = pod.getMetadata().getName();
+            TaskListener runListener = node.getTemplate().getListener();
             LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
+            runListener.getLogger().printf("Pod %s/%s was just deleted%n", ns, name);
             Jenkins.get().removeNode(node);
         }
     }
@@ -228,10 +230,6 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                     LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
                     runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
                 });
-                Computer computer = node.toComputer();
-                if (computer != null) {
-                    computer.getExecutors().forEach(exec -> exec.interrupt());
-                }
                 node.terminate();
             }
         }
@@ -250,10 +248,6 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 TaskListener runListener = node.getTemplate().getListener();
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
                 runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
-                Computer computer = node.toComputer();
-                if (computer != null) {
-                    computer.getExecutors().forEach(exec -> exec.interrupt());
-                }
                 node.terminate();
             }
         }
