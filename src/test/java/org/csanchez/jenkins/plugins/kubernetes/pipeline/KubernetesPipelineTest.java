@@ -131,7 +131,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 try {
                     while (true) {
                         Jenkins j = Jenkins.getInstanceOrNull();
-                        if (j == null) break;
+                        if (j == null) {
+                            break;
+                        }
                         // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
                         File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
                         if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
