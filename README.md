@@ -604,7 +604,7 @@ See this [example](examples/openshift-home-yaml.groovy) configuration.
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
-See the [example](examples/windows.groovy).
+See the [example](src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/windows.groovy).
 
 # Constraints
 
@@ -688,6 +688,33 @@ at `DEBUG` level.
 ## Deleting pods in bad state
 
     kubectl get pods -o name --selector=jenkins=slave --all-namespaces  | xargs -I {} kubectl delete {}
+
+## Pipeline `sh` step hangs when multiple containers are used
+To debug this you need to set `-Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true` system property
+and then restart the pipeline. Most likely in the console log you will see the following:
+```console
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp: Permission denied
+mv: can't rename '/home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp': No such file or directory
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+```
+Usually this happens when UID of the user in `jnlp` container differs from the one in other container(s). 
+All containers you use should have the same UID of the user, also this can be achieved by setting `securityContext`:
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    runAsUser: 1000 # default UID of jenkins user in default jnlp image
+  containers:
+  - name: maven
+    image: maven:3.3.9-jdk-8-alpine
+    command:
+    - cat
+    tty: true
+```
 
 # Building and Testing
 

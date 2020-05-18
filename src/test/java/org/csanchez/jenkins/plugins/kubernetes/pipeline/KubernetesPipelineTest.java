@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -128,8 +129,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             new Thread(() -> {
                 long pos = 0;
                 try {
-                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
-                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                    while (true) {
+                        Jenkins j = Jenkins.getInstanceOrNull();
+                        if (j == null) {
+                            break;
+                        }
+                        // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
+                        File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
+                        if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
                             pos = c.getLogText().writeLogTo(pos, System.out);
                         }
                         Thread.sleep(100);
@@ -429,6 +436,20 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+    }
+
+    @Issue("JENKINS-59340")
+    @Test
+    public void containerTerminated() throws Exception {
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.waitForMessage("Container stress-ng was terminated (Exit Code: 0, Reason: OOMKilled)", b);
+    }
+
+    @Issue("JENKINS-59340")
+    @Test
+    public void podDeadlineExceeded() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
     }
 
     @Test

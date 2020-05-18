@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.1</version>
+    <version>4.2</version>
     <relativePath />
   </parent>
 
@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.25.5</revision>
+    <revision>1.25.6</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
