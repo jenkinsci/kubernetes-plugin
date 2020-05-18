@@ -906,7 +906,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
-        public static final String[] STRING_FIELDS = {
+        static final String[] STRING_FIELDS = {
                 "activeDeadlineSeconds",
                 "idleMinutes",
                 "instanceCap",

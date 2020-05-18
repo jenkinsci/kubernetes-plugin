@@ -345,7 +345,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @Symbol("kubernetes")
     public static class DescriptorImpl extends DeclarativeAgentDescriptor<KubernetesDeclarativeAgent> {
 
-        public static final String[] POD_TEMPLATE_FIELDS = {"namespace", "inheritFrom", "yaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+        static final String[] POD_TEMPLATE_FIELDS = {"namespace", "inheritFrom", "yaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
 
         public DescriptorImpl() {
             for (String field: new String[] {"cloud", "label"}) {

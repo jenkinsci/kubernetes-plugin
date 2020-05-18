@@ -391,7 +391,7 @@ public class PodTemplateStep extends Step implements Serializable {
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
 
-        public static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+        static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
 
         public DescriptorImpl() {
             for (String field : POD_TEMPLATE_FIELDS) {
