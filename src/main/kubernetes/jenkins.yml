@@ -8,6 +8,9 @@ metadata:
   labels:
     name: jenkins
 spec:
+  selector:
+    matchLabels:
+      name: jenkins
   serviceName: jenkins
   replicas: 1
   updateStrategy:
