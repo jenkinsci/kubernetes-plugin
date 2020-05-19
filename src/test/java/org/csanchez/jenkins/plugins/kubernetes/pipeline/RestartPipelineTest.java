@@ -227,6 +227,7 @@ public class RestartPipelineTest {
             // Indeed we get two Reaper instances running, which independently remove the node.
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+            r.waitForMessage("Pod just failed", b);
             r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
         });
     }
