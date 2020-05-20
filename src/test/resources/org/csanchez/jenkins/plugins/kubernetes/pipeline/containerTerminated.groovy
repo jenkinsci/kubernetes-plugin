@@ -3,16 +3,7 @@ spec:
   containers:
   - name: stress-ng
     image: polinux/stress-ng
-    command:
-    - stress-ng
-    args:
-    - --vm
-    - 2
-    - --vm-bytes
-    - 1G
-    - --timeout
-    - 10s
-    - -v
+    command: ['sh', '-c', "sleep 30; stress-ng --vm 2 --timeout 30s -v"]
     tty: true
     securityContext:
       runAsUser: 0
@@ -24,6 +15,6 @@ spec:
         memory: "256Mi"
 ''') {
   node (POD_LABEL) {
-    sh 'sleep 60'
+    sh 'sleep 120'
   }
 }
