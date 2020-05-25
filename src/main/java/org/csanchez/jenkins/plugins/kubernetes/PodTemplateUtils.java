@@ -324,10 +324,10 @@ public class PodTemplateUtils {
 
     private static List<Toleration> combineTolerations(@Nonnull List<Toleration> tolerations1,
             @Nonnull List<Toleration> tolerations2) {
-        Map<String, Toleration> tolerationsByName = tolerations1.stream()
-                .collect(Collectors.toMap(Toleration::getName, Function.identity()));
-        tolerations2.forEach(t -> tolerationsByName.put(t.getName(), t));
-        return new ArrayList<>(tolerationsByName.values());
+        Map<String, Toleration> tolerationsByKey = tolerations1.stream()
+                .collect(Collectors.toMap(Toleration::getKey, Function.identity()));
+        tolerations2.forEach(t -> tolerationsByKey.put(t.getKey(), t));
+        return new ArrayList<>(tolerationsByKey.values());
     }
 
     /**
