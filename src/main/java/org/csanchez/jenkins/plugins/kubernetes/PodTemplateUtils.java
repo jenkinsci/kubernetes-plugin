@@ -261,9 +261,7 @@ public class PodTemplateUtils {
         List<Volume> combinedVolumes = combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
 
         // Tolerations
-        List<Toleration> combinedTolerations = Lists.newLinkedList();
-        Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
-        Optional.ofNullable(template.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
+        List<Toleration> combinedTolerations = combineTolerations(parent.getSpec().getTolerations(), template.getSpec().getTolerations());
 
 //        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
@@ -322,6 +320,14 @@ public class PodTemplateUtils {
         Map<String, Volume> volumesByName = volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
         volumes2.forEach(v -> volumesByName.put(v.getName(), v));
         return new ArrayList<>(volumesByName.values());
+    }
+
+    private static List<Toleration> combineTolerations(@Nonnull List<Toleration> tolerations1,
+            @Nonnull List<Toleration> tolerations2) {
+        Map<String, Toleration> tolerationsByName = tolerations1.stream()
+                .collect(Collectors.toMap(Toleration::getName, Function.identity()));
+        tolerations2.forEach(t -> tolerationsByName.put(t.getName(), t));
+        return new ArrayList<>(tolerationsByName.values());
     }
 
     /**
