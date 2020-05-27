@@ -44,6 +44,7 @@ import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.model.Label;
+import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -53,10 +54,13 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -441,8 +445,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-59340")
     @Test
     public void containerTerminated() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.waitForMessage("Container stress-ng was terminated (Exit Code: 0, Reason: OOMKilled)", b);
+        assertBuildStatus(r.waitForCompletion(b), Result.FAILURE, Result.ABORTED);
+        r.waitForMessage("Container stress-ng was terminated", b);
+        r.waitForMessage("Reason: OOMKilled", b);
     }
 
     @Issue("JENKINS-59340")
@@ -619,5 +624,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
         }
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
+        for (Result s : status) {
+            if (s == run.getResult()) {
+                return run;
+            }
+        }
+        String msg = "unexpected build status; build log was:\n------\n" + r.getLog(run) + "\n------\n";
+        MatcherAssert.assertThat(msg, run.getResult(), Matchers.is(oneOf(status)));
+        return run;
     }
 }

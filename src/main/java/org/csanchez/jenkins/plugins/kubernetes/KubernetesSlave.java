@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -75,7 +76,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private final String cloudName;
     private String namespace;
-    private final PodTemplate template;
+    private transient PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
 
     @CheckForNull
@@ -83,6 +84,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @Nonnull
     public PodTemplate getTemplate() {
+        // Look up updated pod template after a restart
+        if (template == null) {
+            template = getKubernetesCloud().getTemplate(Label.get(getLabelString()));
+            if (template == null) {
+                throw new IllegalStateException("Not expecting pod template to be null at this point");
+            }
+        }
         return template;
     }
 
@@ -241,6 +249,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
         PodRetention retentionPolicy = cloud.getPodRetention();
+        PodTemplate template = getTemplate();
         if (template != null) {
             PodRetention pr = template.getPodRetention();
             // https://issues.jenkins-ci.org/browse/JENKINS-53260
@@ -360,19 +369,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-
         KubernetesSlave that = (KubernetesSlave) o;
-
-        if (cloudName != null ? !cloudName.equals(that.cloudName) : that.cloudName != null) return false;
-        return template != null ? template.equals(that.template) : that.template == null;
+        return cloudName.equals(that.cloudName);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (cloudName != null ? cloudName.hashCode() : 0);
-        result = 31 * result + (template != null ? template.hashCode() : 0);
-        return result;
+        return Objects.hash(super.hashCode(), cloudName);
     }
 
     @Override
