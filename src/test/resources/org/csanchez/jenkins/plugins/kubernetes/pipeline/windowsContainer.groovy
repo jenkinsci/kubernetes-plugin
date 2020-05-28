@@ -13,7 +13,7 @@ spec:
     - Start-Sleep
     - 999999
   nodeSelector:
-    beta.kubernetes.io/os: windows
+    kubernetes.io/os: windows
 '''
 ) {
     node(POD_LABEL) {
