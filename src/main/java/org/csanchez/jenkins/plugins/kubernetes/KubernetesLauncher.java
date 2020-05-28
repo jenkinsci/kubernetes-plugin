@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Queue;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.model.Jenkins;
@@ -92,6 +93,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
+    @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD", justification = "This is fine")
     public synchronized void launch(SlaveComputer computer, TaskListener listener) {
         if (!(computer instanceof KubernetesComputer)) {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
