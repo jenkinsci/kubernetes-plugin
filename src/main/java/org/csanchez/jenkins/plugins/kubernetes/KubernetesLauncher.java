@@ -92,8 +92,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
-    public void launch(SlaveComputer computer, TaskListener listener) {
-
+    public synchronized void launch(SlaveComputer computer, TaskListener listener) {
         if (!(computer instanceof KubernetesComputer)) {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
         }
