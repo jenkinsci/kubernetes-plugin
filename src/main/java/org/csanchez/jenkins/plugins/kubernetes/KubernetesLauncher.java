@@ -61,6 +61,8 @@ import static java.util.logging.Level.INFO;
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
  */
 public class KubernetesLauncher extends JNLPLauncher {
+    // Report progress every 30 seconds
+    private static final long REPORT_INTERVAL = TimeUnit.SECONDS.toMillis(30L);
 
     @CheckForNull
     private transient AllContainersRunningPodWatcher watcher;
@@ -102,7 +104,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
         }
         if (launched) {
-            LOGGER.log(INFO, "Agent has already been launched, activating: {}", slave.getNodeName());
+            LOGGER.log(INFO, "Agent has already been launched, activating: {0}", slave.getNodeName());
             computer.setAcceptingTasks(true);
             return;
         }
@@ -135,18 +137,6 @@ public class KubernetesLauncher extends JNLPLauncher {
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
                 assert watcher != null; // assigned 3 lines above
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            } catch (InvalidDockerImageException e) {
-                Jenkins jenkins = Jenkins.get();
-                Queue q = jenkins.getQueue();
-                String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-                for (Queue.Item item: q.getItems()) {
-                    if (item.task.getUrl().equals(runUrl)) {
-                        q.cancel(item);
-                        break;
-                    }
-                }
-                slave.terminate();
-                return;
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podName });
 
@@ -161,6 +151,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
+            long lastReportTimestamp = System.currentTimeMillis();
             for (waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
                 slaveComputer = slave.getComputer();
                 if (slaveComputer == null) {
@@ -197,10 +188,13 @@ public class KubernetesLauncher extends JNLPLauncher {
 
                 checkTerminatedContainers(terminatedContainers, podName, namespace, slave, client);
 
-                LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
-                        new Object[] { podName, waitedForSlave, waitForSlaveToConnect });
-                listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
-                        waitForSlaveToConnect);
+                if (lastReportTimestamp + REPORT_INTERVAL < System.currentTimeMillis()) {
+                    LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
+                            new Object[]{podName, waitedForSlave, waitForSlaveToConnect});
+                    listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
+                            waitForSlaveToConnect);
+                    lastReportTimestamp = System.currentTimeMillis();
+                }
                 Thread.sleep(1000);
             }
             if (slaveComputer == null || slaveComputer.isOffline()) {
@@ -254,17 +248,19 @@ public class KubernetesLauncher extends JNLPLauncher {
     /**
      * Log the last lines of containers logs
      */
-    private void logLastLines(List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
+    private void logLastLines(@CheckForNull List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
             Map<String, Integer> errors, KubernetesClient client) {
-        for (ContainerStatus containerStatus : containers) {
-            String containerName = containerStatus.getName();
-            PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
-                    .inContainer(containerStatus.getName()).tailingLines(30);
-            String log = tailingLines.getLog();
-            if (!StringUtils.isBlank(log)) {
-                String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
-                LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                        new Object[] { slave, slave.getTemplate(), containerName, msg, tailingLines.getLog() });
+        if (containers != null) {
+            for (ContainerStatus containerStatus : containers) {
+                String containerName = containerStatus.getName();
+                PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
+                        .inContainer(containerStatus.getName()).tailingLines(30);
+                String log = tailingLines.getLog();
+                if (!StringUtils.isBlank(log)) {
+                    String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
+                    LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
+                            new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
+                }
             }
         }
     }

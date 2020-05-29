@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,6 +44,7 @@ import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import hudson.model.Label;
+import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -52,10 +54,13 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -128,8 +133,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             new Thread(() -> {
                 long pos = 0;
                 try {
-                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
-                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
+                    while (true) {
+                        Jenkins j = Jenkins.getInstanceOrNull();
+                        if (j == null) {
+                            break;
+                        }
+                        // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
+                        File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
+                        if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
                             pos = c.getLogText().writeLogTo(pos, System.out);
                         }
                         Thread.sleep(100);
@@ -236,14 +247,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
-    }
-
-    @Test
-    public void runInPodWithDifferentShell() throws Exception {
-        r.assertBuildStatus(Result.FAILURE,r.waitForCompletion(b));
-        /* TODO instead the program fails with a IOException: Pipe closed from ContainerExecDecorator.doExec:
-        r.assertLogContains("/bin/bash: no such file or directory", b);
-        */
     }
 
     @Test
@@ -439,6 +442,21 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
     }
 
+    @Issue("JENKINS-59340")
+    @Test
+    public void containerTerminated() throws Exception {
+        assertBuildStatus(r.waitForCompletion(b), Result.FAILURE, Result.ABORTED);
+        r.waitForMessage("Container stress-ng was terminated", b);
+        r.waitForMessage("Reason: OOMKilled", b);
+    }
+
+    @Issue("JENKINS-59340")
+    @Test
+    public void podDeadlineExceeded() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+    }
+
     @Test
     public void interruptedPod() throws Exception {
         r.waitForMessage("starting to sleep", b);
@@ -606,5 +624,16 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
         }
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
+        for (Result s : status) {
+            if (s == run.getResult()) {
+                return run;
+            }
+        }
+        String msg = "unexpected build status; build log was:\n------\n" + r.getLog(run) + "\n------\n";
+        MatcherAssert.assertThat(msg, run.getResult(), Matchers.is(oneOf(status)));
+        return run;
     }
 }

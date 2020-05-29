@@ -36,11 +36,13 @@ public class ConfigMapVolume extends PodVolume {
 
     private String mountPath;
     private String configMapName;
+    private Boolean optional;
 
     @DataBoundConstructor
-    public ConfigMapVolume(String mountPath, String configMapName) {
+    public ConfigMapVolume(String mountPath, String configMapName, Boolean optional) {
         this.mountPath = mountPath;
         this.configMapName = configMapName;
+        this.optional = optional;
     }
 
     @Override
@@ -49,6 +51,7 @@ public class ConfigMapVolume extends PodVolume {
                 .withName(volumeName)
                 .withNewConfigMap()
                     .withName(getConfigMapName())
+                    .withOptional(getOptional())
                 .and()
                 .build();
     }
@@ -60,6 +63,10 @@ public class ConfigMapVolume extends PodVolume {
     @Override
     public String getMountPath() {
         return mountPath;
+    }
+
+    public Boolean getOptional() {
+        return optional;
     }
 
     @Extension

@@ -21,8 +21,8 @@ For that some environment variables are automatically injected:
 * `JENKINS_AGENT_NAME`: the name of the Jenkins agent
 * `JENKINS_NAME`: the name of the Jenkins agent (Deprecated. Only here for backwards compatibility)
 
-Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
-see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
+Tested with [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent),
+see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-agent).
 
 It is not required to run the Jenkins master inside Kubernetes. 
 # Generic Setup
@@ -198,7 +198,7 @@ Either way it provides access to the following fields:
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
-* **podRetention** Controls the behavior of keeping slave pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
+* **podRetention** Controls the behavior of keeping agent pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
@@ -604,7 +604,7 @@ See this [example](examples/openshift-home-yaml.groovy) configuration.
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
-See the [example](examples/windows.groovy).
+See the [example](src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/windows.groovy).
 
 # Constraints
 
@@ -616,7 +616,7 @@ Other containers must run a long running process, so the container does not exit
 just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
 
 **WARNING**
-If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
+If you want to provide your own Docker image for the JNLP agent, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two agents trying to concurrently connect to the master.
 
 
 
@@ -688,6 +688,33 @@ at `DEBUG` level.
 ## Deleting pods in bad state
 
     kubectl get pods -o name --selector=jenkins=slave --all-namespaces  | xargs -I {} kubectl delete {}
+
+## Pipeline `sh` step hangs when multiple containers are used
+To debug this you need to set `-Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true` system property
+and then restart the pipeline. Most likely in the console log you will see the following:
+```console
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp: Permission denied
+mv: can't rename '/home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp': No such file or directory
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+```
+Usually this happens when UID of the user in `jnlp` container differs from the one in other container(s). 
+All containers you use should have the same UID of the user, also this can be achieved by setting `securityContext`:
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    runAsUser: 1000 # default UID of jenkins user in default jnlp image
+  containers:
+  - name: maven
+    image: maven:3.3.9-jdk-8-alpine
+    command:
+    - cat
+    tty: true
+```
 
 # Building and Testing
 
@@ -847,7 +874,7 @@ Set `Container Cap` to a reasonable number for tests, i.e. 3.
 
 Add an image with
 
-* Docker image: `jenkins/jnlp-slave`
+* Docker image: `jenkins/inbound-agent`
 * Jenkins agent root directory: `/home/jenkins/agent`
 
 ![image](configuration.png)

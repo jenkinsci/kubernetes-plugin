@@ -26,9 +26,11 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -38,6 +40,7 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
@@ -94,14 +97,14 @@ public class RestartPipelineTest {
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
-        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
+        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY, false);
         TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
         TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
         TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
                 CONTAINER_ENV_VAR_VALUE);
         TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
-                "container-secret", SECRET_KEY);
+                                                                     "container-secret", SECRET_KEY, false);
         podTemplate.getContainers().get(0)
                 .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
     }
@@ -228,6 +231,29 @@ public class RestartPipelineTest {
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
             r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+        });
+    }
+
+    @Test
+    public void taskListenerAfterRestart() {
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureAgentListener();
+            configureCloud();
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("+ sleep", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            Optional<Node> first = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).findFirst();
+            assertTrue("Kubernetes node should be present after restart", first.isPresent());
+            KubernetesSlave node = (KubernetesSlave) first.get();
+            r.waitForMessage("Ready to run", b);
+            node.getTemplate().getListener().getLogger().println("This got printed");
+            r.waitForMessage("This got printed", b);
+            b.getExecutor().interrupt();
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         });
     }
 

@@ -1,0 +1,7 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - workspaceVolume:
+              emptyDir: {}

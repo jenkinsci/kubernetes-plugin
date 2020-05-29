@@ -2,14 +2,14 @@
 set -euxo pipefail
 
 export PATH=$WSTMP:$PATH
-if [ \! -f $WSTMP/kind ]
+if [ \! -x $WSTMP/kind ]
 then
-    curl -Lo $WSTMP/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-amd64
+    curl -Lo $WSTMP/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.8.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-amd64
     chmod +x $WSTMP/kind
 fi
-if [ \! -f $WSTMP/kubectl ]
+if [ \! -x $WSTMP/kubectl ]
 then
-    curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/$(uname | tr '[:upper:]' '[:lower:]')/amd64/kubectl
+    curl -Lo $WSTMP/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.18.2/bin/$(uname | tr '[:upper:]' '[:lower:]')/amd64/kubectl
     chmod +x $WSTMP/kubectl
 fi
 

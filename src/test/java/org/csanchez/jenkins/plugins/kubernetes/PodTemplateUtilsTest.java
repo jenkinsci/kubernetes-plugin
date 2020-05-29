@@ -334,12 +334,12 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldCombineAllPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
 
         PodTemplate template2 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
-        SecretEnvVar podSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2", false);
+        SecretEnvVar podSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3", false);
         template2.setEnvVars(asList(podSecretEnvVar2, podSecretEnvVar3));
 
         PodTemplate result = combine(template1, template2);
@@ -350,11 +350,11 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
 
         PodTemplate template2 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2", false);
         template2.setEnvVars(singletonList(podSecretEnvVar2));
 
         PodTemplate result = combine(template1, template2);
@@ -396,12 +396,12 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldCombineAllSecretEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
-        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(containerSecretEnvVar1));
 
         ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
-        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
-        SecretEnvVar containerSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2", false);
+        SecretEnvVar containerSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3", false);
         template2.setEnvVars(asList(containerSecretEnvVar2, containerSecretEnvVar3));
 
         ContainerTemplate result = combine(template1, template2);
@@ -572,11 +572,11 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldFilterOutNullOrEmptySecretEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
-        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(containerSecretEnvVar1));
 
         ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
-        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2", false);
         template2.setEnvVars(singletonList(containerSecretEnvVar2));
 
         ContainerTemplate result = combine(template1, template2);
