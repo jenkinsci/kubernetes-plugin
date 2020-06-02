@@ -25,7 +25,7 @@ spec:
           key: password
           name: container-secret
   nodeSelector:
-    beta.kubernetes.io/os: windows
+    kubernetes.io/os: windows
 ''') {
     node(POD_LABEL) {
         powershell 'echo "INSIDE_POD_ENV_VAR_FROM_SECRET = $Env:POD_ENV_VAR_FROM_SECRET or $($Env:POD_ENV_VAR_FROM_SECRET.ToUpper())"'
