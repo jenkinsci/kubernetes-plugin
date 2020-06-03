@@ -344,8 +344,8 @@ public class PodTemplateBuilderTest {
         assertNotNull(resources);
         Map<String, Quantity> requests = resources.getRequests();
         assertNotNull(requests);
-        assertTrue(requests.containsKey("cpu"));
-        assertTrue(requests.containsKey("memory"));
+        assertEquals(PodTemplateBuilder.DEFAULT_JNLP_CONTAINER_CPU_REQUEST, requests.get("cpu"));
+        assertEquals(PodTemplateBuilder.DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST, requests.get("memory"));
     }
 
     @Test
