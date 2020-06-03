@@ -27,7 +27,7 @@ see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-a
 It is not required to run the Jenkins master inside Kubernetes. 
 # Generic Setup
 ### Prerequisites
-* A running Kubernetes cluster
+* A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
 
