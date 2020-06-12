@@ -477,16 +477,19 @@ pipeline {
 
 Note that it was previously possible to define `containerTemplate` but that has been deprecated in favor of the yaml format.
 
+I'm sorry to bother you that you mentioned in pull requests.I am a novice in declarative script.Can I add examples of volumes and envVars?I have asked questions on stackoverflow and no one responded.
 ```groovy
 pipeline {
   agent {
     kubernetes {
       //cloud 'kubernetes'
+       volumes ?????
       containerTemplate {
         name 'maven'
         image 'maven:3.3.9-jdk-8-alpine'
         ttyEnabled true
         command 'cat'
+        envVars  ?????
       }
     }
   }
