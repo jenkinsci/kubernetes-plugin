@@ -96,7 +96,12 @@ public class PodTemplateBuilder {
 
     @VisibleForTesting
     static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/jnlp-slave:4.0.1-1");
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
+
+    static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
+    static final String DEFAULT_JNLP_CONTAINER_CPU_REQUEST = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", "100m");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -232,8 +237,7 @@ public class PodTemplateBuilder {
         // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
         if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
                 (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
-            // TODO kubernetes.io/os for 1.14+? but: https://github.com/aws/containers-roadmap/issues/542
-            pod.getSpec().setNodeSelector(Collections.singletonMap("beta.kubernetes.io/os", "linux"));
+            pod.getSpec().setNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux"));
         }
 
         // default jnlp container
@@ -254,7 +258,7 @@ public class PodTemplateBuilder {
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
-            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity("100m")).addToRequests("memory", new Quantity("256Mi")).endResources().build().getResources());
+            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
         }
         
         // If the volume mounts of any container has been set to null, set it to empty list.
