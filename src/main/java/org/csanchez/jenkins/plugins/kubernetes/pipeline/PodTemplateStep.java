@@ -414,6 +414,7 @@ public class PodTemplateStep extends Step implements Serializable {
             cloudName = Util.fixEmpty(cloudName);
             ListBoxModel result = new ListBoxModel();
             result.add("-- Default inheritance --", "<default>");
+            result.add("-- Disable inheritance --", " ");
             Cloud cloud;
             if (cloudName == null) {
                 cloud = Jenkins.get().clouds.get(KubernetesCloud.class);

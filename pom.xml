@@ -49,7 +49,7 @@
     <java.level>8</java.level>
     <jenkins.version>2.222.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <pipeline-model-definition.version>1.6.0</pipeline-model-definition.version>
+    <pipeline-model-definition.version>1.7.0</pipeline-model-definition.version>
     <useBeta>true</useBeta>
   </properties>
 

@@ -4,9 +4,11 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.Util;
+import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
@@ -370,6 +372,14 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         @SuppressWarnings("unused") // by stapler/jelly
         public ListBoxModel doFillInheritFromItems(@QueryParameter("cloud") String cloudName) {
             return ExtensionList.lookupSingleton(PodTemplateStep.DescriptorImpl.class).doFillInheritFromItems(cloudName);
+        }
+
+        public PodRetention getDefaultPodRetention() {
+            return PodRetention.getPodTemplateDefault();
+        }
+
+        public WorkspaceVolume getDefaultWorkspaceVolume() {
+            return WorkspaceVolume.getDefault();
         }
     }
 }

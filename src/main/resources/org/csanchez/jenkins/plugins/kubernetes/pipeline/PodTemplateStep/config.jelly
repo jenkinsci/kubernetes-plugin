@@ -3,8 +3,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
   <f:entry field="cloud" title="${%Cloud to use}">
-<!--    <f:select/>--> <!-- https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/390 -->
-      <f:textbox default="kubernetes"/>
+    <f:select default="kubernetes"/>
   </f:entry>
 
   <f:entry field="name" title="${%Name}">
@@ -24,8 +23,7 @@
   </f:entry>
 
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
-<!--    <f:select/>--> <!-- https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/390 -->
-    <f:textbox default="${descriptor.defaultInheritFrom}"/>
+    <f:select default="${descriptor.defaultInheritFrom}"/>
   </f:entry>
 
   <f:entry field="containers" title="${%Containers}" description="${%List of containers in the agent pod}">
