@@ -40,6 +40,9 @@
     <f:entry field="workingDir" title="${%Working directory}" >
       <f:textbox default="${descriptor.workingDir}"/>
     </f:entry>
+    <f:entry field="customWorkspace" title="${%Custom workspace}">
+      <f:textbox/>
+    </f:entry>
     <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
       <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
     </f:entry>

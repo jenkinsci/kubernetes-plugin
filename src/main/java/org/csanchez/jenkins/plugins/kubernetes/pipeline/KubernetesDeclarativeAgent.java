@@ -37,6 +37,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     @CheckForNull
     private String label;
+    @CheckForNull
+    private String customWorkspace;
 
     @CheckForNull
     private String cloud;
@@ -89,6 +91,16 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = Util.fixEmpty(label);
+    }
+
+    @CheckForNull
+    public String getCustomWorkspace() {
+        return customWorkspace;
+    }
+
+    @DataBoundSetter
+    public void setCustomWorkspace(String customWorkspace) {
+        this.customWorkspace = customWorkspace;
     }
 
     public String getCloud() {
