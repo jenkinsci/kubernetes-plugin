@@ -1,7 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
+import org.jenkinsci.plugins.pipeline.modeldefinition.generator.AgentDirective;
+import org.jenkinsci.plugins.pipeline.modeldefinition.generator.DirectiveGeneratorTester;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,9 +23,14 @@ public class KubernetesDeclarativeAgentUnitTest {
 
     KubernetesDeclarativeAgent instance;
 
+    DirectiveGeneratorTester dg;
+    AgentDirective directive;
+
     @Before
     public void setUp() {
         instance = new KubernetesDeclarativeAgent();
+        directive = new AgentDirective(instance);
+        dg = new DirectiveGeneratorTester(j);
     }
 
     @Test
@@ -32,7 +40,7 @@ public class KubernetesDeclarativeAgentUnitTest {
     }
 
     @Test
-    public void serialization() {
+    public void serialization() throws Exception {
         instance.setCloud("cloud");
         instance.setLabel("label");
         instance.setYaml("yaml");
@@ -50,5 +58,33 @@ public class KubernetesDeclarativeAgentUnitTest {
         assertThat(args.get("workspaceVolume"),equalTo(workspaceVolume));
         assertThat(args.get("idleMinutes"), equalTo(1));
         assertThat(args.get("inheritFrom"), equalTo("inheritFrom"));
+    }
+
+    @Test
+    public void simpleGenerator() throws Exception {
+        dg.assertGenerateDirective(directive, "agent {\n" +
+                "  kubernetes true\n" +
+                "}");
+    }
+
+    @Test
+    public void complexGenerator() throws Exception {
+        instance.setCloud("cloud");
+        instance.setYaml("yaml");
+        instance.setYamlMergeStrategy(new Merge());
+        DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume("sc", "1G", "ReadWrite");
+        instance.setWorkspaceVolume(workspaceVolume);
+        instance.setPodRetention(new Never());
+        instance.setInheritFrom("inheritFrom");
+        dg.assertGenerateDirective(directive, "agent {\n" +
+                "  kubernetes {\n" +
+                "    cloud 'cloud'\n" +
+                "    inheritFrom 'inheritFrom'\n" +
+                "    podRetention never()\n" +
+                "    workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')\n" +
+                "    yaml 'yaml'\n" +
+                "    yamlMergeStrategy merge()\n" +
+                "  }\n" +
+                "}");
     }
 }
