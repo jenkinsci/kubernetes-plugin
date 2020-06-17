@@ -3,7 +3,7 @@
     This means that the podTemplate will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inherits from.
 </p>
 <p>
-    Service account and Node selector when are overridden completely substitute any possible value found on the 'parent'.
+    Service account and Node selector, when overridden, completely replace any value found on the “parent”.
 </p>
 <p>
     Container templates that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the <i>parent</i> template, will inherit the configuration of the parent containerTemplate.<br/>

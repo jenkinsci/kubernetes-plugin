@@ -26,7 +26,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="containers"  title="${%Containers}" description="${%List of container in the agent pod}">
+    <f:entry field="containers" title="${%Containers}" description="${%List of container in the agent pod}">
         <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="${%Add Container}"
                                       deleteCaption="${%Delete Container}" />
     </f:entry>
@@ -64,7 +64,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="yaml" title="${%Raw yaml for the Pod}">
+    <f:entry field="yaml" title="${%Raw YAML for the Pod}">
       <f:textarea/>
     </f:entry>
 
@@ -74,7 +74,7 @@
       <f:checkbox default="true"/>
     </f:entry>
 
-    <f:entry title="${%ImagePullSecrets}" field="imagePullSecrets" description="${%List of image pull secrets}">
+    <f:entry title="${%ImagePullSecrets}" field="imagePullSecrets" description="${%Image pull secrets}">
       <f:repeatableHeteroProperty field="imagePullSecrets" hasHeader="true" addCaption="${%Add Image Pull Secret}"
                                   deleteCaption="${%Delete Image Pull Secret}" />
     </f:entry>

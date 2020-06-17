@@ -10,7 +10,7 @@
     <f:select/>
   </f:entry>
 
-  <f:entry field="yaml" title="${%Raw yaml for the Pod}">
+  <f:entry field="yaml" title="${%Raw YAML for the Pod}">
     <f:textarea/>
   </f:entry>
 
