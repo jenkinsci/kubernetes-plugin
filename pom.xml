@@ -120,7 +120,7 @@
       <artifactId>pipeline-model-definition</artifactId>
       <version>${pipeline-model-definition.version}</version>
       <classifier>tests</classifier>
-      <optional>true</optional>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
