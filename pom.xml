@@ -49,7 +49,7 @@
     <java.level>8</java.level>
     <jenkins.version>2.222.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <pipeline-model-definition.version>1.7.1-rc1835.0e9e50e4d159</pipeline-model-definition.version><!-- https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/396 -->
+    <pipeline-model-definition.version>1.7.1-rc1836.8776418d532d</pipeline-model-definition.version><!-- https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/396 -->
     <workflow-cps.version>2.81-rc2492.83316f41dee4</workflow-cps.version><!-- https://github.com/jenkinsci/workflow-cps-plugin/pull/362 -->
     <useBeta>true</useBeta>
   </properties>
