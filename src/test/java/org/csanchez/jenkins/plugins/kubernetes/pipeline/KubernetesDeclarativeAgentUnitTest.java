@@ -6,7 +6,7 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorks
 import org.jenkinsci.plugins.pipeline.modeldefinition.generator.AgentDirective;
 import org.jenkinsci.plugins.pipeline.modeldefinition.generator.DirectiveGeneratorTester;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -18,8 +18,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isA;
 
 public class KubernetesDeclarativeAgentUnitTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    @ClassRule
+    public static JenkinsRule j = new JenkinsRule();
 
     KubernetesDeclarativeAgent instance;
 
