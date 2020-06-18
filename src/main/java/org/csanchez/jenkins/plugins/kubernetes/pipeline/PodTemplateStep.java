@@ -402,7 +402,7 @@ public class PodTemplateStep extends Step implements Serializable {
         @SuppressWarnings("unused") // by stapler/jelly
         public ListBoxModel doFillCloudItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("-any-", "");
+            result.add("—any—", "");
             Jenkins.get().clouds
                     .getAll(KubernetesCloud.class)
                     .forEach(cloud -> result.add(cloud.name));
@@ -413,8 +413,8 @@ public class PodTemplateStep extends Step implements Serializable {
         public ListBoxModel doFillInheritFromItems(@QueryParameter("cloud") String cloudName) {
             cloudName = Util.fixEmpty(cloudName);
             ListBoxModel result = new ListBoxModel();
-            result.add("-Default inheritance-", "<default>");
-            result.add("-Disable inheritance-", " ");
+            result.add("—Default inheritance—", "<default>");
+            result.add("—Disable inheritance—", " ");
             Cloud cloud;
             if (cloudName == null) {
                 cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
