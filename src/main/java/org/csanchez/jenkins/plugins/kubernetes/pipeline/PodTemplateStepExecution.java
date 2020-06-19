@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -59,20 +60,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     @Override
     public boolean start() throws Exception {
-
-        Cloud cloud = Jenkins.get().getCloud(cloudName);
-        if (cloud == null) {
-            throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
-        }
-        if (!(cloud instanceof KubernetesCloud)) {
-            throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
-                    cloud.getClass().getName()));
-        }
-        KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
+        KubernetesCloud cloud = resolveCloud();
 
         Run<?, ?> run = getContext().get(Run.class);
-        if (kubernetesCloud.isUsageRestricted()) {
-            checkAccess(run, kubernetesCloud);
+        if (cloud.isUsageRestricted()) {
+            checkAccess(run, cloud);
         }
 
         PodTemplateContext podTemplateContext = getContext().get(PodTemplateContext.class);
@@ -91,7 +83,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             stepName = label;
         }
         String name = String.format(NAME_FORMAT, stepName, randString);
-        String namespace = checkNamespace(kubernetesCloud, podTemplateContext);
+        String namespace = checkNamespace(cloud, podTemplateContext);
 
         newTemplate = new PodTemplate();
         newTemplate.setName(name);
@@ -124,7 +116,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setListener(getContext().get(TaskListener.class));
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
-            String url = ((KubernetesCloud)cloud).getJenkinsUrlOrNull();
+            String url = cloud.getJenkinsUrlOrNull();
             if(url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
                 newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
@@ -157,7 +149,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             throw new AbortException(Messages.label_error(newTemplate.getLabel()));
         }
 
-        kubernetesCloud.addDynamicTemplate(newTemplate);
+        cloud.addDynamicTemplate(newTemplate);
         BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
         if (step.getLabel() == null) {
             invoker.withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), EnvironmentExpander.constant(Collections.singletonMap("POD_LABEL", label))));
@@ -165,6 +157,28 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         invoker.start();
 
         return false;
+    }
+
+    @NonNull
+    private KubernetesCloud resolveCloud() throws AbortException {
+        KubernetesCloud cloud;
+        if (cloudName == null) {
+            cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
+            if (cloud == null) {
+                throw new AbortException("No Kubernetes cloud was found.");
+            }
+        } else {
+            Cloud cl = Jenkins.get().getCloud(cloudName);
+            if (cl == null) {
+                throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
+            }
+            if (!(cl instanceof KubernetesCloud)) {
+                throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
+                        cl.getClass().getName()));
+            }
+            cloud = (KubernetesCloud) cl;
+        }
+        return cloud;
     }
 
     static String labelify(String input) {
@@ -216,21 +230,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void onResume() {
         super.onResume();
-        Cloud cloud = Jenkins.get().getCloud(cloudName);
-        if (cloud == null) {
-            throw new RuntimeException(String.format("Cloud does not exist: %s", cloudName));
-        }
-        if (!(cloud instanceof KubernetesCloud)) {
-            throw new RuntimeException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
-                    cloud.getClass().getName()));
-        }
         try {
-            newTemplate.setListener(getContext().get(TaskListener.class));
+            KubernetesCloud cloud = resolveCloud();
+            TaskListener listener = getContext().get(TaskListener.class);
+            newTemplate.setListener(listener);
+            cloud.addDynamicTemplate(newTemplate);
+        } catch (AbortException e) {
+            throw new RuntimeException(e.getMessage(), e.getCause());
         } catch (IOException | InterruptedException e) {
             LOGGER.log(Level.WARNING, "Unable to inject task listener", e);
         }
-        KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-        kubernetesCloud.addDynamicTemplate(newTemplate);
     }
 
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {
