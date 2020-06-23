@@ -20,6 +20,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.tasks.SimpleBuildWrapper;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
@@ -78,6 +79,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         if (credentialsId == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
         }
+        workspace.mkdirs();
         FilePath configFile = workspace.createTempFile(".kube", "config");
         Set<String> tempFiles = newHashSet(configFile.getRemote());
 
@@ -92,13 +94,10 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         if (auth == null) {
             throw new AbortException("Unsupported Credentials type " + credentials.getClass().getName());
         }
-        // create Kubeconfig
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(configFile.getRemote()), "UTF-8")) {
-            try {
-                w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
-            } catch (KubernetesAuthException e) {
-                throw new AbortException(e.getMessage());
-            }
+        try (Writer w = new OutputStreamWriter(configFile.write())) {
+            w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
+        } catch (KubernetesAuthException e) {
+            throw new AbortException(e.getMessage());
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -113,6 +112,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     }
 
     @Extension
+    @Symbol("kubectl")
     public static class DescriptorImpl extends BuildWrapperDescriptor {
 
         @Override
