@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Set;
 
@@ -94,7 +95,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         if (auth == null) {
             throw new AbortException("Unsupported Credentials type " + credentials.getClass().getName());
         }
-        try (Writer w = new OutputStreamWriter(configFile.write())) {
+        try (Writer w = new OutputStreamWriter(configFile.write(), StandardCharsets.UTF_8)) {
             w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
         } catch (KubernetesAuthException e) {
             throw new AbortException(e.getMessage());
@@ -112,7 +113,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     }
 
     @Extension
-    @Symbol("kubectl")
+    @Symbol("kubeconfig")
     public static class DescriptorImpl extends BuildWrapperDescriptor {
 
         @Override

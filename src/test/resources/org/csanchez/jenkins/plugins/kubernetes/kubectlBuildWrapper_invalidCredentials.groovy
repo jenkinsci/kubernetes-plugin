@@ -15,7 +15,7 @@ spec:
 ) {
   node(POD_LABEL) {
     container('kubectl') {
-      kubectl(serverUrl:'url',credentialsId:'id') {
+      kubeconfig(serverUrl:'url',credentialsId:'id') {
         sh 'kubectl version'
       }
     }

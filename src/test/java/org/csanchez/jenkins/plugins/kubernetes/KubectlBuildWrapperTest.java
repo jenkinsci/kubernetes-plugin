@@ -17,8 +17,6 @@ import static org.junit.Assert.assertNotNull;
 public class KubectlBuildWrapperTest extends AbstractKubernetesPipelineTest {
     @Before
     public void setUp() throws Exception {
-        // Had some problems with FileChannel.close hangs from WorkflowRun.save:
-        r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         assertNotNull(createJobThenScheduleRun());
         UsernamePasswordCredentialsImpl creds = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "id", "some credentials", "username", "password");
