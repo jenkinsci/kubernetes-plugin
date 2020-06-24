@@ -223,6 +223,12 @@
       <artifactId>test-harness</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!-- Required to test run src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/maven.groovy -->
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 
