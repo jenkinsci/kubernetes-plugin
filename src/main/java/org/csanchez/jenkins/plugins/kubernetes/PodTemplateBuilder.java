@@ -208,17 +208,19 @@ public class PodTemplateBuilder {
         Long runAsUser = template.getRunAsUserAsLong();
         Long runAsGroup = template.getRunAsGroupAsLong();
         String supplementalGroups = template.getSupplementalGroups();
-        PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
-        if (runAsUser != null) {
-            securityContext.withRunAsUser(runAsUser);
+        if (runAsUser != null || runAsGroup != null || supplementalGroups != null) {
+            PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
+            if (runAsUser != null) {
+                securityContext.withRunAsUser(runAsUser);
+            }
+            if (runAsGroup != null) {
+                securityContext.withRunAsGroup(runAsGroup);
+            }
+            if (supplementalGroups != null) {
+                securityContext.withSupplementalGroups(parseSupplementalGroupList(supplementalGroups));
+            }
+            securityContext.endSecurityContext();
         }
-        if (runAsGroup != null) {
-            securityContext.withRunAsGroup(runAsGroup);
-        }
-        if (supplementalGroups != null) {
-            securityContext.withSupplementalGroups(parseSupplementalGroupList(supplementalGroups));
-        }
-        securityContext.endSecurityContext();
 
         if (template.isHostNetworkSet()) {
             builder.withHostNetwork(template.isHostNetwork());
@@ -414,15 +416,18 @@ public class PodTemplateBuilder {
                     .build();
         }
 
-        return new ContainerBuilder()
+        ContainerBuilder containerBuilder = new ContainerBuilder()
                 .withName(substituteEnv(containerTemplate.getName()))
                 .withImage(substituteEnv(containerTemplate.getImage()))
-                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent")
-                .withNewSecurityContext()
-                .withPrivileged(containerTemplate.isPrivileged())
-                .withRunAsUser(containerTemplate.getRunAsUserAsLong())
-                .withRunAsGroup(containerTemplate.getRunAsGroupAsLong())
-                .endSecurityContext()
+                .withImagePullPolicy(containerTemplate.isAlwaysPullImage() ? "Always" : "IfNotPresent");
+        if (containerTemplate.isPrivileged() || containerTemplate.getRunAsUserAsLong() != null || containerTemplate.getRunAsGroupAsLong() != null) {
+            containerBuilder = containerBuilder.withNewSecurityContext()
+                    .withPrivileged(containerTemplate.isPrivileged())
+                    .withRunAsUser(containerTemplate.getRunAsUserAsLong())
+                    .withRunAsGroup(containerTemplate.getRunAsGroupAsLong())
+                .endSecurityContext();
+        }
+        return containerBuilder
                 .withWorkingDir(workingDir)
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
                 .addToEnv(envVars)

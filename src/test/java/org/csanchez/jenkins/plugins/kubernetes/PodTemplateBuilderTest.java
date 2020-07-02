@@ -3,8 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.stream.Collectors.toList;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -124,9 +128,7 @@ public class PodTemplateBuilderTest {
         template.setSupplementalGroups("");
         Pod pod = new PodTemplateBuilder(template).build();
         validatePod(pod, directConnection);
-        assertNull(pod.getSpec().getSecurityContext().getRunAsUser());
-        assertNull(pod.getSpec().getSecurityContext().getRunAsGroup());
-        assertEquals(new ArrayList<Long>(), pod.getSpec().getSecurityContext().getSupplementalGroups());
+        assertNull(pod.getSpec().getSecurityContext());
     }
 
     @Test
