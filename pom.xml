@@ -50,7 +50,7 @@
     <jenkins.version>2.222.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <pipeline-model-definition.version>1.7.1-rc1836.8776418d532d</pipeline-model-definition.version><!-- https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/396 -->
-    <workflow-cps.version>2.81-rc2492.83316f41dee4</workflow-cps.version><!-- https://github.com/jenkinsci/workflow-cps-plugin/pull/362 -->
+    <workflow-cps.version>2.81</workflow-cps.version>
     <useBeta>true</useBeta>
   </properties>
 
