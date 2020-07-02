@@ -293,18 +293,20 @@ public class PodTemplateUtils {
 
 
         // Security context
-        specBuilder.editOrNewSecurityContext()
-                .withRunAsUser(
-                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
-                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
-                        )
-                )
-                .withRunAsGroup(
-                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
-                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
-                        )
-                )
-                .endSecurityContext();
+        if (template.getSpec().getSecurityContext() != null || parent.getSpec().getSecurityContext() != null) {
+            specBuilder.editOrNewSecurityContext()
+                    .withRunAsUser(
+                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
+                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
+                            )
+                    )
+                    .withRunAsGroup(
+                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
+                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
+                            )
+                    )
+                    .endSecurityContext();
+        }
 
         // podTemplate.setLabel(label);
 //        podTemplate.setEnvVars(combineEnvVars(parent, template));

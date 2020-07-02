@@ -483,7 +483,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setSupplementalGroups(String supplementalGroups) {
-        this.supplementalGroups = supplementalGroups;
+        this.supplementalGroups = Util.fixEmpty(supplementalGroups);
     }
 
     public String getSupplementalGroups() {
