@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.annotations.VisibleForTesting;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
