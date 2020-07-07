@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import hudson.model.Node;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
