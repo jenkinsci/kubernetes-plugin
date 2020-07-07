@@ -95,11 +95,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return template;
     }
 
-    @VisibleForTesting
-    void clearTemplate() {
-        this.template = null;
-    }
-
     /**
      * @deprecated Use {@link Builder} instead.
      */

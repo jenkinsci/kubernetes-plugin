@@ -99,20 +99,6 @@ public class KubernetesSlaveTest {
         }
     }
 
-    @Test
-    public void nullLabel() throws Exception {
-        KubernetesCloud cloud = new KubernetesCloud("test");
-        PodTemplate pt = new PodTemplate();
-        pt.setName("test");
-        pt.setNodeUsageMode(Node.Mode.NORMAL);
-        cloud.setTemplates(Collections.singletonList(pt));
-        r.jenkins.clouds.add(cloud);
-        KubernetesSlave agent = new KubernetesSlave("test-foo", pt, "", "test", null, null, null);
-        agent.clearTemplate();
-        PodTemplate template = agent.getTemplate();
-        assertEquals(pt, template);
-    }
-
     private KubernetesSlaveTestCase<PodRetention> createPodRetentionTestCase(PodRetention cloudRetention,
             PodRetention templateRetention, PodRetention expectedResult) {
         return new KubernetesSlaveTestBuilder<PodRetention>().withCloudPodRetention(cloudRetention)
