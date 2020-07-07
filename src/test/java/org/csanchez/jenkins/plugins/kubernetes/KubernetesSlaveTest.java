@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import hudson.model.Node;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
@@ -96,6 +97,20 @@ public class KubernetesSlaveTest {
         } catch(IOException | Descriptor.FormException e) {
             fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void nullLabel() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("test");
+        PodTemplate pt = new PodTemplate();
+        pt.setName("test");
+        pt.setNodeUsageMode(Node.Mode.NORMAL);
+        cloud.setTemplates(Collections.singletonList(pt));
+        r.jenkins.clouds.add(cloud);
+        KubernetesSlave agent = new KubernetesSlave("test-foo", pt, "", "test", null, null, null);
+        agent.clearTemplate();
+        PodTemplate template = agent.getTemplate();
+        assertEquals(pt, template);
     }
 
     private KubernetesSlaveTestCase<PodRetention> createPodRetentionTestCase(PodRetention cloudRetention,

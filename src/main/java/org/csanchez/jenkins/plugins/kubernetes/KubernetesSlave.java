@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.annotations.VisibleForTesting;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
@@ -86,12 +87,17 @@ public class KubernetesSlave extends AbstractCloudSlave {
     public PodTemplate getTemplate() {
         // Look up updated pod template after a restart
         if (template == null) {
-            template = getKubernetesCloud().getTemplate(Label.get(getLabelString()));
+            template = getKubernetesCloud().getTemplate(Label.get(Util.fixEmpty(getLabelString())));
             if (template == null) {
                 throw new IllegalStateException("Not expecting pod template to be null at this point");
             }
         }
         return template;
+    }
+
+    @VisibleForTesting
+    void clearTemplate() {
+        this.template = null;
     }
 
     /**
