@@ -86,7 +86,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     public PodTemplate getTemplate() {
         // Look up updated pod template after a restart
         if (template == null) {
-            template = getKubernetesCloud().getTemplate(Label.get(getLabelString()));
+            template = getKubernetesCloud().getTemplate(Label.get(Util.fixEmpty(getLabelString())));
             if (template == null) {
                 throw new IllegalStateException("Not expecting pod template to be null at this point");
             }

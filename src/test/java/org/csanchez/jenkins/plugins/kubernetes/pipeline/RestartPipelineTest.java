@@ -148,6 +148,32 @@ public class RestartPipelineTest {
     }
 
     @Test
+    public void nullLabelSupportsRestart() {
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureAgentListener();
+            configureCloud();
+            PodTemplate pt = new PodTemplate();
+            pt.setName("test");
+            pt.setNodeUsageMode(Node.Mode.NORMAL);
+            ContainerTemplate ct = new ContainerTemplate("busybox", "busybox");
+            ct.setTtyEnabled(true);
+            ct.setCommand("/bin/cat");
+            pt.setContainers(Collections.singletonList(ct));
+            cloud.setTemplates(Collections.singletonList(pt));
+            r.jenkins.setNumExecutors(0);
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("+ sleep 5", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            r.waitForMessage("Ready to run", b);
+            r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
+        });
+    }
+
+    @Test
     public void runInPodWithRestartWithMultipleContainerCalls() throws Exception {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
