@@ -67,6 +67,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.VersionInfo;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
@@ -783,7 +784,8 @@ public class KubernetesCloud extends Cloud {
                         connectionTimeout, readTimeout).createClient()) {
                     // test listing pods
                     client.pods().list();
-                return FormValidation.ok("Connection test successful");
+                VersionInfo version = client.getVersion();
+                return FormValidation.ok("Connected to Kubernetes " + version.getMajor() + "." + version.getMinor());
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
                 return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getCause() == null
