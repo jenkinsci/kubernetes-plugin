@@ -179,7 +179,7 @@ public class PodTemplateUtils {
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values()));
-        if (privileged || runAsUser != null || runAsGroup != null) {
+        if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null) {
             containerBuilder = containerBuilder
                     .withNewSecurityContext()
                         .withPrivileged(privileged)
