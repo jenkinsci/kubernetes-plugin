@@ -164,7 +164,7 @@ public class PodTemplateUtils {
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
-        Container combined = new ContainerBuilder(parent) //
+        ContainerBuilder containerBuilder = new ContainerBuilder(parent) //
                 .withImage(image) //
                 .withName(name) //
                 .withImagePullPolicy(imagePullPolicy) //
@@ -178,15 +178,16 @@ public class PodTemplateUtils {
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
-                .withNewSecurityContext()
-                .withPrivileged(privileged)
-                .withRunAsUser(runAsUser)
-                .withRunAsGroup(runAsGroup)
-                .endSecurityContext() //
-                .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
-                .build();
-
-        return combined;
+                .withVolumeMounts(new ArrayList<>(volumeMounts.values()));
+        if (privileged || runAsUser != null || runAsGroup != null) {
+            containerBuilder = containerBuilder
+                    .withNewSecurityContext()
+                        .withPrivileged(privileged)
+                        .withRunAsUser(runAsUser)
+                        .withRunAsGroup(runAsGroup)
+                    .endSecurityContext();
+        }
+        return containerBuilder.build();
     }
 
     private static Map<String, Quantity> combineResources(Container parent, Container template,
