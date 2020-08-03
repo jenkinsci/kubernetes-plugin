@@ -6,12 +6,14 @@ import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,6 +73,11 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
             }
         }
         if (availableCapacity >= currentDemand) {
+            NodeProvisioner nodeProvisioner = label.nodeProvisioner;
+            if (availableCapacity > 0 && nodeProvisioner != null) {
+                LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
+                Timer.get().schedule(nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
+            }
             LOGGER.log(Level.FINE, "Provisioning completed");
             return NodeProvisioner.StrategyDecision.PROVISIONING_COMPLETED;
         } else {
