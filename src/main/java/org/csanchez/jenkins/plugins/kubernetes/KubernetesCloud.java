@@ -629,6 +629,15 @@ public class KubernetesCloud extends Cloud {
         return activeSlavePods;
     }
 
+    /**
+     * Gets {@link PodTemplate} that has the matching name.
+     * @param name name to look for in templates
+     * @return the template
+     */
+    public PodTemplate getTemplateByName(@CheckForNull String name) {
+        return PodTemplateUtils.getTemplateByName(name, getAllTemplates());
+    }
+
     @Override
     public boolean canProvision(@CheckForNull Label label) {
         return getTemplate(label) != null;
