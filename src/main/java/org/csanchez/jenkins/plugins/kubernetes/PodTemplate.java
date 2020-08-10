@@ -495,7 +495,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.hostNetwork = hostNetwork;
     }
 
-    public Boolean isHostNetwork() {
+    public boolean isHostNetwork() {
         return hostNetwork;
     }
 
