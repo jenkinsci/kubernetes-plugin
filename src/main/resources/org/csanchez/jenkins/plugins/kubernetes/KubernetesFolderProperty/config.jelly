@@ -14,7 +14,8 @@
 					<j:otherwise>
 						<j:forEach var="permission" items="${effectivePermissions}">
 							<f:entry field="${permission.formName}">
-								<kube:checkbox title="${permission.name}" checked="${permission.granted}" readonly="${permission.readonly}"/>
+								<j:set var="readOnlyMode" value="${permission.readonly}"/>
+								<f:checkbox title="${permission.name}" checked="${permission.granted}" />
 							</f:entry>
 						</j:forEach>
 					</j:otherwise>
