@@ -48,6 +48,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                         + snapshot.getConnectingExecutors()  // executors present but not yet connected
                         + strategyState.getPlannedCapacitySnapshot()     // capacity added by previous strategies from previous rounds
                         + strategyState.getAdditionalPlannedCapacity();  // capacity added by previous strategies _this round_
+        int previousCapacity = availableCapacity;
         int currentDemand = snapshot.getQueueLength();
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
@@ -72,12 +73,11 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 break;
             }
         }
+        if (availableCapacity > previousCapacity && label != null) {
+            LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
+            Timer.get().schedule(label.nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
+        }
         if (availableCapacity >= currentDemand) {
-            NodeProvisioner nodeProvisioner = label.nodeProvisioner;
-            if (availableCapacity > 0 && nodeProvisioner != null) {
-                LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
-                Timer.get().schedule(nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
-            }
             LOGGER.log(Level.FINE, "Provisioning completed");
             return NodeProvisioner.StrategyDecision.PROVISIONING_COMPLETED;
         } else {
