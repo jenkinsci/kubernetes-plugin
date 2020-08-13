@@ -14,6 +14,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.hash.Hashing;
 
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -395,9 +396,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label));
+        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label), "jenkins/label-md5", label == null ? "0" : Hashing.md5().hashString(label).toString());
     }
-
     static String sanitizeLabel(String input) {
         String label = input;
         int max = 63;

@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import hudson.model.Label;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -21,9 +22,11 @@ import hudson.Util;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDeclarativeAgent> {
 
@@ -66,6 +69,10 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     public String getLabel() {
         return label;
+    }
+
+    public String getLabelExpression() {
+        return label != null ? Label.parse(label).stream().map(Objects::toString).collect(Collectors.joining(" && ")) : null;
     }
 
     @DataBoundSetter
