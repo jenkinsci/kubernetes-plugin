@@ -496,7 +496,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean isHostNetwork() {
-        return hostNetwork;
+        return isHostNetworkSet()?hostNetwork.booleanValue():false;
     }
 
     public boolean isHostNetworkSet() {
