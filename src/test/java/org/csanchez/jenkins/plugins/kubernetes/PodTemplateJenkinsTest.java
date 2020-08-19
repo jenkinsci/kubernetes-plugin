@@ -1,11 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.hash.Hashing;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.util.Map;
+
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplate.LABEL_DIGEST_FUNCTION;
 import static org.junit.Assert.assertEquals;
 
 public class PodTemplateJenkinsTest {
@@ -17,8 +19,9 @@ public class PodTemplateJenkinsTest {
     public void singleLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo");
-        assertEquals("foo" , podTemplate.getLabelsMap().get("jenkins/label"));
-        assertEquals(Hashing.md5().hashString("foo").toString(), podTemplate.getLabelsMap().get("jenkins/label-md5"));
+        Map<String, String> labelsMap = podTemplate.getLabelsMap();
+        assertEquals("foo" , labelsMap.get("jenkins/label"));
+        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo").toString(), labelsMap.get("jenkins/label-digest"));
     }
 
     @Test
@@ -26,8 +29,9 @@ public class PodTemplateJenkinsTest {
     public void multiLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo bar");
-        assertEquals("foo_bar", podTemplate.getLabelsMap().get("jenkins/label"));
-        assertEquals(Hashing.md5().hashString("foo bar").toString(), podTemplate.getLabelsMap().get("jenkins/label-md5"));
+        Map<String, String> labelsMap = podTemplate.getLabelsMap();
+        assertEquals("foo_bar", labelsMap.get("jenkins/label"));
+        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo bar").toString(), labelsMap.get("jenkins/label-digest"));
     }
     
     @Test
@@ -35,7 +39,8 @@ public class PodTemplateJenkinsTest {
     public void defaultLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(null);
-        assertEquals("slave-default", podTemplate.getLabelsMap().get("jenkins/label"));
-        assertEquals("0", podTemplate.getLabelsMap().get("jenkins/label-md5"));
+        Map<String, String> labelsMap = podTemplate.getLabelsMap();
+        assertEquals("slave-default", labelsMap.get("jenkins/label"));
+        assertEquals("0", labelsMap.get("jenkins/label-digest"));
     }
 }

@@ -72,7 +72,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     }
 
     public String getLabelExpression() {
-        return label != null ? Label.parse(label).stream().map(Objects::toString).collect(Collectors.joining(" && ")) : null;
+        return label != null ? Label.parse(label).stream().map(Objects::toString).sorted().collect(Collectors.joining(" && ")) : null;
     }
 
     @DataBoundSetter

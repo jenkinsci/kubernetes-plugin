@@ -14,6 +14,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
 import hudson.model.AbstractDescribableImpl;
@@ -68,6 +69,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = Integer
             .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 100);
+
+    /**
+     * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
+     */
+    public static final HashFunction LABEL_DIGEST_FUNCTION = Hashing.sha1();
 
     private String inheritFrom;
 
@@ -396,8 +402,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label), "jenkins/label-md5", label == null ? "0" : Hashing.md5().hashString(label).toString());
+        if (label == null) {
+            return ImmutableMap.of(
+                    "jenkins/label", DEFAULT_LABEL,
+                    "jenkins/label-digest", "0"
+            );
+        } else {
+            return ImmutableMap.of(
+                    "jenkins/label", sanitizeLabel(label),
+                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
+            );
+        }
     }
+
     static String sanitizeLabel(String input) {
         String label = input;
         int max = 63;
