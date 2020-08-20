@@ -61,6 +61,10 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         FlowNode podTemplateNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("podTemplate"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
         assertNotNull("recorded arguments for podTemplate", podTemplateNode);
         Map<String, Object> arguments = podTemplateNode.getAction(ArgumentsAction.class).getArguments();
+        FlowNode nodeNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("node"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
+        assertNotNull("recorded arguments for node", nodeNode);
+        Map<String, Object> nodeArguments = nodeNode.getAction(ArgumentsAction.class).getArguments();
+        assertEquals("labels && multiple", nodeArguments.get("label"));
         @SuppressWarnings("unchecked")
         List<UninstantiatedDescribable> containers = (List<UninstantiatedDescribable>) arguments.get("containers");
         assertNotNull(containers);
