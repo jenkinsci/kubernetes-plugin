@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,7 +19,11 @@ import javax.annotation.Nonnull;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
+import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
@@ -325,6 +330,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         if (deletePod) {
             deleteSlavePod(listener, client);
+
         } else {
             // Log warning, as the slave pod may still be running
             LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",

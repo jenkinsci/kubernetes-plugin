@@ -63,7 +63,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
  */
 @Extension
 public class Reaper extends ComputerListener implements Watcher<Pod> {
-    
+
     private static final Logger LOGGER = Logger.getLogger(Reaper.class.getName());
 
     /**
@@ -260,7 +260,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
             List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
                 ContainerStateWaiting waiting = cs.getState().getWaiting();
-                return waiting != null && waiting.getMessage() != null && waiting.getMessage().contains("Back-off pulling image");
+                return waiting != null && waiting.getReason().equals("ImagePullBackOff") && waiting.getMessage() != null && waiting.getMessage().contains("Back-off pulling image");
             });
             if (backOffContainers.isEmpty()) {
                 return;

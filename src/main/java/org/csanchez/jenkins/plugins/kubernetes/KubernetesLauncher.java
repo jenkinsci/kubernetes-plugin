@@ -138,6 +138,17 @@ public class KubernetesLauncher extends JNLPLauncher {
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
                 assert watcher != null; // assigned 3 lines above
                 watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+            } catch (InvalidPodTemplateException e) {
+                LOGGER.info("Caught invalid pod template exception");
+                switch (e.getReason()) {
+                    case "ImagePullBackOff":
+                        runListener.getLogger().printf(e.getMessage());
+                        PodUtils.cancelInvalidPodTemplateJob(pod, "ImagePullBackOff");
+                        break;
+                    default:
+                        LOGGER.warning("Unknown reason for InvalidPodTemplateException : " + e.getReason());
+                        break;
+                }
             }
             LOGGER.log(INFO, "Pod is running: {0}/{1}", new Object[] { namespace, podName });
 
