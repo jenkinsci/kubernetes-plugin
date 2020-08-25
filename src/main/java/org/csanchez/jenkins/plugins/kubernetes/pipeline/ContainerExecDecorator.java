@@ -93,8 +93,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
      * A higher value will consume more memory
      */
-    private static final int STDIN_BUFFER_SIZE = Integer
-            .getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 2 * 1024);
+    public static int STDIN_BUFFER_SIZE = Integer.getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 16 * 1024);
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
@@ -612,6 +611,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     }
 
     private static void doExec(PrintStream in, PrintStream out, boolean[] masks, String... statements) {
+        long start = System.nanoTime();
         // For logging
         ByteArrayOutputStream loggingOutput = new ByteArrayOutputStream();
         // Tee both outputs
@@ -632,7 +632,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                    .append("\" ");
             }
             tee.println();
-            LOGGER.log(Level.FINEST, loggingOutput.toString(encoding));
+            LOGGER.log(Level.FINEST, loggingOutput.toString(encoding) + "[" + TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start) + " μs." + "]");
             // We need to exit so that we know when the command has finished.
             tee.println(EXIT);
             tee.flush();
