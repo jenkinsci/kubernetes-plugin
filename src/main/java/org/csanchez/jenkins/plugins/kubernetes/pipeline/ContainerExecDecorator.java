@@ -93,7 +93,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
      * stdin buffer size for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed.
      * A higher value will consume more memory
      */
-    private final static int STDIN_BUFFER_SIZE = Integer.getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 16 * 1024);
+    private static final int STDIN_BUFFER_SIZE = Integer.getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 16 * 1024);
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
