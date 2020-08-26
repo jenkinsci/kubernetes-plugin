@@ -38,9 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Queue;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
