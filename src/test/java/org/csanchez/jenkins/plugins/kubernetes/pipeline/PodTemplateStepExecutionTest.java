@@ -76,14 +76,4 @@ public class PodTemplateStepExecutionTest {
         r.waitForMessage(Messages.RFC1123_error("badcontainername_!, badcontainername2_!"), b);
     }
 
-    @Test
-    public void testBadLabel() throws Exception {
-        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_label");
-        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badlabel.groovy"), true));
-        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
-        assertNotNull(b);
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.waitForMessage(Messages.label_error("mypod!123"), b);
-    }
-
 }
