@@ -124,12 +124,22 @@ public class KubernetesLauncher extends JNLPLauncher {
                     .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
             slave.setNamespace(namespace);
 
+
+            TaskListener runListener = template.getListener();
+
             LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
-            pod = client.pods().inNamespace(namespace).create(pod);
+            try {
+                pod = client.pods().inNamespace(namespace).create(pod);
+            } catch (KubernetesClientException e) {
+                if (e.getMessage() != null && e.getMessage().contains("pod rejected due to") && e.getMessage().contains("openpolicyagent")) {
+                    runListener.getLogger().printf("ERROR: Unable to create pod. " + e.getMessage());
+                    PodUtils.cancelInvalidPodTemplateJob(pod, "OPA Violation");
+                }
+                throw e;
+            }
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podName });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
-            TaskListener runListener = template.getListener();
             runListener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
