@@ -24,6 +24,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
 import org.apache.commons.codec.binary.Base64;
@@ -138,6 +139,7 @@ public class KubernetesCloud extends Cloud {
     @DataBoundConstructor
     public KubernetesCloud(String name) {
         super(name);
+        setMaxRequestsPerHost(DEFAULT_MAX_REQUESTS_PER_HOST);
     }
 
     /**
@@ -993,6 +995,19 @@ public class KubernetesCloud extends Cloud {
         @Override
         public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
             return cloud.getTemplates();
+        }
+    }
+
+    @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
+    public static void hpiRunInit() {
+        if (Main.isDevelopmentMode) {
+            Jenkins jenkins = Jenkins.get();
+            String hostAddress = System.getProperty("jenkins.host.address");
+            if (hostAddress != null && jenkins.clouds.getAll(KubernetesCloud.class).isEmpty()) {
+                KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+                cloud.setJenkinsUrl("http://" + hostAddress + ":8080/jenkins/");
+                jenkins.clouds.add(cloud);
+            }
         }
     }
 }
