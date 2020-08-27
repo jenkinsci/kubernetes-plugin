@@ -537,24 +537,25 @@ public class KubernetesCloud extends Cloud {
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
             LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: {0}", toBeProvisioned);
 
-            List<NodeProvisioner.PlannedNode> r = new ArrayList<NodeProvisioner.PlannedNode>();
+            List<NodeProvisioner.PlannedNode> plannedNodes = new ArrayList<>();
 
-            for (PodTemplate t: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getName() });
+            for (PodTemplate podTemplate: getTemplatesFor(label)) {
+                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, podTemplate.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
-                    if (!addProvisionedSlave(t, label, i)) {
+                    // Check concurrency limits
+                    if (!addProvisionedSlave(podTemplate, label, i, allInProvisioning.size())) {
                         break;
                     }
-                    r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
+                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).build());
                 }
                 LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
-                        new Object[] { t.getName(), r.size() });
-                if (r.size() > 0) {
-                    // Already found a matching template
-                    return r;
+                        new Object[] { podTemplate.getName(), plannedNodes.size() });
+                if (plannedNodes.size() > 0) {
+                    // Return early when a matching template was found and nodes were planned
+                    return plannedNodes;
                 }
             }
-            return r;
+            return plannedNodes;
         } catch (KubernetesClientException e) {
             Throwable cause = e.getCause();
             if (cause instanceof SocketTimeoutException || cause instanceof ConnectException || cause instanceof UnknownHostException) {
@@ -576,7 +577,8 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
+    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int numProvisioned,
+                                        int numInProvisioning) throws Exception {
         if (containerCap == 0) {
             return false;
         }
@@ -589,25 +591,27 @@ public class KubernetesCloud extends Cloud {
             templateNamespace = client.getNamespace();
         }
 
+        // check overall concurrency limit using the default label(s) on all templates
         Map<String, String> podLabels = getPodLabelsMap();
-        long allNumActiveSlavePods = getNumActiveSlavePods(client, templateNamespace, podLabels);
-        if (allNumActiveSlavePods + scheduledCount >= containerCap) {
+        long numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
+        if (numRunningOrPending + numProvisioned + numInProvisioning >= containerCap) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, " +
                             "not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, allNumActiveSlavePods + scheduledCount, templateNamespace, getLabels(), name });
+                    new Object[] { containerCap, numRunningOrPending, templateNamespace, getLabels(), name });
             return false;
         }
 
-        Map<String, String> labelsMap = new HashMap<>(podLabels);
-        labelsMap.putAll(template.getLabelsMap());
-        long numActiveTemplateSlavePods = getNumActiveSlavePods(client, templateNamespace, labelsMap);
-        if (numActiveTemplateSlavePods + scheduledCount >= template.getInstanceCap()) {
+        // check template-level concurrency limit using template-level labels
+        Map<String, String> templateLabels = new HashMap<>(podLabels);
+        templateLabels.putAll(template.getLabelsMap());
+        numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
+        if (numRunningOrPending + numProvisioned + numInProvisioning >= template.getInstanceCap()) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, " +
                             "not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), numActiveTemplateSlavePods + scheduledCount,
-                            templateNamespace, label == null ? "" : label.toString(), labelsMap, name });
+                    new Object[] { template.getInstanceCap(), template.getName(), numRunningOrPending,
+                            templateNamespace, label == null ? "" : label.toString(), templateLabels, name });
             return false;
         }
         return true;
