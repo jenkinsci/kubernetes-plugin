@@ -26,6 +26,8 @@ import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.slaves.Cloud;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
@@ -269,12 +271,14 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 TaskListener runListener = node.getTemplate().getListener();
                 runListener.error("Unable to pull Docker image \""+cs.getImage()+"\". Check if image tag name is spelled correctly.");
             });
-            Queue q = Jenkins.get().getQueue();
-            String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-            for (Queue.Item item: q.getItems()) {
-                if (item.task.getUrl().equals(runUrl)) {
-                    q.cancel(item);
-                    break;
+            try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
+                Queue q = Jenkins.get().getQueue();
+                String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+                for (Queue.Item item : q.getItems()) {
+                    if (item.task.getUrl().equals(runUrl)) {
+                        q.cancel(item);
+                        break;
+                    }
                 }
             }
             node.terminate();
