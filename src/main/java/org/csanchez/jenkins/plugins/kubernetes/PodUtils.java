@@ -16,13 +16,13 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.ctc.wstx.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Queue;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +63,7 @@ public final class PodUtils {
         for (Queue.Item item: q.getItems()) {
             if (item.task.getUrl().equals(runUrl)) {
                 String cancelMsg = "Canceling queue item: " + item;
-                if (reason != null && !StringUtil.isAllWhitespace(reason)) {
+                if (reason != null && !StringUtils.isAllWhitespace(reason)) {
                     cancelMsg += " due to " + reason;
                 }
                 LOGGER.info(cancelMsg);
