@@ -63,7 +63,7 @@ public final class PodUtils {
         for (Queue.Item item: q.getItems()) {
             if (item.task.getUrl().equals(runUrl)) {
                 String cancelMsg = "Canceling queue item: " + item;
-                if (reason != null && !StringUtils.isAllWhitespace(reason)) {
+                if (reason != null && !StringUtils.isBlank(reason)) {
                     cancelMsg += " due to " + reason;
                 }
                 LOGGER.info(cancelMsg);
