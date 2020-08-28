@@ -2,7 +2,6 @@ package io.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
-import hudson.model.Node;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
