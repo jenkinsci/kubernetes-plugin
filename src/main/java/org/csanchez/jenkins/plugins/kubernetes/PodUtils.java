@@ -57,7 +57,7 @@ public final class PodUtils {
         return getContainerStatus(pod).stream().filter(predicate).collect(Collectors.toList());
     }
 
-    public static void cancelInvalidPodTemplateJob(Pod pod, String reason) {
+    public static void cancelQueueItemFor(Pod pod, String reason) {
         Queue q = Jenkins.get().getQueue();
         String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
         for (Queue.Item item: q.getItems()) {
@@ -66,11 +66,11 @@ public final class PodUtils {
                 if (reason != null && !StringUtils.isBlank(reason)) {
                     cancelMsg += " due to " + reason;
                 }
-                LOGGER.info(cancelMsg);
+                LOGGER.fine(cancelMsg);
                 q.cancel(item);
                 break;
             }
         }
-        LOGGER.info("Failed to find corresponding queue item to cancel for pod: " + pod);
+        LOGGER.fine("Failed to find corresponding queue item to cancel for pod: " + pod);
     }
 }

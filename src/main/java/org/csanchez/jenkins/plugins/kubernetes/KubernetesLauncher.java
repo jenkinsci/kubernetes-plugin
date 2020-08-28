@@ -133,7 +133,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             } catch (KubernetesClientException e) {
                 if (e.getMessage() != null && e.getMessage().contains("pod rejected due to") && e.getMessage().contains("openpolicyagent")) {
                     runListener.getLogger().printf("ERROR: Unable to create pod. " + e.getMessage());
-                    PodUtils.cancelInvalidPodTemplateJob(pod, "OPA Violation");
+                    PodUtils.cancelQueueItemFor(pod, "OPA Violation");
                 }
                 throw e;
             }
