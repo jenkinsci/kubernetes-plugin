@@ -2,6 +2,7 @@ package io.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
+import hudson.model.Node;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
@@ -52,6 +53,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
         int totalPlannedNodes = 0;
+        boolean canProvision = false;
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             Collections.shuffle(jenkinsClouds);
@@ -64,6 +66,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                         continue;
                     }
                 }
+                canProvision = true;
                 Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
@@ -77,6 +80,9 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         if (currentDemand - availableCapacity <= 0) {
             LOGGER.log(Level.FINE, String.format("Provisioning completed for label: [%s]", label));
         } else {
+            if (!canProvision) {
+                return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
+            }
             if (totalPlannedNodes > 0 && label != null) {
                 LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
                 Timer.get().schedule(label.nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
