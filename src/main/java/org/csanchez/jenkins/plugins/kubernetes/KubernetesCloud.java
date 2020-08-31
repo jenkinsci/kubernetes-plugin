@@ -545,7 +545,7 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, podTemplate.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
                     // Check concurrency limits
-                    if (!addProvisionedSlave(podTemplate, label, i, allInProvisioning.size())) {
+                    if (!addProvisionedSlave(podTemplate, label, i + allInProvisioning.size())) {
                         break;
                     }
                     plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).build());
