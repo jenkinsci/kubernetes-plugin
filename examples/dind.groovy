@@ -31,7 +31,7 @@ spec:
     node(POD_LABEL) {
         git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
         container('docker') {
-            sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
+            sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing -f 11/alpine/Dockerfile .'
         }
     }
 }
