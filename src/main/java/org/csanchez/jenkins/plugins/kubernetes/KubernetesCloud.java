@@ -607,7 +607,7 @@ public class KubernetesCloud extends Cloud {
         Map<String, String> templateLabels = new HashMap<>(podLabels);
         templateLabels.putAll(template.getLabelsMap());
         numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
-        if (numRunningOrPending + numProvisioned + numInProvisioning >= template.getInstanceCap()) {
+        if (numRunningOrPending + numProvisioned >= template.getInstanceCap()) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, " +
                             "not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
