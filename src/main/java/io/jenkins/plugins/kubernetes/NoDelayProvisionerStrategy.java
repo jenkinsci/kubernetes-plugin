@@ -6,12 +6,14 @@ import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +48,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                         + snapshot.getConnectingExecutors()  // executors present but not yet connected
                         + strategyState.getPlannedCapacitySnapshot()     // capacity added by previous strategies from previous rounds
                         + strategyState.getAdditionalPlannedCapacity();  // capacity added by previous strategies _this round_
+        int previousCapacity = availableCapacity;
         int currentDemand = snapshot.getQueueLength();
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
@@ -69,6 +72,10 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[]{availableCapacity, currentDemand});
                 break;
             }
+        }
+        if (availableCapacity > previousCapacity && label != null) {
+            LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
+            Timer.get().schedule(label.nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
         }
         if (availableCapacity >= currentDemand) {
             LOGGER.log(Level.FINE, "Provisioning completed");

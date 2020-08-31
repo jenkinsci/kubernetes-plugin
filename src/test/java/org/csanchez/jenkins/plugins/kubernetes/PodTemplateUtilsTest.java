@@ -427,6 +427,7 @@ public class PodTemplateUtilsTest {
 
         // Config maps and secrets could potentially overwrite each other's variables. We should preserve their order.
         assertThat(result.getEnvFrom(), contains(configMap1, secret1, configMap2, secret2));
+        assertNull(result.getSecurityContext());
     }
 
     @Test

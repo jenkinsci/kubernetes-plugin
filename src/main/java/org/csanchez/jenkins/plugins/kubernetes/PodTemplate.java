@@ -14,6 +14,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -67,6 +69,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = Integer
             .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 100);
+
+    /**
+     * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
+     */
+    public static final HashFunction LABEL_DIGEST_FUNCTION = Hashing.sha1();
 
     private String inheritFrom;
 
@@ -395,7 +402,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Map<String, String> getLabelsMap() {
-        return ImmutableMap.of("jenkins/label", label == null ? DEFAULT_LABEL : sanitizeLabel(label));
+        if (label == null) {
+            return ImmutableMap.of(
+                    "jenkins/label", DEFAULT_LABEL,
+                    "jenkins/label-digest", "0"
+            );
+        } else {
+            return ImmutableMap.of(
+                    "jenkins/label", sanitizeLabel(label),
+                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
+            );
+        }
     }
 
     static String sanitizeLabel(String input) {
@@ -483,7 +500,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setSupplementalGroups(String supplementalGroups) {
-        this.supplementalGroups = supplementalGroups;
+        this.supplementalGroups = Util.fixEmpty(supplementalGroups);
     }
 
     public String getSupplementalGroups() {
@@ -495,8 +512,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.hostNetwork = hostNetwork;
     }
 
-    public Boolean isHostNetwork() {
-        return hostNetwork;
+    public boolean isHostNetwork() {
+        return isHostNetworkSet()?hostNetwork.booleanValue():false;
     }
 
     public boolean isHostNetworkSet() {

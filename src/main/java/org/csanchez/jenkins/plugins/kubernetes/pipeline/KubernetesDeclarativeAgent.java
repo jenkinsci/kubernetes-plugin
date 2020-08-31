@@ -5,6 +5,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Descriptor;
+import hudson.model.Label;
 import hudson.util.ListBoxModel;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -27,9 +28,11 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDeclarativeAgent> {
 
@@ -86,6 +89,10 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
 
     public String getLabel() {
         return label;
+    }
+
+    public String getLabelExpression() {
+        return label != null ? Label.parse(label).stream().map(Objects::toString).sorted().collect(Collectors.joining(" && ")) : null;
     }
 
     @DataBoundSetter

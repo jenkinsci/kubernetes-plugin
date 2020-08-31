@@ -164,7 +164,7 @@ public class PodTemplateUtils {
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
         template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
-        Container combined = new ContainerBuilder(parent) //
+        ContainerBuilder containerBuilder = new ContainerBuilder(parent) //
                 .withImage(image) //
                 .withName(name) //
                 .withImagePullPolicy(imagePullPolicy) //
@@ -178,15 +178,16 @@ public class PodTemplateUtils {
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
-                .withNewSecurityContext()
-                .withPrivileged(privileged)
-                .withRunAsUser(runAsUser)
-                .withRunAsGroup(runAsGroup)
-                .endSecurityContext() //
-                .withVolumeMounts(new ArrayList<>(volumeMounts.values())) //
-                .build();
-
-        return combined;
+                .withVolumeMounts(new ArrayList<>(volumeMounts.values()));
+        if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null) {
+            containerBuilder = containerBuilder
+                    .withNewSecurityContext()
+                        .withPrivileged(privileged)
+                        .withRunAsUser(runAsUser)
+                        .withRunAsGroup(runAsGroup)
+                    .endSecurityContext();
+        }
+        return containerBuilder.build();
     }
 
     private static Map<String, Quantity> combineResources(Container parent, Container template,
@@ -293,18 +294,20 @@ public class PodTemplateUtils {
 
 
         // Security context
-        specBuilder.editOrNewSecurityContext()
-                .withRunAsUser(
-                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
-                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
-                        )
-                )
-                .withRunAsGroup(
-                        template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
-                                parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
-                        )
-                )
-                .endSecurityContext();
+        if (template.getSpec().getSecurityContext() != null || parent.getSpec().getSecurityContext() != null) {
+            specBuilder.editOrNewSecurityContext()
+                    .withRunAsUser(
+                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
+                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
+                            )
+                    )
+                    .withRunAsGroup(
+                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
+                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
+                            )
+                    )
+                    .endSecurityContext();
+        }
 
         // podTemplate.setLabel(label);
 //        podTemplate.setEnvVars(combineEnvVars(parent, template));
@@ -414,7 +417,11 @@ public class PodTemplateUtils {
 
         podTemplate.setSupplementalGroups(template.getSupplementalGroups() != null ? template.getSupplementalGroups() : parent.getSupplementalGroups());
 
-        podTemplate.setHostNetwork(template.isHostNetworkSet() ? template.isHostNetwork() : parent.isHostNetwork());
+        if (template.isHostNetworkSet()) {
+            podTemplate.setHostNetwork(template.isHostNetwork());
+        } else if (parent.isHostNetworkSet()) {
+            podTemplate.setHostNetwork(parent.isHostNetwork());
+        }
 
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
