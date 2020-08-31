@@ -595,7 +595,7 @@ public class KubernetesCloud extends Cloud {
         // check overall concurrency limit using the default label(s) on all templates
         Map<String, String> podLabels = getPodLabelsMap();
         long numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
-        if (numRunningOrPending + numProvisioned + numInProvisioning >= containerCap) {
+        if (numRunningOrPending + numProvisioned >= containerCap) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, " +
                             "not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
