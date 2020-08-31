@@ -1,0 +1,50 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry field="cloud" title="${%Cloud to use}">
+    <f:select/>
+  </f:entry>
+  <f:entry field="namespace" title="${%Namespace}">
+    <f:textbox/>
+  </f:entry>
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
+    <f:select/>
+  </f:entry>
+
+  <f:entry field="yaml" title="${%Raw YAML for the Pod}">
+    <f:textarea/>
+  </f:entry>
+
+  <f:advanced>
+    <f:entry field="instanceCap" title="${%Max number of instances}">
+      <f:textbox default="0"/>
+    </f:entry>
+    <f:entry title="${%Pod Retention}">
+      <f:dropdownDescriptorSelector field="podRetention" default="${descriptor.defaultPodRetention}"/>
+    </f:entry>
+    <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
+      <f:textbox/>
+    </f:entry>
+    <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
+      <f:textbox default="0"/>
+    </f:entry>
+    <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
+      <f:number/>
+    </f:entry>
+
+    <f:entry field="serviceAccount" title="${%Service Account}">
+      <f:textbox/>
+    </f:entry>
+    <f:entry field="nodeSelector" title="${%Node Selector}">
+      <f:textbox/>
+    </f:entry>
+    <f:entry field="workingDir" title="${%Working directory}" >
+      <f:textbox default="${descriptor.workingDir}"/>
+    </f:entry>
+    <f:entry field="customWorkspace" title="${%Custom workspace}">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
+      <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+    </f:entry>
+  </f:advanced>
+</j:jelly>
