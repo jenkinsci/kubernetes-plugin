@@ -221,11 +221,6 @@ public class KubernetesCloudTest {
         Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
         assertEquals(200, plannedNodes.size());
 
-        cloud.setContainerCapStr("0");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(0, plannedNodes.size());
-
         cloud.setContainerCapStr("10");
         podTemplate.setInstanceCap(20);
         plannedNodes = cloud.provision(test, 200);
