@@ -582,7 +582,7 @@ public class KubernetesCloud extends Cloud {
     private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int numProvisioned,
                                         int numInProvisioning) throws Exception {
         if (containerCap == 0) {
-            return false;
+            return true;
         }
 
         KubernetesClient client = connect();
