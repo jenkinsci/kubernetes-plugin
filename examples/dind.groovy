@@ -32,7 +32,7 @@ spec:
       mountPath: /var/run
 ''') {
     node(POD_LABEL) {
-        writeFile encoding: 'UTF-8', file: 'Dockerfile', text: 'FROM scratch'
+        writeFile file: 'Dockerfile', text: 'FROM scratch'
         container('docker') {
             sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
         }
