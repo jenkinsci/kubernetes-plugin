@@ -579,8 +579,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int numProvisioned,
-                                        int numInProvisioning) throws Exception {
+    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int numProvisioned) throws Exception {
         if (containerCap == 0) {
             return true;
         }
