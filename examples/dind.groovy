@@ -29,9 +29,9 @@ spec:
         value: ""
 ''') {
     node(POD_LABEL) {
-        git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
+        writeFile encoding: 'UTF-8', file: 'Dockerfile', text: 'FROM scratch'
         container('docker') {
-            sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing -f 11/alpine/Dockerfile .'
+            sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
         }
     }
 }
