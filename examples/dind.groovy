@@ -10,6 +10,9 @@ podTemplate(yaml: '''
 apiVersion: v1
 kind: Pod
 spec:
+  volumes:
+  - name: docker-socket
+    emptyDir: {}
   containers:
   - name: docker
     image: docker:19.03.1
@@ -17,16 +20,16 @@ spec:
     - sleep
     args:
     - 99d
-    env:
-      - name: DOCKER_HOST
-        value: tcp://localhost:2375
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
   - name: docker-daemon
     image: docker:19.03.1-dind
     securityContext:
       privileged: true
-    env:
-      - name: DOCKER_TLS_CERTDIR
-        value: ""
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
 ''') {
     node(POD_LABEL) {
         writeFile encoding: 'UTF-8', file: 'Dockerfile', text: 'FROM scratch'
