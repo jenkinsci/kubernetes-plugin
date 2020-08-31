@@ -56,7 +56,10 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -127,13 +130,18 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             TaskListener runListener = template.getListener();
 
-            LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
+            LOGGER.log(FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
             try {
                 pod = client.pods().inNamespace(namespace).create(pod);
             } catch (KubernetesClientException e) {
-                if (e.getMessage() != null && e.getMessage().contains("pod rejected due to") && e.getMessage().contains("openpolicyagent")) {
+                String k8sCode = Integer.toString(e.getCode());
+                if (k8sCode.startsWith("4")) { // 4xx
                     runListener.getLogger().printf("ERROR: Unable to create pod. " + e.getMessage());
-                    PodUtils.cancelQueueItemFor(pod, "OPA Violation");
+                    PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                } else if (k8sCode.startsWith("5")) { // 5xx
+                    LOGGER.log(FINE,"Kubernetes code {0}. Retrying...", e.getCode());
+                } else {
+                    LOGGER.log(WARNING, "Unknown Kubernetes code {0}", e.getCode());
                 }
                 throw e;
             }
