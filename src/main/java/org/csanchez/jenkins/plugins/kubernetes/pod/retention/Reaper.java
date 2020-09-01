@@ -272,14 +272,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 runListener.error("Unable to pull Docker image \""+cs.getImage()+"\". Check if image tag name is spelled correctly.");
             });
             try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
-                Queue q = Jenkins.get().getQueue();
-                String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
-                for (Queue.Item item : q.getItems()) {
-                    if (item.task.getUrl().equals(runUrl)) {
-                        q.cancel(item);
-                        break;
-                    }
-                }
+                PodUtils.cancelQueueItemFor(pod, "ImagePullBackOff");
             }
             node.terminate();
         }

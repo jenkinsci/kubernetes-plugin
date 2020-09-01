@@ -17,16 +17,22 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.Queue;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public final class PodUtils {
+    private static final Logger LOGGER = Logger.getLogger(PodUtils.class.getName());
 
     public static final Predicate<ContainerStatus> CONTAINER_IS_TERMINATED = cs -> cs.getState().getTerminated() != null;
     public static final Predicate<ContainerStatus> CONTAINER_IS_WAITING = cs -> cs.getState().getWaiting() != null;
@@ -50,5 +56,33 @@ public final class PodUtils {
 
     public static List<ContainerStatus> getContainers(Pod pod, Predicate<ContainerStatus> predicate) {
         return getContainerStatus(pod).stream().filter(predicate).collect(Collectors.toList());
+    }
+
+    /**
+     * Cancel queue items matching the given pod.
+     * It uses the annotation "runUrl" added to the pod to do the matching.
+     *
+     * It uses the current thread context to list item queues,
+     * so make sure to be in the right context before calling this method.
+     *
+     * @param pod The pod to cancel items for.
+     * @param reason The reason the item are being cancelled.
+     */
+    public static void cancelQueueItemFor(Pod pod, String reason) {
+        Queue q = Jenkins.get().getQueue();
+        boolean cancelled = false;
+        for (Queue.Item item: q.getItems()) {
+            Queue.Task task = item.task;
+            if (task.getUrl().equals(pod.getMetadata().getAnnotations().get("runUrl"))) {
+                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}",
+                        new Object[]{ task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""});
+                q.cancel(item);
+                cancelled = true;
+                break;
+            }
+        }
+        if (!cancelled) {
+            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {pod.getMetadata().getNamespace(), pod.getMetadata().getName()});
+        }
     }
 }
