@@ -134,11 +134,11 @@ public class KubernetesLauncher extends JNLPLauncher {
             try {
                 pod = client.pods().inNamespace(namespace).create(pod);
             } catch (KubernetesClientException e) {
-                String k8sCode = Integer.toString(e.getCode());
-                if (k8sCode.startsWith("4")) { // 4xx
+                int k8sCode = e.getCode();
+                if (k8sCode >= 400 && k8sCode < 500) { // 4xx
                     runListener.getLogger().printf("ERROR: Unable to create pod. " + e.getMessage());
                     PodUtils.cancelQueueItemFor(pod, e.getMessage());
-                } else if (k8sCode.startsWith("5")) { // 5xx
+                } else if (k8sCode >= 500 && k8sCode < 600) { // 5xx
                     LOGGER.log(FINE,"Kubernetes code {0}. Retrying...", e.getCode());
                 } else {
                     LOGGER.log(WARNING, "Unknown Kubernetes code {0}", e.getCode());
