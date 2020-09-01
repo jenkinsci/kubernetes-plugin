@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -57,20 +58,31 @@ public final class PodUtils {
         return getContainerStatus(pod).stream().filter(predicate).collect(Collectors.toList());
     }
 
+    /**
+     * Cancel queue items matching the given pod.
+     * It uses the annotation "runUrl" added to the pod to do the matching.
+     *
+     * It uses the current thread context to list item queues,
+     * so make sure to be in the right context before calling this method.
+     *
+     * @param pod The pod to cancel items for.
+     * @param reason The reason the item are being cancelled.
+     */
     public static void cancelQueueItemFor(Pod pod, String reason) {
         Queue q = Jenkins.get().getQueue();
-        String runUrl = pod.getMetadata().getAnnotations().get("runUrl");
+        boolean cancelled = false;
         for (Queue.Item item: q.getItems()) {
-            if (item.task.getUrl().equals(runUrl)) {
-                String cancelMsg = "Canceling queue item: " + item;
-                if (reason != null && !StringUtils.isBlank(reason)) {
-                    cancelMsg += " due to " + reason;
-                }
-                LOGGER.fine(cancelMsg);
+            Queue.Task task = item.task;
+            if (task.getUrl().equals(pod.getMetadata().getAnnotations().get("runUrl"))) {
+                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}",
+                        new Object[]{ task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""});
                 q.cancel(item);
+                cancelled = true;
                 break;
             }
         }
-        LOGGER.fine("Failed to find corresponding queue item to cancel for pod: " + pod);
+        if (!cancelled) {
+            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {pod.getMetadata().getNamespace(), pod.getMetadata().getName()});
+        }
     }
 }

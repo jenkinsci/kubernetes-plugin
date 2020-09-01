@@ -38,9 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Queue;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -134,14 +132,14 @@ public class KubernetesLauncher extends JNLPLauncher {
             try {
                 pod = client.pods().inNamespace(namespace).create(pod);
             } catch (KubernetesClientException e) {
-                int k8sCode = e.getCode();
-                if (k8sCode >= 400 && k8sCode < 500) { // 4xx
-                    runListener.getLogger().printf("ERROR: Unable to create pod. " + e.getMessage());
+                int httpCode = e.getCode();
+                if (400 <= httpCode && httpCode < 500) { // 4xx
+                    runListener.getLogger().printf("ERROR: Unable to create pod %s/%s.%n%s%n", namespace, pod.getMetadata().getName(), e.getMessage());
                     PodUtils.cancelQueueItemFor(pod, e.getMessage());
-                } else if (k8sCode >= 500 && k8sCode < 600) { // 5xx
-                    LOGGER.log(FINE,"Kubernetes code {0}. Retrying...", e.getCode());
+                } else if (500 <= httpCode && httpCode < 600) { // 5xx
+                    LOGGER.log(FINE,"Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {e.getCode(), e.getStatus()});
                 } else {
-                    LOGGER.log(WARNING, "Unknown Kubernetes code {0}", e.getCode());
+                    LOGGER.log(WARNING, "Kubernetes returned unhandled HTTP code {0} {1}", new Object[] {e.getCode(), e.getStatus()});
                 }
                 throw e;
             }
