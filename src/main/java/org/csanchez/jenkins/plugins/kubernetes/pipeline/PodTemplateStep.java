@@ -5,10 +5,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
+import hudson.model.Job;
+import hudson.slaves.Cloud;
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -28,16 +35,16 @@ import hudson.Util;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import org.kohsuke.stapler.QueryParameter;
+
 import javax.annotation.CheckForNull;
 
 public class PodTemplateStep extends Step implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
-    private static final String DEFAULT_CLOUD = "kubernetes";
-
     @CheckForNull
-    private String cloud = DEFAULT_CLOUD;
+    private String cloud;
 
     @CheckForNull
     private String inheritFrom;
@@ -383,6 +390,47 @@ public class PodTemplateStep extends Step implements Serializable {
 
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
+
+        static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+
+        public DescriptorImpl() {
+            for (String field : POD_TEMPLATE_FIELDS) {
+                addHelpFileRedirect(field, PodTemplate.class, field);
+            }
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillCloudItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add("—any—", "");
+            Jenkins.get().clouds
+                    .getAll(KubernetesCloud.class)
+                    .forEach(cloud -> result.add(cloud.name));
+            return result;
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillInheritFromItems(@QueryParameter("cloud") String cloudName) {
+            cloudName = Util.fixEmpty(cloudName);
+            ListBoxModel result = new ListBoxModel();
+            result.add("—Default inheritance—", "<default>");
+            result.add("—Disable inheritance—", " ");
+            Cloud cloud;
+            if (cloudName == null) {
+                cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
+            } else {
+                cloud = Jenkins.get().getCloud(cloudName);
+            }
+            if (cloud instanceof KubernetesCloud) {
+                List<PodTemplate> templates = ((KubernetesCloud) cloud).getTemplates();
+                result.addAll(templates.stream()
+                        .filter(template -> StringUtils.isNotEmpty(template.getName()))
+                        .map(PodTemplate::getName)
+                        .map(ListBoxModel.Option::new)
+                        .collect(Collectors.toList()));
+            }
+            return result;
+        }
 
         @Override
         public String getFunctionName() {

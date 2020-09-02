@@ -626,6 +626,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
+    @Test
+    public void invalidPodGetsCancelled() throws Exception {
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Unable to create pod", b);
+        r.assertLogContains("ERROR: Queue task was cancelled", b);
+    }
+
     private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
         for (Result s : status) {
             if (s == run.getResult()) {

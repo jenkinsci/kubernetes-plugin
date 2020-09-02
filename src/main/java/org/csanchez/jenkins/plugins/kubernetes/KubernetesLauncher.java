@@ -38,9 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Queue;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -56,7 +54,10 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
+
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -124,12 +125,27 @@ public class KubernetesLauncher extends JNLPLauncher {
                     .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
             slave.setNamespace(namespace);
 
-            LOGGER.log(Level.FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
-            pod = client.pods().inNamespace(namespace).create(pod);
+
+            TaskListener runListener = template.getListener();
+
+            LOGGER.log(FINE, "Creating Pod: {0}/{1}", new Object[] { namespace, podName });
+            try {
+                pod = client.pods().inNamespace(namespace).create(pod);
+            } catch (KubernetesClientException e) {
+                int httpCode = e.getCode();
+                if (400 <= httpCode && httpCode < 500) { // 4xx
+                    runListener.getLogger().printf("ERROR: Unable to create pod %s/%s.%n%s%n", namespace, pod.getMetadata().getName(), e.getMessage());
+                    PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                } else if (500 <= httpCode && httpCode < 600) { // 5xx
+                    LOGGER.log(FINE,"Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {e.getCode(), e.getStatus()});
+                } else {
+                    LOGGER.log(WARNING, "Kubernetes returned unhandled HTTP code {0} {1}", new Object[] {e.getCode(), e.getStatus()});
+                }
+                throw e;
+            }
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podName });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
-            TaskListener runListener = template.getListener();
             runListener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());

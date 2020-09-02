@@ -923,6 +923,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {
 
+        static final String[] STRING_FIELDS = {
+                "activeDeadlineSeconds",
+                "idleMinutes",
+                "instanceCap",
+                "slaveConnectTimeout",
+        };
+
+        public DescriptorImpl() {
+            for (String field : STRING_FIELDS) {
+                addHelpFileRedirect(field + "Str", PodTemplate.class, field);
+            }
+        }
+
         @Override
         public String getDisplayName() {
             return "Kubernetes Pod Template";
