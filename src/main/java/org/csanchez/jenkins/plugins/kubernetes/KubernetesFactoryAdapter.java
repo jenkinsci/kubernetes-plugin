@@ -56,6 +56,7 @@ public class KubernetesFactoryAdapter {
     private final int connectTimeout;
     private final int readTimeout;
     private final int maxRequestsPerHost;
+    private final boolean useJenkinsProxy;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
@@ -69,11 +70,11 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) throws KubernetesAuthException {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
+        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST,false);
     }
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) throws KubernetesAuthException {
+                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost, boolean useJenkinsProxy) throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
@@ -82,6 +83,7 @@ public class KubernetesFactoryAdapter {
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.maxRequestsPerHost = maxRequestsPerHost;
+        this.useJenkinsProxy = useJenkinsProxy;
     }
 
     public KubernetesClient createClient() throws KubernetesAuthException {
@@ -123,19 +125,21 @@ public class KubernetesFactoryAdapter {
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         // JENKINS-63584 If Jenkins has an configured Proxy pass the arguments to K8S
-        Jenkins jenkins = Jenkins.getInstanceOrNull(); // this code might run on slaves
-        if (jenkins != null) {
-            ProxyConfiguration p = jenkins.proxy ;
-            if (p != null) {
-                builder.withWebsocketTimeout(10000);
-                builder.withHttpsProxy("http://" + p.name + ":" + p.port);
-                builder.withHttpProxy("http://" + p.name + ":" + p.port);
-                if(p.name!=null) {
-                    String password = getProxyPasswordDecrypted(p);
-                    builder.withProxyUsername(p.name);
-                    builder.withProxyPassword(password);
+        if(useJenkinsProxy) {
+            Jenkins jenkins = Jenkins.getInstanceOrNull(); // this code might run on slaves
+            if (jenkins != null) {
+                ProxyConfiguration p = jenkins.proxy;
+                if (p != null) {
+                    builder.withWebsocketTimeout(10000);
+                    builder.withHttpsProxy("http://" + p.name + ":" + p.port);
+                    builder.withHttpProxy("http://" + p.name + ":" + p.port);
+                    if (p.name != null) {
+                        String password = getProxyPasswordDecrypted(p);
+                        builder.withProxyUsername(p.name);
+                        builder.withProxyPassword(password);
+                    }
+                    builder.withNoProxy(p.getNoProxyHost().split("\n"));
                 }
-                builder.withNoProxy(p.getNoProxyHost().split("\n"));
             }
         }
         return new DefaultKubernetesClient(builder.build());

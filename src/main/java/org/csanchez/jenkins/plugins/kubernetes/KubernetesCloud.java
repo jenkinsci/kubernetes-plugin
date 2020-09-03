@@ -102,6 +102,7 @@ public class KubernetesCloud extends Cloud {
     @Nonnull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
+    private boolean useJenkinsProxy;
     @CheckForNull
     private String serverCertificate;
 
@@ -176,6 +177,10 @@ public class KubernetesCloud extends Cloud {
         setReadTimeout(readTimeout);
 
     }
+
+    public boolean isUseJenkinsProxy() { return useJenkinsProxy; }
+
+    public void setUseJenkinsProxy(boolean useJenkinsProxy) { this.useJenkinsProxy = useJenkinsProxy; }
 
     public boolean isUsageRestricted() {
         return usageRestricted;

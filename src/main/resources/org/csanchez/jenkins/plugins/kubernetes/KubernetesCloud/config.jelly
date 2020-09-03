@@ -11,6 +11,10 @@
         <f:textbox/>
       </f:entry>
 
+      <f:entry title="${%Jenkins Proxy}" field="useJenkinsProxy">
+        <f:checkbox/>
+      </f:entry>
+
       <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
         <f:textarea/>
       </f:entry>
