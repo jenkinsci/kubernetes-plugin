@@ -31,6 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.ArrayList;
@@ -338,12 +339,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
                     boolean[] masks, String... commands) throws IOException {
-                waitUntilPodContainersAreReady();
-
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
                 final AtomicBoolean alive = new AtomicBoolean(false);
-
+                final AtomicLong startAlive = new AtomicLong();
+                long startMethod = System.nanoTime();
 
                 PrintStream printStream = launcher.getListener().getLogger();
                 OutputStream stream = printStream;
@@ -376,6 +376,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onOpen(Response response) {
                                 alive.set(true);
                                 started.countDown();
+                                startAlive.set(System.nanoTime());
                                 LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
                             }
 
@@ -396,7 +397,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onClose(int i, String s) {
                                 alive.set(false);
                                 started.countDown();
-                                LOGGER.log(Level.FINEST, "onClose : {0}", finished);
+                                LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
                                 if (finished.getCount() == 0) {
                                     LOGGER.log(Level.WARNING,
                                             "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
@@ -478,7 +479,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     doExec(in, printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
-                            + containerName + "]");
+                            + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
                     closables.add(proc);
                     return proc;
@@ -518,38 +519,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             );
                         }
                     }
-            }
-
-            private void waitUntilPodContainersAreReady() throws IOException {
-                LOGGER.log(Level.FINEST, "Waiting until pod containers are ready: {0}/{1}",
-                        new String[] { getNamespace(), getPodName() });
-                try {
-                    Pod pod = getClient().pods().inNamespace(getNamespace()).withName(getPodName())
-                            .waitUntilReady(CONTAINER_READY_TIMEOUT, TimeUnit.MINUTES);
-                    LOGGER.log(Level.FINEST, "Pod is ready: {0}/{1}", new String[] { getNamespace(), getPodName() });
-
-                    if (pod == null || pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
-                        throw new IOException("Failed to execute shell script inside container " +
-                                "[" + containerName + "] of pod [" + getPodName() + "]." +
-                                "Failed to get container status");
-                    }
-
-                    for (ContainerStatus info : pod.getStatus().getContainerStatuses()) {
-                        if (info.getName().equals(containerName)) {
-                            if (info.getReady()) {
-                                return;
-                            } else {
-                                // container died in the meantime
-                                throw new IOException("container [" + containerName + "] of pod [" + getPodName() + "] is not ready, state is " + info.getState());
-                            }
-                        }
-                    }
-                    throw new IOException("container [" + containerName + "] does not exist in pod [" + getPodName() + "]");
-                } catch (InterruptedException | KubernetesClientTimeoutException e) {
-                    throw new IOException("Failed to execute shell script inside container " +
-                            "[" + containerName + "] of pod [" + getPodName() + "]." +
-                            " Timed out waiting for container to become ready!", e);
-                }
             }
         };
     }
