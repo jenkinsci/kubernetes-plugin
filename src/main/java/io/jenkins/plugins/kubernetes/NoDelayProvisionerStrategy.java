@@ -6,12 +6,14 @@ import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,12 +30,12 @@ import java.util.logging.Logger;
 public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
 
     private static final Logger LOGGER = Logger.getLogger(NoDelayProvisionerStrategy.class.getName());
-    private static final boolean DISABLE_NODELAY_PROVISING = Boolean.valueOf(
+    private static final boolean DISABLE_NO_DELAY_PROVISIONING = Boolean.parseBoolean(
             System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
 
     @Override
     public NodeProvisioner.StrategyDecision apply(NodeProvisioner.StrategyState strategyState) {
-        if (DISABLE_NODELAY_PROVISING) {
+        if (DISABLE_NO_DELAY_PROVISIONING) {
             LOGGER.log(Level.FINE, "Provisioning not complete, NoDelayProvisionerStrategy is disabled");
             return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
         }
@@ -49,6 +51,8 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         int currentDemand = snapshot.getQueueLength();
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
+        int totalPlannedNodes = 0;
+        boolean canProvision = false;
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             Collections.shuffle(jenkinsClouds);
@@ -61,22 +65,29 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                         continue;
                     }
                 }
+                canProvision = true;
                 Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
                 strategyState.recordPendingLaunches(plannedNodes);
                 availableCapacity += plannedNodes.size();
+                totalPlannedNodes += plannedNodes.size();
                 LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[]{availableCapacity, currentDemand});
                 break;
             }
         }
-        if (availableCapacity >= currentDemand) {
-            LOGGER.log(Level.FINE, "Provisioning completed");
-            return NodeProvisioner.StrategyDecision.PROVISIONING_COMPLETED;
+        if (currentDemand - availableCapacity <= 0) {
+            LOGGER.log(Level.FINE, String.format("Provisioning completed for label: [%s]", label));
         } else {
-            LOGGER.log(Level.FINE, "Provisioning not complete, consulting remaining strategies");
-            return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
+            if (!canProvision) {
+                return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
+            }
+            if (totalPlannedNodes > 0 && label != null) {
+                LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
+                Timer.get().schedule(label.nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
+            }
         }
+        return NodeProvisioner.StrategyDecision.PROVISIONING_COMPLETED;
     }
 
     private static void fireOnStarted(final Cloud cloud, final Label label,

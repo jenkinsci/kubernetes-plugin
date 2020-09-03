@@ -144,11 +144,6 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
 
-        // Note that after JENKINS-51248 this must be a single label atom, not a space-separated list, unlike PodTemplate.label generally.
-        if (!PodTemplateUtils.validateLabel(newTemplate.getLabel())) {
-            throw new AbortException(Messages.label_error(newTemplate.getLabel()));
-        }
-
         cloud.addDynamicTemplate(newTemplate);
         BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
         if (step.getLabel() == null) {
@@ -259,12 +254,12 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         protected void finished(StepContext context) throws Exception {
             Cloud cloud = Jenkins.get().getCloud(cloudName);
             if (cloud == null) {
-                LOGGER.log(Level.WARNING, "Cloud {0} no longer exists, cannot delete pod template {1}",
+                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
                         new Object[] { cloudName, podTemplate.getName() });
                 return;
             }
             if (cloud instanceof KubernetesCloud) {
-                LOGGER.log(Level.INFO, "Removing pod template {1} from cloud {0}",
+                LOGGER.log(Level.FINE, "Removing pod template {1} from cloud {0}",
                         new Object[] { cloud.name, podTemplate.getName() });
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeDynamicTemplate(podTemplate);
