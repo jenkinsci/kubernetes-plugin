@@ -11,7 +11,7 @@
         <f:textbox/>
       </f:entry>
 
-      <f:entry title="${%Jenkins Proxy}" field="useJenkinsProxy">
+      <f:entry title="${%Use Jenkins Proxy}" field="useJenkinsProxy">
         <f:checkbox/>
       </f:entry>
 
