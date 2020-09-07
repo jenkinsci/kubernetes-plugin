@@ -105,7 +105,7 @@ public class KubernetesClientProvider {
     private static int getValidity(KubernetesCloud cloud) {
         return Objects.hashCode(cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
                 cloud.getCredentialsId(), cloud.isSkipTlsVerify(), cloud.getConnectTimeout(), cloud.getReadTimeout(),
-                cloud.getMaxRequestsPerHostStr());
+                cloud.getMaxRequestsPerHostStr(), cloud.isUseJenkinsProxy());
     }
 
     private static class Client {

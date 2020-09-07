@@ -125,10 +125,13 @@ public class KubernetesFactoryAdapter {
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         // JENKINS-63584 If Jenkins has an configured Proxy and cloud has enabled proxy usage pass the arguments to K8S
+        LOGGER.log(FINE, "Proxy Settings for Cloud: " + useJenkinsProxy);
         if(useJenkinsProxy) {
             Jenkins jenkins = Jenkins.getInstanceOrNull(); // this code might run on slaves
+            LOGGER.log(FINE, "Jenkins Instance: " + jenkins);
             if (jenkins != null) {
                 ProxyConfiguration p = jenkins.proxy;
+                LOGGER.log(FINE,"Proxy Instance: " + p);
                 if (p != null) {
                     builder.withWebsocketTimeout(10000);
                     builder.withHttpsProxy("http://" + p.name + ":" + p.port);
