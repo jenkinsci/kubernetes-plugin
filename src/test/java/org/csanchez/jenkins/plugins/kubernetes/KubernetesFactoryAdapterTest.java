@@ -29,19 +29,16 @@ import static org.junit.Assert.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import jenkins.model.Jenkins;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.fabric8.kubernetes.client.Config.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.junit.runner.RunWith;
 
 /**
  * Test the creation of clients
  */
-
 public class KubernetesFactoryAdapterTest {
 
     private static final String[] SYSTEM_PROPERTY_NAMES = new String[] { //
