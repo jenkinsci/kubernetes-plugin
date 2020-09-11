@@ -102,6 +102,7 @@ public class KubernetesCloud extends Cloud {
     @Nonnull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
+    private boolean useJenkinsProxy;
     @CheckForNull
     private String serverCertificate;
 
@@ -176,6 +177,10 @@ public class KubernetesCloud extends Cloud {
         setReadTimeout(readTimeout);
 
     }
+
+    public boolean isUseJenkinsProxy() { return useJenkinsProxy; }
+    @DataBoundSetter
+    public void setUseJenkinsProxy(boolean useJenkinsProxy) { this.useJenkinsProxy = useJenkinsProxy; }
 
     public boolean isUsageRestricted() {
         return usageRestricted;
@@ -733,7 +738,8 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(credentialsId, that.credentialsId) &&
                 Objects.equals(podLabels, that.podLabels) &&
                 Objects.equals(podRetention, that.podRetention) &&
-                Objects.equals(waitForPodSec, that.waitForPodSec);
+                Objects.equals(waitForPodSec, that.waitForPodSec) &&
+                useJenkinsProxy==that.useJenkinsProxy;
     }
 
     @Override
@@ -741,7 +747,7 @@ public class KubernetesCloud extends Cloud {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
                 addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
-                maxRequestsPerHost, podRetention);
+                maxRequestsPerHost, podRetention, useJenkinsProxy);
     }
 
     public Integer getWaitForPodSec() {
@@ -959,6 +965,7 @@ public class KubernetesCloud extends Cloud {
                 ", maxRequestsPerHost=" + maxRequestsPerHost +
                 ", waitForPodSec=" + waitForPodSec +
                 ", podRetention=" + podRetention +
+                ", useJenkinsProxy=" + useJenkinsProxy +
                 '}';
     }
 
