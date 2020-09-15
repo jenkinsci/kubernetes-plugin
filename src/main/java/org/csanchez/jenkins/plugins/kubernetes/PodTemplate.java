@@ -76,7 +76,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     public static final HashFunction LABEL_DIGEST_FUNCTION = Hashing.sha1();
 
-    @Nonnull
     private String id;
 
     private String inheritFrom;
