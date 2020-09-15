@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -85,7 +86,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         String name = String.format(NAME_FORMAT, stepName, randString);
         String namespace = checkNamespace(cloud, podTemplateContext);
 
-        newTemplate = new PodTemplate();
+        newTemplate = new PodTemplate(UUID.randomUUID().toString());
         newTemplate.setName(name);
         newTemplate.setNamespace(namespace);
 

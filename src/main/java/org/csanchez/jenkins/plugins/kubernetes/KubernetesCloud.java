@@ -651,6 +651,11 @@ public class KubernetesCloud extends Cloud {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
     }
 
+    @CheckForNull
+    public PodTemplate getTemplateById(@Nonnull String id) {
+        return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);
+    }
+
     /**
      * Unwraps the given pod template.
      * @param podTemplate the pod template to unwrap.
