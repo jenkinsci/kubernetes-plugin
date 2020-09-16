@@ -187,7 +187,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @CheckForNull
     private PodRetention podRetention = PodRetention.getPodTemplateDefault();
 
-    @Deprecated
     public PodTemplate() {
         this((String) null);
     }
