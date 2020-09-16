@@ -45,8 +45,12 @@ import java.util.regex.Pattern;
 
 import hudson.EnvVars;
 import hudson.model.Computer;
+import hudson.model.TaskListener;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.AllContainersRunningPodWatcher;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -115,16 +119,37 @@ public class ContainerExecDecoratorTest {
         deletePods(client, getLabels(this, name), false);
 
         String image = "busybox";
-        Container c = new ContainerBuilder().withName(image).withImagePullPolicy("IfNotPresent").withImage(image)
-                .withCommand("cat").withTty(true).build();
-        Container d = new ContainerBuilder().withName(image + "1").withImagePullPolicy("IfNotPresent").withImage(image)
-                .withCommand("cat").withTty(true).withWorkingDir("/home/jenkins/agent1").build();
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder().withNewMetadata().withName(podName)
-                .withLabels(getLabels(this, name)).endMetadata().withNewSpec().withContainers(c, d).withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux")).withTerminationGracePeriodSeconds(0L).endSpec().build());
+        pod = client.pods().create(new PodBuilder()
+                .withNewMetadata()
+                    .withName(podName)
+                    .withLabels(getLabels(this, name))
+                .endMetadata()
+                .withNewSpec()
+                    .withContainers(new ContainerBuilder()
+                                .withName(image)
+                                .withImagePullPolicy("IfNotPresent")
+                                .withImage(image)
+                                .withCommand("cat")
+                                .withTty(true)
+                            .build(), new ContainerBuilder()
+                            .withName(image + "1")
+                            .withImagePullPolicy("IfNotPresent")
+                            .withImage(image)
+                            .withCommand("cat")
+                            .withTty(true)
+                            .withWorkingDir("/home/jenkins/agent1")
+                            .build())
+                    .withNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux"))
+                    .withTerminationGracePeriodSeconds(0L)
+                .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
-
+        AllContainersRunningPodWatcher watcher = new AllContainersRunningPodWatcher(client, pod, TaskListener.NULL);
+        try (Watch w1 = client.pods().withName(podName).watch(watcher);) {
+            assert watcher != null; // assigned 3 lines above
+            watcher.await(30, TimeUnit.SECONDS);
+        }
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
         agent = mock(KubernetesSlave.class);
@@ -254,8 +279,8 @@ public class ContainerExecDecoratorTest {
     @Issue("JENKINS-46719")
     public void testContainerDoesNotExist() throws Exception {
         decorator.setContainerName("doesNotExist");
-        exception.expect(IOException.class);
-        exception.expectMessage(containsString("container [doesNotExist] does not exist in pod ["));
+        exception.expect(KubernetesClientException.class);
+        exception.expectMessage(containsString("container doesNotExist is not valid for pod"));
         execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 
