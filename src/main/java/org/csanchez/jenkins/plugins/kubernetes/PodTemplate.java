@@ -990,7 +990,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Override
     public String toString() {
         return "PodTemplate{" +
-                (id == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
+                (id == null ? "" : "id='" + id + '\'') +
                 (inheritFrom == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
                 (name == null ? "" : ", name='" + name + '\'') +
                 (namespace == null ? "" : ", namespace='" + namespace + '\'') +
