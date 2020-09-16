@@ -229,6 +229,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             KubernetesCloud cloud = resolveCloud();
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
+            LOGGER.log(Level.FINE, "Injecting template after resume: " + newTemplate);
             cloud.addDynamicTemplate(newTemplate);
         } catch (AbortException e) {
             throw new RuntimeException(e.getMessage(), e.getCause());
