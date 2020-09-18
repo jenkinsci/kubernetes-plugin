@@ -747,7 +747,10 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify, addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId, containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted, maxRequestsPerHost, podRetention);
+        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
+                addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId,
+                containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
+                maxRequestsPerHost, podRetention, useJenkinsProxy);
     }
 
     public Integer getWaitForPodSec() {
