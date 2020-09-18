@@ -611,7 +611,7 @@ public class KubernetesCloud extends Cloud {
         // check template-level concurrency limit using template-level labels
         Map<String, String> templateLabels = new HashMap<>(podLabels);
         templateLabels.putAll(template.getLabelsMap());
-        numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
+        numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, templateLabels);
         if (numRunningOrPending + numProvisioned >= template.getInstanceCap()) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, " +
