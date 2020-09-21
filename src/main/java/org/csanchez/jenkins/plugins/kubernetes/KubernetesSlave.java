@@ -87,11 +87,17 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @Nonnull
     public PodTemplate getTemplate() {
         // Look up updated pod template after a restart
+        PodTemplate template = getTemplateOrNull();
+        if (template == null) {
+            throw new IllegalStateException("Not expecting pod template to be null at this point");
+        }
+        return template;
+    }
+
+    @CheckForNull
+    public PodTemplate getTemplateOrNull() {
         if (template == null) {
             template = getKubernetesCloud().getTemplateById(podTemplateId);
-            if (template == null) {
-                throw new IllegalStateException("Not expecting pod template to be null at this point");
-            }
         }
         return template;
     }
