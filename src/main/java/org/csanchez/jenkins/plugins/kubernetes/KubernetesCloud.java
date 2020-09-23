@@ -24,6 +24,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import com.google.common.annotations.VisibleForTesting;
 import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
@@ -558,15 +559,15 @@ public class KubernetesCloud extends Cloud {
             if (pods != null) {
                 // Count planned and executors not yet launching (e.g. everything that is not in kubernetes yet)
                 int plannedCount = plannedCapacity + currentExecutorsCount - launchingExecutorsCount;
-                int globalProvisioningLimit = getGlobalProvisioningLimit(pods, plannedCount);
-                if (globalProvisioningLimit > 0) {
-                    LOGGER.log(Level.FINE, "Global slots left for \"{0}\": {1}", new Object[]{name, globalProvisioningLimit});
+                int remainingGlobalSlots = getRemainingGlobalSlots(pods, plannedCount);
+                if (remainingGlobalSlots > 0) {
+                    LOGGER.log(Level.FINE, "Global slots left for \"{0}\": {1}", new Object[]{name, remainingGlobalSlots});
                     for (PodTemplate podTemplate : getTemplatesFor(label)) {
                         LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
                         // check overall concurrency limit using the default label(s) on all templates
-                        int podTemplateProvisioningLimit = getPodTemplateProvisioningLimit(podTemplate, pods, plannedCount);
-                        LOGGER.log(podTemplateProvisioningLimit > 0 ? Level.FINE : Level.INFO, "Slots left for template \"{0}\" in \"{1}\": {2}", new Object[]{podTemplate.getName(), name, podTemplateProvisioningLimit});
-                        int provisioningLimit = Math.min(globalProvisioningLimit, podTemplateProvisioningLimit);
+                        int remainingPodTemplateSlots = getRemainingPodTemplateSlots(podTemplate, pods, plannedCount);
+                        LOGGER.log(remainingPodTemplateSlots > 0 ? Level.FINE : Level.INFO, "Slots left for template \"{0}\" in \"{1}\": {2}", new Object[]{podTemplate.getName(), name, remainingPodTemplateSlots});
+                        int provisioningLimit = Math.min(remainingGlobalSlots, remainingPodTemplateSlots);
                         while (plannedNodes.size() < Math.min(provisioningLimit, toBeProvisioned)) {
                             plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).build());
                         }
@@ -608,15 +609,17 @@ public class KubernetesCloud extends Cloud {
         }
     }
 
-    private int getPodTemplateProvisioningLimit(PodTemplate template, List<Pod> pods, int plannedCount) {
+    @VisibleForTesting
+    int getRemainingPodTemplateSlots(PodTemplate template, List<Pod> pods, int plannedCount) {
         List<Pod> filteredPodList = pods.stream()
                 .filter(pod -> pod.getMetadata().getLabels().entrySet().containsAll(template.getLabelsMap().entrySet()))
                 .collect(Collectors.toList());
         return Math.max(0, template.getInstanceCap() - filteredPodList.size() - plannedCount);
     }
 
-    private int getGlobalProvisioningLimit(List<Pod> pods, int plannedCount) {
-        // FIXME only includes current requested label
+    @VisibleForTesting
+    int getRemainingGlobalSlots(List<Pod> pods, int plannedCount) {
+        // FIXME plannedCount only includes current requested label
         return Math.max(0, containerCap - pods.size() - plannedCount);
     }
 
