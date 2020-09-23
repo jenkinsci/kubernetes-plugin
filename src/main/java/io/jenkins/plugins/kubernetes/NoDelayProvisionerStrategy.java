@@ -30,12 +30,12 @@ import java.util.logging.Logger;
 public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
 
     private static final Logger LOGGER = Logger.getLogger(NoDelayProvisionerStrategy.class.getName());
-    private static final boolean DISABLE_NO_DELAY_PROVISIONING = Boolean.parseBoolean(
+    private static final boolean DISABLE_NODELAY_PROVISING = Boolean.valueOf(
             System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
 
     @Override
     public NodeProvisioner.StrategyDecision apply(NodeProvisioner.StrategyState strategyState) {
-        if (DISABLE_NO_DELAY_PROVISIONING) {
+        if (DISABLE_NODELAY_PROVISING) {
             LOGGER.log(Level.FINE, "Provisioning not complete, NoDelayProvisionerStrategy is disabled");
             return NodeProvisioner.StrategyDecision.CONSULT_REMAINING_STRATEGIES;
         }
