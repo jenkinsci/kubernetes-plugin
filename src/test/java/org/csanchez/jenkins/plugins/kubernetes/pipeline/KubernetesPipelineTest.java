@@ -481,6 +481,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    @Ignore
     public void computerCantBeConfigured() throws Exception {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
@@ -490,8 +491,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertTrue(optionalNode.isPresent());
         KubernetesSlave node = optionalNode.get();
 
-        JenkinsRule.WebClient wc = r.createWebClient().login("admin");
+        JenkinsRule.WebClient wc = r.createWebClient();
         wc.getOptions().setPrintContentOnFailingStatusCode(false);
+        wc.login("admin");
 
         HtmlPage nodeIndex = wc.getPage(node);
         assertNotXPath(nodeIndex, "//*[text() = 'configure']");
