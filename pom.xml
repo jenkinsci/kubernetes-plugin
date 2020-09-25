@@ -50,7 +50,6 @@
     <jenkins.version>2.222.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
-    <workflow-cps.version>2.81</workflow-cps.version>
     <useBeta>true</useBeta>
   </properties>
 
@@ -125,7 +124,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -160,7 +158,6 @@
     <dependency> <!-- SnippetizerTest -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
