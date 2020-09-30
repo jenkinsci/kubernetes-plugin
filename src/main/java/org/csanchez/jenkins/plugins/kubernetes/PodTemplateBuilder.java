@@ -260,7 +260,7 @@ public class PodTemplateBuilder {
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
-            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
+            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
         }
         
         // If the volume mounts of any container has been set to null, set it to empty list.
