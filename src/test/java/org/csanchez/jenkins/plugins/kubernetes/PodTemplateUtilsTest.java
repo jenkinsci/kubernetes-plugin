@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
@@ -688,17 +689,21 @@ public class PodTemplateUtilsTest {
 
         PodTemplate podTemplate1 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
-        nodeProperties1.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test","toolHome1")));
+        ToolLocationNodeProperty toolHome1 = new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test", "toolHome1"));
+        nodeProperties1.add(toolHome1);
         podTemplate1.setNodeProperties(nodeProperties1);
 
         PodTemplate podTemplate2 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties2 = new ArrayList<>();
-        nodeProperties2.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test","toolHome2")));
+        ToolLocationNodeProperty toolHome2 = new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test", "toolHome2"));
+        nodeProperties2.add(toolHome2);
         podTemplate2.setNodeProperties(nodeProperties2);
 
         PodTemplate result = combine(podTemplate1,podTemplate2);
 
-        assertThat(result.getNodeProperties(), hasItems(nodeProperties1.get(0),nodeProperties2.get(0)));
+        assertThat(podTemplate1.getNodeProperties(), contains(toolHome1));
+        assertThat(podTemplate2.getNodeProperties(), contains(toolHome2));
+        assertThat(result.getNodeProperties(), contains(toolHome1, toolHome2));
 
     }
 
