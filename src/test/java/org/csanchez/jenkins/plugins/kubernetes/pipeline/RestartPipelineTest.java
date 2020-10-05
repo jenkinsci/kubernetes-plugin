@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -277,7 +276,7 @@ public class RestartPipelineTest {
             assertTrue("Kubernetes node should be present after restart", first.isPresent());
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
-            waitForTemplate(node, 5, TimeUnit.SECONDS).getListener().getLogger().println("This got printed");
+            waitForTemplate(node).getListener().getLogger().println("This got printed");
             r.waitForMessage("This got printed", b);
             b.getExecutor().interrupt();
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
@@ -300,16 +299,15 @@ public class RestartPipelineTest {
             assertTrue("Kubernetes node should be present after restart", first.isPresent());
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
-            waitForTemplate(node, 5, TimeUnit.SECONDS).getListener().getLogger().println("This got printed");
+            waitForTemplate(node).getListener().getLogger().println("This got printed");
             r.waitForMessage("This got printed", b);
             b.getExecutor().interrupt();
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         });
     }
 
-    private PodTemplate waitForTemplate(KubernetesSlave node, int timeout, TimeUnit timeoutUnit) throws InterruptedException {
-        long beginning = System.nanoTime();
-        while (node.getTemplateOrNull() == null && TimeUnit.NANOSECONDS.convert(System.nanoTime() - beginning, timeoutUnit) < timeout) {
+    private PodTemplate waitForTemplate(KubernetesSlave node) throws InterruptedException {
+        while (node.getTemplateOrNull() == null) {
             Thread.sleep(100L);
         }
         return node.getTemplate();
