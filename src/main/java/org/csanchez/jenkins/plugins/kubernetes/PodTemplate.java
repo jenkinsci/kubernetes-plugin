@@ -701,11 +701,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Deprecated
-    public String getResourceRequestCpu() {
-        return getFirstContainer().map(ContainerTemplate::getResourceRequestCpu).orElse(null);
-    }
-
-    @Deprecated
     @DataBoundSetter
     public void setResourceRequestEphemeral(String resourceRequestEphemeral) {
         getFirstContainer().ifPresent((i) -> i.setResourceRequestEphemeral(resourceRequestEphemeral));

@@ -515,7 +515,7 @@ public class PodTemplateBuilder {
         }
         if (StringUtils.isNotBlank(actualEpemeral)) {
             Quantity ephemeralQuantity = new Quantity(actualEpemeral);
-            builder.put("ephemeral", ephemeralQuantity);
+            builder.put("ephemeral-storage", ephemeralQuantity);
         }
         return builder.build();
     }

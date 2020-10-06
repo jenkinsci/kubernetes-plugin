@@ -274,22 +274,20 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceLimitCpu = resourceLimitCpu;
     }
 
-    //
+    @DataBoundSetter
+    public void setResourceRequestEphemeral(String resourceRequestEphemeral) {
+        this.resourceRequestEphemeral = resourceRequestEphemeral;
+    }
+
+        public String getResourceRequestEphemeral() {
+        return resourceRequestEphemeral;
+    }
     
     @DataBoundSetter
     public void setResourceLimitEphemeral(String resourceLimitEphemeral) {
         this.resourceLimitEphemeral = resourceLimitEphemeral;
     }
     
-    public String getResourceRequestEphemeral() {
-        return resourceRequestEphemeral;
-    }
-
-    @DataBoundSetter
-    public void setResourceRequestEphemeral(String resourceRequestEphemeral) {
-        this.resourceRequestEphemeral = resourceRequestEphemeral;
-    }
-
     public String getResourceLimitEphemeral() {
         return resourceLimitEphemeral;
     }
@@ -371,7 +369,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (resourceRequestEphemeral == null ? "" : ", resourceRequestEphemeral='" + resourceRequestEphemeral + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
-                (resourceLimitEphemeral == null ? "" : ", resourceLimitMemory='" + resourceLimitEphemeral + '\'') +
+                (resourceLimitEphemeral == null ? "" : ", resourceLimitEphemeral='" + resourceLimitEphemeral + '\'') +
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
                 (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
                 (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
