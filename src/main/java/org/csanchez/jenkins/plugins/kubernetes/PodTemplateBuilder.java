@@ -437,8 +437,8 @@ public class PodTemplateBuilder {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(),containerTemplate.getResourceRequestEphemeral()))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu(), containerTemplate.getResourceLimitEphemeral()))
                 .endResources()
                 .build();
     }
@@ -500,10 +500,11 @@ public class PodTemplateBuilder {
         return commands;
     }
 
-    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeral) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
+        String actualEpemeral = substituteEnv(ephemeral);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -511,6 +512,10 @@ public class PodTemplateBuilder {
         if (StringUtils.isNotBlank(actualCpu)) {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
+        }
+        if (StringUtils.isNotBlank(actualEpemeral)) {
+            Quantity ephemeralQuantity = new Quantity(actualEpemeral);
+            builder.put("ephemeral", ephemeralQuantity);
         }
         return builder.build();
     }

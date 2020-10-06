@@ -124,9 +124,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String resourceRequestMemory;
 
+    private String resourceRequestEphemeral;
+
     private String resourceLimitCpu;
 
     private String resourceLimitMemory;
+
+    private String resourceLimitEphemeral;
 
     private Boolean hostNetwork;
 
@@ -663,6 +667,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Deprecated
+    @DataBoundSetter
+    public void setResourceLimitEphemeral(String resourceLimitEphemeral) {
+        getFirstContainer().ifPresent((i) -> i.setResourceLimitEphemeral(resourceLimitEphemeral));
+    }
+
+    @Deprecated
+    public String getResourceLimitEphemeral() {
+        return getFirstContainer().map(ContainerTemplate::getResourceLimitEphemeral).orElse(null);
+    }
+
+
+    @Deprecated
     public String getResourceLimitMemory() {
         return getFirstContainer().map(ContainerTemplate::getResourceLimitMemory).orElse(null);
     }
@@ -682,6 +698,22 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setResourceRequestCpu(String resourceRequestCpu) {
         getFirstContainer().ifPresent((i) -> i.setResourceRequestCpu(resourceRequestCpu));
+    }
+
+    @Deprecated
+    public String getResourceRequestCpu() {
+        return getFirstContainer().map(ContainerTemplate::getResourceRequestCpu).orElse(null);
+    }
+
+    @Deprecated
+    @DataBoundSetter
+    public void setResourceRequestEphemeral(String resourceRequestEphemeral) {
+        getFirstContainer().ifPresent((i) -> i.setResourceRequestEphemeral(resourceRequestEphemeral));
+    }
+    
+    @Deprecated
+    public String getResourceRequestEphemeral() {
+        return getFirstContainer().map(ContainerTemplate::getResourceRequestEphemeral).orElse(null);
     }
 
     @DataBoundSetter
@@ -813,10 +845,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setRunAsGroup(getRunAsGroup());
             containerTemplate.setAlwaysPullImage(alwaysPullImage);
             containerTemplate.setEnvVars(envVars);
-            containerTemplate.setResourceRequestMemory(resourceRequestMemory);
-            containerTemplate.setResourceLimitCpu(resourceLimitCpu);
             containerTemplate.setResourceLimitMemory(resourceLimitMemory);
+            containerTemplate.setResourceLimitCpu(resourceLimitCpu);
+            containerTemplate.setResourceLimitEphemeral(resourceLimitEphemeral);
+            containerTemplate.setResourceRequestMemory(resourceRequestMemory);
             containerTemplate.setResourceRequestCpu(resourceRequestCpu);
+            containerTemplate.setResourceRequestEphemeral(resourceRequestEphemeral);
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
         }
@@ -909,8 +943,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             StringBuilder optional = new StringBuilder();
             optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
             optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
+            optionalField(optional, "resourceRequestEphemeral", ct.resourceRequestEphemeral());
             optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
             optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
+            optionalField(optional, "resourceLimitEphemeral", ct.getResourceLimitEphemeral());
             if (optional.length() > 0) {
                 sb.append("(").append(optional).append(")");
             }
@@ -1013,8 +1049,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceRequestEphemeral == null ? "" : ", resourceRequestEphemeral='" + resourceRequestEphemeral + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (resourceLimitEphemeral == null ? "" : ", resourceLimitEphemeral='" + resourceLimitEphemeral + '\'') +
                 ", workspaceVolume=" + workspaceVolume +
                 (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
                 (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
