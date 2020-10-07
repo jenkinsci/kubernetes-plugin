@@ -28,6 +28,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+import hudson.slaves.NodeProperty;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -373,8 +374,8 @@ public class PodTemplateUtils {
         WorkspaceVolume workspaceVolume = WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
 
         //Tool location node properties
-        PodTemplateToolLocation toolLocationNodeProperties = parent.getNodeProperties();
-        toolLocationNodeProperties.addAll(template.getNodeProperties());
+        List<NodeProperty<?>> nodeProperties = new ArrayList<>(parent.getNodeProperties());
+        nodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate(template.getId());
         podTemplate.setName(name);
@@ -388,7 +389,7 @@ public class PodTemplateUtils {
         podTemplate.setVolumes(new ArrayList<>(combinedVolumes.values()));
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
-        podTemplate.setNodeProperties(toolLocationNodeProperties);
+        podTemplate.setNodeProperties(nodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
         podTemplate.setYamlMergeStrategy(template.getYamlMergeStrategy());
         podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
