@@ -357,9 +357,13 @@ public class KubernetesCloudTest {
 
     @Test
     @LocalData
-    public void minRetentionTimeoutReadResolve() {
+    public void emptyKubernetesCloudReadResolve() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
+        assertEquals(Integer.MAX_VALUE, cloud.getContainerCap());
+        assertEquals(KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST, cloud.getMaxRequestsPerHost());
+        assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
+        assertEquals(KubernetesCloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {

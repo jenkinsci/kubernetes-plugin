@@ -121,7 +121,7 @@ public class KubernetesCloud extends Cloud {
     private String jenkinsTunnel;
     @CheckForNull
     private String credentialsId;
-    private int containerCap = Integer.MAX_VALUE;
+    private Integer containerCap = Integer.MAX_VALUE;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
     private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
@@ -994,7 +994,10 @@ public class KubernetesCloud extends Cloud {
         if (podLabels == null && labels != null) {
             setPodLabels(PodLabel.fromMap(labels));
         }
-
+        // if unset, should default to no limit
+        if (containerCap == null) {
+            containerCap = Integer.MAX_VALUE;
+        }
         return this;
     }
 
