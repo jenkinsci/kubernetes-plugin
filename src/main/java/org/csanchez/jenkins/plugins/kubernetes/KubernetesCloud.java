@@ -574,8 +574,8 @@ public class KubernetesCloud extends Cloud {
      *
      */
     private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
-        int containerCap = getContainerCap();
-        if (containerCap == 0) {
+        int containerCap = getContainerCap(); // a null/empty "Concurrency Limit" field defaults to "unlimited" (Integer.MAX_VALUE).
+        if (containerCap <= 0) { // A user-specified "Concurrency Limit" number less than 1 effectively disables provisioning.
             return false;
         }
 
