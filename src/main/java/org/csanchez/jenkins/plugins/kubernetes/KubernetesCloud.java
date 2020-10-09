@@ -984,6 +984,10 @@ public class KubernetesCloud extends Cloud {
             setPodLabels(PodLabel.fromMap(labels));
         }
 
+        if (containerCap == 0) { // old "unlimited"
+            setContainerCap(null); // new "unlimited" (see getter)
+        }
+
         return this;
     }
 
