@@ -592,7 +592,7 @@ public class KubernetesCloud extends Cloud {
         if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] {containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
+                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
             return false;
         }
 
@@ -983,6 +983,7 @@ public class KubernetesCloud extends Cloud {
         if (podLabels == null && labels != null) {
             setPodLabels(PodLabel.fromMap(labels));
         }
+
         return this;
     }
 
