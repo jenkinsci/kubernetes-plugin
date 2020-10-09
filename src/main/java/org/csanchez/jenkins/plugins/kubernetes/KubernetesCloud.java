@@ -121,7 +121,7 @@ public class KubernetesCloud extends Cloud {
     private String jenkinsTunnel;
     @CheckForNull
     private String credentialsId;
-    private Integer containerCap = Integer.MAX_VALUE;
+    private Integer containerCap;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
     private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
@@ -381,33 +381,21 @@ public class KubernetesCloud extends Cloud {
     }
 
     public int getContainerCap() {
-        return containerCap;
+        return containerCap != null ? containerCap : Integer.MAX_VALUE;
     }
 
     @DataBoundSetter
     public void setContainerCapStr(String containerCapStr) {
-        if (containerCapStr.equals("")) {
-            setContainerCap(Integer.MAX_VALUE);
-        } else {
-            setContainerCap(Integer.parseInt(containerCapStr));
-        }
+        setContainerCap(containerCapStr.equals("") ? null : Integer.parseInt(containerCapStr));
     }
 
-    @DataBoundSetter
-    public void setContainerCap(int containerCap) {
-        if (containerCap < 0) {
-            this.containerCap = Integer.MAX_VALUE;
-        } else {
-            this.containerCap = containerCap;
-        }
+    public void setContainerCap(Integer containerCap) {
+        this.containerCap = (containerCap != null && containerCap >= 0) ? containerCap : null;
     }
 
     public String getContainerCapStr() {
-        if (containerCap == Integer.MAX_VALUE) {
-            return "";
-        } else {
-            return String.valueOf(containerCap);
-        }
+        // serialized Integer.MAX_VALUE means no limit
+        return (containerCap == null || containerCap == Integer.MAX_VALUE) ? "" : String.valueOf(containerCap);
     }
 
     public int getReadTimeout() {
@@ -586,6 +574,7 @@ public class KubernetesCloud extends Cloud {
      *
      */
     private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
+        int containerCap = getContainerCap();
         if (containerCap == 0) {
             return false;
         }
@@ -603,7 +592,7 @@ public class KubernetesCloud extends Cloud {
         if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
             LOGGER.log(Level.INFO,
                     "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
+                    new Object[] {containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
             return false;
         }
 
@@ -725,7 +714,7 @@ public class KubernetesCloud extends Cloud {
         return skipTlsVerify == that.skipTlsVerify &&
                 addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
                 capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
-                containerCap == that.containerCap &&
+                Objects.equals(containerCap, that.containerCap) &&
                 retentionTimeout == that.retentionTimeout &&
                 connectTimeout == that.connectTimeout &&
                 readTimeout == that.readTimeout &&
@@ -993,10 +982,6 @@ public class KubernetesCloud extends Cloud {
         }
         if (podLabels == null && labels != null) {
             setPodLabels(PodLabel.fromMap(labels));
-        }
-        // if unset, should default to no limit
-        if (containerCap == null) {
-            containerCap = Integer.MAX_VALUE;
         }
         return this;
     }
