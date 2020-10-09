@@ -218,14 +218,23 @@ public class KubernetesCloudTest {
         Label test = Label.get("test");
         assertTrue(cloud.canProvision(test));
 
+        // an unset containerCap a.k.a. "concurrency limit" means unlimited, or 200 in this case
         Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
         assertEquals(200, plannedNodes.size());
 
+        // set to "0" means disabled
         cloud.setContainerCapStr("0");
         podTemplate.setInstanceCap(20);
         plannedNodes = cloud.provision(test, 200);
         assertEquals(0, plannedNodes.size());
 
+        // set to negative also means disabled
+        cloud.setContainerCapStr("-42");
+        podTemplate.setInstanceCap(20);
+        plannedNodes = cloud.provision(test, 200);
+        assertEquals(0, plannedNodes.size());
+
+        // set to a positive number sets the concurrency limit
         cloud.setContainerCapStr("10");
         podTemplate.setInstanceCap(20);
         plannedNodes = cloud.provision(test, 200);
