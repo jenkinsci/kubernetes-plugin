@@ -390,7 +390,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     public void setContainerCap(Integer containerCap) {
-        this.containerCap = (containerCap != null && containerCap >= 0) ? containerCap : null;
+        this.containerCap = containerCap;
     }
 
     public String getContainerCapStr() {
