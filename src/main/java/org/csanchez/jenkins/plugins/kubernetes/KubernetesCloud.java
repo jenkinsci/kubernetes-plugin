@@ -539,7 +539,7 @@ public class KubernetesCloud extends Cloud {
             for (PodTemplate t: getTemplatesFor(label)) {
                 LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, t.getName() });
                 for (int i = 0; i < toBeProvisioned; i++) {
-                    if (!addProvisionedSlave(t, label, i)) {
+                    if (!mayAddProvisionedSlave(t, label, i)) {
                         break;
                     }
                     r.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(t).label(label).build());
@@ -573,7 +573,7 @@ public class KubernetesCloud extends Cloud {
      * Check not too many already running.
      *
      */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
+    private boolean mayAddProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
         int containerCap = getContainerCap();
 
         KubernetesClient client = connect();
@@ -585,23 +585,27 @@ public class KubernetesCloud extends Cloud {
         }
 
         Map<String, String> podLabels = getPodLabelsMap();
-        List<Pod> allActiveSlavePods = getActiveSlavePods(client, templateNamespace, podLabels);
-        if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
-            LOGGER.log(Level.INFO,
-                    "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name });
-            return false;
+        if (containerCap != Integer.MAX_VALUE) { // skip check when global concurrency limit is "unlimited"
+            List<Pod> allActiveSlavePods = getActiveSlavePods(client, templateNamespace, podLabels);
+            if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
+                LOGGER.log(Level.INFO,
+                        "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
+                        new Object[]{containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name});
+                return false;
+            }
         }
 
         Map<String, String> labelsMap = new HashMap<>(podLabels);
         labelsMap.putAll(template.getLabelsMap());
-        List<Pod> activeTemplateSlavePods = getActiveSlavePods(client, templateNamespace, labelsMap);
-        if (activeTemplateSlavePods != null && allActiveSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
-            LOGGER.log(Level.INFO,
-                    "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
-                            templateNamespace, label == null ? "" : label.toString(), labelsMap, name });
-            return false;
+        if (template.getInstanceCap() != Integer.MAX_VALUE) { // skip check when template concurrency limit is "unlimited"
+            List<Pod> activeTemplateSlavePods = getActiveSlavePods(client, templateNamespace, labelsMap);
+            if (activeTemplateSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
+                LOGGER.log(Level.INFO,
+                        "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
+                        new Object[]{template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
+                                templateNamespace, label == null ? "" : label.toString(), labelsMap, name});
+                return false;
+            }
         }
         return true;
     }
