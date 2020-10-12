@@ -226,13 +226,13 @@ public class KubernetesCloudTest {
         cloud.setContainerCapStr("0");
         podTemplate.setInstanceCap(20);
         plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
+        assertEquals(20, plannedNodes.size());
 
         // negative number also unlimited
         cloud.setContainerCapStr("-42");
         podTemplate.setInstanceCap(20);
         plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
+        assertEquals(20, plannedNodes.size());
 
         cloud.setContainerCapStr("10");
         podTemplate.setInstanceCap(20);

@@ -575,9 +575,6 @@ public class KubernetesCloud extends Cloud {
      */
     private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
         int containerCap = getContainerCap();
-        if (containerCap == Integer.MAX_VALUE) { // don't check concurrency limits when set to "unlimited."
-            return true;
-        }
 
         KubernetesClient client = connect();
         String templateNamespace = template.getNamespace();
