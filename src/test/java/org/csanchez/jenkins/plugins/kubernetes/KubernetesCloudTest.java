@@ -218,21 +218,8 @@ public class KubernetesCloudTest {
         Label test = Label.get("test");
         assertTrue(cloud.canProvision(test));
 
-        // null/empty means unlimited
         Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
         assertEquals(200, plannedNodes.size());
-
-        // 0 also means unlimited
-        cloud.setContainerCapStr("0");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(20, plannedNodes.size());
-
-        // negative number also unlimited
-        cloud.setContainerCapStr("-42");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(20, plannedNodes.size());
 
         cloud.setContainerCapStr("10");
         podTemplate.setInstanceCap(20);
