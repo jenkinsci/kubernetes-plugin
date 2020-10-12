@@ -390,12 +390,12 @@ public class KubernetesCloud extends Cloud {
     }
 
     public void setContainerCap(Integer containerCap) {
-        this.containerCap = (containerCap != null && containerCap >= 0) ? containerCap : null;
+        this.containerCap = (containerCap != null && containerCap > 0) ? containerCap : null;
     }
 
     public String getContainerCapStr() {
-        // serialized Integer.MAX_VALUE means no limit
-        return (containerCap == null || containerCap == Integer.MAX_VALUE) ? "" : String.valueOf(containerCap);
+        // null, serialized Integer.MAX_VALUE, or 0 means no limit
+        return (containerCap == null || containerCap == Integer.MAX_VALUE || containerCap == 0) ? "" : String.valueOf(containerCap);
     }
 
     public int getReadTimeout() {
@@ -575,8 +575,8 @@ public class KubernetesCloud extends Cloud {
      */
     private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int scheduledCount) throws Exception {
         int containerCap = getContainerCap();
-        if (containerCap == 0) {
-            return true; // 0 means unlimited
+        if (containerCap == Integer.MAX_VALUE) { // don't check concurrency limits when set to "unlimited."
+            return true;
         }
 
         KubernetesClient client = connect();
