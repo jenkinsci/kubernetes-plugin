@@ -274,23 +274,24 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceLimitCpu = resourceLimitCpu;
     }
 
+    public String getResourceRequestEphemeral() {
+        return resourceRequestEphemeral;
+    }
+
     @DataBoundSetter
     public void setResourceRequestEphemeral(String resourceRequestEphemeral) {
         this.resourceRequestEphemeral = resourceRequestEphemeral;
     }
 
-        public String getResourceRequestEphemeral() {
-        return resourceRequestEphemeral;
+    public String getResourceLimitEphemeral() {
+        return resourceLimitEphemeral;
     }
-    
+
     @DataBoundSetter
     public void setResourceLimitEphemeral(String resourceLimitEphemeral) {
         this.resourceLimitEphemeral = resourceLimitEphemeral;
     }
     
-    public String getResourceLimitEphemeral() {
-        return resourceLimitEphemeral;
-    }
 
     public String getShell() {
         return shell;

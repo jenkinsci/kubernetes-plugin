@@ -60,11 +60,19 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry field="resourceRequestEphemeral" title="${%Request Ephemeral}">
+      <f:textbox/>
+    </f:entry>
+
     <f:entry field="resourceLimitCpu" title="${%Limit CPU}">
       <f:textbox/>
     </f:entry>
 
     <f:entry field="resourceLimitMemory" title="${%Limit Memory}">
+      <f:textbox/>
+    </f:entry>
+
+    <f:entry field="resourceLimitEphemeral" title="${%Limit Ephemeral}">
       <f:textbox/>
     </f:entry>
 

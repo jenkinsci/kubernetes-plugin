@@ -938,7 +938,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             StringBuilder optional = new StringBuilder();
             optionalField(optional, "resourceRequestCpu", ct.getResourceRequestCpu());
             optionalField(optional, "resourceRequestMemory", ct.getResourceRequestMemory());
-            optionalField(optional, "resourceRequestEphemeral", ct.resourceRequestEphemeral());
+            optionalField(optional, "resourceRequestEphemeral", ct.getResourceRequestEphemeral());
             optionalField(optional, "resourceLimitCpu", ct.getResourceLimitCpu());
             optionalField(optional, "resourceLimitMemory", ct.getResourceLimitMemory());
             optionalField(optional, "resourceLimitEphemeral", ct.getResourceLimitEphemeral());
