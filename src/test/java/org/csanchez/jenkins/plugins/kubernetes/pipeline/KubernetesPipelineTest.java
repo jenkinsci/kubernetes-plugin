@@ -251,6 +251,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodWithDifferentShell() throws Exception {
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        /* TODO instead the program fails with a IOException: Pipe closed from ContainerExecDecorator.doExec:
+        r.assertLogContains("/bin/bash: no such file or directory", b);
+        */
+    }
+
+    @Test
     public void bourneShellElsewhereInPath() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("/kaniko:/busybox", b);
