@@ -15,6 +15,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
@@ -155,6 +156,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * List of yaml fragments used for transient pod templates. Never persisted
      */
     private transient List<String> yamls;
+
+    /**
+     * Memoize Label.parse(this.label). Not persisted.
+     */
+    private transient Set<LabelAtom> labelSetMemoized;
 
     @Nonnull
     public String getId() {
@@ -416,7 +422,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Set<LabelAtom> getLabelSet() {
-        return Label.parse(label);
+        /*
+         * As the label set on every podTemplate is accessed and matched rather
+         * frequently while the {@link hudson.model.Queue} lock is held, parsing
+         * the labels for every pod template can be rather costly for larger Jenkins
+         * hosts that manage O(1000)+ pod templates, and it is easily avoided.
+         */
+        if (this.labelSetMemoized == null) {
+            this.labelSetMemoized = ImmutableSet.copyOf(Label.parse(label));
+        }
+        return this.labelSetMemoized;
     }
 
     public Map<String, String> getLabelsMap() {
@@ -450,6 +465,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = label;
+        this.labelSetMemoized = null; // Memoized label set must be invalidated.
     }
 
     public String getLabel() {
