@@ -552,11 +552,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static class ToggleOutputStream extends OutputStream {
-        private final OutputStream out;
+    private static class ToggleOutputStream extends FilterOutputStream {
         private boolean disabled;
         public ToggleOutputStream(OutputStream out) {
-            this.out = out;
+            super(out);
         }
 
         public void disable() {
