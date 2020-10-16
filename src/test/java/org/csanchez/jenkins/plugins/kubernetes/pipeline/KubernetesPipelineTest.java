@@ -50,6 +50,7 @@ import hudson.util.VersionNumber;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -61,7 +62,6 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -189,6 +189,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue()). // TODO .record(…, WARNING) does not accomplish this
                 map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage()).collect(Collectors.toList()), // LogRecord does not override toString
             emptyIterable());
+
+        assertTrue(Metrics.metricRegistry().counter("k8s.cloud.pods.launched").getCount() > 0);
+        assertTrue(Metrics.metricRegistry().meter("k8s.cloud.runInPod.provision.request").getCount() > 0);
     }
 
     @Test

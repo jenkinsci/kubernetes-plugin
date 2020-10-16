@@ -28,6 +28,7 @@ import javax.servlet.ServletException;
 import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
+import jenkins.metrics.api.Metrics;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
@@ -529,6 +530,8 @@ public class KubernetesCloud extends Cloud {
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
+            Metrics.metricRegistry().meter(requestMetricNameFor(label)).mark(excessWorkload);
+
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
@@ -547,12 +550,14 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
                         new Object[] { t.getName(), r.size() });
                 if (r.size() > 0) {
+                    Metrics.metricRegistry().counter("k8s.cloud.provision.nodes").inc(r.size());
                     // Already found a matching template
                     return r;
                 }
             }
             return r;
         } catch (KubernetesClientException e) {
+            Metrics.metricRegistry().counter("k8s.cloud.provision.failed").inc();
             Throwable cause = e.getCause();
             if (cause instanceof SocketTimeoutException || cause instanceof ConnectException || cause instanceof UnknownHostException) {
                 LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}: {1}",
@@ -588,6 +593,7 @@ public class KubernetesCloud extends Cloud {
         if (containerCap != Integer.MAX_VALUE) { // skip check when global concurrency limit is "unlimited"
             List<Pod> allActiveSlavePods = getActiveSlavePods(client, templateNamespace, podLabels);
             if (allActiveSlavePods != null && containerCap <= allActiveSlavePods.size() + scheduledCount) {
+                Metrics.metricRegistry().counter("k8s.cloud.provision.reached.total.cap").inc();
                 LOGGER.log(Level.INFO,
                         "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
                         new Object[]{containerCap, allActiveSlavePods.size() + scheduledCount, templateNamespace, getLabels(), name});
@@ -600,6 +606,7 @@ public class KubernetesCloud extends Cloud {
         if (template.getInstanceCap() != Integer.MAX_VALUE) { // skip check when template concurrency limit is "unlimited"
             List<Pod> activeTemplateSlavePods = getActiveSlavePods(client, templateNamespace, labelsMap);
             if (activeTemplateSlavePods != null && template.getInstanceCap() <= activeTemplateSlavePods.size() + scheduledCount) {
+                Metrics.metricRegistry().counter("k8s.cloud.provision.reached.pod.cap").inc();
                 LOGGER.log(Level.INFO,
                         "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
                         new Object[]{template.getInstanceCap(), template.getName(), activeTemplateSlavePods.size() + scheduledCount,
@@ -1008,5 +1015,10 @@ public class KubernetesCloud extends Cloud {
                 jenkins.clouds.add(cloud);
             }
         }
+    }
+
+    private static String requestMetricNameFor(Label label) {
+        String labelText = (label == null) ? "nolabel" : label.getDisplayName();
+        return String.format("k8s.cloud.%s.provision.request", labelText);
     }
 }
