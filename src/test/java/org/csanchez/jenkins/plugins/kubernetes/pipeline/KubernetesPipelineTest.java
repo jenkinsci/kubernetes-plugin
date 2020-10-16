@@ -95,6 +95,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
+        logs = logs.recordPackage(ContainerExecDecorator.class, Level.FINEST);
     }
 
     /**
@@ -253,9 +254,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithDifferentShell() throws Exception {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        /* TODO instead the program fails with a IOException: Pipe closed from ContainerExecDecorator.doExec:
         r.assertLogContains("/bin/bash: no such file or directory", b);
-        */
     }
 
     @Test

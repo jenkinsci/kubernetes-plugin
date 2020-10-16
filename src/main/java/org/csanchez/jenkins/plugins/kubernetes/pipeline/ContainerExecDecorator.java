@@ -42,8 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -345,12 +345,20 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 final AtomicLong startAlive = new AtomicLong();
                 long startMethod = System.nanoTime();
 
-                PrintStream printStream = launcher.getListener().getLogger();
-                OutputStream stream = printStream;
+                PrintStream printStream;
+                OutputStream stream;
+
+                // Only output to stdout at the beginning for diagnostics.
+                ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+                ToggleOutputStream toggleStdout = new ToggleOutputStream(stdout);
+
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
-                    stream = new NullOutputStream();
+                    stream = toggleStdout;
                     printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                } else {
+                    printStream = launcher.getListener().getLogger();
+                    stream = new TeeOutputStream(toggleStdout, printStream);
                 }
 
                 // Send to proc caller as well if they sent one
@@ -442,6 +450,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 try {
+                    // Depends on the ping time with the kubernetes api
+                    if (finished.await(200, TimeUnit.MILLISECONDS)) {
+                        launcher.getListener().getLogger().println(stdout.toString(StandardCharsets.UTF_8.name()));
+                        throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
+                    }
+                    toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
                     if (pwd != null) {
@@ -532,6 +546,29 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 closable.close();
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "failed to close {0}");
+            }
+        }
+    }
+
+    private static class ToggleOutputStream extends OutputStream {
+        private final OutputStream out;
+        private boolean disabled;
+        public ToggleOutputStream(OutputStream out) {
+            this.out = out;
+        }
+
+        public void disable() {
+            disabled = true;
+        }
+
+        public void enable() {
+            disabled = false;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (!disabled) {
+                out.write(b);
             }
         }
     }
