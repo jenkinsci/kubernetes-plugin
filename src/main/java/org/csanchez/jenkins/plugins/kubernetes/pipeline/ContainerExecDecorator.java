@@ -57,11 +57,8 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
@@ -95,6 +92,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
      * A higher value will consume more memory
      */
     private static final int STDIN_BUFFER_SIZE = Integer.getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 16 * 1024);
+    /**
+     * time in milliseconds to wait for checking whether the process immediately returned
+     */
+    public static final int COMMAND_FINISHED_TIMEOUT_MS = 200;
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
@@ -451,8 +452,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 try {
                     // Depends on the ping time with the kubernetes api
-                    if (finished.await(200, TimeUnit.MILLISECONDS)) {
-                        launcher.getListener().getLogger().println(stdout.toString(StandardCharsets.UTF_8.name()));
+                    // Not fully satisfied with this solution because it can delay the execution
+                    if (finished.await(COMMAND_FINISHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                        launcher.getListener().error("Process exited immediately after creation. See output below%n%s",stdout.toString(StandardCharsets.UTF_8.name()));
                         throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
                     }
                     toggleStdout.disable();
