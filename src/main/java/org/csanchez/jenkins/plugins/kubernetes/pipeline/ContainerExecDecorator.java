@@ -356,7 +356,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
                     stream = toggleStdout;
-                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                    printStream = new PrintStream(stream, true, StandardCharsets.UTF_8.toString());
                 } else {
                     printStream = launcher.getListener().getLogger();
                     stream = new TeeOutputStream(toggleStdout, printStream);
@@ -547,7 +547,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             try {
                 closable.close();
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "failed to close {0}");
+                LOGGER.log(Level.FINE, "failed to close {0}")   ;
             }
         }
     }
