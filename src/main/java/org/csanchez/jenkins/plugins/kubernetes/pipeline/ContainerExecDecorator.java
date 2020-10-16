@@ -451,10 +451,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 try {
-                    // Depends on the ping time with the kubernetes api
+                    // Depends on the ping time with the Kubernetes API server
                     // Not fully satisfied with this solution because it can delay the execution
                     if (finished.await(COMMAND_FINISHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                        launcher.getListener().error("Process exited immediately after creation. See output below%n%s",stdout.toString(StandardCharsets.UTF_8.name()));
+                        launcher.getListener().error("Process exited immediately after creation. See output below%n%s", stdout.toString(StandardCharsets.UTF_8.name()));
                         throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
                     }
                     toggleStdout.disable();

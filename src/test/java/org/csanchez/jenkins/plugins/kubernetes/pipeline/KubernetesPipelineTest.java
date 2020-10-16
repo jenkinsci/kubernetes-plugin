@@ -95,7 +95,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
-        logs = logs.recordPackage(ContainerExecDecorator.class, Level.FINEST);
     }
 
     /**
