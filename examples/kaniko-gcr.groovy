@@ -33,7 +33,7 @@ spec:
 
   node(POD_LABEL) {
     stage('Build with Kaniko') {
-      git 'https://github.com/jenkinsci/docker-inbound-slave.git'
+      git 'https://github.com/jenkinsci/docker-inbound-agent.git'
       container('kaniko') {
         sh '/kaniko/executor -c `pwd` --cache=true --destination=gcr.io/myprojectid/myimage'
       }
