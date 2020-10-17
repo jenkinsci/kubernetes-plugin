@@ -17,7 +17,7 @@ For that some environment variables are automatically injected:
 * `JENKINS_NAME`: Jenkins 节点的名称（已废弃，保持向后兼容）
 
 使用镜像 [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave) 做的测试。
-查看[Docker 镜像源码](https://github.com/jenkinsci/docker-jnlp-slave)。
+查看[Docker 镜像源码](https://github.com/jenkinsci/docker-inbound-slave)。
 
 Jenkins master 可以不在 Kubernetes 上运行。
 
