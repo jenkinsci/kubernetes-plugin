@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.256-rc30379.640ca7d87333</jenkins.version>
+    <jenkins.version>2.263</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
     <workflow-cps.version>2.81</workflow-cps.version>
