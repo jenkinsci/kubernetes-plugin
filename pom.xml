@@ -252,7 +252,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.222.x</artifactId>
+        <artifactId>bom-2.222.x</artifactId> <!-- TODO https://github.com/jenkinsci/bom/pull/339 -->
         <version>12</version>
         <scope>import</scope>
         <type>pom</type>
