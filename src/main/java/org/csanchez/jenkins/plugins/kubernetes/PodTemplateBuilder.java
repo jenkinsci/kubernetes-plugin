@@ -504,7 +504,7 @@ public class PodTemplateBuilder {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
-        String actualEpemeral = substituteEnv(ephemeral);
+        String actualEphemeral = substituteEnv(ephemeral);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -513,8 +513,8 @@ public class PodTemplateBuilder {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
         }
-        if (StringUtils.isNotBlank(actualEpemeral)) {
-            Quantity ephemeralQuantity = new Quantity(actualEpemeral);
+        if (StringUtils.isNotBlank(actualEphemeral)) {
+            Quantity ephemeralQuantity = new Quantity(actualEphemeral);
             builder.put("ephemeral-storage", ephemeralQuantity);
         }
         return builder.build();
