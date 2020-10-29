@@ -23,7 +23,7 @@
       <templates>
         <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
           <name>java</name>
-          <image>jenkins/jnlp-slave</image>
+          <image>jenkins/inbound-agent</image>
           <privileged>false</privileged>
           <alwaysPullImage>false</alwaysPullImage>
           <command></command>

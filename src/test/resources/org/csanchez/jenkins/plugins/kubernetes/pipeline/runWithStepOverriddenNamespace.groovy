@@ -3,7 +3,7 @@ podTemplate(
     namespace: '$OVERRIDDEN_NAMESPACE',
     volumes: [emptyDirVolume(mountPath: '/my-mount')], 
     containers: [
-      containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}')
+      containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}')
     ]) {
 
     node(POD_LABEL) {
