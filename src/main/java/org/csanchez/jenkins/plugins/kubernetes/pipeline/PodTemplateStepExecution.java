@@ -253,21 +253,14 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.get().getCloud(cloudName);
-            if (cloud == null) {
-                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
-                        new Object[] { cloudName, podTemplate.getName() });
-                return;
+            KubernetesCloud cloud = resolveCloud();
+            TaskListener listener = getContext().get(TaskListener.class);
+            if (listener != null) {
+                listener.getLogger().println("Removing pod template " + podTemplate.getName() + " from cloud " + cloudName);
             }
-            if (cloud instanceof KubernetesCloud) {
-                LOGGER.log(Level.FINE, "Removing pod template {1} from cloud {0}",
-                        new Object[] { cloud.name, podTemplate.getName() });
-                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                kubernetesCloud.removeDynamicTemplate(podTemplate);
-            } else {
-                LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
-                        new String[] { cloud.name, cloud.getClass().getName() });
-            }
+            LOGGER.log(Level.FINE, "Removing pod template {1} from cloud {0}",
+                    new Object[] { cloud.name, podTemplate.getName() });
+            cloud.removeDynamicTemplate(podTemplate);
         }
     }
 }
