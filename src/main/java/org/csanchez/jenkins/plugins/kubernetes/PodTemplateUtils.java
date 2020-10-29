@@ -73,6 +73,8 @@ public class PodTemplateUtils {
 
     private static final Pattern LABEL_VALIDATION = Pattern.compile("[a-zA-Z0-9]([_\\.\\-a-zA-Z0-9]*[a-zA-Z0-9])?");
 
+    private static /*nonfinal*/ boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
+
     /**
      * Combines a {@link ContainerTemplate} with its parent.
      * @param parent        The parent container template (nullable).
@@ -510,21 +512,11 @@ public class PodTemplateUtils {
      * Substitutes a placeholder with a value found in the environment.
      * @param s     The placeholder. Should be use the format: ${placeholder}.
      * @return      The substituted value if found, or the input value otherwise.
-     */
-    public static String substituteEnv(String s) {
-        return replaceMacro(s, System.getenv());
-    }
-
-    /**
-     * Substitutes a placeholder with a value found in the environment.
-     * @deprecated check if it is null or empty in the caller method, then use {@link #substituteEnv(String)}
-     * @param s             The placeholder. Should be use the format: ${placeholder}.
-     * @param defaultValue  The default value to return if no match is found.
-     * @return              The substituted value if found, or the default value otherwise.
+     * @deprecated Potentially insecure; a no-op by default.
      */
     @Deprecated
-    public static String substituteEnv(String s, String defaultValue) {
-        return substitute(s, System.getenv(), defaultValue);
+    public static String substituteEnv(String s) {
+        return SUBSTITUTE_ENV ? replaceMacro(s, System.getenv()) : s;
     }
 
     /**
