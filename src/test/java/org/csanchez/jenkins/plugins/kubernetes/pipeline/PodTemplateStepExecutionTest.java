@@ -76,4 +76,24 @@ public class PodTemplateStepExecutionTest {
         r.waitForMessage(Messages.RFC1123_error("badcontainername_!, badcontainername2_!"), b);
     }
 
+    @Test
+    public void testTemplateRemovedWithCloudName() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "cloud_name_defined");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("cloudNameDefined.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.SUCCESS, r.waitForCompletion(b));
+        assertTrue(cloud.getAllTemplates().isEmpty());
+    }
+
+    @Test
+    public void testTemplateRemovedWithNoCloudName() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "cloud_name_not_defined");
+        p.setDefinition(new CpsFlowDefinition(loadPipelineScript("cloudNameNotDefined.groovy"), true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        assertNotNull(b);
+        r.assertBuildStatus(Result.SUCCESS, r.waitForCompletion(b));
+        assertTrue(cloud.getAllTemplates().isEmpty());
+    }
+
 }
