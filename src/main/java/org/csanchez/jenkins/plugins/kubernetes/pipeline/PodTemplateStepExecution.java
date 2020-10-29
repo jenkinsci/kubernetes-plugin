@@ -260,8 +260,13 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 cloud = Jenkins.get().getCloud(cloudName);
             }
             if (cloud == null) {
-                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
-                        new Object[] { cloudName, podTemplate.getName() });
+                if (cloudName == null) {
+                    LOGGER.log(Level.FINE, "No Kubernetes cloud was found, cannot delete pod template {1}",
+                            new Object[]{ podTemplate.getName() });
+                } else {
+                    LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
+                            new Object[] { cloudName, podTemplate.getName() });
+                }
                 return;
             }
             if (cloud instanceof KubernetesCloud) {
