@@ -261,7 +261,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             }
             if (cloud == null) {
                 if (cloudName == null) {
-                    LOGGER.log(Level.FINE, "No Kubernetes cloud was found, cannot delete pod template {1}",
+                    LOGGER.log(Level.FINE, "No Kubernetes cloud was found, cannot delete pod template {0}",
                             new Object[]{ podTemplate.getName() });
                 } else {
                     LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
