@@ -19,6 +19,7 @@ import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -125,7 +126,12 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return "Setup Kubernetes CLI (kubectl)";
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
+            if (item == null
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    : !item.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(
