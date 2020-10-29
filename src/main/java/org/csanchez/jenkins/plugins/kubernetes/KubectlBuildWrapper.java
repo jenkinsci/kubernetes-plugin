@@ -228,7 +228,12 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return "Setup Kubernetes CLI (kubectl)";
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
+            if (item == null
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    : !item.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
             return new StandardListBoxModel()
                     .withEmptySelection()
                     .withMatching(
