@@ -276,7 +276,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 kubernetesCloud.removeDynamicTemplate(podTemplate);
             } else {
                 LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
-                        new String[] { cloud.name, cloud.getClass().getName() } );
+                        new String[] { cloud.name, cloud.getClass().getName() });
             }
         }
     }
