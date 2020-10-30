@@ -69,6 +69,22 @@ public class KubernetesCloudTest {
     }
 
     @Test
+    public void configRoundTrip() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test-template");
+        podTemplate.setLabel("test");
+        cloud.addTemplate(podTemplate);
+        j.jenkins.clouds.add(cloud);
+        j.jenkins.save();
+        JenkinsRule.WebClient wc = j.createWebClient();
+        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlForm f = p.getFormByName("config");
+        j.submit(f);
+        assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
+    }
+
+    @Test
     public void testInheritance() {
 
         ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jnlp:1");
