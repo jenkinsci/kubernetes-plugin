@@ -275,8 +275,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 kubernetesCloud.removeDynamicTemplate(podTemplate);
             } else {
-                LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
-                        new String[] { cloud.name, cloud.getClass().getName() });
+                LOGGER.log(Level.WARNING, "Cloud {0} is not a KubernetesCloud {1}, cannot delete pod template {2}",
+                        new String[] { cloud.name, cloud.getClass().getName(), podTemplate.getName() });
             }
         }
     }
