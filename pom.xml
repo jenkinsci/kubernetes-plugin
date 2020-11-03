@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.7</version>
+    <version>4.12</version>
     <relativePath />
   </parent>
 
@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.27.2</revision>
+    <revision>1.27.4</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -50,7 +50,6 @@
     <jenkins.version>2.256-rc30379.640ca7d87333</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
-    <workflow-cps.version>2.81</workflow-cps.version>
     <useBeta>true</useBeta>
   </properties>
 
@@ -58,7 +57,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>4.9.2-2</version>
+      <version>4.11.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -125,7 +124,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <optional>true</optional>
     </dependency>
 
@@ -160,7 +158,6 @@
     <dependency> <!-- SnippetizerTest -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
@@ -253,7 +250,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.222.x</artifactId>
-        <version>12</version>
+        <version>16</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

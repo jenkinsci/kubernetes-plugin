@@ -121,7 +121,7 @@ public class KubernetesCloud extends Cloud {
     private String jenkinsTunnel;
     @CheckForNull
     private String credentialsId;
-    private int containerCap = Integer.MAX_VALUE;
+    private Integer containerCap;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
     private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
@@ -381,33 +381,21 @@ public class KubernetesCloud extends Cloud {
     }
 
     public int getContainerCap() {
-        return containerCap;
+        return containerCap != null ? containerCap : Integer.MAX_VALUE;
     }
 
     @DataBoundSetter
     public void setContainerCapStr(String containerCapStr) {
-        if (containerCapStr.equals("")) {
-            setContainerCap(Integer.MAX_VALUE);
-        } else {
-            setContainerCap(Integer.parseInt(containerCapStr));
-        }
+        setContainerCap(containerCapStr.equals("") ? null : Integer.parseInt(containerCapStr));
     }
 
-    @DataBoundSetter
-    public void setContainerCap(int containerCap) {
-        if (containerCap < 0) {
-            this.containerCap = Integer.MAX_VALUE;
-        } else {
-            this.containerCap = containerCap;
-        }
+    public void setContainerCap(Integer containerCap) {
+        this.containerCap = (containerCap != null && containerCap > 0) ? containerCap : null;
     }
 
     public String getContainerCapStr() {
-        if (containerCap == Integer.MAX_VALUE) {
-            return "";
-        } else {
-            return String.valueOf(containerCap);
-        }
+        // null, serialized Integer.MAX_VALUE, or 0 means no limit
+        return (containerCap == null || containerCap == Integer.MAX_VALUE || containerCap == 0) ? "" : String.valueOf(containerCap);
     }
 
     public int getReadTimeout() {
@@ -732,7 +720,7 @@ public class KubernetesCloud extends Cloud {
         return skipTlsVerify == that.skipTlsVerify &&
                 addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
                 capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
-                containerCap == that.containerCap &&
+                Objects.equals(containerCap, that.containerCap) &&
                 retentionTimeout == that.retentionTimeout &&
                 connectTimeout == that.connectTimeout &&
                 readTimeout == that.readTimeout &&

@@ -20,10 +20,10 @@ spec:
 """
   ) {
 
-  def image = "jenkins/jnlp-slave"
+  def image = "jenkins/inbound-agent"
   node(POD_LABEL) {
     stage('Build Docker image') {
-      git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
+      git 'https://github.com/jenkinsci/docker-inbound-agent.git'
       container('docker') {
         sh "docker build -t ${image} ."
       }

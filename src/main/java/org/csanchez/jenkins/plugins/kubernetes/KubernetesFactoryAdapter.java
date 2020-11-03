@@ -116,6 +116,7 @@ public class KubernetesFactoryAdapter {
 
         builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
+        builder.withMaxConcurrentRequests(maxRequestsPerHost);
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
