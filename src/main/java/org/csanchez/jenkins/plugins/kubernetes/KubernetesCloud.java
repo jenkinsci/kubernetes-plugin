@@ -608,7 +608,7 @@ public class KubernetesCloud extends Cloud {
     @VisibleForTesting
     int getRemainingGlobalSlots(List<Pod> pods, int plannedCount) {
         // FIXME plannedCount only includes current requested label
-        return Math.max(0, containerCap - pods.size() - plannedCount);
+        return Math.max(0, getContainerCap() - pods.size() - plannedCount);
     }
 
     /**
