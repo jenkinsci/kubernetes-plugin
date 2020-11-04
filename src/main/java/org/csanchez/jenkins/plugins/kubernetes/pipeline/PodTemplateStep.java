@@ -403,6 +403,9 @@ public class PodTemplateStep extends Step implements Serializable {
         public ListBoxModel doFillCloudItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("—any—", "");
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) { // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
+                return result;
+            }
             Jenkins.get().clouds
                     .getAll(KubernetesCloud.class)
                     .forEach(cloud -> result.add(cloud.name));
@@ -415,6 +418,9 @@ public class PodTemplateStep extends Step implements Serializable {
             ListBoxModel result = new ListBoxModel();
             result.add("—Default inheritance—", "<default>");
             result.add("—Disable inheritance—", " ");
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) { // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
+                return result;
+            }
             Cloud cloud;
             if (cloudName == null) {
                 cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
