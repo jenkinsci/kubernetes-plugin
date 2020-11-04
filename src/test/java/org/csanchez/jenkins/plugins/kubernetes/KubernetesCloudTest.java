@@ -2,12 +2,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.*;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,6 +22,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.fabric8.kubernetes.api.model.PodBuilder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -385,6 +380,55 @@ public class KubernetesCloudTest {
             }
         }
         return null;
+    }
+
+    @Test
+    public void globalLimit() {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        cloud.setContainerCap(10);
+        assertEquals(10, cloud.getRemainingGlobalSlots(Collections.emptyList(), 0));
+        assertEquals(0, cloud.getRemainingGlobalSlots(Collections.emptyList(), 10));
+        List<Pod> pods = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Pod pod = new Pod();
+            pods.add(pod);
+        }
+        assertEquals(5, cloud.getRemainingGlobalSlots(pods, 0));
+        assertEquals(2, cloud.getRemainingGlobalSlots(pods, 3));
+        assertEquals(0, cloud.getRemainingGlobalSlots(pods, 5));
+    }
+
+    @Test
+    public void podTemplateLimit() {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        PodTemplate pt1 = addPodTemplate(cloud, "label1", 1);
+        PodTemplate pt2 = addPodTemplate(cloud, "label2", 1);
+        PodTemplate pt3 = addPodTemplate(cloud, "label3", 1);
+
+        List<Pod> pods = new ArrayList<>();
+        addPod(pods, pt1);
+        addPod(pods, pt2);
+
+        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt1, pods, 0));
+        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt2, pods, 0));
+        assertEquals(1, cloud.getRemainingPodTemplateSlots(pt3, pods, 0));
+        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt3, pods, 1));
+    }
+
+    private void addPod(List<Pod> pods, PodTemplate pt1) {
+        pods.add(new PodBuilder()
+                    .withNewMetadata()
+                        .withLabels(pt1.getLabelsMap())
+                    .endMetadata()
+                .build());
+    }
+
+    private PodTemplate addPodTemplate(KubernetesCloud cloud, String label, int instanceCap) {
+        PodTemplate pt = new PodTemplate();
+        pt.setLabel(label);
+        pt.setInstanceCap(instanceCap);
+        cloud.addTemplate(pt);
+        return pt;
     }
 
 }

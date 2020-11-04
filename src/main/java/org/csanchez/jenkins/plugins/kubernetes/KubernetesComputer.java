@@ -37,6 +37,8 @@ import java.util.logging.Logger;
 public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());
 
+    private boolean launching;
+
     public KubernetesComputer(KubernetesSlave slave) {
         super(slave);
     }
@@ -153,5 +155,25 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
             }
         };
+    }
+
+    public void setLaunching(boolean launching) {
+        this.launching = launching;
+    }
+
+    /**
+     *
+     * @return true if the Pod has been created in Kubernetes and the current instance is waiting for the pod to be usable.
+     */
+    public boolean isLaunching() {
+        return launching;
+    }
+
+    @Override
+    public void setAcceptingTasks(boolean acceptingTasks) {
+        super.setAcceptingTasks(acceptingTasks);
+        if (acceptingTasks) {
+            launching = false;
+        }
     }
 }

@@ -147,6 +147,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
             runListener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
+            kubernetesComputer.setLaunching(true);
 
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
             watcher = new AllContainersRunningPodWatcher(client, pod, runListener);

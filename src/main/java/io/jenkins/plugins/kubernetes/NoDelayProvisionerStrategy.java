@@ -55,16 +55,17 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             Collections.shuffle(jenkinsClouds);
+            Cloud.CloudState cloudState = new Cloud.CloudState(label, strategyState.getAdditionalPlannedCapacity());
             for (Cloud cloud : jenkinsClouds) {
                 int workloadToProvision = currentDemand - availableCapacity;
                 if (!(cloud instanceof KubernetesCloud)) continue;
-                if (!cloud.canProvision(label)) continue;
+                if (!cloud.canProvision(cloudState)) continue;
                 for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
-                    if (cl.canProvision(cloud, strategyState.getLabel(), workloadToProvision) != null) {
+                    if (cl.canProvision(cloud, cloudState, workloadToProvision) != null) {
                         continue;
                     }
                 }
-                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, workloadToProvision);
+                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(cloudState, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
                 strategyState.recordPendingLaunches(plannedNodes);
