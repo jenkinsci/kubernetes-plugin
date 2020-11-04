@@ -75,7 +75,8 @@ public class PodTemplateUtils {
 
     private static final Pattern LABEL_VALIDATION = Pattern.compile("[a-zA-Z0-9]([_\\.\\-a-zA-Z0-9]*[a-zA-Z0-9])?");
 
-    private static /*nonfinal*/ boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
+    @VisibleForTesting
+    public static boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
