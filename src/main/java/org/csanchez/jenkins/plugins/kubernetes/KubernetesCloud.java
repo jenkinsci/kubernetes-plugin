@@ -549,7 +549,7 @@ public class KubernetesCloud extends Cloud {
                 int plannedCount = plannedCapacity + currentExecutorsCount - launchingExecutorsCount;
                 int remainingGlobalSlots = getRemainingGlobalSlots(pods, plannedCount);
                 if (remainingGlobalSlots > 0) {
-                    LOGGER.log(Level.FINE, "Global slots left for \"{0}\": {1}", new Object[]{name, remainingGlobalSlots});
+                    LOGGER.fine(() -> "Global slots left for " + name + ": " + remainingGlobalSlots);
                     for (PodTemplate podTemplate : getTemplatesFor(label)) {
                         LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
                         // check overall concurrency limit using the default label(s) on all templates
