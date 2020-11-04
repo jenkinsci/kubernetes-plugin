@@ -547,7 +547,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             try {
                 closable.close();
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "failed to close {0}")   ;
+                LOGGER.log(Level.FINE, "failed to close", e);
             }
         }
     }
