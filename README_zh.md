@@ -16,8 +16,8 @@ For that some environment variables are automatically injected:
 * `JENKINS_AGENT_NAME`: Jenkins 节点的名称
 * `JENKINS_NAME`: Jenkins 节点的名称（已废弃，保持向后兼容）
 
-使用镜像 [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave) 做的测试。
-查看[Docker 镜像源码](https://github.com/jenkinsci/docker-jnlp-slave)。
+使用镜像 [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent) 做的测试。
+查看[Docker 镜像源码](https://github.com/jenkinsci/docker-inbound-agent)。
 
 Jenkins master 可以不在 Kubernetes 上运行。
 
@@ -76,7 +76,7 @@ podTemplate(label: label) {
 可以在模板中自定义 `jnlp` 节点镜像
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 或者使用 `yaml` 语法
@@ -87,7 +87,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.35-5-alpine'
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -724,7 +724,7 @@ This can be done checking _Enable proxy compatibility_ under Manage Jenkins -> C
 
 使用下面的方式添加一个镜像：
 
-* Docker 镜像：`jenkins/jnlp-slave`
+* Docker 镜像：`jenkins/inbound-agent`
 * Jenkins 节点根目录：`/home/jenkins`
 
 ![image](configuration.png)

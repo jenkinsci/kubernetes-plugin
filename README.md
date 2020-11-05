@@ -120,7 +120,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax
@@ -131,7 +131,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.35-5-alpine'
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -586,6 +586,8 @@ Also see the online help and [examples/containerLog.groovy](examples/containerLo
 
 # Running on OpenShift
 
+## Random UID problem
+
 OpenShift runs containers using a 'random' UID that is overriding what is specified in Docker images.
 For this reason, you may end up with the following warning in your build
 
@@ -600,6 +602,15 @@ This issue can be circumvented in various ways:
 * override HOME environment variable in the pod spec to use `/home/jenkins` and mount a volume to `/home/jenkins` to ensure the user running the container can write to it
 
 See this [example](examples/openshift-home-yaml.groovy) configuration.
+
+## Running with OpenShift 3
+
+OpenShift 3 is based on an older version of Kubernetes, which is not anymore directly supported since Kubernetes plugin version 1.26.0.
+
+To get agents working for Openshift 3, add this `Node Selector` to your Pod Templates:
+```
+beta.kubernetes.io/os=linux
+```
 
 # Windows support
 

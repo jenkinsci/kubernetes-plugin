@@ -118,7 +118,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String nodeSelector;
 
-    private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
+    private Node.Mode nodeUsageMode;
 
     private String resourceRequestCpu;
 
@@ -134,17 +134,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private Boolean hostNetwork;
 
-    private WorkspaceVolume workspaceVolume = WorkspaceVolume.getDefault();
+    private WorkspaceVolume workspaceVolume;
 
-    private final List<PodVolume> volumes = new ArrayList<PodVolume>();
+    private final List<PodVolume> volumes = new ArrayList<>();
 
-    private List<ContainerTemplate> containers = new ArrayList<ContainerTemplate>();
+    private List<ContainerTemplate> containers = new ArrayList<>();
 
     private List<TemplateEnvVar> envVars = new ArrayList<>();
 
-    private List<PodAnnotation> annotations = new ArrayList<PodAnnotation>();
+    private List<PodAnnotation> annotations = new ArrayList<>();
 
-    private List<PodImagePullSecret> imagePullSecrets = new ArrayList<PodImagePullSecret>();
+    private List<PodImagePullSecret> imagePullSecrets = new ArrayList<>();
 
     private PodTemplateToolLocation nodeProperties;
 
@@ -189,7 +189,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private transient TaskListener listener;
 
     @CheckForNull
-    private PodRetention podRetention = PodRetention.getPodTemplateDefault();
+    private PodRetention podRetention;
 
     public PodTemplate() {
         this((String) null);
@@ -242,12 +242,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setInheritFrom(String inheritFrom) {
-        this.inheritFrom = inheritFrom;
+        this.inheritFrom = Util.fixEmptyAndTrim(inheritFrom);
     }
 
     @DataBoundSetter
     public void setName(String name) {
-        this.name = name;
+        this.name = Util.fixEmptyAndTrim(name);
     }
 
     public String getName() {
@@ -260,7 +260,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setNamespace(String namespace) {
-        this.namespace = namespace;
+        this.namespace = Util.fixEmptyAndTrim(namespace);
     }
 
     @Deprecated
@@ -453,7 +453,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setLabel(String label) {
-        this.label = label;
+        this.label = Util.fixEmptyAndTrim(label);
     }
 
     public String getLabel() {
@@ -462,7 +462,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setNodeSelector(String nodeSelector) {
-        this.nodeSelector = nodeSelector;
+        this.nodeSelector = Util.fixEmptyAndTrim(nodeSelector);
     }
 
     public String getNodeSelector() {
@@ -471,16 +471,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setNodeUsageMode(Node.Mode nodeUsageMode) {
-        this.nodeUsageMode = nodeUsageMode;
+        this.nodeUsageMode = nodeUsageMode == Node.Mode.EXCLUSIVE ? null : nodeUsageMode;
     }
 
     @DataBoundSetter
     public void setNodeUsageMode(String nodeUsageMode) {
-        this.nodeUsageMode = Node.Mode.valueOf(nodeUsageMode);
+        setNodeUsageMode(Node.Mode.valueOf(nodeUsageMode));
     }
 
     public Node.Mode getNodeUsageMode() {
-        return nodeUsageMode;
+        return nodeUsageMode == null ? Node.Mode.EXCLUSIVE : nodeUsageMode;
     }
 
     @Deprecated
@@ -535,7 +535,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean isHostNetwork() {
-        return isHostNetworkSet()?hostNetwork.booleanValue():false;
+        return isHostNetworkSet() ? hostNetwork.booleanValue() : false;
     }
 
     public boolean isHostNetworkSet() {
@@ -729,12 +729,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @Nonnull
     public WorkspaceVolume getWorkspaceVolume() {
-        return workspaceVolume;
+        return workspaceVolume == null ? WorkspaceVolume.getDefault() : workspaceVolume;
     }
 
     @DataBoundSetter
     public void setWorkspaceVolume(WorkspaceVolume workspaceVolume) {
-        this.workspaceVolume = workspaceVolume;
+        this.workspaceVolume = WorkspaceVolume.getDefault().equals(workspaceVolume) ? null : workspaceVolume;
     }
 
     @DataBoundSetter
@@ -800,15 +800,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public PodRetention getPodRetention() {
-        return podRetention;
+        return podRetention == null ? PodRetention.getPodTemplateDefault() : podRetention;
     }
 
     @DataBoundSetter
     public void setPodRetention(PodRetention podRetention) {
-        if (podRetention == null) {
-            podRetention = PodRetention.getPodTemplateDefault();
-        }
-        this.podRetention = podRetention;
+        this.podRetention = PodRetention.getPodTemplateDefault().equals(podRetention) ? null : podRetention;
     }
 
     @Nonnull
@@ -848,19 +845,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setResourceRequestEphemeral(resourceRequestEphemeral);
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
-        }
-        
-        if (podRetention == null) {
-            // https://issues.jenkins-ci.org/browse/JENKINS-53260
-            // various legacy paths for injecting pod templates can 
-            // bypass the defaulting paths and the
-            // value can still be null, so check for it here so 
-            // as to not blow up things like termination path
-            podRetention = PodRetention.getPodTemplateDefault();
-        }
-
-        if (workspaceVolume == null) {
-            workspaceVolume = WorkspaceVolume.getDefault();
         }
 
         if (annotations == null) {
@@ -1022,14 +1006,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public String toString() {
         return "PodTemplate{" +
                 (id == null ? "" : "id='" + id + '\'') +
-                (inheritFrom == null ? "" : "inheritFrom='" + inheritFrom + '\'') +
+                (inheritFrom == null ? "" : ", inheritFrom='" + inheritFrom + '\'') +
                 (name == null ? "" : ", name='" + name + '\'') +
                 (namespace == null ? "" : ", namespace='" + namespace + '\'') +
                 (image == null ? "" : ", image='" + image + '\'') +
                 (!privileged ? "" : ", privileged=" + privileged) +
                 (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
                 (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
-                (!isHostNetworkSet() ? "" : ", hostNetwork=" + hostNetwork) +
+                (!isHostNetwork() ? "" : ", hostNetwork=" + hostNetwork) +
                 (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
                 (command == null ? "" : ", command='" + command + '\'') +
                 (args == null ? "" : ", args='" + args + '\'') +
@@ -1048,7 +1032,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
                 (resourceLimitEphemeral == null ? "" : ", resourceLimitEphemeral='" + resourceLimitEphemeral + '\'') +
-                ", workspaceVolume=" + workspaceVolume +
+                (workspaceVolume == null ? "" : ", workspaceVolume='" + workspaceVolume + '\'') +
+                (podRetention == null ? "" : ", podRetention='" + podRetention + '\'') +
                 (volumes == null || volumes.isEmpty() ? "" : ", volumes=" + volumes) +
                 (containers == null || containers.isEmpty() ? "" : ", containers=" + containers) +
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +

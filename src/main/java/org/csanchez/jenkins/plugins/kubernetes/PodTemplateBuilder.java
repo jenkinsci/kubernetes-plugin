@@ -237,7 +237,8 @@ public class PodTemplateBuilder {
         }
 
         // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-        if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
+        if (pod.getSpec().getRuntimeClassName() == null &&
+                (pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
                 (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
             pod.getSpec().setNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux"));
         }
