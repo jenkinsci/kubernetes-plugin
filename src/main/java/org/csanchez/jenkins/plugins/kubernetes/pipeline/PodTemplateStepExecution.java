@@ -253,10 +253,14 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            KubernetesCloud cloud = resolveCloud();
-            LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
-                    + " from cloud " + cloud.name);
-            cloud.removeDynamicTemplate(podTemplate);
+            try {
+                KubernetesCloud cloud = resolveCloud();
+                LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
+                        + " from cloud " + cloud.name);
+                cloud.removeDynamicTemplate(podTemplate);
+            } catch (AbortException e) {
+                LOGGER.log(Level.WARNING, () -> "Unable to resolve cloud for " + podTemplate.getName() + ". Maybe the cloud was removed while running the build?");
+            }
         }
     }
 }
