@@ -17,3 +17,4 @@ podTemplate(label: '$NAME', containers: [
       }
     }
 }
+semaphore 'after-podtemplate'
