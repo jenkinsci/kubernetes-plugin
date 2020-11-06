@@ -38,6 +38,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.Util;
 import hudson.model.Label;
@@ -75,6 +76,7 @@ public class PodTemplateUtils {
 
     private static final Pattern LABEL_VALIDATION = Pattern.compile("[a-zA-Z0-9]([_\\.\\-a-zA-Z0-9]*[a-zA-Z0-9])?");
 
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
     @VisibleForTesting
     public static boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
 
