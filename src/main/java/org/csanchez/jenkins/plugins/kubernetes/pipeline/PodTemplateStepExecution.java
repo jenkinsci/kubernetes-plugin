@@ -259,7 +259,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                         + " from cloud " + cloud.name);
                 cloud.removeDynamicTemplate(podTemplate);
             } catch (AbortException e) {
-                LOGGER.log(Level.WARNING, () -> "Unable to resolve cloud for " + podTemplate.getName() + ". Maybe the cloud was removed while running the build?");
+                LOGGER.log(Level.WARNING, e, () -> "Unable to resolve cloud for " + podTemplate.getName() + ". Maybe the cloud was removed while running the build?");
             }
         }
     }
