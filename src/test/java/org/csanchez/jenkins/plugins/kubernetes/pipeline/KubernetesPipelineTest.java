@@ -55,6 +55,7 @@ import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -76,6 +77,7 @@ import java.util.Locale;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
+import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
@@ -87,6 +89,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Rule
     public LoggerRule warnings = new LoggerRule();
+
+    @Rule
+    public FlagRule<Boolean> substituteEnv = new FlagRule<>(() -> PodTemplateUtils.SUBSTITUTE_ENV, x -> PodTemplateUtils.SUBSTITUTE_ENV = x);
 
     @Before
     public void setUp() throws Exception {
@@ -638,6 +643,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to create pod", b);
         r.assertLogContains("ERROR: Queue task was cancelled", b);
+    }
+
+    @Issue("SECURITY-1646")
+    @Test
+    public void substituteEnv() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        String home = System.getenv("HOME");
+        assumeNotNull(home);
+        r.assertLogContains("hack: \"xxx${HOME}xxx\"", b);
+        r.assertLogNotContains("xxx" + home + "xxx", b);
+        PodTemplateUtils.SUBSTITUTE_ENV = true;
+        b = r.buildAndAssertSuccess(p);
+        r.assertLogContains("xxx" + home + "xxx", b);
     }
 
     private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
