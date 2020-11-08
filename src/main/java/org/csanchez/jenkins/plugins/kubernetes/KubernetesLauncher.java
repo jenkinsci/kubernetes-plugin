@@ -133,7 +133,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             try {
                 pod = client.pods().inNamespace(namespace).create(pod);
             } catch (KubernetesClientException e) {
-                Metrics.metricRegistry().counter("k8s.cloud.pods.creation.failed").inc();
+                Metrics.metricRegistry().counter(MetricNames.CREATION_FAILED).inc();
                 int httpCode = e.getCode();
                 if (400 <= httpCode && httpCode < 500) { // 4xx
                     runListener.getLogger().printf("ERROR: Unable to create pod %s/%s.%n%s%n", namespace, pod.getMetadata().getName(), e.getMessage());
@@ -147,7 +147,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             LOGGER.log(INFO, "Created Pod: {0}/{1}", new Object[] { namespace, podName });
             listener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
-            Metrics.metricRegistry().counter("k8s.cloud.pods.created").inc();
+            Metrics.metricRegistry().counter(MetricNames.PODS_CREATED).inc();
 
             runListener.getLogger().printf("Created Pod: %s/%s%n", namespace, podName);
 
@@ -175,7 +175,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             for (waitedForSlave = 0; waitedForSlave < waitForSlaveToConnect; waitedForSlave++) {
                 slaveComputer = slave.getComputer();
                 if (slaveComputer == null) {
-                    Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed").inc();
+                    Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
                     throw new IllegalStateException("Node was deleted, computer is null");
                 }
                 if (slaveComputer.isOnline()) {
@@ -185,13 +185,13 @@ public class KubernetesLauncher extends JNLPLauncher {
                 // Check that the pod hasn't failed already
                 pod = client.pods().inNamespace(namespace).withName(podName).get();
                 if (pod == null) {
-                    Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed").inc();
+                    Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
                     throw new IllegalStateException("Pod no longer exists: " + podName);
                 }
                 status = pod.getStatus().getPhase();
                 if (!validStates.contains(status)) {
-                    Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed").inc();
-                    Metrics.metricRegistry().counter("k8s.cloud.pods.launch.status." + status.toLowerCase()).inc();
+                    Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
+                    Metrics.metricRegistry().counter(MetricNames.metricNameForPodStatus(status)).inc();
                     break;
                 }
 
@@ -205,7 +205,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                                     new Object[] { podName, info.getState().getTerminated(), info.getName() });
                             listener.getLogger().printf("Container is terminated %1$s [%3$s]: %2$s%n", podName,
                                     info.getState().getTerminated(), info.getName());
-                            Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed").inc();
+                            Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
                             terminatedContainers.add(info);
                         }
                     }
@@ -223,8 +223,8 @@ public class KubernetesLauncher extends JNLPLauncher {
                 Thread.sleep(1000);
             }
             if (slaveComputer == null || slaveComputer.isOffline()) {
-                Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed").inc();
-                Metrics.metricRegistry().counter("k8s.cloud.pods.launch.failed.timedout").inc();
+                Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
+                Metrics.metricRegistry().counter(MetricNames.FAILED_TIMEOUT).inc();
 
                 logLastLines(containerStatuses, podName, namespace, slave, null, client);
                 throw new IllegalStateException(
@@ -239,7 +239,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Could not save() agent: " + e.getMessage(), e);
             }
-            Metrics.metricRegistry().counter("k8s.cloud.pods.launched").inc();
+            Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
             setProblem(ex);
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", slave, template), ex);

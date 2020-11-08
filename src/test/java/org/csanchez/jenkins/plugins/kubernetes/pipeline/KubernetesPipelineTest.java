@@ -54,6 +54,7 @@ import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.hamcrest.MatcherAssert;
@@ -190,8 +191,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage()).collect(Collectors.toList()), // LogRecord does not override toString
             emptyIterable());
 
-        assertTrue(Metrics.metricRegistry().counter("k8s.cloud.pods.launched").getCount() > 0);
-        assertTrue(Metrics.metricRegistry().meter("k8s.cloud.runInPod.provision.request").getCount() > 0);
+        assertTrue(Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).getCount() > 0);
+        assertTrue(Metrics.metricRegistry().meter(MetricNames.metricNameForLabel(Label.parseExpression("runInPod"))).getCount() > 0);
     }
 
     @Test

@@ -334,7 +334,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         if (deletePod) {
             deleteSlavePod(listener, client);
-            Metrics.metricRegistry().counter("k8s.cloud.pods.terminated").inc();
+            Metrics.metricRegistry().counter(MetricNames.PODS_TERMINATED).inc();
         } else {
             // Log warning, as the slave pod may still be running
             LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
