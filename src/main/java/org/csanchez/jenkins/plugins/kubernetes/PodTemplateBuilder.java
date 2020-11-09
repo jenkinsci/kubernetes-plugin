@@ -95,6 +95,9 @@ public class PodTemplateBuilder {
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
     @VisibleForTesting
+    static final String DOCKER_REGISTRY_PREFIX = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix", "");
+    @VisibleForTesting
     static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
 
@@ -253,7 +256,12 @@ public class PodTemplateBuilder {
         }
         pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
-            jnlp.setImage(DEFAULT_JNLP_IMAGE);
+            String jnlpImage = DEFAULT_JNLP_IMAGE;
+            if (StringUtils.isNotEmpty(DOCKER_REGISTRY_PREFIX)) {
+                String registryPrefix = DOCKER_REGISTRY_PREFIX.endsWith("/") ? DOCKER_REGISTRY_PREFIX : DOCKER_REGISTRY_PREFIX + "/";
+                jnlpImage = registryPrefix + jnlpImage;
+            }
+            jnlp.setImage(jnlpImage);
         }
         Map<String, EnvVar> envVars = new HashMap<>();
         envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
