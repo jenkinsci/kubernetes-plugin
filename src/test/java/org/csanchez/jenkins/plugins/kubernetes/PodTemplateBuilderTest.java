@@ -34,6 +34,7 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -714,6 +715,17 @@ public class PodTemplateBuilderTest {
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         validateContainers(pod, slave, directConnection);
+    }
+
+    @Test
+    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() {
+        setupStubs();
+        PodTemplate pt = new PodTemplate();
+        pt.setYaml("spec:\n" +
+                "  runtimeClassName: windows");
+        Pod pod = new PodTemplateBuilder(pt).withSlave(slave).build();
+        assertEquals("windows", pod.getSpec().getRuntimeClassName());
+        assertThat(pod.getSpec().getNodeSelector(), anEmptyMap());
     }
 
     private Map<String, Container> toContainerMap(Pod pod) {
