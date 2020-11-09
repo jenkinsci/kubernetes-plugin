@@ -10,10 +10,10 @@ public class MetricNames {
     public static final String LAUNCH_FAILED = PREFIX + ".pods.launch.failed";
     public static final String PODS_TERMINATED = PREFIX + ".pods.terminated";
     public static final String REACHED_POD_CAP = PREFIX + ".provision.reached.pod.cap";
+    public static final String REACHED_GLOBAL_CAP = PREFIX + ".provision.reached.global.cap";
     public static final String FAILED_TIMEOUT = PREFIX + ".pods.launch.failed.timeout";
     public static final String PROVISION_NODES = PREFIX + ".provision.nodes";
     public static final String PROVISION_FAILED = PREFIX + ".provision.failed";
-    public static final String REACHED_TOTAL_CAP = PREFIX + ".provision.reached.total.cap";
     public static final String PODS_LAUNCHED = PREFIX + ".pods.launched";
 
     public static String metricNameForPodStatus(String status) {

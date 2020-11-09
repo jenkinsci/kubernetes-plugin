@@ -24,9 +24,21 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.oneOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.*;
 
 import java.io.File;
@@ -57,6 +69,7 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -77,6 +90,7 @@ import java.util.Locale;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
+import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
@@ -88,6 +102,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Rule
     public LoggerRule warnings = new LoggerRule();
+
+    @Rule
+    public FlagRule<Boolean> substituteEnv = new FlagRule<>(() -> PodTemplateUtils.SUBSTITUTE_ENV, x -> PodTemplateUtils.SUBSTITUTE_ENV = x);
 
     @Before
     public void setUp() throws Exception {
@@ -181,6 +198,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
         assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/label", name.getMethodName()));
 
+        SemaphoreStep.waitForStart("after-podtemplate/1", b);
+        assertThat(podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates()), hasSize(0));
+        SemaphoreStep.success("after-podtemplate/1", null);
+
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
@@ -263,7 +284,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("image: \"jenkins/jnlp-slave:3.35-5-alpine\"", b);
+        r.assertLogContains("image: \"jenkins/inbound-agent:4.3-4-alpine\"", b);
         r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
         r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
@@ -401,7 +422,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate pt = new PodTemplate();
         pt.setName("podTemplate");
         pt.setLabel("label1 label2");
-        ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jenkins/jnlp-slave:3.35-5-alpine");
+        ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jenkins/inbound-agent:4.3-4-alpine");
         pt.setContainers(Collections.singletonList(jnlp));
         cloud.addTemplate(pt);
         SemaphoreStep.waitForStart("pod/1", b);
@@ -587,7 +608,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void basicWindows() throws Exception {
         assumeWindows();
-        cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-jnlp-slave/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
+        cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-inbound-agent/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
         r.assertLogContains("C:\\Program Files (x86)", b); // powershell
@@ -642,6 +663,19 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to create pod", b);
         r.assertLogContains("ERROR: Queue task was cancelled", b);
+    }
+
+    @Issue("SECURITY-1646")
+    @Test
+    public void substituteEnv() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        String home = System.getenv("HOME");
+        assumeNotNull(home);
+        r.assertLogContains("hack: \"xxx${HOME}xxx\"", b);
+        r.assertLogNotContains("xxx" + home + "xxx", b);
+        PodTemplateUtils.SUBSTITUTE_ENV = true;
+        b = r.buildAndAssertSuccess(p);
+        r.assertLogContains("xxx" + home + "xxx", b);
     }
 
     private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
