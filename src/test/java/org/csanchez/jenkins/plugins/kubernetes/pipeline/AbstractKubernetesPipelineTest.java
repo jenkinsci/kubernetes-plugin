@@ -32,8 +32,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
+import hudson.slaves.NodeProvisioner;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -72,7 +74,10 @@ public abstract class AbstractKubernetesPipelineTest {
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
     @Rule
-    public LoggerRule logs = new LoggerRule().recordPackage(KubernetesCloud.class, Level.FINE);
+    public LoggerRule logs = new LoggerRule()
+            .recordPackage(KubernetesCloud.class, Level.FINE)
+            .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
+            .record(NodeProvisioner.class, Level.FINE);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {

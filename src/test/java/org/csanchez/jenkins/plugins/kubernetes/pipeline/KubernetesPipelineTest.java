@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
@@ -59,6 +58,7 @@ import hudson.model.Label;
 import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
 import hudson.util.VersionNumber;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -85,6 +85,8 @@ import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.model.Result;
 import java.util.Locale;
+import java.util.stream.Collectors;
+
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Ignore;
@@ -431,7 +433,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodList pods = cloud.connect().pods().withLabels(labels).list();
         assertThat(
                 "Expected one pod with labels " + labels + " but got: "
-                        + pods.getItems().stream().map(pod -> pod.getMetadata()).collect(Collectors.toList()),
+                        + pods.getItems().stream().map(Pod::getMetadata).map(ObjectMeta::getName).collect(Collectors.toList()),
                 pods.getItems(), hasSize(1));
         SemaphoreStep.success("pod/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
