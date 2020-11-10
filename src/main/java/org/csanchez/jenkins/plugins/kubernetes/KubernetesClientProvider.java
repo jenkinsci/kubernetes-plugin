@@ -118,16 +118,13 @@ public class KubernetesClientProvider {
                 for (KubernetesCloud cloud : jenkins.clouds.getAll(KubernetesCloud.class)) {
                     String displayName = cloud.getDisplayName();
                     Client client = clients.getIfPresent(displayName);
-                    if (client != null && client.getValidity() == getValidity(cloud)) {
+                    if (client == null || client != null && client.getValidity() == getValidity(cloud)) {
                         cloudDisplayNames.remove(displayName);
-                    } else {
-                        LOGGER.log(Level.INFO, "Invalidating Kubernetes client: {0} {1}",
-                                new Object[] { displayName, client });
                     }
                 }
                 // Remove missing / invalid clients
                 for (String displayName : cloudDisplayNames) {
-                    LOGGER.log(Level.INFO, "Invalidating Kubernetes client: {0}", displayName);
+                    LOGGER.log(Level.INFO, () -> "Invalidating Kubernetes client: " + displayName + clients.getIfPresent(displayName));
                     invalidate(displayName);
                 }
             }
