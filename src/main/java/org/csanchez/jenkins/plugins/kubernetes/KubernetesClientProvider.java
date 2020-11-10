@@ -43,6 +43,12 @@ public class KubernetesClientProvider {
 
     private static final Cache<String, Client> clients = CacheBuilder.newBuilder()
             .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
+            .removalListener(rl -> {
+                Client client = (Client) rl.getValue();
+                if (client != null) {
+                    LOGGER.log(Level.FINE, () -> "Expiring Kubernetes client " + rl.getKey() + " " + client.client);
+                }
+            })
             .build();
 
     private KubernetesClientProvider() {
