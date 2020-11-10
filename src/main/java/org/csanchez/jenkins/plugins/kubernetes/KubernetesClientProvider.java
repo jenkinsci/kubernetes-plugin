@@ -34,12 +34,6 @@ public class KubernetesClientProvider {
     private static final Logger LOGGER = Logger.getLogger(KubernetesClientProvider.class.getName());
 
     /**
-     * How many clouds can we connect to, default to 10
-     */
-    private static final Integer CACHE_SIZE = Integer
-            .getInteger(KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheSize", 10);
-
-    /**
      * Client expiration in seconds.
      *
      * Some providers such as Amazon EKS use a token with 15 minutes expiration, so expire clients after 10 minutes.
