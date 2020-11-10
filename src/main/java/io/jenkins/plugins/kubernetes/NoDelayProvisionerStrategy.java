@@ -2,6 +2,8 @@ package io.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
+import hudson.model.Queue;
+import hudson.model.queue.QueueListener;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
@@ -98,6 +100,30 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 LOGGER.log(Level.SEVERE, "Unexpected uncaught exception encountered while "
                         + "processing onStarted() listener call in " + cl + " for label "
                         + label.toString(), e);
+            }
+        }
+    }
+
+    /**
+     * Ping the nodeProvisioner as a new task enters the queue.
+     */
+    @Extension
+    public static class FastProvisioning extends QueueListener {
+
+        @Override
+        public void onEnterBuildable(Queue.BuildableItem item) {
+            if (!DISABLE_NODELAY_PROVISING) {
+                return;
+            }
+            final Jenkins jenkins = Jenkins.get();
+            final Label label = item.getAssignedLabel();
+            for (Cloud cloud : jenkins.clouds) {
+                if (cloud instanceof KubernetesCloud && cloud.canProvision(new Cloud.CloudState(label, 0))) {
+                    final NodeProvisioner provisioner = (label == null
+                            ? jenkins.unlabeledNodeProvisioner
+                            : label.nodeProvisioner);
+                    provisioner.suggestReviewNow();
+                }
             }
         }
     }

@@ -270,7 +270,6 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <hudson.slaves.NodeProvisioner.recurrencePeriod>1000</hudson.slaves.NodeProvisioner.recurrencePeriod>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->
