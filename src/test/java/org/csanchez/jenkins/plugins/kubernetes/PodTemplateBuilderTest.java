@@ -156,6 +156,48 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    @TestCaseName("{method}(directConnection={0})")
+    @Parameters({ "true", "false" })
+    public void testValidateDockerRegistryPrefixOverride(boolean directConnection) throws Exception {
+        cloud.setDirectConnection(directConnection);
+        String origDockerRegistryPrefix = DOCKER_REGISTRY_PREFIX;
+        DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        // check containers
+        Map<String, Container> containers = toContainerMap(pod);
+        assertEquals(2, containers.size());
+
+        assertEquals("busybox", containers.get("busybox").getImage());
+        assertEquals(DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+        DOCKER_REGISTRY_PREFIX = origDockerRegistryPrefix;
+    }
+
+    @Test
+    @TestCaseName("{method}(directConnection={0})")
+    @Parameters({ "true", "false" })
+    public void testValidateDockerRegistryPrefixOverrideWithSlashSuffix(boolean directConnection) throws Exception {
+        cloud.setDirectConnection(directConnection);
+        String origDockerRegistryPrefix = DOCKER_REGISTRY_PREFIX;
+        DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub/";
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        // check containers
+        Map<String, Container> containers = toContainerMap(pod);
+        assertEquals(2, containers.size());
+
+        assertEquals("busybox", containers.get("busybox").getImage());
+        assertEquals(DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+        DOCKER_REGISTRY_PREFIX = origDockerRegistryPrefix;
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();

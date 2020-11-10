@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -94,8 +95,9 @@ public class PodTemplateBuilder {
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @VisibleForTesting
-    static final String DOCKER_REGISTRY_PREFIX = System
+    static String DOCKER_REGISTRY_PREFIX = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix", "");
     @VisibleForTesting
     static final String DEFAULT_JNLP_IMAGE = System
