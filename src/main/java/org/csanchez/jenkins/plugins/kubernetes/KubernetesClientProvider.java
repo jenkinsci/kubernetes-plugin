@@ -118,7 +118,7 @@ public class KubernetesClientProvider {
                 for (KubernetesCloud cloud : jenkins.clouds.getAll(KubernetesCloud.class)) {
                     String displayName = cloud.getDisplayName();
                     Client client = clients.getIfPresent(displayName);
-                    if (client == null || client != null && client.getValidity() == getValidity(cloud)) {
+                    if (client == null || client.getValidity() == getValidity(cloud)) {
                         cloudDisplayNames.remove(displayName);
                     }
                 }
