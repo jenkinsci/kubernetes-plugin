@@ -20,13 +20,13 @@ import hudson.Util;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -334,6 +334,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         if (deletePod) {
             deleteSlavePod(listener, client);
+            Metrics.metricRegistry().counter(MetricNames.PODS_TERMINATED).inc();
         } else {
             // Log warning, as the slave pod may still be running
             LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
