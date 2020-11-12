@@ -29,6 +29,7 @@ import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
 import hudson.util.XStream2;
+import jenkins.metrics.api.Metrics;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
@@ -72,6 +73,8 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
+
 import jenkins.websocket.WebSockets;
 
 /**
@@ -529,6 +532,7 @@ public class KubernetesCloud extends Cloud {
     @Override
     public synchronized Collection<NodeProvisioner.PlannedNode> provision(@NonNull final Cloud.CloudState state, final int excessWorkload) {
         try {
+            Metrics.metricRegistry().meter(metricNameForLabel(state.getLabel())).mark(excessWorkload);
             Label label = state.getLabel();
             int plannedCapacity = state.getAdditionalPlannedCapacity(); // Planned nodes, will be launched on the next round of NodeProvisioner
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label); // Nodes being launched
@@ -562,15 +566,23 @@ public class KubernetesCloud extends Cloud {
                         if (!plannedNodes.isEmpty()) {
                             // Return early when a matching template was found and nodes were planned
                             LOGGER.log(Level.FINEST, "Planned {0} Kubernetes agents with template \"{1}\"", new Object[]{plannedNodes.size(), podTemplate.getName()});
+                            Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
+                            if (plannedNodes.size() == provisioningLimit && plannedNodes.size() < toBeProvisioned) {
+                                Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
+                            }
+
                             return plannedNodes;
                         }
                     }
                 } else {
                     LOGGER.log(Level.INFO, "No slot left for provisioning (global limit)");
+                    Metrics.metricRegistry().counter(MetricNames.REACHED_GLOBAL_CAP).inc();
                 }
             }
+            Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
             return plannedNodes;
         } catch (KubernetesClientException e) {
+            Metrics.metricRegistry().counter(MetricNames.PROVISION_FAILED).inc();
             Throwable cause = e.getCause();
             if (cause instanceof SocketTimeoutException || cause instanceof ConnectException || cause instanceof UnknownHostException) {
                 LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}: {1}",
