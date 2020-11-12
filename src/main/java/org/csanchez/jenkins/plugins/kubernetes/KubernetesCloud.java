@@ -691,6 +691,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
+     * Add a new template to the cloud
      * @param t docker template
      */
     public void addTemplate(PodTemplate t) {
