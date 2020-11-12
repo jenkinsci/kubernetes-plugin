@@ -38,6 +38,7 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -81,6 +82,9 @@ public class PodTemplateBuilderTest {
     @Rule
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
+
+    @Rule
+    public FlagRule<String> dockerPrefix = new FlagRule<>(() -> DOCKER_REGISTRY_PREFIX, prefix -> DOCKER_REGISTRY_PREFIX = prefix);
 
     @Spy
     private KubernetesCloud cloud = new KubernetesCloud("test");
@@ -160,7 +164,6 @@ public class PodTemplateBuilderTest {
     @Parameters({ "true", "false" })
     public void testValidateDockerRegistryPrefixOverride(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
-        String origDockerRegistryPrefix = DOCKER_REGISTRY_PREFIX;
         DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
@@ -173,7 +176,6 @@ public class PodTemplateBuilderTest {
         assertEquals("busybox", containers.get("busybox").getImage());
         assertEquals(DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        DOCKER_REGISTRY_PREFIX = origDockerRegistryPrefix;
     }
 
     @Test
@@ -181,7 +183,6 @@ public class PodTemplateBuilderTest {
     @Parameters({ "true", "false" })
     public void testValidateDockerRegistryPrefixOverrideWithSlashSuffix(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
-        String origDockerRegistryPrefix = DOCKER_REGISTRY_PREFIX;
         DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub/";
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
@@ -194,7 +195,6 @@ public class PodTemplateBuilderTest {
         assertEquals("busybox", containers.get("busybox").getImage());
         assertEquals(DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        DOCKER_REGISTRY_PREFIX = origDockerRegistryPrefix;
     }
 
     @Test
