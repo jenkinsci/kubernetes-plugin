@@ -258,7 +258,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
         PodRetention retentionPolicy = cloud.getPodRetention();
-        PodTemplate template = getTemplate();
+        PodTemplate template = getTemplateOrNull();
         if (template != null) {
             PodRetention pr = template.getPodRetention();
             // https://issues.jenkins-ci.org/browse/JENKINS-53260
