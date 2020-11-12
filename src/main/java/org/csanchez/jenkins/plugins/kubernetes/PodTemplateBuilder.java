@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -97,8 +98,8 @@ public class PodTemplateBuilder {
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @VisibleForTesting
-    static String DOCKER_REGISTRY_PREFIX = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix", "");
+    static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
     @VisibleForTesting
     static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
@@ -259,9 +260,8 @@ public class PodTemplateBuilder {
         pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
             String jnlpImage = DEFAULT_JNLP_IMAGE;
-            if (StringUtils.isNotEmpty(DOCKER_REGISTRY_PREFIX)) {
-                String registryPrefix = DOCKER_REGISTRY_PREFIX.endsWith("/") ? DOCKER_REGISTRY_PREFIX : DOCKER_REGISTRY_PREFIX + "/";
-                jnlpImage = registryPrefix + jnlpImage;
+            if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+                jnlpImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + jnlpImage;
             }
             jnlp.setImage(jnlpImage);
         }

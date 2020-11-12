@@ -34,7 +34,6 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,7 +83,7 @@ public class PodTemplateBuilderTest {
             Level.ALL);
 
     @Rule
-    public FlagRule<String> dockerPrefix = new FlagRule<>(() -> DOCKER_REGISTRY_PREFIX, prefix -> DOCKER_REGISTRY_PREFIX = prefix);
+    public FlagRule<String> dockerPrefix = new FlagRule<>(() -> DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, prefix -> DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = prefix);
 
     @Spy
     private KubernetesCloud cloud = new KubernetesCloud("test");
@@ -164,7 +163,7 @@ public class PodTemplateBuilderTest {
     @Parameters({ "true", "false" })
     public void testValidateDockerRegistryPrefixOverride(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
-        DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
+        DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
         setupStubs();
@@ -174,7 +173,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals(DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertEquals(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
@@ -183,7 +182,7 @@ public class PodTemplateBuilderTest {
     @Parameters({ "true", "false" })
     public void testValidateDockerRegistryPrefixOverrideWithSlashSuffix(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
-        DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub/";
+        DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub/";
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
         setupStubs();
@@ -193,7 +192,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals(DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertEquals(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
