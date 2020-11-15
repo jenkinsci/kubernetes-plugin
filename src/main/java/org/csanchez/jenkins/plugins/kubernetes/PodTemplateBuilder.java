@@ -104,9 +104,9 @@ public class PodTemplateBuilder {
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", "100m");
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", null);
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit", null);
     static final String DEFAULT_JNLP_CONTAINER_CPU_LIMIT = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", null);
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit", null);
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -265,15 +265,20 @@ public class PodTemplateBuilder {
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
-            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
+
+            containerBuilder = new ContainerBuilder();
+            containerBuilder.editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
 
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
-                jnlp.setResources(new ContainerBuilder().editOrNewResources().addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT)).endResources().build().getResources());
+                containerBuilder.editOrNewResources().addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
             }
 
             if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
-                jnlp.setResources(new ContainerBuilder().editOrNewResources().addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT)).endResources().build().getResources());
+                containerBuilder.editOrNewResources().addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT))
             }
+
+            jnlp.setResources(containerBuilder.endResources().build().getResources());
+
         }
         
         // If the volume mounts of any container has been set to null, set it to empty list.
