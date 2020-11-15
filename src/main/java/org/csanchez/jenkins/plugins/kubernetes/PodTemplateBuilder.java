@@ -271,11 +271,11 @@ public class PodTemplateBuilder {
 
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
                 containerBuilder.editOrNewResources().addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
-            };
+            }
 
             if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
                 containerBuilder.editOrNewResources().addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT))
-            };
+            }
 
             jnlp.setResources(containerBuilder.endResources().build().getResources());
 
