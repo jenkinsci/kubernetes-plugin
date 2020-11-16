@@ -103,7 +103,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public TemporaryFolder tmp = new TemporaryFolder();
 
     @Rule
-    public LoggerRule warnings = new LoggerRule();
+    public LoggerRule warnings = new LoggerRule().quiet();
 
     @Rule
     public FlagRule<Boolean> substituteEnv = new FlagRule<>(() -> PodTemplateUtils.SUBSTITUTE_ENV, x -> PodTemplateUtils.SUBSTITUTE_ENV = x);
@@ -113,7 +113,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         // Had some problems with FileChannel.close hangs from WorkflowRun.save:
         r.jenkins.getDescriptorByType(GlobalDefaultFlowDurabilityLevel.DescriptorImpl.class).setDurabilityHint(FlowDurabilityHint.PERFORMANCE_OPTIMIZED);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
-        warnings.record("", Level.WARNING).capture(1000);
         assertNotNull(createJobThenScheduleRun());
     }
 
@@ -134,6 +133,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57993")
     @Test
     public void runInPod() throws Exception {
+        warnings.record("", Level.WARNING).capture(1000);
         SemaphoreStep.waitForStart("podTemplate/1", b);
         List<PodTemplate> templates = podTemplatesWithLabel(name.getMethodName(), cloud.getAllTemplates());
         assertThat(templates, hasSize(1));
