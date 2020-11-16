@@ -278,6 +278,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodWithDifferentShell() throws Exception {
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Process exited immediately after creation", b);
+        // r.assertLogContains("/bin/bash: no such file or directory", b); // Not printed in CI for an unknown reason.
+    }
+
+    @Test
     public void bourneShellElsewhereInPath() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("/kaniko:/busybox", b);

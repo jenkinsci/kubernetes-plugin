@@ -42,8 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -57,11 +57,8 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
@@ -95,6 +92,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
      * A higher value will consume more memory
      */
     private static final int STDIN_BUFFER_SIZE = Integer.getInteger(ContainerExecDecorator.class.getName() + ".stdinBufferSize", 16 * 1024);
+    /**
+     * time in milliseconds to wait for checking whether the process immediately returned
+     */
+    public static final int COMMAND_FINISHED_TIMEOUT_MS = 200;
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
@@ -345,12 +346,20 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 final AtomicLong startAlive = new AtomicLong();
                 long startMethod = System.nanoTime();
 
-                PrintStream printStream = launcher.getListener().getLogger();
-                OutputStream stream = printStream;
+                PrintStream printStream;
+                OutputStream stream;
+
+                // Only output to stdout at the beginning for diagnostics.
+                ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+                ToggleOutputStream toggleStdout = new ToggleOutputStream(stdout);
+
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
-                    stream = new NullOutputStream();
-                    printStream = new PrintStream(stream, false, StandardCharsets.UTF_8.toString());
+                    stream = toggleStdout;
+                    printStream = new PrintStream(stream, true, StandardCharsets.UTF_8.toString());
+                } else {
+                    printStream = launcher.getListener().getLogger();
+                    stream = new TeeOutputStream(toggleStdout, printStream);
                 }
 
                 // Send to proc caller as well if they sent one
@@ -442,6 +451,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 try {
+                    // Depends on the ping time with the Kubernetes API server
+                    // Not fully satisfied with this solution because it can delay the execution
+                    if (finished.await(COMMAND_FINISHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                        launcher.getListener().error("Process exited immediately after creation. See output below%n%s", stdout.toString(StandardCharsets.UTF_8.name()));
+                        throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
+                    }
+                    toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
                     if (pwd != null) {
@@ -531,7 +547,29 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             try {
                 closable.close();
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "failed to close {0}");
+                LOGGER.log(Level.FINE, "failed to close", e);
+            }
+        }
+    }
+
+    private static class ToggleOutputStream extends FilterOutputStream {
+        private boolean disabled;
+        public ToggleOutputStream(OutputStream out) {
+            super(out);
+        }
+
+        public void disable() {
+            disabled = true;
+        }
+
+        public void enable() {
+            disabled = false;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (!disabled) {
+                out.write(b);
             }
         }
     }
