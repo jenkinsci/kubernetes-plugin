@@ -266,18 +266,18 @@ public class PodTemplateBuilder {
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
 
-            ContainerBuilder containerBuilder = new ContainerBuilder();
-            containerBuilder.editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources();
+            ResourcesNested<ContainerBuilder> containerResources = new ContainerBuilder().editOrNewResources();
+            containerResources.addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
 
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
-                containerBuilder.editOrNewResources().addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT)).endResources();
+                containerResources.addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
             }
 
             if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
-                containerBuilder.editOrNewResources().addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT)).endResources();
+                containerResources.addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
             }
 
-            jnlp.setResources(containerBuilder.build().getResources());
+            jnlp.setResources(containerResources.endResources().build().getResources());
 
         }
         
