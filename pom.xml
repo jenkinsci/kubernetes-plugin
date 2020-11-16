@@ -51,7 +51,7 @@
     <no-test-jar>false</no-test-jar>
     <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
     <useBeta>true</useBeta>
-    <jenkins-test-harness.version>2.71-rc1440.5006c90d65eb</jenkins-test-harness.version>
+    <jenkins-test-harness.version>2.71</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
