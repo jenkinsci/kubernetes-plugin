@@ -72,6 +72,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.api.model.ContainerFluent.ResourcesNested;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
@@ -266,18 +267,18 @@ public class PodTemplateBuilder {
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
 
-            ContainerBuilder containerBuilder = new ContainerBuilder();
-            containerBuilder.editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources();
+            ResourcesNested<ContainerBuilder> containerBuilder = new ContainerBuilder().withNewResources();
+            containerBuilder.addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
 
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
-                containerBuilder.editOrNewResources().addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT)).endResources();
+                containerBuilder.addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
             }
 
             if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
-                containerBuilder.editOrNewResources().addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT)).endResources();
+                containerBuilder.addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
             }
 
-            jnlp.setResources(containerBuilder.build().getResources());
+            jnlp.setResources(containerBuilder.endResources().build().getResources());
 
         }
         
