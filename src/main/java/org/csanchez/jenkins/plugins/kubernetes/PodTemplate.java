@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.Serializable;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -801,7 +802,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
-    protected Object readResolve() {
+    protected Object readResolve() throws NoSuchAlgorithmException {
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<>();
@@ -857,7 +858,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
         }
         if (id == null) {
-            id = UUID.randomUUID().toString();
+            // Use the label and a digest of the current object representation to get the same value every restart if the object isn't saved.
+            id = getLabel() + "-" + Util.getDigestOf(toString());
         }
 
         return this;
