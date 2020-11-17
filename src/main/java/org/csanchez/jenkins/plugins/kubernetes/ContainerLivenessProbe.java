@@ -77,6 +77,18 @@ public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLiv
         this.successThreshold = successThreshold;
     }
 
+    @Override
+    public String toString() {
+        return "ContainerLivenessProbe{" +
+                "execArgs='" + execArgs + '\'' +
+                ", timeoutSeconds=" + timeoutSeconds +
+                ", initialDelaySeconds=" + initialDelaySeconds +
+                ", failureThreshold=" + failureThreshold +
+                ", periodSeconds=" + periodSeconds +
+                ", successThreshold=" + successThreshold +
+                '}';
+    }
+
     @Extension
     @Symbol("containerLivenessProbe")
     public static class DescriptorImpl extends Descriptor<ContainerLivenessProbe> {
