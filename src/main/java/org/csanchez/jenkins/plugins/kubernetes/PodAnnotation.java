@@ -53,6 +53,14 @@ public class PodAnnotation extends AbstractDescribableImpl<PodAnnotation> implem
         return key != null ? key.hashCode() : 0;
     }
 
+    @Override
+    public String toString() {
+        return "PodAnnotation{" +
+                "key='" + key + '\'' +
+                ", value='" + value + '\'' +
+                '}';
+    }
+
     @Extension
     @Symbol("podAnnotation")
     public static class DescriptorImpl extends Descriptor<PodAnnotation> {

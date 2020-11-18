@@ -14,4 +14,9 @@ public abstract class YamlMergeStrategy extends AbstractDescribableImpl<YamlMerg
     }
 
     public abstract Pod merge(@Nonnull List<String> yamls);
+
+    @Override
+    public String toString() {
+        return getDescriptor().getDisplayName();
+    }
 }
