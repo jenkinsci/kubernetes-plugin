@@ -1001,7 +1001,7 @@ public class KubernetesCloud extends Cloud {
         if (podLabels == null && labels != null) {
             setPodLabels(PodLabel.fromMap(labels));
         }
-        if (containerCap == 0) {
+        if (containerCap != null && containerCap == 0) {
             containerCap = null;
         }
         return this;
