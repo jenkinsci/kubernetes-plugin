@@ -372,6 +372,13 @@ public class KubernetesCloudTest {
         assertEquals(KubernetesCloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
+    @Test
+    @LocalData
+    public void readResolveContainerCapZero() {
+        KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
+        assertTrue(cloud.getRemainingGlobalSlots(Collections.emptyList(), 1) > 0);
+    }
+
     public HtmlInput getInputByName(DomElement root, String name) {
         DomNodeList<HtmlElement> inputs = root.getElementsByTagName("input");
         for (HtmlElement input : inputs) {
