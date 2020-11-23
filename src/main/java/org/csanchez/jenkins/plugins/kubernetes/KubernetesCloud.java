@@ -807,7 +807,7 @@ public class KubernetesCloud extends Cloud {
                     // test listing pods
                     client.pods().list();
                 VersionInfo version = client.getVersion();
-                return FormValidation.ok("Connected to Kubernetes " + version.getMajor() + "." + version.getMinor());
+                return FormValidation.ok("Connected to Kubernetes " + version.getGitVersion());
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
                 return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getCause() == null
