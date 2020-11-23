@@ -9,19 +9,16 @@ import javax.annotation.Nonnull;
 /**
  * Allows to alter a pod definition after it has been built from the yaml and DSL/GUI configuration.
  */
-public abstract class PodDecorator implements ExtensionPoint {
-    public static ExtensionList<PodDecorator> all() {
-        return ExtensionList.lookup(PodDecorator.class);
-    }
+public interface PodDecorator extends ExtensionPoint {
 
     @Nonnull
-    public static PodBuilder decorateAll(@Nonnull PodBuilder builder) {
-        for (PodDecorator decorator : all()) {
+    static PodBuilder decorateAll(@Nonnull PodBuilder builder) {
+        for (PodDecorator decorator : ExtensionList.lookup(PodDecorator.class)) {
             builder = decorator.decorate(builder);
         }
         return builder;
     }
 
     @Nonnull
-    protected abstract PodBuilder decorate(@Nonnull PodBuilder builder);
+    PodBuilder decorate(@Nonnull PodBuilder builder);
 }
