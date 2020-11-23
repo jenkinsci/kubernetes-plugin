@@ -164,11 +164,11 @@ public class KubernetesFactoryAdapter {
     }
 
     @CheckForNull
-    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) {
+    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) throws KubernetesAuthException {
         if (credentialsId == null) {
             return null;
         }
-        return CredentialsMatchers.firstOrNull(
+        StandardCredentials c = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentials(
                         StandardCredentials.class,
                         Jenkins.get(),
@@ -180,5 +180,9 @@ public class KubernetesFactoryAdapter {
                         CredentialsMatchers.withId(credentialsId)
                 )
         );
+        if (c == null) {
+            throw new KubernetesAuthException("No credentials found with id " + credentialsId);
+        }
+        return c;
     }
 }
