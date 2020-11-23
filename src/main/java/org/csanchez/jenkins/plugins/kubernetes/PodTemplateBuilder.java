@@ -233,7 +233,7 @@ public class PodTemplateBuilder {
         }
 
         // merge with the yaml fragments
-        Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
+        Pod pod = PodDecorator.decorateAll(new PodBuilder(combine(template.getYamlsPod(), builder.endSpec().build()))).build();
 
         // Apply defaults
 
@@ -273,7 +273,7 @@ public class PodTemplateBuilder {
         if (jnlp.getResources() == null) {
             jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
         }
-        
+
         // If the volume mounts of any container has been set to null, set it to empty list.
         // Without this being done the code below would throw a NPE if such null existed.
         pod.getSpec().getContainers().stream()
