@@ -14,6 +14,7 @@ import org.jvnet.hudson.test.RestartableJenkinsRule;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -22,7 +23,9 @@ public class CasCTest extends RoundTripAbstractTest {
 
     @Override
     protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
-        KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
+        List<KubernetesCloud> all = r.j.jenkins.clouds.getAll(KubernetesCloud.class);
+        assertThat(all, hasSize(1));
+        KubernetesCloud cloud = all.get(0);
         assertNotNull(cloud);
         assertEquals(10,cloud.getContainerCap());
         assertEquals("http://jenkinshost:8080/jenkins/", cloud.getJenkinsUrl());
