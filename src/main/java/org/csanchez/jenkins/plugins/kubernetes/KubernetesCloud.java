@@ -533,7 +533,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Override
-    public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
+    public Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
         try {
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
