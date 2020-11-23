@@ -233,7 +233,7 @@ public class PodTemplateBuilder {
         }
 
         // merge with the yaml fragments
-        Pod pod = PodDecorator.decorateAll(new PodBuilder(combine(template.getYamlsPod(), builder.endSpec().build()))).build();
+        Pod pod = PodDecorator.decorateAll(combine(template.getYamlsPod(), builder.endSpec().build()));
 
         // Apply defaults
 

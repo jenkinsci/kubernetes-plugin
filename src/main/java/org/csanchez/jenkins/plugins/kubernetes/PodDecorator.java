@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 
 import javax.annotation.Nonnull;
@@ -12,11 +13,18 @@ import javax.annotation.Nonnull;
 public interface PodDecorator extends ExtensionPoint {
 
     @Nonnull
-    static PodBuilder decorateAll(@Nonnull PodBuilder builder) {
-        for (PodDecorator decorator : ExtensionList.lookup(PodDecorator.class)) {
-            builder = decorator.decorate(builder);
+    static Pod decorateAll(@Nonnull Pod pod) {
+        ExtensionList<PodDecorator> all = ExtensionList.lookup(PodDecorator.class);
+        if (all.isEmpty()) {
+            return pod;
+        } else {
+            PodBuilder builder = new PodBuilder(pod);
+            for (PodDecorator decorator : all) {
+                builder = decorator.decorate(builder);
+            }
+            return builder.build();
         }
-        return builder;
+
     }
 
     @Nonnull
