@@ -301,6 +301,7 @@ public class PodTemplateBuilderTest {
 
     private void validatePod(Pod pod, boolean fromYaml, boolean directConnection) {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
+        assertEquals("Never", pod.getSpec().getRestartPolicy());
 
         // check containers
         Map<String, Container> containers = toContainerMap(pod);
