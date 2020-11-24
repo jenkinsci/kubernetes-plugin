@@ -1,6 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +37,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -370,6 +377,14 @@ public class KubernetesCloudTest {
         assertEquals(KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST, cloud.getMaxRequestsPerHost());
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
         assertEquals(KubernetesCloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
+    }
+
+    @Test
+    @LocalData
+    public void readResolveContainerCapZero() {
+        KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
+        assertEquals(cloud.getContainerCap(), Integer.MAX_VALUE);
+        assertThat(cloud.getRemainingGlobalSlots(Collections.emptyList(), 1), greaterThan(0));
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {
