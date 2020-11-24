@@ -6,6 +6,9 @@ import io.fabric8.kubernetes.api.model.Pod;
 import javax.annotation.Nonnull;
 import java.util.Collections;
 
+/**
+ * Sets the default node selector to linux if it hasn't been set explicitly in the pod before.
+ */
 @Extension
 public class DefaultNodeSelector implements PodDecorator {
     @Nonnull

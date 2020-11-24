@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+/**
+ * Sets a workspace volume mounted in all containers.
+ */
 @Extension
 public class DefaultWorkspaceVolume implements PodDecorator {
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";

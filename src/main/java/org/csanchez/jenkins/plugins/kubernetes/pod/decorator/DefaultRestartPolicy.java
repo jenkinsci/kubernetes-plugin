@@ -6,6 +6,9 @@ import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Sets the restart policy to Never.
+ */
 @Extension
 public class DefaultRestartPolicy implements PodDecorator {
     @Nonnull
