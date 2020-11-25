@@ -295,14 +295,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
-     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
-     *
-     * Uses in order:
-     * * cloud configuration
-     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
-     * * Jenkins Location URL
-     *
-     * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     * @return same as {@link #getJenkinsUrlOrNull}, if set
      * @throws IllegalStateException if no Jenkins URL could be computed.
      */
     @Nonnull
@@ -315,26 +308,26 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
-     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     * Jenkins URL to be used by agents launched by this cloud.
      *
-     * Uses in order:
-     * * cloud configuration
-     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
-     * * Jenkins Location URL
+     * <p>Tries in order:<ol>
+     * <li>an explicitly configured URL ({@link #getJenkinsUrl})
+     * <li>the system property or environment variable {@code KUBERNETES_JENKINS_URL}, unless {@link #isWebSocket} mode and {@link #getCredentialsId} is defined
+     * <li>{@link JenkinsLocationConfiguration#getUrl}
+     * </ol>
      *
      * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
      *         Null if no Jenkins URL could be computed.
      */
     @CheckForNull
     public String getJenkinsUrlOrNull() {
-        JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
-        String url = StringUtils.defaultIfBlank(
-                getJenkinsUrl(),
-                StringUtils.defaultIfBlank(
-                        System.getProperty("KUBERNETES_JENKINS_URL",System.getenv("KUBERNETES_JENKINS_URL")),
-                        locationConfiguration.getUrl()
-                )
-        );
+        String url = getJenkinsUrl();
+        if (url == null && (!isWebSocket() || getCredentialsId() == null)) {
+            url = Util.fixEmpty(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")));
+        }
+        if (url == null) {
+            url = JenkinsLocationConfiguration.get().getUrl();
+        }
         if (url == null) {
             return null;
         }
@@ -953,9 +946,8 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return "KubernetesCloud{" +
-                "defaultsProviderTemplate='" + defaultsProviderTemplate + '\'' +
-                ", templates=" + templates +
+        return "KubernetesCloud{name=" + name +
+                ", defaultsProviderTemplate='" + defaultsProviderTemplate + '\'' +
                 ", serverUrl='" + serverUrl + '\'' +
                 ", serverCertificate='" + serverCertificate + '\'' +
                 ", skipTlsVerify=" + skipTlsVerify +
@@ -965,6 +957,7 @@ public class KubernetesCloud extends Cloud {
                 ", jenkinsUrl='" + jenkinsUrl + '\'' +
                 ", jenkinsTunnel='" + jenkinsTunnel + '\'' +
                 ", credentialsId='" + credentialsId + '\'' +
+                ", webSocket=" + webSocket +
                 ", containerCap=" + containerCap +
                 ", retentionTimeout=" + retentionTimeout +
                 ", connectTimeout=" + connectTimeout +
@@ -976,6 +969,7 @@ public class KubernetesCloud extends Cloud {
                 ", waitForPodSec=" + waitForPodSec +
                 ", podRetention=" + podRetention +
                 ", useJenkinsProxy=" + useJenkinsProxy +
+                ", templates=" + templates +
                 '}';
     }
 
