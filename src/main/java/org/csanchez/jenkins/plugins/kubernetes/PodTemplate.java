@@ -730,7 +730,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     /**
      * @return The persisted yaml fragment
      */
-    @Restricted(NoExternalUse.class) // Tests and UI
     public String getYaml() {
         return yaml;
     }
