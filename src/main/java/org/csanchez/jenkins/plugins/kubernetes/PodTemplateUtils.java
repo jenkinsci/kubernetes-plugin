@@ -101,10 +101,10 @@ public class PodTemplateUtils {
         boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
         String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
         String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
-        String resourceRequestEphemeral = Strings.isNullOrEmpty(template.getResourceRequestEphemeral()) ? parent.getResourceRequestEphemeral() : template.getResourceRequestEphemeral();
+        String resourceRequestEphemeralStorage = Strings.isNullOrEmpty(template.getResourceRequestEphemeralStorage()) ? parent.getResourceRequestEphemeralStorage() : template.getResourceRequestEphemeralStorage();
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-        String resourceLimitEphemeral = Strings.isNullOrEmpty(template.getResourceLimitEphemeral()) ? parent.getResourceLimitEphemeral() : template.getResourceLimitEphemeral();
+        String resourceLimitEphemeralStorage = Strings.isNullOrEmpty(template.getResourceLimitEphemeralStorage()) ? parent.getResourceLimitEphemeralStorage() : template.getResourceLimitEphemeralStorage();
         Map<String, PortMapping> ports = parent.getPorts().stream()
                 .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
         template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
@@ -118,10 +118,10 @@ public class PodTemplateUtils {
         combined.setTtyEnabled(ttyEnabled);
         combined.setResourceLimitCpu(resourceLimitCpu);
         combined.setResourceLimitMemory(resourceLimitMemory);
-        combined.setResourceLimitEphemeral(resourceLimitEphemeral);
+        combined.setResourceLimitEphemeralStorage(resourceLimitEphemeralStorage);
         combined.setResourceRequestCpu(resourceRequestCpu);
         combined.setResourceRequestMemory(resourceRequestMemory);
-        combined.setResourceRequestEphemeral(resourceRequestEphemeral);
+        combined.setResourceRequestEphemeralStorage(resourceRequestEphemeralStorage);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
         combined.setRunAsUser(runAsUser);

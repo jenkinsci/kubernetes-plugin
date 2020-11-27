@@ -60,7 +60,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="resourceRequestEphemeral" title="${%Request Ephemeral}">
+    <f:entry field="resourceRequestEphemeralStorage" title="${%Request Ephemeral Storage}">
       <f:textbox/>
     </f:entry>
 
@@ -72,7 +72,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry field="resourceLimitEphemeral" title="${%Limit Ephemeral}">
+    <f:entry field="resourceLimitEphemeralStorage" title="${%Limit Ephemeral Storage}">
       <f:textbox/>
     </f:entry>
 
