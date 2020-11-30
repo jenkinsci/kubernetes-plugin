@@ -860,7 +860,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * @param slave
      */
     public Pod build(KubernetesSlave slave) {
-        return new PodTemplateBuilder(this).withSlave(slave).build();
+        return new PodTemplateBuilder(this, slave).build();
     }
 
     /**

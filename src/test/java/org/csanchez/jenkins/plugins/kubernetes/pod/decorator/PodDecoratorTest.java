@@ -3,12 +3,14 @@ package org.csanchez.jenkins.plugins.kubernetes.pod.decorator;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
 
@@ -36,7 +38,7 @@ public class PodDecoratorTest {
     @Test
     public void activeDecorator() {
         PodTemplate podTemplate = new PodTemplate();
-        PodTemplateBuilder podTemplateBuilder = new PodTemplateBuilder(podTemplate).withCloud(new KubernetesCloud("kubernetes"));
+        PodTemplateBuilder podTemplateBuilder = new PodTemplateBuilder(podTemplate, Mockito.mock(KubernetesSlave.class)).withCloud(new KubernetesCloud("kubernetes"));
         Pod pod = podTemplateBuilder.build();
         assertEquals("true", pod.getMetadata().getLabels().get("poddecoratorimpl"));
     }

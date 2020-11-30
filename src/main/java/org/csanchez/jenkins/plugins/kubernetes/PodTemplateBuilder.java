@@ -117,18 +117,20 @@ public class PodTemplateBuilder {
 
     private PodTemplate template;
 
-    @CheckForNull
-    private KubernetesSlave slave;
+    @Nonnull
+    private KubernetesSlave agent;
 
-    @CheckForNull
+    @Nonnull
     private KubernetesCloud cloud;
 
-    public PodTemplateBuilder(PodTemplate template) {
+    public PodTemplateBuilder(PodTemplate template, KubernetesSlave agent) {
         this.template = template;
+        this.agent = agent;
+        this.cloud = agent.getKubernetesCloud();
     }
 
     public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
-        this.slave = slave;
+        this.agent = slave;
         this.cloud = slave.getKubernetesCloud();
         return this;
     }
@@ -166,7 +168,7 @@ public class PodTemplateBuilder {
             }
         }
 
-        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave != null ? slave.getPodName() : null));
+        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, agent != null ? agent.getPodName() : null));
 
         Map<String, Container> containers = new HashMap<>();
         // containers from pod template
@@ -176,13 +178,13 @@ public class PodTemplateBuilder {
         }
 
         MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadata();
-        if (slave != null) {
-            metadataBuilder.withName(slave.getPodName());
+        if (agent != null) {
+            metadataBuilder.withName(agent.getPodName());
         }
 
         Map<String, String> labels = new HashMap<>();
-        if (slave != null) {
-            labels.putAll(slave.getKubernetesCloud().getPodLabelsMap());
+        if (agent != null) {
+            labels.putAll(agent.getKubernetesCloud().getPodLabelsMap());
         }
         labels.putAll(template.getLabelsMap());
         if (!labels.isEmpty()) {
@@ -283,8 +285,8 @@ public class PodTemplateBuilder {
 
     private Map<String, EnvVar> defaultEnvVars(Collection<TemplateEnvVar> globalEnvVars) {
         Map<String, String> env = new HashMap<>();
-        if (slave != null) {
-            KubernetesCloud cloud = slave.getKubernetesCloud();
+        if (agent != null) {
+            KubernetesCloud cloud = agent.getKubernetesCloud();
             if (cloud.isAddMasterProxyEnvVars()) {
                 // see if the env vars for proxy that the remoting.jar looks for
                 // are set on the master, and if so, propagate them to the slave
@@ -322,8 +324,8 @@ public class PodTemplateBuilder {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
-        if (slave != null) {
-            SlaveComputer computer = slave.getComputer();
+        if (agent != null) {
+            SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 // Add some default env vars for Jenkins
                 env.put("JENKINS_SECRET", computer.getJnlpMac());
@@ -332,12 +334,12 @@ public class PodTemplateBuilder {
                 env.put("JENKINS_NAME", computer.getName());
                 env.put("JENKINS_AGENT_NAME", computer.getName());
             } else {
-                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", slave.getNodeName());
+                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", agent.getNodeName());
             }
 
             env.put("JENKINS_AGENT_WORKDIR", workingDir);
 
-            KubernetesCloud cloud = slave.getKubernetesCloud();
+            KubernetesCloud cloud = agent.getKubernetesCloud();
 
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
@@ -384,8 +386,8 @@ public class PodTemplateBuilder {
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
         String cmd = containerTemplate.getArgs();
-        if (slave != null && cmd != null) {
-            SlaveComputer computer = slave.getComputer();
+        if (agent != null && cmd != null) {
+            SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 cmd = cmd.replaceAll(JNLPMAC_REF, computer.getJnlpMac()) //
                         .replaceAll(NAME_REF, computer.getName());
