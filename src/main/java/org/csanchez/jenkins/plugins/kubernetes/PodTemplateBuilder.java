@@ -55,7 +55,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
@@ -78,6 +77,7 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
@@ -117,11 +117,16 @@ public class PodTemplateBuilder {
 
     private PodTemplate template;
 
-    @Nonnull
+    @CheckForNull
     private KubernetesSlave agent;
 
-    @Nonnull
+    @CheckForNull
     private KubernetesCloud cloud;
+
+    @Deprecated
+    public PodTemplateBuilder(PodTemplate template) {
+        this.template = template;
+    }
 
     public PodTemplateBuilder(PodTemplate template, KubernetesSlave agent) {
         this.template = template;
