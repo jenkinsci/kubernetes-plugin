@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class DefaultWorkspaceVolume implements PodDecorator {
 
     @Nonnull
     @Override
-    public Pod decorate(@Nonnull Pod pod) { PodSpec podSpec = pod.getSpec();
+    public Pod decorate(@Nonnull KubernetesCloud kubernetesCloud, @Nonnull Pod pod) { PodSpec podSpec = pod.getSpec();
         // default workspace volume, add an empty volume to share the workspace across the pod
         if (podSpec.getVolumes().stream().noneMatch(WORKSPACE_VOLUME_PREDICATE)) {
             // @formatter:off

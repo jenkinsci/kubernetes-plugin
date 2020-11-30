@@ -115,7 +115,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         String cloudName = node.getCloudName();
         final PodTemplate template = node.getTemplate();
         try {
-            KubernetesClient client = node.getKubernetesCloud().connect();
+            KubernetesCloud cloud = node.getKubernetesCloud();
+            KubernetesClient client = cloud.connect();
             Pod pod = template.build(node);
             node.assignPod(pod);
 

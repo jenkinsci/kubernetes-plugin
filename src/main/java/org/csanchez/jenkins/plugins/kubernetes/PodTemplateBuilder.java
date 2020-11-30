@@ -77,6 +77,9 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
+
+import javax.annotation.Nonnull;
+
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
@@ -117,12 +120,21 @@ public class PodTemplateBuilder {
     @CheckForNull
     private KubernetesSlave slave;
 
+    @CheckForNull
+    private KubernetesCloud cloud;
+
     public PodTemplateBuilder(PodTemplate template) {
         this.template = template;
     }
 
-    public PodTemplateBuilder withSlave(KubernetesSlave slave) {
+    public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
         this.slave = slave;
+        this.cloud = slave.getKubernetesCloud();
+        return this;
+    }
+
+    public PodTemplateBuilder withCloud(@Nonnull KubernetesCloud cloud) {
+        this.cloud = cloud;
         return this;
     }
 
@@ -261,7 +273,9 @@ public class PodTemplateBuilder {
         if (jnlp.getResources() == null) {
             jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
         }
-        pod = PodDecorator.decorateAll(pod);
+        if (cloud != null) {
+            pod = PodDecorator.decorateAll(cloud, pod);
+        }
         Pod finalPod = pod;
         LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(finalPod));
         return pod;
