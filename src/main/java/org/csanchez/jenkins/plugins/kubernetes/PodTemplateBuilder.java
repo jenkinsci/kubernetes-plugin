@@ -68,6 +68,8 @@ import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -105,9 +107,9 @@ public class PodTemplateBuilder {
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", "100m");
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit", null);
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit");
     static final String DEFAULT_JNLP_CONTAINER_CPU_LIMIT = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit", null);
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -268,7 +270,12 @@ public class PodTemplateBuilder {
         if (jnlp.getResources() == null) {
 
             ResourcesNested<ContainerBuilder> containerBuilder = new ContainerBuilder().withNewResources();
-            containerBuilder.addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
+            Map<String, Quantity> reqMap = new HashMap<>();
+            Map<String, Quantity> limMap = new HashMap<>();
+            reqMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST));
+            reqMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
+
+            
 
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
                 containerBuilder.addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
@@ -278,7 +285,12 @@ public class PodTemplateBuilder {
                 containerBuilder.addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
             }
 
-            jnlp.setResources(containerBuilder.endResources().build().getResources());
+            ResourceRequirements reqs = new ResourceRequirementsBuilder()
+                        .withRequests(reqMap)
+                        .withLimits(limMap)
+                        .build();
+
+            jnlp.setResources(reqs);
 
         }
         
