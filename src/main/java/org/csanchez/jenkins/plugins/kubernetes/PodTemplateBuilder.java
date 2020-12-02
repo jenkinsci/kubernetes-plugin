@@ -269,21 +269,17 @@ public class PodTemplateBuilder {
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
 
-            ResourcesNested<ContainerBuilder> containerBuilder = new ContainerBuilder().withNewResources();
             Map<String, Quantity> reqMap = new HashMap<>();
             Map<String, Quantity> limMap = new HashMap<>();
             reqMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST));
             reqMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
 
-            limMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
-            limMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
-
             if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
-                containerBuilder.addToLimits("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
+                limMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
             }
 
             if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
-                containerBuilder.addToLimits("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
+                limMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
             }
 
             ResourceRequirements reqs = new ResourceRequirementsBuilder()
