@@ -75,7 +75,6 @@ import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
-import io.fabric8.kubernetes.api.model.ContainerFluent.ResourcesNested;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
@@ -145,11 +144,6 @@ public class PodTemplateBuilder {
     public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
         this.agent = slave;
         this.cloud = slave.getKubernetesCloud();
-        return this;
-    }
-
-    public PodTemplateBuilder withCloud(@Nonnull KubernetesCloud cloud) {
-        this.cloud = cloud;
         return this;
     }
 

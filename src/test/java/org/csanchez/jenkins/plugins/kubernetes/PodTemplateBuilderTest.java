@@ -34,6 +34,7 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.hamcrest.Matcher;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,6 +94,11 @@ public class PodTemplateBuilderTest {
 
     @Mock
     private KubernetesComputer computer;
+
+    @Before
+    public void setUp() {
+        when(slave.getKubernetesCloud()).thenReturn(cloud);
+    }
 
     @WithoutJenkins
     @Test
