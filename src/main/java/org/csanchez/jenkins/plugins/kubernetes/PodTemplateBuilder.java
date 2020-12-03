@@ -476,8 +476,8 @@ public class PodTemplateBuilder {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(),containerTemplate.getResourceRequestEphemeralStorage()))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu(), containerTemplate.getResourceLimitEphemeralStorage()))
                 .endResources()
                 .build();
     }
@@ -539,10 +539,11 @@ public class PodTemplateBuilder {
         return commands;
     }
 
-    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
+        String actualEphemeralStorage = substituteEnv(ephemeralStorage);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -550,6 +551,10 @@ public class PodTemplateBuilder {
         if (StringUtils.isNotBlank(actualCpu)) {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
+        }
+        if (StringUtils.isNotBlank(actualEphemeralStorage)) {
+            Quantity ephemeralStorageQuantity = new Quantity(actualEphemeralStorage);
+            builder.put("ephemeral-storage", ephemeralStorageQuantity);
         }
         return builder.build();
     }
