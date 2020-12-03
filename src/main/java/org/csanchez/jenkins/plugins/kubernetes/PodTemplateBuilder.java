@@ -70,9 +70,12 @@ import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.api.model.ContainerFluent.ResourcesNested;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 import jenkins.model.Jenkins;
@@ -111,6 +114,11 @@ public class PodTemplateBuilder {
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
     static final String DEFAULT_JNLP_CONTAINER_CPU_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", "100m");
+
+    static final String DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit");
+    static final String DEFAULT_JNLP_CONTAINER_CPU_LIMIT = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -278,7 +286,27 @@ public class PodTemplateBuilder {
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
-            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
+
+            Map<String, Quantity> reqMap = new HashMap<>();
+            Map<String, Quantity> limMap = new HashMap<>();
+            reqMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST));
+            reqMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
+
+            if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
+                limMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
+            }
+
+            if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
+                limMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
+            }
+
+            ResourceRequirements reqs = new ResourceRequirementsBuilder()
+                        .withRequests(reqMap)
+                        .withLimits(limMap)
+                        .build();
+
+            jnlp.setResources(reqs);
+
         }
         if (cloud != null) {
             pod = PodDecorator.decorateAll(cloud, pod);
@@ -440,8 +468,8 @@ public class PodTemplateBuilder {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(),containerTemplate.getResourceRequestEphemeralStorage()))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu(), containerTemplate.getResourceLimitEphemeralStorage()))
                 .endResources()
                 .build();
     }
@@ -503,10 +531,11 @@ public class PodTemplateBuilder {
         return commands;
     }
 
-    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {
         ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
+        String actualEphemeralStorage = substituteEnv(ephemeralStorage);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -514,6 +543,10 @@ public class PodTemplateBuilder {
         if (StringUtils.isNotBlank(actualCpu)) {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
+        }
+        if (StringUtils.isNotBlank(actualEphemeralStorage)) {
+            Quantity ephemeralStorageQuantity = new Quantity(actualEphemeralStorage);
+            builder.put("ephemeral-storage", ephemeralStorageQuantity);
         }
         return builder.build();
     }
