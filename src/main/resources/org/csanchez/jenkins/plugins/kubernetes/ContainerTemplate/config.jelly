@@ -31,7 +31,7 @@
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
-    <f:checkbox default="true"/>
+    <f:checkbox default="talse"/>
   </f:entry>
 
     <f:entry title="${%Environment Variables}" field="envVars" description="${%List of environment variables to set in agent pod}">
