@@ -132,7 +132,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public String getCommand() {
-        return this.command == null ? DescriptorImpl.defaultCommand : this.command;
+        return this.command == null ? DescriptorImpl.DEFAULT_COMMAND : this.command;
     }
 
     @DataBoundSetter
@@ -141,7 +141,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     public String getArgs() {
-        return this.args == null ? DescriptorImpl.defaultArgs : this.args;
+        return this.args == null ? DescriptorImpl.DEFAULT_ARGS : this.args;
     }
 
     @DataBoundSetter
@@ -348,8 +348,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         public String getWorkingDir() {
             return DEFAULT_WORKING_DIR;
         }
-        public final static String defaultCommand = "sleep";
-        public final static String defaultArgs = "9999999";
+        public final static String DEFAULT_COMMAND = "sleep";
+        public final static String DEFAULT_ARGS = "9999999";
     }
 
     @Override
