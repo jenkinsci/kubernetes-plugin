@@ -26,6 +26,8 @@ import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.CheckForNull;
+
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -133,8 +135,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.command = command;
     }
 
+    @CheckForNull
     public String getCommand() {
-        return command;
+        return this.command == null ? DescriptorImpl.defaultCommand : this.command;
     }
 
     @DataBoundSetter
@@ -142,8 +145,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.args = args;
     }
 
+    @CheckForNull
     public String getArgs() {
-        return args;
+        return this.args == null ? DescriptorImpl.defaultArgs : this.args;
     }
 
     @DataBoundSetter
@@ -350,6 +354,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         public String getWorkingDir() {
             return DEFAULT_WORKING_DIR;
         }
+        public final static String defaultCommand = "sleep";
+        public final static String defaultArgs = "9999999";
     }
 
     @Override

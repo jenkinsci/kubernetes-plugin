@@ -23,11 +23,11 @@
   </f:entry>
 
   <f:entry field="command" title="${%Command to run}">
-    <f:textbox default="/bin/sh -c"/>
+    <f:textbox default="${descriptor.defaultCommand}"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox default="cat"/>
+    <f:textbox default="${descriptor.defaultArgs}"/>
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
