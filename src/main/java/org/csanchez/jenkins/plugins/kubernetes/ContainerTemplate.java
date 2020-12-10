@@ -130,7 +130,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setCommand(String command) {
-        this.command = command;
+        this.command = Util.fixEmpty(command);
     }
 
     public String getCommand() {
@@ -139,7 +139,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setArgs(String args) {
-        this.args = args;
+        this.args = Util.fixEmpty(args);
     }
 
     public String getArgs() {
@@ -222,11 +222,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
 
-    public ContainerLivenessProbe getLivenessProbe() { return livenessProbe; }
+    public ContainerLivenessProbe getLivenessProbe() {
+        return livenessProbe == null ? DescriptorImpl.defaultLivenessProbe() : livenessProbe;
+    }
 
     @DataBoundSetter
     public void setLivenessProbe(ContainerLivenessProbe livenessProbe) {
-        this.livenessProbe = livenessProbe;
+        this.livenessProbe = (livenessProbe == null || livenessProbe.equals(DescriptorImpl.defaultLivenessProbe()) ? null : livenessProbe);
     }
 
     public List<PortMapping> getPorts() {
@@ -244,7 +246,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setResourceRequestMemory(String resourceRequestMemory) {
-        this.resourceRequestMemory = resourceRequestMemory;
+        this.resourceRequestMemory = Util.fixEmpty(resourceRequestMemory);
     }
 
     public String getResourceLimitMemory() {
@@ -253,7 +255,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setResourceLimitMemory(String resourceLimitMemory) {
-        this.resourceLimitMemory = resourceLimitMemory;
+        this.resourceLimitMemory = Util.fixEmpty(resourceLimitMemory);
     }
     
     public String getResourceRequestCpu() {
@@ -261,8 +263,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     }
 
     @DataBoundSetter
-    public void setResourceRequestCpu(String resourceRequestCpu) {
-        this.resourceRequestCpu = resourceRequestCpu;
+    public void setResourceRequestCpu(String resourceRequestCpu){
+        this.resourceRequestCpu = Util.fixEmpty(resourceRequestCpu);
     }
 
     public String getResourceLimitCpu() {
@@ -271,7 +273,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setResourceLimitCpu(String resourceLimitCpu) {
-        this.resourceLimitCpu = resourceLimitCpu;
+        this.resourceLimitCpu = Util.fixEmpty(resourceLimitCpu);
     }
 
     public String getResourceRequestEphemeralStorage() {
@@ -280,7 +282,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setResourceRequestEphemeralStorage(String resourceRequestEphemeralStorage) {
-        this.resourceRequestEphemeralStorage = resourceRequestEphemeralStorage;
+        this.resourceRequestEphemeralStorage = Util.fixEmpty(resourceRequestEphemeralStorage);
     }
 
     public String getResourceLimitEphemeralStorage() {
@@ -289,7 +291,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setResourceLimitEphemeralStorage(String resourceLimitEphemeralStorage) {
-        this.resourceLimitEphemeralStorage = resourceLimitEphemeralStorage;
+        this.resourceLimitEphemeralStorage = Util.fixEmpty(resourceLimitEphemeralStorage);
     }
     
 
@@ -299,7 +301,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundSetter
     public void setShell(String shell) {
-        this.shell = shell;
+        this.shell = Util.fixEmpty(shell);
     }
 
     public Map<String,Object> getAsArgs() {
@@ -330,6 +332,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         }
 
         public FormValidation doCheckName(@QueryParameter String value) {
+            if (StringUtils.isEmpty(value)) {
+                return FormValidation.warning("Container name is mandatory.");
+            }
             if(!PodTemplateUtils.validateContainerName(value)) {
                 return FormValidation.error(Messages.RFC1123_error(value));
             }
@@ -349,6 +354,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         @SuppressWarnings("unused") // jelly
         public String getWorkingDir() {
             return DEFAULT_WORKING_DIR;
+        }
+        public static final ContainerLivenessProbe defaultLivenessProbe() {
+            return ContainerLivenessProbe.getDefault();
         }
     }
 

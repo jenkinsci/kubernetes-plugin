@@ -5,26 +5,26 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:entry field="execArgs" title="${%Exec action}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_EXEC_ARGS}"/>
   </f:entry>
 
   <f:entry field="initialDelaySeconds" title="${%Initial Delay Seconds}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_INITIAL_DELAY_SECONDS}"/>
   </f:entry>
 
   <f:entry field="timeoutSeconds" title="${%Timeout Seconds}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_TIMEOUT_SECONDS}"/>
   </f:entry>
 
   <f:entry field="failureThreshold" title="${%Failure Threshold}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_FAILURE_THRESHOLD}"/>
   </f:entry>
 
   <f:entry field="periodSeconds" title="${%Period Seconds}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_PERIOD_SECONDS}"/>
   </f:entry>
 
   <f:entry field="successThreshold" title="${%Success Threshold}">
-    <f:textbox/>
+    <f:textbox default="${descriptor.DEFAULT_SUCCESS_THRESHOLD}"/>
   </f:entry>
 </j:jelly>
