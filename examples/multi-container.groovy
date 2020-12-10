@@ -13,8 +13,8 @@ spec:
     tty: true
   - name: golang
     image: golang:1.8.0
-    command: ['cat']
-    tty: true
+    command: ['sleep']
+    args: ['9999999']
 """
   ) {
 

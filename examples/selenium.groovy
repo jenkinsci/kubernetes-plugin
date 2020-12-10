@@ -10,12 +10,12 @@ spec:
   containers:
   - name: maven-firefox
     image: maven:3.3.9-jdk-8-alpine
-    command: ['cat']
-    tty: true
+    command: ['sleep']
+    args: ['9999999']
   - name: maven-chrome
     image: maven:3.3.9-jdk-8-alpine
-    command: ['cat']
-    tty: true
+    command: ['sleep']
+    args: ['9999999']
   - name: selenium-hub
     image: selenium/hub:3.4.0
   - name: selenium-chrome

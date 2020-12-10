@@ -23,11 +23,11 @@
   </f:entry>
 
   <f:entry field="command" title="${%Command to run}">
-    <f:textbox default="${descriptor.DEFAULT_COMMAND}"/>
+    <f:textbox default="sleep"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox default="${descriptor.DEFAULT_ARGS}"/>
+    <f:textbox default="9999999"/>
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
