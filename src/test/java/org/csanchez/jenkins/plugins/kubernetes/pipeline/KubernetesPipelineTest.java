@@ -687,6 +687,11 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("xxx" + home + "xxx", b);
     }
 
+    @Test
+    public void octalPermissions() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
     private <R extends Run> R assertBuildStatus(R run, Result... status) throws Exception {
         for (Result s : status) {
             if (s == run.getResult()) {
