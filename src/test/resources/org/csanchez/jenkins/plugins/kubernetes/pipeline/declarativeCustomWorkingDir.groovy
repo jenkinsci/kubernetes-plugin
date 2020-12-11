@@ -2,7 +2,7 @@ pipeline {
     agent {
         kubernetes {
             defaultContainer 'maven'
-            yaml """
+            yaml '''
 metadata:
   labels:
     some-label: some-label-value
@@ -22,7 +22,7 @@ spec:
     env:
     - name: CONTAINER_ENV_VAR
       value: maven
-"""
+'''
         }
     }
 
