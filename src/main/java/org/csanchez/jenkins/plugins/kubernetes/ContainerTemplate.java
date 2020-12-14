@@ -223,12 +223,12 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
 
     public ContainerLivenessProbe getLivenessProbe() {
-        return livenessProbe == null ? DescriptorImpl.defaultLivenessProbe() : livenessProbe;
+        return livenessProbe;
     }
 
     @DataBoundSetter
     public void setLivenessProbe(ContainerLivenessProbe livenessProbe) {
-        this.livenessProbe = (livenessProbe == null || livenessProbe.equals(DescriptorImpl.defaultLivenessProbe()) ? null : livenessProbe);
+        this.livenessProbe = livenessProbe;
     }
 
     public List<PortMapping> getPorts() {

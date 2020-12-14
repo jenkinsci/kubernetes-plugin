@@ -101,7 +101,7 @@ public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLiv
             return "Container Liveness Probe";
         }
 
-        public static final String DEFAULT_EXEC_ARGS = "uptime";
+        public static final String DEFAULT_EXEC_ARGS = null;
         public static final int    DEFAULT_TIMEOUT_SECONDS = 1;
         public static final int    DEFAULT_INITIAL_DELAY_SECONDS = 0;
         public static final int    DEFAULT_PERIOD_SECONDS = 10;
