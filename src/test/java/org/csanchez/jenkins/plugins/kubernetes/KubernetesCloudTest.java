@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -428,6 +429,23 @@ public class KubernetesCloudTest {
         assertEquals(0, cloud.getRemainingPodTemplateSlots(pt2, pods, 0));
         assertEquals(1, cloud.getRemainingPodTemplateSlots(pt3, pods, 0));
         assertEquals(0, cloud.getRemainingPodTemplateSlots(pt3, pods, 1));
+    }
+
+    @Test
+    public void doNotProvisionWhileQuietingDownTest() {
+        // quiet down
+        j.getInstance().doQuietDown();
+        assertTrue(j.getInstance().isQuietingDown());
+
+        // schedule a pod
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        PodTemplate pt1 = addPodTemplate(cloud, "label1", 1);
+        List<Pod> pods = new ArrayList<>();
+        addPod(pods, pt1);
+        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(Label.get("label1"), 1);
+
+        // it should not be scheduled
+        assertEquals(0, plannedNodes.size());
     }
 
     private void addPod(List<Pod> pods, PodTemplate pt1) {
