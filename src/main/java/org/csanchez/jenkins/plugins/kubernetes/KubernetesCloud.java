@@ -524,6 +524,10 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public Collection<NodeProvisioner.PlannedNode> provision(@NonNull final Cloud.CloudState state, final int excessWorkload) {
+        if (Jenkins.getInstanceOrNull() != null && Jenkins.getInstanceOrNull().isQuietingDown()) {
+            // don't provision when Jenkins is quieting down
+            return Collections.emptyList();
+        }
         try {
             Metrics.metricRegistry().meter(metricNameForLabel(state.getLabel())).mark(excessWorkload);
             Label label = state.getLabel();
