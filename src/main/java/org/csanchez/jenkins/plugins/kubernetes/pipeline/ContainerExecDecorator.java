@@ -460,10 +460,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                    boolean windows = sh.equals("cmd");
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        in.println(String.format("cd \"%s\"", pwd));
+                        in.print(String.format("cd \"%s\"", pwd));
+                        in.print(newLine(windows));
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -490,9 +492,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    setupEnvironmentVariable(envVars, in, sh.equals("cmd"));
+                    setupEnvironmentVariable(envVars, in, windows);
 
-                    doExec(in, printStream, masks, commands);
+                    doExec(in, windows, printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
@@ -526,17 +528,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            out.println(
+                            out.print(
                                     String.format(
                                             windows ? "set %s=%s" : "export %s='%s'",
                                             entry.getKey(),
                                             windows ? entry.getValue() : entry.getValue().replace("'", "'\\''")
                                     )
                             );
+                            out.print(newLine(windows));
                         }
                     }
             }
         };
+    }
+
+    private static String newLine(boolean windows) {
+        return windows ? "\r\n" : "\n";
     }
 
     @Override
@@ -617,7 +624,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(PrintStream in, PrintStream out, boolean[] masks, String... statements) {
+    private static void doExec(PrintStream in, boolean windows, PrintStream out, boolean[] masks, String... statements) {
         long start = System.nanoTime();
         // For logging
         ByteArrayOutputStream loggingOutput = new ByteArrayOutputStream();
@@ -638,10 +645,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                    .append(statements[i])
                    .append("\" ");
             }
-            tee.println();
+            tee.print(newLine(windows));
             LOGGER.log(Level.FINEST, loggingOutput.toString(encoding) + "[" + TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start) + " μs." + "]");
             // We need to exit so that we know when the command has finished.
-            tee.println(EXIT);
+            tee.print(EXIT);
+            tee.print(newLine(windows));
             tee.flush();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
