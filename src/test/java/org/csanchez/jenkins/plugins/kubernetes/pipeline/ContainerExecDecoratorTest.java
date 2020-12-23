@@ -269,6 +269,16 @@ public class ContainerExecDecoratorTest {
     }
 
     @Test
+    @Issue("JENKINS-62502")
+    public void testCommandExecutionEscapingDoubleQuotes() throws Exception {
+        ProcReturn r = execCommand(false, "sh", "-c", "cd /tmp; false; echo \"result is 1\" > test; cat /tmp/test");
+        assertTrue("Output should contain result: " + r.output,
+                Pattern.compile("^(result is 1)$", Pattern.MULTILINE).matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
     public void testCommandExecutionWithNohupAndError() throws Exception {
         ProcReturn r = execCommand(false, "nohup", "sh", "-c", "sleep 5; return 127");
         assertEquals(127, r.exitCode);
