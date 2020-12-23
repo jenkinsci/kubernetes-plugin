@@ -16,8 +16,9 @@ spec:
     image: gcr.io/kaniko-project/executor:debug
     imagePullPolicy: Always
     command:
-    - /busybox/cat
-    tty: true
+    - sleep
+    args:
+    - 9999999
     volumeMounts:
       - name: kaniko-secret
         mountPath: /secret
