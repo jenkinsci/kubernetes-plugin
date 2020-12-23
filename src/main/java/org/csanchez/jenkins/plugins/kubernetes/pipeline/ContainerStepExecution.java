@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,7 +52,11 @@ public class ContainerStepExecution extends StepExecution {
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
 
-        EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
+        EnvironmentExpander env = EnvironmentExpander.merge(
+                getContext().get(EnvironmentExpander.class),
+                EnvironmentExpander.constant(Collections.singletonMap("POD_CONTAINER", containerName))
+        );
+
         EnvVars globalVars = null;
         Jenkins instance = Jenkins.getInstance();
 
@@ -78,8 +83,10 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
         getContext().newBodyInvoker()
-                .withContext(BodyInvoker
-                        .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
+                .withContexts(
+                        BodyInvoker.mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator),
+                        env
+                )
                 .withCallback(new ContainerExecCallback(decorator))
                 .start();
         return false;
