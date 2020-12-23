@@ -44,6 +44,7 @@ import java.util.Set;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
+import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -459,7 +460,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
-                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                    // Initialize a PrintStream with line separator from agent
+                    PrintStream in = pwd.getChannel().call(new MasterToSlaveCallable<PrintStream, UnsupportedEncodingException>() {
+                        @Override
+                        public PrintStream call() throws UnsupportedEncodingException {
+                            return new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                        }
+                    });
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
