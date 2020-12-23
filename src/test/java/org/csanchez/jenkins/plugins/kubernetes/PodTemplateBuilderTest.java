@@ -3,8 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.stream.Collectors.toList;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -30,9 +34,11 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.hamcrest.Matcher;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -49,6 +55,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -56,6 +63,7 @@ import jenkins.model.Jenkins;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import junitparams.naming.TestCaseName;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(JUnitParamsRunner.class)
 public class PodTemplateBuilderTest {
@@ -75,6 +83,9 @@ public class PodTemplateBuilderTest {
     public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
             Level.ALL);
 
+    @Rule
+    public FlagRule<String> dockerPrefix = new FlagRule<>(() -> DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, prefix -> DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = prefix);
+
     @Spy
     private KubernetesCloud cloud = new KubernetesCloud("test");
 
@@ -84,6 +95,12 @@ public class PodTemplateBuilderTest {
     @Mock
     private KubernetesComputer computer;
 
+    @Before
+    public void setUp() {
+        when(slave.getKubernetesCloud()).thenReturn(cloud);
+    }
+
+    @WithoutJenkins
     @Test
     public void testParseDockerCommand() {
         assertNull(parseDockerCommand(""));
@@ -93,6 +110,7 @@ public class PodTemplateBuilderTest {
         assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
     }
 
+    @WithoutJenkins
     @Test
     public void testParseLivenessProbe() {
         assertNull(parseLivenessProbe(""));
@@ -108,30 +126,12 @@ public class PodTemplateBuilderTest {
     @Test
     @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
-    public void testBuildWithoutSlave(boolean directConnection) throws Exception {
-        cloud.setDirectConnection(directConnection);
-        slave = null;
-        PodTemplate template = new PodTemplate();
-        String yaml = loadYamlFile("pod-busybox.yaml");
-        template.setYaml(yaml);
-        assertEquals(yaml,template.getYaml());
-        template.setRunAsGroup("");
-        template.setRunAsUser("");
-        Pod pod = new PodTemplateBuilder(template).build();
-        validatePod(pod, directConnection);
-        assertNull(pod.getSpec().getSecurityContext().getRunAsUser());
-        assertNull(pod.getSpec().getSecurityContext().getRunAsGroup());
-    }
-
-    @Test
-    @TestCaseName("{method}(directConnection={0})")
-    @Parameters({ "true", "false" })
     public void testBuildFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
         validatePod(pod, directConnection);
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
 
@@ -147,6 +147,44 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    @TestCaseName("{method}(directConnection={0})")
+    @Parameters({ "true", "false" })
+    public void testValidateDockerRegistryPrefixOverride(boolean directConnection) throws Exception {
+        cloud.setDirectConnection(directConnection);
+        DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        // check containers
+        Map<String, Container> containers = toContainerMap(pod);
+        assertEquals(2, containers.size());
+
+        assertEquals("busybox", containers.get("busybox").getImage());
+        assertEquals(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+    }
+
+    @Test
+    @TestCaseName("{method}(directConnection={0})")
+    @Parameters({ "true", "false" })
+    public void testValidateDockerRegistryPrefixOverrideWithSlashSuffix(boolean directConnection) throws Exception {
+        cloud.setDirectConnection(directConnection);
+        DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub/";
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        // check containers
+        Map<String, Container> containers = toContainerMap(pod);
+        assertEquals(2, containers.size());
+
+        assertEquals("busybox", containers.get("busybox").getImage());
+        assertEquals(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
@@ -155,7 +193,7 @@ public class PodTemplateBuilderTest {
         containerTemplate.setWorkingDir("");
         template.getContainers().add(containerTemplate);
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
         List<Container> containers = pod.getSpec().getContainers();
         assertEquals(2, containers.size());
         Container container0 = containers.get(0);
@@ -178,7 +216,7 @@ public class PodTemplateBuilderTest {
         containerTemplate.setWorkingDir("");
         template.getContainers().add(containerTemplate);
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
         List<Container> containers = pod.getSpec().getContainers();
         assertEquals(2, containers.size());
         Container container0 = containers.get(0);
@@ -199,6 +237,7 @@ public class PodTemplateBuilderTest {
         PodTemplate template = new PodTemplate();
         template.setRunAsUser("1000");
         template.setRunAsGroup("1000");
+        template.setSupplementalGroups("5001,5002");
 
         template.setHostNetwork(false);
 
@@ -220,31 +259,20 @@ public class PodTemplateBuilderTest {
         template.setContainers(containers);
 
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
         pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
         validatePod(pod, false, directConnection);
+        ArrayList<Long> supplementalGroups = new ArrayList<Long>();
+        supplementalGroups.add(5001L);
+        supplementalGroups.add(5002L);
 
         Map<String, Container> containersMap = toContainerMap(pod);
         PodSecurityContext securityContext = pod.getSpec().getSecurityContext();
         assertEquals(Long.valueOf(1000L), securityContext.getRunAsUser());
         assertEquals(Long.valueOf(1000L), securityContext.getRunAsGroup());
+        assertEquals(supplementalGroups, securityContext.getSupplementalGroups());
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsUser());
         assertEquals(Long.valueOf(2000L), containersMap.get("busybox").getSecurityContext().getRunAsGroup());
-    }
-
-    @Test
-    public void homeIsSetOnOpenShift() {
-        when(slave.getKubernetesCloud()).thenReturn(cloud);
-        doReturn(JENKINS_URL).when(cloud).getJenkinsUrlOrDie();
-        doReturn(true).when(cloud).isOpenShift();
-
-        PodTemplate template = new PodTemplate();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
-
-        Map<String, Container> containers = pod.getSpec().getContainers().stream()
-                .collect(Collectors.toMap(Container::getName, Function.identity()));
-        Container jnlp = containers.get("jnlp");
-        assertThat(jnlp.getEnv(), hasItems(new EnvVar("HOME", "/home/jenkins", null)));
     }
 
     private void setupStubs() {
@@ -261,6 +289,7 @@ public class PodTemplateBuilderTest {
 
     private void validatePod(Pod pod, boolean fromYaml, boolean directConnection) {
         assertThat(pod.getMetadata().getLabels(), hasEntry("some-label", "some-label-value"));
+        assertEquals("Never", pod.getSpec().getRestartPolicy());
 
         // check containers
         Map<String, Container> containers = toContainerMap(pod);
@@ -338,14 +367,18 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[envVars.size()])));
-        if (jnlp.getResources() != null) {
-            if (jnlp.getResources().getRequests() != null) {
-                assertFalse(jnlp.getResources().getRequests().containsValue(new Quantity("")));
-            }
-            if (jnlp.getResources().getLimits() != null) {
-                assertFalse(jnlp.getResources().getLimits().containsValue(new Quantity("")));
-            }
-        }
+    }
+
+    @Test
+    public void defaultRequests() throws Exception {
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        ResourceRequirements resources = pod.getSpec().getContainers().get(0).getResources();
+        assertNotNull(resources);
+        Map<String, Quantity> requests = resources.getRequests();
+        assertNotNull(requests);
+        PodTemplateUtilsTest.assertQuantity(PodTemplateBuilder.DEFAULT_JNLP_CONTAINER_CPU_REQUEST, requests.get("cpu"));
+        PodTemplateUtilsTest.assertQuantity(PodTemplateBuilder.DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST, requests.get("memory"));
     }
 
     @Test
@@ -356,16 +389,16 @@ public class PodTemplateBuilderTest {
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
 
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
         assertThat("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), jnlp.getVolumeMounts(), hasSize(1));
-        assertEquals(new Quantity("2"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("2", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("2Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("200m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("256Mi", jnlp.getResources().getRequests().get("memory"));
         validateContainers(pod, slave, directConnection);
     }
 
@@ -395,15 +428,15 @@ public class PodTemplateBuilderTest {
         setupStubs();
 
         PodTemplate result = combine(parent, template);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
 
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        assertEquals(new Quantity("1"), jnlp.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("1Gi"), jnlp.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("100m"), jnlp.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("156Mi"), jnlp.getResources().getRequests().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("1", jnlp.getResources().getLimits().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("1Gi", jnlp.getResources().getLimits().get("memory"));
+        PodTemplateUtilsTest.assertQuantity("100m", jnlp.getResources().getRequests().get("cpu"));
+        PodTemplateUtilsTest.assertQuantity("156Mi", jnlp.getResources().getRequests().get("memory"));
         assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
         assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave, directConnection);
@@ -441,7 +474,7 @@ public class PodTemplateBuilderTest {
         child.setInheritFrom("parent");
         setupStubs();
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
         assertThat(pod.getSpec().getContainers(), hasSize(3));
         Optional<Container> container1 = pod.getSpec().getContainers().stream().filter(c -> "container1".equals(c.getName())).findFirst();
@@ -482,7 +515,7 @@ public class PodTemplateBuilderTest {
         child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
         assertThat(pod.getSpec().getContainers(), hasSize(2));
         Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
@@ -515,7 +548,7 @@ public class PodTemplateBuilderTest {
         setupStubs();
 
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         Map<String, Container> containers = toContainerMap(pod);
         Container jnlp = containers.get("jnlp");
         Map<String, EnvVar> env = PodTemplateUtils.envVarstoMap(jnlp.getEnv());
@@ -551,7 +584,7 @@ public class PodTemplateBuilderTest {
         child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
         assertThat(pod.getSpec().getVolumes(), hasSize(2));
         Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
@@ -598,7 +631,7 @@ public class PodTemplateBuilderTest {
         child.setInheritFrom("parent");
         child.setYamlMergeStrategy(merge());
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertTrue(pod.getSpec().getHostNetwork());
     }
 
@@ -646,7 +679,7 @@ public class PodTemplateBuilderTest {
         child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertThat(pod.getSpec().getContainers(), hasSize(2));
         Optional<Container> container = pod.getSpec().getContainers().stream().filter(c -> "container".equals(c.getName())).findFirst();
         assertTrue(container.isPresent());
@@ -684,7 +717,7 @@ public class PodTemplateBuilderTest {
         child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
-        Pod pod = new PodTemplateBuilder(result).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(result, slave).build();
         assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
         assertThat(pod.getSpec().getVolumes(), hasSize(3));
         Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
@@ -705,13 +738,24 @@ public class PodTemplateBuilderTest {
         template.setContainers(Lists.newArrayList(cT));
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
-        Pod pod = new PodTemplateBuilder(template).withSlave(slave).build();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
 
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
 		assertEquals("Wrong number of volume mounts: " + jnlp.getVolumeMounts(), 1, jnlp.getVolumeMounts().size());
         validateContainers(pod, slave, directConnection);
+    }
+
+    @Test
+    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() {
+        setupStubs();
+        PodTemplate template = new PodTemplate();
+        template.setYaml("spec:\n" +
+                "  runtimeClassName: windows");
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        assertEquals("windows", pod.getSpec().getRuntimeClassName());
+        assertThat(pod.getSpec().getNodeSelector(), anEmptyMap());
     }
 
     private Map<String, Container> toContainerMap(Pod pod) {

@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.Map;
 import static org.junit.Assert.*;
 
+import hudson.model.Result;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -48,7 +50,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Rule
     public GitSampleRepoRule repoRule = new GitSampleRepoRule();
 
-    @Issue({"JENKINS-41758", "JENKINS-57827"})
+    @Issue({"JENKINS-41758", "JENKINS-57827", "JENKINS-60886"})
     @Test
     public void declarative() throws Exception {
         assertNotNull(createJobThenScheduleRun());
@@ -59,12 +61,20 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         FlowNode podTemplateNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("podTemplate"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
         assertNotNull("recorded arguments for podTemplate", podTemplateNode);
         Map<String, Object> arguments = podTemplateNode.getAction(ArgumentsAction.class).getArguments();
+        FlowNode nodeNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("node"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
+        assertNotNull("recorded arguments for node", nodeNode);
+        Map<String, Object> nodeArguments = nodeNode.getAction(ArgumentsAction.class).getArguments();
+        assertEquals("labels && multiple", nodeArguments.get("label"));
         @SuppressWarnings("unchecked")
         List<UninstantiatedDescribable> containers = (List<UninstantiatedDescribable>) arguments.get("containers");
         assertNotNull(containers);
         assertFalse("no junk in arguments: " + arguments, containers.get(0).getArguments().containsKey("alwaysPullImage"));
         FlowNode containerNode = new DepthFirstScanner().findFirstMatch(b.getExecution(), Predicates.and(new NodeStepTypePredicate("container"), FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
         assertNotNull("recorded arguments for container", containerNode);
+        // JENKINS-60886
+        UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
+        assertNotNull(podRetention);
+        assertTrue(podRetention.getModel().getType().equals(OnFailure.class));
     }
 
     @Issue("JENKINS-48135")
@@ -81,6 +91,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Issue("JENKINS-51610")
     @Test
     public void declarativeWithNamespaceFromYaml() throws Exception {
+        createNamespaceIfNotExist(cloud.connect(), "kubernetes-plugin-test-overridden-namespace");
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -130,6 +141,19 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("Workspace dir is", b);
     }
 
+    @Issue("JENKINS-58975")
+    @Test
+    public void declarativeCustomWorkingDir() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("[jnlp] current dir is /home/jenkins/agent/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[jnlp] WORKSPACE=/home/jenkins/agent/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
+        r.assertLogContains("[default:maven] current dir is /home/jenkins/wsp1/workspace/declarative Custom Working Dir/foo", b);
+        r.assertLogContains("[default:maven] WORKSPACE=/home/jenkins/wsp1/workspace/declarative Custom Working Dir", b);
+    }
+
     @Issue("JENKINS-57548")
     @Test
     public void declarativeWithNestedExplicitInheritance() throws Exception {
@@ -137,5 +161,12 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
         r.assertLogNotContains("go version go1.6.3", b);
+    }
+
+    @Test
+    public void declarativeWithNonexistentDockerImage() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
 }

@@ -2,16 +2,20 @@ package io.jenkins.plugins.kubernetes;
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
+import hudson.model.Queue;
+import hudson.model.queue.QueueListener;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,22 +50,24 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                         + snapshot.getConnectingExecutors()  // executors present but not yet connected
                         + strategyState.getPlannedCapacitySnapshot()     // capacity added by previous strategies from previous rounds
                         + strategyState.getAdditionalPlannedCapacity();  // capacity added by previous strategies _this round_
+        int previousCapacity = availableCapacity;
         int currentDemand = snapshot.getQueueLength();
         LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
                 new Object[]{availableCapacity, currentDemand});
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             Collections.shuffle(jenkinsClouds);
+            Cloud.CloudState cloudState = new Cloud.CloudState(label, strategyState.getAdditionalPlannedCapacity());
             for (Cloud cloud : jenkinsClouds) {
                 int workloadToProvision = currentDemand - availableCapacity;
                 if (!(cloud instanceof KubernetesCloud)) continue;
-                if (!cloud.canProvision(label)) continue;
+                if (!cloud.canProvision(cloudState)) continue;
                 for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
-                    if (cl.canProvision(cloud, strategyState.getLabel(), workloadToProvision) != null) {
+                    if (cl.canProvision(cloud, cloudState, workloadToProvision) != null) {
                         continue;
                     }
                 }
-                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(label, workloadToProvision);
+                Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(cloudState, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
                 strategyState.recordPendingLaunches(plannedNodes);
@@ -69,6 +75,10 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[]{availableCapacity, currentDemand});
                 break;
             }
+        }
+        if (availableCapacity > previousCapacity && label != null) {
+            LOGGER.log(Level.FINE, "Suggesting NodeProvisioner review");
+            Timer.get().schedule(label.nodeProvisioner::suggestReviewNow, 1L, TimeUnit.SECONDS);
         }
         if (availableCapacity >= currentDemand) {
             LOGGER.log(Level.FINE, "Provisioning completed");
@@ -90,6 +100,30 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 LOGGER.log(Level.SEVERE, "Unexpected uncaught exception encountered while "
                         + "processing onStarted() listener call in " + cl + " for label "
                         + label.toString(), e);
+            }
+        }
+    }
+
+    /**
+     * Ping the nodeProvisioner as a new task enters the queue.
+     */
+    @Extension
+    public static class FastProvisioning extends QueueListener {
+
+        @Override
+        public void onEnterBuildable(Queue.BuildableItem item) {
+            if (!DISABLE_NODELAY_PROVISING) {
+                return;
+            }
+            final Jenkins jenkins = Jenkins.get();
+            final Label label = item.getAssignedLabel();
+            for (Cloud cloud : jenkins.clouds) {
+                if (cloud instanceof KubernetesCloud && cloud.canProvision(new Cloud.CloudState(label, 0))) {
+                    final NodeProvisioner provisioner = (label == null
+                            ? jenkins.unlabeledNodeProvisioner
+                            : label.nodeProvisioner);
+                    provisioner.suggestReviewNow();
+                }
             }
         }
     }

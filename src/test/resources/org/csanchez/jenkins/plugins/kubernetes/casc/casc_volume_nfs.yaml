@@ -1,0 +1,10 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - volumes:
+            - nfsVolume:
+                serverAddress: serverAddress
+                serverPath: /path
+                mountPath: /mnt/path

@@ -21,10 +21,46 @@ For that some environment variables are automatically injected:
 * `JENKINS_AGENT_NAME`: the name of the Jenkins agent
 * `JENKINS_NAME`: the name of the Jenkins agent (Deprecated. Only here for backwards compatibility)
 
-Tested with [`jenkins/jnlp-slave`](https://hub.docker.com/r/jenkins/jnlp-slave),
-see the [Docker image source code](https://github.com/jenkinsci/docker-jnlp-slave).
+Tested with [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent),
+see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-agent).
 
 It is not required to run the Jenkins master inside Kubernetes. 
+# Generic Setup
+### Prerequisites
+* A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
+* A Jenkins instance installed
+* The Jenkins Kubernetes plugin installed
+
+It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
+existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
+Kubernetes builds should use the podTemplate step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
+
+Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
+**Manage Jenkins -> Configure System -> Cloud -> Kubernetes** and enter in the *Kubernetes URL* and *Jenkins URL*
+appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work.
+
+Supported credentials include:
+
+* Username/password
+* Secret File (kubeconfig file)
+* Secret text (Token-based authentication) (OpenShift)
+* Google Service Account from private key (GKE authentication)
+* X.509 Client Certificate
+
+To test this connection is successful you can use the **Test Connection** button to ensure there is
+adequate communication from Jenkins to the Kubernetes cluster, as seen below
+
+![image](images/cloud-configuration.png)
+
+In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
+spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
+for your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the 
+‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
+Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
+be run automatically during builds
+Docker image - the docker image name that will be used as a reference to spin up a new Jenkins agent, as seen below
+
+![image](images/pod-template-configuration.png)
 
 # Kubernetes Cloud Configuration
 
@@ -34,6 +70,12 @@ _Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
 If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
 
 When running the Jenkins master outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
+
+If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
+This is unnecessary when the Jenkins master runs in the same Kubernetes cluster,
+but can greatly simplify setup when agents are in an external cluster
+and the Jenkins master is not directly accessible (for example, it is behind a reverse proxy).
+See [JEP-222](https://jenkins.io/jep/222) for more.
 
 ### Restricting what jobs can use your configured cloud
 
@@ -78,7 +120,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:3.35-5-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax
@@ -89,7 +131,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/jnlp-slave:3.35-5-alpine'
+    image: 'jenkins/inbound-agent:4.3-4-alpine'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -97,7 +139,7 @@ spec:
 
 Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
 
-The `container` statement allows to execute commands directly into each container. This feature is considered **ALPHA** as there are still some problems with concurrent execution and pipeline resumption
+The `container` statement allows to execute commands directly into each container.
 
 ```groovy
 podTemplate(containers: [
@@ -156,13 +198,14 @@ Either way it provides access to the following fields:
 * **annotations** Annotations to apply to the pod.
 * **inheritFrom** List of one or more pod templates to inherit from *(more details below)*.
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
-* **podRetention** Controls the behavior of keeping slave pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
+* **podRetention** Controls the behavior of keeping agent pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to 'never()' or 'onFailure()', pod is deleted after this deadline is passed.
 * **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw Yaml file. Defaults to `true`
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
+* **workspaceVolume** The type of volume to use for the workspace. Can be `emptyDirWorkspaceVolume` (default), `dynamicPVC()`, `hostPathWorkspaceVolume()`, `nfsWorkspaceVolume()`, or `persistentVolumeClaimWorkspaceVolume()`.
 
 The `containerTemplate` is a template of container that will be added to the pod. Again, its configurable via the user interface or via pipeline and allows you to set the following fields:
 
@@ -541,10 +584,38 @@ containerLog 'mongodb'
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
 
+# Running on OpenShift
+
+## Random UID problem
+
+OpenShift runs containers using a 'random' UID that is overriding what is specified in Docker images.
+For this reason, you may end up with the following warning in your build
+
+```
+[WARNING] HOME is set to / in the jnlp container. You may encounter troubles when using tools or ssh client. This usually happens if the uid doesnt have any entry in /etc/passwd. Please add a user to your Dockerfile or set the HOME environment variable to a valid directory in the pod template definition.
+```
+
+At the moment the jenkinsci agent image is not built for OpenShift and will issue this warning.
+
+This issue can be circumvented in various ways:
+* build a docker image for OpenShift in order to behave when running using an arbitrary uid.
+* override HOME environment variable in the pod spec to use `/home/jenkins` and mount a volume to `/home/jenkins` to ensure the user running the container can write to it
+
+See this [example](examples/openshift-home-yaml.groovy) configuration.
+
+## Running with OpenShift 3
+
+OpenShift 3 is based on an older version of Kubernetes, which is not anymore directly supported since Kubernetes plugin version 1.26.0.
+
+To get agents working for Openshift 3, add this `Node Selector` to your Pod Templates:
+```
+beta.kubernetes.io/os=linux
+```
+
 # Windows support
 
 You can run pods on Windows if your cluster has Windows nodes.
-See the [example](examples/windows.groovy).
+See the [example](src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/windows.groovy).
 
 # Constraints
 
@@ -556,7 +627,7 @@ Other containers must run a long running process, so the container does not exit
 just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
 
 **WARNING**
-If you want to provide your own Docker image for the JNLP slave, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two slaves trying to concurrently connect to the master.
+If you want to provide your own Docker image for the JNLP agent, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two agents trying to concurrently connect to the master.
 
 
 
@@ -629,6 +700,33 @@ at `DEBUG` level.
 
     kubectl get pods -o name --selector=jenkins=slave --all-namespaces  | xargs -I {} kubectl delete {}
 
+## Pipeline `sh` step hangs when multiple containers are used
+To debug this you need to set `-Dorg.jenkinsci.plugins.durabletask.BourneShellScript.LAUNCH_DIAGNOSTICS=true` system property
+and then restart the pipeline. Most likely in the console log you will see the following:
+```console
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+sh: can't create /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp: Permission denied
+mv: can't rename '/home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-result.txt.tmp': No such file or directory
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
+```
+Usually this happens when UID of the user in `jnlp` container differs from the one in other container(s). 
+All containers you use should have the same UID of the user, also this can be achieved by setting `securityContext`:
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    runAsUser: 1000 # default UID of jenkins user in default jnlp image
+  containers:
+  - name: maven
+    image: maven:3.3.9-jdk-8-alpine
+    command:
+    - cat
+    tty: true
+```
+
 # Building and Testing
 
 Integration tests will use the currently configured context autodetected from kube config file or service account.
@@ -674,6 +772,21 @@ just run as
 
     mvn clean install -Pmicrok8s
 
+This assumes that from a pod, the host system is accessible as IP address `10.1.1.1`.
+It might be some variant such as `10.1.37.1`,
+in which case you would need to set `-DconnectorHost=… -Djenkins.host.address=…` instead.
+To see the actual address, try:
+
+```bash
+ifdata -pa cni0
+```
+
+Or to verify the networking inside a pod:
+
+```bash
+kubectl run --rm --image=praqma/network-multitool --restart=Never --attach sh ip route | fgrep 'default via'
+```
+
 ### Integration Tests in a Different Cluster
 
 Try
@@ -718,14 +831,6 @@ Then create the Jenkins namespace, controller and Service with
 Get the url to connect to with
 
     minikube service jenkins --namespace kubernetes-plugin --url
-
-## Running with a remote Kubernetes Cloud in AWS EKS
-
-EKS enforces authentication to the cluster through [aws-iam-authenticator](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html). The token expires after 15 minutes
-so the kubernetes client cache needs to be set to something below this by setting a [java argument](https://support.cloudbees.com/hc/en-us/articles/209715698-How-to-add-Java-arguments-to-Jenkins-), like so:
-```
-JAVA_ARGS="-Dorg.csanchez.jenkins.plugins.kubernetes.clients.cacheExpiration=60"
-```
 
 ## Running in Google Container Engine GKE
 
@@ -780,7 +885,7 @@ Set `Container Cap` to a reasonable number for tests, i.e. 3.
 
 Add an image with
 
-* Docker image: `jenkins/jnlp-slave`
+* Docker image: `jenkins/inbound-agent`
 * Jenkins agent root directory: `/home/jenkins/agent`
 
 ![image](configuration.png)
@@ -813,7 +918,7 @@ Note: the JVM will use the memory `requests` as the heap limit (-Xmx)
 ## Building
 
     docker build -t csanchez/jenkins-kubernetes .
-
+ 
 # Related Projects
 
 * [Kubernetes Pipeline plugin](https://github.com/jenkinsci/kubernetes-pipeline-plugin): pipeline extension to provide native support for using Kubernetes pods, secrets and volumes to perform builds

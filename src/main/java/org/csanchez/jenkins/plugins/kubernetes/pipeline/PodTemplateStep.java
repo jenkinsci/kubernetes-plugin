@@ -5,10 +5,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 
+import hudson.model.Job;
+import hudson.slaves.Cloud;
+import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -28,48 +35,74 @@ import hudson.Util;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import org.kohsuke.stapler.QueryParameter;
+
 import javax.annotation.CheckForNull;
 
 public class PodTemplateStep extends Step implements Serializable {
 
     private static final long serialVersionUID = 5588861066775717487L;
 
-    private static final String DEFAULT_CLOUD = "kubernetes";
+    @CheckForNull
+    private String cloud;
 
-    private String cloud = DEFAULT_CLOUD;
+    @CheckForNull
     private String inheritFrom;
 
+    @CheckForNull
     private String label;
+
+    @CheckForNull
     private String name;
 
+    @CheckForNull
     private String namespace;
+
     private List<ContainerTemplate> containers = new ArrayList<>();
     private List<TemplateEnvVar> envVars = new ArrayList<>();
     private List<PodVolume> volumes = new ArrayList<PodVolume>();
+
+    @CheckForNull
     private WorkspaceVolume workspaceVolume;
+
     private List<PodAnnotation> annotations = new ArrayList<>();
     private List<String> imagePullSecrets = new ArrayList<>();
 
-    private int instanceCap = Integer.MAX_VALUE;
+    private Integer instanceCap = Integer.MAX_VALUE;
     private int idleMinutes;
     private int slaveConnectTimeout = PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
     private int activeDeadlineSeconds;
 
     private Boolean hostNetwork;
 
+    @CheckForNull
     private String serviceAccount;
+
+    @CheckForNull
     private String nodeSelector;
+
     private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
     private String workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
 
+    @CheckForNull
     private String yaml;
+
     private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+
+    @CheckForNull
     private PodRetention podRetention;
 
     private Boolean showRawYaml;
 
+
+    @CheckForNull
     private String runAsUser;
+
+    @CheckForNull
     private String runAsGroup;
+
+    @CheckForNull
+    private String supplementalGroups;
 
     @DataBoundConstructor
     public PodTemplateStep() {}
@@ -79,44 +112,52 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     @DataBoundSetter
-    public void setLabel(String label) {
+    public void setLabel(@CheckForNull String label) {
         this.label = Util.fixEmpty(label);
     }
 
-    public @CheckForNull String getName() {
+    @CheckForNull
+    public String getName() {
         return name;
     }
 
     @DataBoundSetter
-    public void setName(String name) {
+    public void setName(@CheckForNull String name) {
         this.name = Util.fixEmpty(name);
     }
 
+    @CheckForNull
     public String getNamespace() {
         return namespace;
     }
 
     @DataBoundSetter
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public void setNamespace(@CheckForNull String namespace) {
+        this.namespace = Util.fixEmpty(namespace);
     }
 
+    @CheckForNull
     public String getCloud() {
         return cloud;
     }
 
     @DataBoundSetter
-    public void setCloud(String cloud) {
-        this.cloud = cloud;
+    public void setCloud(@CheckForNull String cloud) {
+        this.cloud = Util.fixEmpty(cloud);
     }
 
+    @CheckForNull
     public String getInheritFrom() {
         return inheritFrom;
     }
 
     @DataBoundSetter
-    public void setInheritFrom(String inheritFrom) {
-        this.inheritFrom = inheritFrom;
+    public void setInheritFrom(@CheckForNull String inheritFrom) {
+        if (DescriptorImpl.defaultInheritFrom.equals(inheritFrom)) {
+            this.inheritFrom = null;
+        } else {
+            this.inheritFrom = inheritFrom;
+        }
     }
 
     public List<ContainerTemplate> getContainers() {
@@ -140,6 +181,7 @@ public class PodTemplateStep extends Step implements Serializable {
         }
     }
 
+    @CheckForNull
     public YamlMergeStrategy getYamlMergeStrategy() {
         return yamlMergeStrategy;
     }
@@ -158,22 +200,27 @@ public class PodTemplateStep extends Step implements Serializable {
         this.volumes = volumes;
     }
 
+    @CheckForNull
     public WorkspaceVolume getWorkspaceVolume() {
-        return workspaceVolume;
+        return workspaceVolume == null ? DescriptorImpl.defaultWorkspaceVolume : this.workspaceVolume;
     }
 
     @DataBoundSetter
-    public void setWorkspaceVolume(WorkspaceVolume workspaceVolume) {
-        this.workspaceVolume = workspaceVolume;
+    public void setWorkspaceVolume(@CheckForNull WorkspaceVolume workspaceVolume) {
+        this.workspaceVolume = (workspaceVolume == null || workspaceVolume.equals(DescriptorImpl.defaultWorkspaceVolume)) ? null : workspaceVolume;
     }
 
-    public int getInstanceCap() {
+    public Integer getInstanceCap() {
         return instanceCap;
     }
 
     @DataBoundSetter
-    public void setInstanceCap(int instanceCap) {
-        this.instanceCap = instanceCap;
+    public void setInstanceCap(@CheckForNull Integer instanceCap) {
+        if (instanceCap == null || instanceCap.intValue() <= 0) {
+            this.instanceCap = Integer.MAX_VALUE;
+        } else {
+            this.instanceCap = instanceCap;
+        }
     }
 
     public int getIdleMinutes() {
@@ -181,25 +228,27 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     @DataBoundSetter
-    public void setIdleMinutes(int idleMinutes) {
+    public void setIdleMinutes(@CheckForNull int idleMinutes) {
         this.idleMinutes = idleMinutes;
     }
 
+    @CheckForNull
     public int getSlaveConnectTimeout() {
         return slaveConnectTimeout;
     }
 
     @DataBoundSetter
-    public void setSlaveConnectTimeout(int slaveConnectTimeout) {
+    public void setSlaveConnectTimeout(@CheckForNull int slaveConnectTimeout) {
         this.slaveConnectTimeout = slaveConnectTimeout;
     }
 
+    @CheckForNull
     public int getActiveDeadlineSeconds() {
         return activeDeadlineSeconds;
     }
 
     @DataBoundSetter
-    public void setActiveDeadlineSeconds(int activeDeadlineSeconds) {
+    public void setActiveDeadlineSeconds(@CheckForNull int activeDeadlineSeconds) {
         this.activeDeadlineSeconds = activeDeadlineSeconds;
     }
 
@@ -212,20 +261,22 @@ public class PodTemplateStep extends Step implements Serializable {
         this.hostNetwork = hostNetwork;
     }
 
+    @CheckForNull
     public String getServiceAccount() { return serviceAccount; }
 
     @DataBoundSetter
-    public void setServiceAccount(String serviceAccount) {
-        this.serviceAccount = serviceAccount;
+    public void setServiceAccount(@CheckForNull String serviceAccount) {
+        this.serviceAccount = Util.fixEmpty(serviceAccount);
     }
 
+    @CheckForNull
     public String getNodeSelector() {
         return nodeSelector;
     }
 
     @DataBoundSetter
-    public void setNodeSelector(String nodeSelector) {
-        this.nodeSelector = nodeSelector;
+    public void setNodeSelector(@CheckForNull String nodeSelector) {
+        this.nodeSelector = Util.fixEmpty(nodeSelector);
     }
 
     public Node.Mode getNodeUsageMode() {
@@ -276,23 +327,24 @@ public class PodTemplateStep extends Step implements Serializable {
         }
     }
 
-
+    @CheckForNull
     public String getYaml() {
         return yaml;
     }
 
     @DataBoundSetter
-    public void setYaml(String yaml) {
-        this.yaml = yaml;
+    public void setYaml(@CheckForNull String yaml) {
+        this.yaml = Util.fixEmpty(yaml);
     }
 
+    @CheckForNull
     public PodRetention getPodRetention() {
-        return this.podRetention;
+        return this.podRetention == null ? DescriptorImpl.defaultPodRetention : this.podRetention;
     }
 
     @DataBoundSetter
-    public void setPodRetention(PodRetention podRetention) {
-        this.podRetention = podRetention;
+    public void setPodRetention(@CheckForNull PodRetention podRetention) {
+        this.podRetention = (podRetention == null || podRetention.equals(DescriptorImpl.defaultPodRetention)) ? null : podRetention;
     }
 
     boolean isShowRawYamlSet() {
@@ -326,8 +378,65 @@ public class PodTemplateStep extends Step implements Serializable {
         this.runAsGroup = runAsGroup;
     }
 
+    @CheckForNull
+    public String getSupplementalGroups() {
+        return supplementalGroups;
+    }
+
+    @DataBoundSetter
+    public void setSupplementalGroups(@CheckForNull String supplementalGroups) {
+        this.supplementalGroups = Util.fixEmpty(supplementalGroups);
+    }
+
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
+
+        static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+
+        public DescriptorImpl() {
+            for (String field : POD_TEMPLATE_FIELDS) {
+                addHelpFileRedirect(field, PodTemplate.class, field);
+            }
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillCloudItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add("—any—", "");
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) { // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
+                return result;
+            }
+            Jenkins.get().clouds
+                    .getAll(KubernetesCloud.class)
+                    .forEach(cloud -> result.add(cloud.name));
+            return result;
+        }
+
+        @SuppressWarnings("unused") // by stapler/jelly
+        public ListBoxModel doFillInheritFromItems(@QueryParameter("cloud") String cloudName) {
+            cloudName = Util.fixEmpty(cloudName);
+            ListBoxModel result = new ListBoxModel();
+            result.add("—Default inheritance—", "<default>");
+            result.add("—Disable inheritance—", " ");
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) { // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
+                return result;
+            }
+            Cloud cloud;
+            if (cloudName == null) {
+                cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
+            } else {
+                cloud = Jenkins.get().getCloud(cloudName);
+            }
+            if (cloud instanceof KubernetesCloud) {
+                List<PodTemplate> templates = ((KubernetesCloud) cloud).getTemplates();
+                result.addAll(templates.stream()
+                        .filter(template -> StringUtils.isNotEmpty(template.getName()))
+                        .map(PodTemplate::getName)
+                        .map(ListBoxModel.Option::new)
+                        .collect(Collectors.toList()));
+            }
+            return result;
+        }
 
         @Override
         public String getFunctionName() {
@@ -353,5 +462,11 @@ public class PodTemplateStep extends Step implements Serializable {
         public String getWorkingDir() {
             return ContainerTemplate.DEFAULT_WORKING_DIR;
         }
+
+        public static final Integer defaultInstanceCap = Integer.MAX_VALUE;
+        public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
+        public static final WorkspaceVolume defaultWorkspaceVolume = WorkspaceVolume.getDefault();
+        /** Only used for snippet generation. */
+        public static final String defaultInheritFrom = "<default>";
     }
 }

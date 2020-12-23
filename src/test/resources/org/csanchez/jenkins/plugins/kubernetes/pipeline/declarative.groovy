@@ -1,12 +1,14 @@
 pipeline {
   agent {
     kubernetes {
+      label 'multiple labels'
       containerTemplate {
         name 'maven'
         image 'maven:3.3.9-jdk-8-alpine'
-        ttyEnabled true
-        command 'cat'
+        command 'sleep'
+        args '9999999'
       }
+      podRetention onFailure()
     }
   }
   environment {

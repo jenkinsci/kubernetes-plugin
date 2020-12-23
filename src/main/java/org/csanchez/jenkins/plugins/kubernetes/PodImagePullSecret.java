@@ -48,6 +48,13 @@ public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecr
         return name != null ? name.hashCode() : 0;
     }
 
+    @Override
+    public String toString() {
+        return "PodImagePullSecret{" +
+                "name='" + name + '\'' +
+                '}';
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<PodImagePullSecret> {
         @Override

@@ -10,7 +10,7 @@ import hudson.model.Node;
 /**
  * Implementation of {@link PodTemplateFilter} filtering pod templates matching the right label.
  */
-@Extension
+@Extension(ordinal = 1000)
 public class PodTemplateLabelFilter extends PodTemplateFilter {
     @Override
     protected PodTemplate transform(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, @CheckForNull Label label) {

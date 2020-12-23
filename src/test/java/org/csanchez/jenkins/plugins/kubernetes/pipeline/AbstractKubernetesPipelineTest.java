@@ -32,11 +32,16 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 
+import hudson.slaves.NodeProvisioner;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -69,7 +74,10 @@ public abstract class AbstractKubernetesPipelineTest {
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
     @Rule
-    public LoggerRule logs = new LoggerRule().recordPackage(KubernetesCloud.class, Level.ALL);
+    public LoggerRule logs = new LoggerRule()
+            .recordPackage(KubernetesCloud.class, Level.FINE)
+            .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
+            .record(NodeProvisioner.class, Level.FINE);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
@@ -158,6 +166,7 @@ public abstract class AbstractKubernetesPipelineTest {
         // Create a busybox template
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(label);
+        podTemplate.setTerminationGracePeriodSeconds(0L);
 
         ContainerTemplate containerTemplate = new ContainerTemplate("busybox", "busybox", "cat", "");
         containerTemplate.setTtyEnabled(true);
@@ -171,15 +180,22 @@ public abstract class AbstractKubernetesPipelineTest {
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
-        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY);
+        TemplateEnvVar podSecretEnvVar = new SecretEnvVar("POD_ENV_VAR_FROM_SECRET", "pod-secret", SECRET_KEY, false);
         TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
         TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
         TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
                 CONTAINER_ENV_VAR_VALUE);
         TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
-                "container-secret", SECRET_KEY);
+                                                                     "container-secret", SECRET_KEY, false);
         podTemplate.getContainers().get(0)
                 .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
+    }
+
+    protected void createNamespaceIfNotExist(KubernetesClient client, String namespace) {
+        if (client.namespaces().withName(namespace).get() == null) {
+            client.namespaces().createOrReplace(
+                    new NamespaceBuilder().withNewMetadata().withName(namespace).endMetadata().build());
+        }
     }
 }

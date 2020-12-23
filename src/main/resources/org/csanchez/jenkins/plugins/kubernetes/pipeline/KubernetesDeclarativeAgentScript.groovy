@@ -23,7 +23,6 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes.pipeline
 
-import hudson.model.Result
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.CheckoutScript
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentScript
 import org.jenkinsci.plugins.workflow.cps.CpsScript
@@ -43,8 +42,14 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 // Do not implicitly inherit from parent template context for declarative Kubernetes agent declaration
                 describable.setInheritFrom("")
             }
+            if (describable.labelExpression != null) {
+                script.echo '[WARNING] label option is deprecated. To use a static pod template, use the \'inheritFrom\' option.'
+            }
+            if (describable.containerTemplate != null) {
+                script.echo '[WARNING] containerTemplate option is deprecated, use yaml syntax to define containers.'
+            }
             script.podTemplate(describable.asArgs) {
-                script.node(describable.label ?: script.POD_LABEL) {
+                script.node(describable.labelExpression ?: script.POD_LABEL) {
                     CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
                         // what container to use for the main body
                         def container = describable.defaultContainer ?: 'jnlp'

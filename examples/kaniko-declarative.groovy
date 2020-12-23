@@ -24,8 +24,9 @@ spec:
     image: gcr.io/kaniko-project/executor:debug-539ddefcae3fd6b411a95982a830d987f4214251
     imagePullPolicy: Always
     command:
-    - /busybox/cat
-    tty: true
+    - sleep
+    args:
+    - 9999999
     volumeMounts:
       - name: jenkins-docker-cfg
         mountPath: /kaniko/.docker
@@ -44,7 +45,7 @@ spec:
   stages {
     stage('Build with Kaniko') {
       steps {
-        git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
+        git 'https://github.com/jenkinsci/docker-inbound-agent.git'
         sh '/kaniko/executor -f `pwd`/Dockerfile -c `pwd` --insecure --skip-tls-verify --cache=true --destination=mydockerregistry:5000/myorg/myimage'
       }
     }

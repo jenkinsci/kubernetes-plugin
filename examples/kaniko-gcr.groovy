@@ -16,8 +16,9 @@ spec:
     image: gcr.io/kaniko-project/executor:debug
     imagePullPolicy: Always
     command:
-    - /busybox/cat
-    tty: true
+    - sleep
+    args:
+    - 9999999
     volumeMounts:
       - name: kaniko-secret
         mountPath: /secret
@@ -33,7 +34,7 @@ spec:
 
   node(POD_LABEL) {
     stage('Build with Kaniko') {
-      git 'https://github.com/jenkinsci/docker-jnlp-slave.git'
+      git 'https://github.com/jenkinsci/docker-inbound-agent.git'
       container('kaniko') {
         sh '/kaniko/executor -c `pwd` --cache=true --destination=gcr.io/myprojectid/myimage'
       }

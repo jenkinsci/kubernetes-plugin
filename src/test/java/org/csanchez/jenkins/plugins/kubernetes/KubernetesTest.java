@@ -92,7 +92,8 @@ public class KubernetesTest {
         PodTemplate pt = cloud.getTemplate(Label.get("java"));
         assertNotNull(pt);
         for (ContainerTemplate ct : pt.getContainers()) {
-            assertEquals(ContainerTemplate.DEFAULT_WORKING_DIR, ct.getWorkingDir());
+            // Retain working dir used in previous version
+            assertEquals("/home/jenkins", ct.getWorkingDir());
         }
     }
 
@@ -202,7 +203,7 @@ public class KubernetesTest {
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
         assertEquals(1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
-        assertEquals("jenkins/jnlp-slave", containerTemplate.getImage());
+        assertEquals("jenkins/inbound-agent", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
         assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());

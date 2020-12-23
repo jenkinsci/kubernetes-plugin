@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
@@ -61,7 +62,6 @@ import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 
 public class PodTemplateUtilsTest {
 
@@ -335,12 +335,12 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldCombineAllPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
 
         PodTemplate template2 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
-        SecretEnvVar podSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2", false);
+        SecretEnvVar podSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3", false);
         template2.setEnvVars(asList(podSecretEnvVar2, podSecretEnvVar3));
 
         PodTemplate result = combine(template1, template2);
@@ -351,11 +351,11 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
         PodTemplate template1 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
 
         PodTemplate template2 = new PodTemplate();
-        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        SecretEnvVar podSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2", false);
         template2.setEnvVars(singletonList(podSecretEnvVar2));
 
         PodTemplate result = combine(template1, template2);
@@ -397,12 +397,12 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldCombineAllSecretEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
-        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(containerSecretEnvVar1));
 
         ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
-        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2");
-        SecretEnvVar containerSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar("key-2", "secret-2", "secret-key-2", false);
+        SecretEnvVar containerSecretEnvVar3 = new SecretEnvVar("key-3", "secret-3", "secret-key-3", false);
         template2.setEnvVars(asList(containerSecretEnvVar2, containerSecretEnvVar3));
 
         ContainerTemplate result = combine(template1, template2);
@@ -428,6 +428,7 @@ public class PodTemplateUtilsTest {
 
         // Config maps and secrets could potentially overwrite each other's variables. We should preserve their order.
         assertThat(result.getEnvFrom(), contains(configMap1, secret1, configMap2, secret2));
+        assertNull(result.getSecurityContext());
     }
 
     @Test
@@ -534,6 +535,7 @@ public class PodTemplateUtilsTest {
         assertThat(combine(template1, template2).getPorts(), contains(port2));
     }
 
+    @Test
     public void shouldCombineAllResources() {
         Container container1 = new Container();
         container1.setResources(new ResourceRequirementsBuilder() //
@@ -553,20 +555,30 @@ public class PodTemplateUtilsTest {
 
         Container result = combine(container1, container2);
 
-        assertEquals(new Quantity("2"), result.getResources().getLimits().get("cpu"));
-        assertEquals(new Quantity("2Gi"), result.getResources().getLimits().get("memory"));
-        assertEquals(new Quantity("200m"), result.getResources().getRequests().get("cpu"));
-        assertEquals(new Quantity("256Mi"), result.getResources().getRequests().get("memory"));
+        assertQuantity("2", result.getResources().getLimits().get("cpu"));
+        assertQuantity("2Gi", result.getResources().getLimits().get("memory"));
+        assertQuantity("200m", result.getResources().getRequests().get("cpu"));
+        assertQuantity("256Mi", result.getResources().getRequests().get("memory"));
+    }
+
+    /**
+     * Use instead of {@link org.junit.Assert#assertEquals(Object, Object)} on {@link Quantity}.
+     * @see <a href="https://github.com/fabric8io/kubernetes-client/issues/2034">kubernetes-client #2034</a>
+     */
+    public static void assertQuantity(String expected, Quantity actual) {
+        if (Quantity.getAmountInBytes(new Quantity(expected)).compareTo(Quantity.getAmountInBytes(actual)) != 0) {
+            fail("expected: " + expected + " but was: " + actual.getAmount() + actual.getFormat());
+        }
     }
 
     @Test
     public void shouldFilterOutNullOrEmptySecretEnvVars() {
         ContainerTemplate template1 = new ContainerTemplate("name-1", "image-1");
-        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1");
+        SecretEnvVar containerSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(containerSecretEnvVar1));
 
         ContainerTemplate template2 = new ContainerTemplate("name-2", "image-2");
-        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2");
+        SecretEnvVar containerSecretEnvVar2 = new SecretEnvVar(null, "secret-2", "secret-key-2", false);
         template2.setEnvVars(singletonList(containerSecretEnvVar2));
 
         ContainerTemplate result = combine(template1, template2);
@@ -677,17 +689,21 @@ public class PodTemplateUtilsTest {
 
         PodTemplate podTemplate1 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();
-        nodeProperties1.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test","toolHome1")));
+        ToolLocationNodeProperty toolHome1 = new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey1@Test", "toolHome1"));
+        nodeProperties1.add(toolHome1);
         podTemplate1.setNodeProperties(nodeProperties1);
 
         PodTemplate podTemplate2 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties2 = new ArrayList<>();
-        nodeProperties2.add(new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test","toolHome2")));
+        ToolLocationNodeProperty toolHome2 = new ToolLocationNodeProperty(new ToolLocationNodeProperty.ToolLocation("toolKey2@Test", "toolHome2"));
+        nodeProperties2.add(toolHome2);
         podTemplate2.setNodeProperties(nodeProperties2);
 
         PodTemplate result = combine(podTemplate1,podTemplate2);
 
-        assertThat(result.getNodeProperties(), hasItems(nodeProperties1.get(0),nodeProperties2.get(0)));
+        assertThat(podTemplate1.getNodeProperties(), contains(toolHome1));
+        assertThat(podTemplate2.getNodeProperties(), contains(toolHome2));
+        assertThat(result.getNodeProperties(), contains(toolHome1, toolHome2));
 
     }
 

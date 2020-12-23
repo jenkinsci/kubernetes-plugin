@@ -33,8 +33,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     public static final String DEFAULT_WORKING_DIR = "/home/jenkins/agent";
 
-    private static final String OLD_DEFAULT_WORKING_DIR = "/home/jenkins";
-
     private String name;
 
     private String image;
@@ -59,9 +57,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String resourceRequestMemory;
 
+    private String resourceRequestEphemeralStorage;
+
     private String resourceLimitCpu;
 
     private String resourceLimitMemory;
+
+    private String resourceLimitEphemeralStorage;
     private String shell;
 
     private final List<TemplateEnvVar> envVars = new ArrayList<>();
@@ -76,15 +78,13 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundConstructor
     public ContainerTemplate(String name, String image) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
+        Preconditions.checkArgument(PodTemplateUtils.validateImage(image));
         this.name = name;
         this.image = image;
     }
 
     public ContainerTemplate(String name, String image, String command, String args) {
-        Preconditions.checkArgument(!StringUtils.isBlank(image));
-        this.name = name;
-        this.image = image;
+        this(name, image);
         this.command = command;
         this.args = args;
     }
@@ -102,8 +102,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.setTtyEnabled(from.isTtyEnabled());
         this.setResourceRequestCpu(from.getResourceRequestCpu());
         this.setResourceRequestMemory(from.getResourceRequestMemory());
+        this.setResourceRequestEphemeralStorage(from.getResourceRequestEphemeralStorage());
         this.setResourceLimitCpu(from.getResourceLimitCpu());
         this.setResourceLimitMemory(from.getResourceLimitMemory());
+        this.setResourceLimitEphemeralStorage(from.getResourceLimitEphemeralStorage());
         this.setShell(from.getShell());
         this.setEnvVars(from.getEnvVars());
         this.setPorts(from.getPorts());
@@ -245,6 +247,24 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceRequestMemory = resourceRequestMemory;
     }
 
+    public String getResourceLimitMemory() {
+        return resourceLimitMemory;
+    }
+
+    @DataBoundSetter
+    public void setResourceLimitMemory(String resourceLimitMemory) {
+        this.resourceLimitMemory = resourceLimitMemory;
+    }
+    
+    public String getResourceRequestCpu() {
+        return resourceRequestCpu;
+    }
+
+    @DataBoundSetter
+    public void setResourceRequestCpu(String resourceRequestCpu) {
+        this.resourceRequestCpu = resourceRequestCpu;
+    }
+
     public String getResourceLimitCpu() {
         return resourceLimitCpu;
     }
@@ -254,23 +274,24 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.resourceLimitCpu = resourceLimitCpu;
     }
 
-    public String getResourceLimitMemory() {
-        return resourceLimitMemory;
+    public String getResourceRequestEphemeralStorage() {
+        return resourceRequestEphemeralStorage;
     }
 
     @DataBoundSetter
-    public void setResourceLimitMemory(String resourceLimitMemory) {
-        this.resourceLimitMemory = resourceLimitMemory;
+    public void setResourceRequestEphemeralStorage(String resourceRequestEphemeralStorage) {
+        this.resourceRequestEphemeralStorage = resourceRequestEphemeralStorage;
     }
 
-    public String getResourceRequestCpu() {
-        return resourceRequestCpu;
+    public String getResourceLimitEphemeralStorage() {
+        return resourceLimitEphemeralStorage;
     }
 
     @DataBoundSetter
-    public void setResourceRequestCpu(String resourceRequestCpu) {
-        this.resourceRequestCpu = resourceRequestCpu;
+    public void setResourceLimitEphemeralStorage(String resourceLimitEphemeralStorage) {
+        this.resourceLimitEphemeralStorage = resourceLimitEphemeralStorage;
     }
+    
 
     public String getShell() {
         return shell;
@@ -315,6 +336,16 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
             return FormValidation.ok();
         }
 
+        public FormValidation doCheckImage(@QueryParameter String value) {
+            if (StringUtils.isEmpty(value)) {
+                return FormValidation.ok("Image is mandatory");
+            } else if (PodTemplateUtils.validateImage(value)) {
+                return FormValidation.ok();
+            } else {
+                return FormValidation.error("Malformed image");
+            }
+        }
+
         @SuppressWarnings("unused") // jelly
         public String getWorkingDir() {
             return DEFAULT_WORKING_DIR;
@@ -336,8 +367,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (!ttyEnabled ? "" : ", ttyEnabled=" + ttyEnabled) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
                 (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
+                (resourceRequestEphemeralStorage == null ? "" : ", resourceRequestEphemeralStorage='" + resourceRequestEphemeralStorage + '\'') +
                 (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
                 (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
+                (resourceLimitEphemeralStorage == null ? "" : ", resourceLimitEphemeralStorage='" + resourceLimitEphemeralStorage + '\'') +
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
                 (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
                 (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
@@ -391,10 +424,16 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         if (resourceRequestMemory != null ? !resourceRequestMemory.equals(that.resourceRequestMemory) : that.resourceRequestMemory != null) {
             return false;
         }
+        if (resourceRequestEphemeralStorage != null ? !resourceRequestEphemeralStorage.equals(that.resourceRequestEphemeralStorage) : that.resourceRequestEphemeralStorage != null) {
+            return false;
+        }
         if (resourceLimitCpu != null ? !resourceLimitCpu.equals(that.resourceLimitCpu) : that.resourceLimitCpu != null) {
             return false;
         }
         if (resourceLimitMemory != null ? !resourceLimitMemory.equals(that.resourceLimitMemory) : that.resourceLimitMemory != null) {
+            return false;
+        }
+        if (resourceLimitEphemeralStorage != null ? !resourceLimitEphemeralStorage.equals(that.resourceLimitEphemeralStorage) : that.resourceLimitEphemeralStorage != null) {
             return false;
         }
         if (shell != null ? !shell.equals(that.shell) : that.shell != null) {
@@ -423,8 +462,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         result = 31 * result + (ttyEnabled ? 1 : 0);
         result = 31 * result + (resourceRequestCpu != null ? resourceRequestCpu.hashCode() : 0);
         result = 31 * result + (resourceRequestMemory != null ? resourceRequestMemory.hashCode() : 0);
+        result = 31 * result + (resourceRequestEphemeralStorage != null ? resourceRequestEphemeralStorage.hashCode() : 0);
         result = 31 * result + (resourceLimitCpu != null ? resourceLimitCpu.hashCode() : 0);
         result = 31 * result + (resourceLimitMemory != null ? resourceLimitMemory.hashCode() : 0);
+        result = 31 * result + (resourceLimitEphemeralStorage != null ? resourceLimitEphemeralStorage.hashCode() : 0);
         result = 31 * result + (shell != null ? shell.hashCode() : 0);
         result = 31 * result + (envVars != null ? envVars.hashCode() : 0);
         result = 31 * result + (ports != null ? ports.hashCode() : 0);
@@ -434,9 +475,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private Object readResolve() {
         this.workingDir = Util.fixEmpty(workingDir);
-        if (OLD_DEFAULT_WORKING_DIR.equals(workingDir)) {
-            this.workingDir = DEFAULT_WORKING_DIR;
-        }
         return this;
     }
 }

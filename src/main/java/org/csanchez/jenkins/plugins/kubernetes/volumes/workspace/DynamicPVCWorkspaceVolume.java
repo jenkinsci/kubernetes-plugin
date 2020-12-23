@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
 import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -17,8 +18,10 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import javax.annotation.CheckForNull;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -38,6 +41,8 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
     private static final Logger LOGGER = Logger.getLogger(DynamicPVCWorkspaceVolume.class.getName());
 
     @DataBoundConstructor
+    public DynamicPVCWorkspaceVolume() {}
+
     public DynamicPVCWorkspaceVolume(String storageClassName,
                                      String requestsSize, String accessModes) {
         this.storageClassName = storageClassName;
@@ -45,18 +50,35 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
         this.accessModes = accessModes;
     }
 
+    @CheckForNull
     public String getAccessModes() {
         return accessModes;
     }
 
+    @DataBoundSetter
+    public void setAccessModes(@CheckForNull String accessModes) {
+        this.accessModes = Util.fixEmpty(accessModes);
+    }
+
+    @CheckForNull
     public String getRequestsSize() {
         return requestsSize;
     }
 
+    @DataBoundSetter
+    public void setRequestsSize(@CheckForNull String requestsSize) {
+        this.requestsSize = Util.fixEmpty(requestsSize);
+    }
+
+    @CheckForNull
     public String getStorageClassName() {
         return storageClassName;
     }
 
+    @DataBoundSetter
+    public void setStorageClassName(@CheckForNull String storageClassName) {
+        this.storageClassName = Util.fixEmpty(storageClassName);
+    }
 
     @Override
     public Volume buildVolume(String volumeName, String podName) {

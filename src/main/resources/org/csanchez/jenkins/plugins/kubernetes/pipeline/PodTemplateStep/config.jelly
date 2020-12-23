@@ -3,7 +3,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
   <f:entry field="cloud" title="${%Cloud to use}">
-    <f:textbox default="kubernetes"/>
+    <f:select default="kubernetes"/>
   </f:entry>
 
   <f:entry field="name" title="${%Name}">
@@ -22,29 +22,31 @@
      <f:enum default="EXCLUSIVE">${it.description}</f:enum>
   </f:entry>
 
-  <f:entry field="inheritFrom" title="${%Pod template to inherit from}"
-    help="/plugin/kubernetes/help/inheritFrom.html">
-    <f:textbox/>
+  <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
+    <f:select default="${descriptor.defaultInheritFrom}"/>
   </f:entry>
 
-  <f:entry title="${%Containers}" description="${%List of container in the agent pod}">
+  <f:entry field="containers" title="${%Containers}" description="${%Containers in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />
   </f:entry>
 
-  <f:entry title="${%Volumes}" description="${%List of volumes to mount in agent pod}">
+  <f:entry field="envVars"  title="${%EnvVars}" description="${%Environment variables to set in all containers of the pod}">
+    <f:repeatableHeteroProperty field="envVars" hasHeader="true" addCaption="${%Add Environment Variable}"
+                                deleteCaption="${%Delete Environment Variable}" />
+  </f:entry>
+
+  <f:entry field="volumes"  title="${%Volumes}" description="${%Volumes to mount in agent pod}">
     <f:repeatableHeteroProperty field="volumes" hasHeader="true" addCaption="Add Volume"
                                 deleteCaption="Delete Volume" />
   </f:entry>
 
-  <f:entry title="${%Annotations}" description="${%List of annotations to add to the pod metadata}"
-    field="annotations" help="/plugin/kubernetes/help/annotations.html">
+  <f:entry field="annotations"  title="${%Annotations}" description="${%Annotations to add to the pod metadata}">
     <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="Add Annotation"
                                 deleteCaption="Delete Annotation" />
   </f:entry>
 
-  <f:entry field="yaml" title="${%Raw yaml for the Pod}"
-    help="/plugin/kubernetes/help/yaml.html">
+  <f:entry field="yaml" title="${%Raw YAML for the Pod}">
     <f:textarea/>
   </f:entry>
 
@@ -53,41 +55,33 @@
   </f:entry>
 
   <f:advanced>
-        <f:entry field="instanceCap" title="${%Max number of instances}"
-          help="/plugin/kubernetes/help/instanceCap.html">
+        <f:entry field="instanceCap" title="${%Maximum number of instances}">
           <f:textbox default="0"/>
         </f:entry>
         <f:entry title="${%Pod Retention}">
-          <f:dropdownDescriptorSelector field="podRetention"/>
+          <f:dropdownDescriptorSelector field="podRetention" default="${descriptor.defaultPodRetention}"/>
+        </f:entry>
+        <f:entry field="supplementalGroups" title="${%Supplemental Groups}">
+          <f:textbox/>
         </f:entry>
         <f:entry field="idleMinutes" title="${%Time in minutes to retain agent when idle}">
           <f:textbox default="0"/>
        </f:entry>
-        <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}"
-          help="/plugin/kubernetes/help/activeDeadlineSeconds.html">
+        <f:entry field="activeDeadlineSeconds" title="${%Time in seconds for Pod deadline}">
           <f:number/>
         </f:entry>
 
-        <f:entry field="serviceAccount" title="${%Service Account}"
-          help="/plugin/kubernetes/help/serviceAccount.html">
+        <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
         </f:entry>
-        <f:entry field="nodeSelector" title="${%Node Selector}"
-          help="/plugin/kubernetes/help/nodeSelector.html">
+        <f:entry field="nodeSelector" title="${%Node Selector}">
           <f:textbox/>
         </f:entry>
-        <f:entry field="workingDir" title="${%Working directory}" help="/plugin/kubernetes/help/workingDir.html">
+        <f:entry field="workingDir" title="${%Working directory}">
           <f:textbox default="${descriptor.workingDir}"/>
         </f:entry>
-        <f:block>
-          <table>
-            <f:optionalBlock title="${%Use custom workspace volume}" checked="${instance.workspaceVolume != null}" inline="true">
-              <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
-                <f:dropdownDescriptorSelector field="workspaceVolume" oneEach="true" hasHeader="true" addCaption="Add Workspace Volume"
-                                              deleteCaption="Delete Workspace Volume" />
-              </f:entry>
-            </f:optionalBlock>
-          </table>
-        </f:block>
+        <f:entry field="workspaceVolume" title="${%Workspace Volume}">
+            <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
+        </f:entry>
 	</f:advanced>
 </j:jelly>

@@ -1,3 +1,13 @@
-<div>
-    Defines a container inside the kubernetes plugin configuration
-</div>
+<p>
+    Defines a Kubernetes pod template that can be used to create nodes.
+<p>
+<p>
+    Example:
+</p>
+<pre>
+podTemplate(...) {
+    node(POD_LABEL) {
+        // some steps
+    }
+}
+</pre>
