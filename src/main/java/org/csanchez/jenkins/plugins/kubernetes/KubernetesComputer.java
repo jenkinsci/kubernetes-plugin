@@ -69,7 +69,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Container> getContainers() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getContainers, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
@@ -90,7 +90,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Event> getPodEvents() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getPodEvents, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
@@ -124,7 +124,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     public void doContainerLog(@QueryParameter String containerId,
                                StaplerRequest req, StaplerResponse rsp) throws KubernetesAuthException, IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        Jenkins.get().checkPermission(Computer.EXTENDED_READ);
 
         ByteBuffer outputStream = new ByteBuffer();
         KubernetesSlave slave = getNode();
