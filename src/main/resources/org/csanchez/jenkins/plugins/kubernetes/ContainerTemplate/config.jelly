@@ -76,13 +76,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:optionalProperty field="livenessProbe" title="${%Liveness Probe}">
-      <f:rowSet name="${field}">
-        <j:set var="descriptor" value="${attrs.propertyDescriptor ?: app.getDescriptorOrDie(descriptor.getPropertyTypeOrDie(instance,field).clazz)}" />
-        <j:set var="instance" value="${instance[field]}"/>
-        <st:include from="${descriptor}" page="${descriptor.configPage}" />
-      </f:rowSet>
-    </f:optionalProperty>
+    <f:optionalProperty field="livenessProbe" title="${%Liveness Probe}" />
     <f:entry title="${%Port Mappings}" description="${%List of exposed ports}">
       <f:repeatableHeteroProperty field="ports" hasHeader="true" addCaption="${%Add Port Mapping}"
                                     deleteCaption="${%Delete Port Mapping}" />

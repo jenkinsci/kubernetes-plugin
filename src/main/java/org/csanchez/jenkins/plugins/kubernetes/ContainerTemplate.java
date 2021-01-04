@@ -355,9 +355,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         public String getWorkingDir() {
             return DEFAULT_WORKING_DIR;
         }
-        public static final ContainerLivenessProbe defaultLivenessProbe() {
-            return ContainerLivenessProbe.getDefault();
-        }
     }
 
     @Override
