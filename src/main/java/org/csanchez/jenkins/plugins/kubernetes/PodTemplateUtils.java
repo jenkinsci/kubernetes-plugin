@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -333,14 +332,14 @@ public class PodTemplateUtils {
 
     @Nonnull
     private static List<Container> combineContainers(List<Container> parent, List<Container> child) {
-        List<Container> combinedContainers = new ArrayList<>();
+        LinkedHashMap<String, Container> combinedContainers = new LinkedHashMap<>(); // Need to retain insertion order
         Map<String, Container> parentContainers = parent.stream()
                 .collect(toMap(c -> c.getName(), c -> c));
         Map<String, Container> childContainers = child.stream()
                 .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c)));
-        combinedContainers.addAll(parentContainers.values());
-        combinedContainers.addAll(childContainers.values());
-        return combinedContainers;
+        combinedContainers.putAll(parentContainers);
+        combinedContainers.putAll(childContainers);
+        return new ArrayList<>(combinedContainers.values());
     }
 
     private static List<Volume> combineVolumes(@Nonnull List<Volume> volumes1, @Nonnull List<Volume> volumes2) {
