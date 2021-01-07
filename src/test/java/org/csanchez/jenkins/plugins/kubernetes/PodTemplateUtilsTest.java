@@ -302,6 +302,28 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void shouldCombineInitContainers() {
+        Pod parentPod = new PodBuilder()
+                .withNewMetadata().endMetadata()
+                .withNewSpec()
+                    .withInitContainers(new ContainerBuilder().withName("init-parent").build())
+                .endSpec()
+                .build();
+        Pod childPod = new PodBuilder()
+                .withNewMetadata().endMetadata()
+                .withNewSpec()
+                .withInitContainers(new ContainerBuilder().withName("init-child").build())
+                .endSpec()
+                .build();
+
+        Pod combinedPod = combine(parentPod, childPod);
+        List<Container> initContainers = combinedPod.getSpec().getInitContainers();
+        assertThat(initContainers, hasSize(2));
+        assertThat(initContainers.get(0).getName(), equalTo("init-parent"));
+        assertThat(initContainers.get(1).getName(), equalTo("init-child"));
+    }
+
+    @Test
     public void shouldCombineAllPodKeyValueEnvVars() {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
