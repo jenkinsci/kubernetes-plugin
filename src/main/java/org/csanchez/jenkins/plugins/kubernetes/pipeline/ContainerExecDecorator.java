@@ -460,12 +460,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
-                    boolean windows = sh.equals("cmd");
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
                         in.print(String.format("cd \"%s\"", pwd));
-                        in.print(newLine(windows));
+                        in.print(newLine(!launcher.isUnix()));
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -492,9 +491,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    setupEnvironmentVariable(envVars, in, windows);
+                    setupEnvironmentVariable(envVars, in, !launcher.isUnix());
 
-                    doExec(in, windows, printStream, masks, commands);
+                    doExec(in, !launcher.isUnix(), printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
