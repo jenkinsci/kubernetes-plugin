@@ -91,4 +91,14 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         r.waitForCompletion(b);
     }
 
+    @Issue("JENKINS-61950")
+    @Test
+    public void envVarDollarSignEscaping() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        containerExecLogs.capture(1000);
+        r.waitForCompletion(b);
+        r.assertLogContains("from Groovy: $string$with$dollars", b);
+        r.assertLogContains("outside container: $string$with$dollars", b);
+        r.assertLogContains("inside container: $string$with$dollars", b);
+    }
 }
