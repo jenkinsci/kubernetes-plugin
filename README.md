@@ -494,6 +494,28 @@ pipeline {
 }
 ```
 
+Run steps within a container by default. Steps will be nested within an implicit `container(name) {...}` block instead
+of being executed in the jnlp container.
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      defaultContainer 'maven'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+
+  stages {
+    stage('Run maven') {
+      steps {
+        sh 'mvn -version'
+      }
+    }
+  }
+}
+```
+
 Run the Pipeline or individual stage within a custom workspace - not required unless explicitly stated.
 
 ```

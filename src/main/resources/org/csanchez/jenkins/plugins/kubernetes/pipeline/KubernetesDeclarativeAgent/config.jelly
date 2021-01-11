@@ -6,6 +6,9 @@
   <f:entry field="namespace" title="${%Namespace}">
     <f:textbox/>
   </f:entry>
+  <f:entry field="defaultContainer" title="${%Default container}">
+    <f:textbox/>
+  </f:entry>
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
     <f:select/>
   </f:entry>
