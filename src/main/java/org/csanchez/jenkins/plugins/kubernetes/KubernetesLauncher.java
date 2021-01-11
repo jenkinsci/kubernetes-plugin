@@ -138,8 +138,19 @@ public class KubernetesLauncher extends JNLPLauncher {
                 Metrics.metricRegistry().counter(MetricNames.CREATION_FAILED).inc();
                 int httpCode = e.getCode();
                 if (400 <= httpCode && httpCode < 500) { // 4xx
-                    runListener.getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
-                    PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                    if (httpCode == 403 && e.getMessage().contains("is forbidden: exceeded quota")) {
+                        runListener.getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota exceeded. %n%s%nRetrying...%n%n",
+                                cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                    }
+                    else if (httpCode == 409 && e.getMessage().contains("Operation cannot be fulfilled on resourcequotas")) {
+                        // See: https://github.com/kubernetes/kubernetes/issues/67761 ; A retry usually works.
+                        runListener.getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota update conflict. %n%s%nRetrying...%n%n",
+                                cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                    }
+                    else {
+                        runListener.getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                        PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                    }
                 } else if (500 <= httpCode && httpCode < 600) { // 5xx
                     LOGGER.log(FINE,"Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {e.getCode(), e.getStatus()});
                 } else {
