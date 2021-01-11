@@ -363,7 +363,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 // Send to proc caller as well if they sent one
-                if (outputForCaller != null && !outputForCaller.equals(stream)) {
+                if (outputForCaller != null && !outputForCaller.equals(printStream)) {
                     stream = new TeeOutputStream(outputForCaller, stream);
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
