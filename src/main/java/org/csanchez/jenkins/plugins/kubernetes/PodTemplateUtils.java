@@ -334,9 +334,9 @@ public class PodTemplateUtils {
     private static List<Container> combineContainers(List<Container> parent, List<Container> child) {
         LinkedHashMap<String, Container> combinedContainers = new LinkedHashMap<>(); // Need to retain insertion order
         Map<String, Container> parentContainers = parent.stream()
-                .collect(toMap(c -> c.getName(), c -> c));
+                .collect(toMap(Container::getName, c -> c));
         Map<String, Container> childContainers = child.stream()
-                .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c)));
+                .collect(toMap(Container::getName, c -> combine(parentContainers.get(c.getName()), c)));
         combinedContainers.putAll(parentContainers);
         combinedContainers.putAll(childContainers);
         return new ArrayList<>(combinedContainers.values());
