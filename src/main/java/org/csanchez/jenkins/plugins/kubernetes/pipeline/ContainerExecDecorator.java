@@ -693,7 +693,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // NOOP
     }
 
-    private static String[] fixDoubleDollar(String [] envVars) {
+    private static String[] fixDoubleDollar(String[] envVars) {
         return Arrays.stream(envVars)
                 .map(ev -> ev.replaceAll("\\$\\$", Matcher.quoteReplacement("$")))
                 .toArray(String[]::new);
