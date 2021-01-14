@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
@@ -653,8 +654,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
         // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
         for (String cmd : starter.cmds()) {
-            String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$")
-                    .replaceAll("\\\"", "\\\\\"");
+            String fixedCommand = cmd.replaceAll("\\$\\$", Matcher.quoteReplacement("\\$"))
+                    .replaceAll("\\\"", Matcher.quoteReplacement("\\\""));
 
             String oldRemoteDir = null;
             FilePath oldRemoteDirFilepath = starter.pwd();
