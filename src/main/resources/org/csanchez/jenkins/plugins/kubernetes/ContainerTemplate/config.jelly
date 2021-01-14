@@ -23,15 +23,15 @@
   </f:entry>
 
   <f:entry field="command" title="${%Command to run}">
-    <f:textbox default="/bin/sh -c"/>
+    <f:textbox default="sleep"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox default="cat"/>
+    <f:textbox default="9999999"/>
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
-    <f:checkbox default="true"/>
+    <f:checkbox default="talse"/>
   </f:entry>
 
     <f:entry title="${%Environment Variables}" field="envVars" description="${%List of environment variables to set in agent pod}">

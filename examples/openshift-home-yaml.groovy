@@ -18,8 +18,8 @@ spec:
       value: /home/jenkins
   - name: maven
     image: maven:3.6.3-jdk-8
-    command: ['cat']
-    tty: true
+    command: ['sleep']
+    args: ['9999999']
     volumeMounts:
     - name: home-volume
       mountPath: /home/jenkins
