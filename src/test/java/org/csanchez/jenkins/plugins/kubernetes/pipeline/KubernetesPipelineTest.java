@@ -205,6 +205,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         SemaphoreStep.success("after-podtemplate/1", null);
 
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("container=busybox", b);
         r.assertLogContains("script file contents: ", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));

@@ -335,7 +335,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
-                return doLaunch(starter.quiet(), envVars, starter.stdout(), containerWorkingDirFilePath, starter.masks(),
+                return doLaunch(starter.quiet(), fixDoubleDollar(envVars), starter.stdout(), containerWorkingDirFilePath, starter.masks(),
                         getCommands(starter, containerWorkingDirFilePathStr));
             }
 
@@ -692,5 +692,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     @Deprecated
     public void setKubernetesClient(KubernetesClient client) {
         // NOOP
+    }
+
+    private static String[] fixDoubleDollar(String[] envVars) {
+        return Arrays.stream(envVars)
+                .map(ev -> ev.replaceAll("\\$\\$", Matcher.quoteReplacement("$")))
+                .toArray(String[]::new);
     }
 }

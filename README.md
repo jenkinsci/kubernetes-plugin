@@ -102,13 +102,15 @@ podTemplate {
 }
 ```
 
-This will be container specific
+This will be container specific.
+Note the variable `POD_CONTAINER` contains the name of the container in the current context. It is defined only within a `container` block.
+
 ```groovy
 podTemplate(containers: […]) {
   node(POD_LABEL) {
     stage('Run shell') {
       container('mycontainer') {
-        sh 'echo hello world'
+        sh "echo hello from $POD_CONTAINER" // displays 'hello from mycontainer'
       }
     }
   }
@@ -251,6 +253,7 @@ spec:
 ) {
     node(POD_LABEL) {
       container('busybox') {
+        echo POD_CONTAINER // displays 'busybox'
         sh "hostname"
       }
     }
@@ -352,10 +355,10 @@ slaveTemplates.dockerTemplate {
   slaveTemplates.mavenTemplate {
     node(POD_LABEL) {
       container('docker') {
-        sh 'echo hello from docker'
+        sh "echo hello from $POD_CONTAINER" // displays 'hello from docker'
       }
       container('maven') {
-        sh 'echo hello from maven'
+        sh "echo hello from $POD_CONTAINER" // displays 'hello from maven'
       }
      }
   }
@@ -491,6 +494,28 @@ pipeline {
     }
   }
   stages { ... }
+}
+```
+
+Run steps within a container by default. Steps will be nested within an implicit `container(name) {...}` block instead
+of being executed in the jnlp container.
+
+```
+pipeline {
+  agent {
+    kubernetes {
+      defaultContainer 'maven'
+      yamlFile 'KubernetesPod.yaml'
+    }
+  }
+
+  stages {
+    stage('Run maven') {
+      steps {
+        sh 'mvn -version'
+      }
+    }
+  }
 }
 ```
 
