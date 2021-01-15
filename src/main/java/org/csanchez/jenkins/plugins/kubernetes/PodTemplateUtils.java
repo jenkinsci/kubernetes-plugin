@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -262,12 +261,10 @@ public class PodTemplateUtils {
         imagePullSecrets.addAll(template.getSpec().getImagePullSecrets());
 
         // Containers
-        Map<String, Container> combinedContainers = new HashMap<>();
-        Map<String, Container> parentContainers = parent.getSpec().getContainers().stream()
-                .collect(toMap(c -> c.getName(), c -> c));
-        combinedContainers.putAll(parentContainers);
-        combinedContainers.putAll(template.getSpec().getContainers().stream()
-                .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+        List<Container> combinedContainers = combineContainers(parent.getSpec().getContainers(), template.getSpec().getContainers());
+
+        // Init containers
+        List<Container> combinedInitContainers = combineContainers(parent.getSpec().getInitContainers(), template.getSpec().getInitContainers());
 
         // Volumes
         List<Volume> combinedVolumes = combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
@@ -298,7 +295,8 @@ public class PodTemplateUtils {
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
                 .withHostNetwork(hostNetwork) //
-                .withContainers(Lists.newArrayList(combinedContainers.values())) //
+                .withContainers(combinedContainers) //
+                .withInitContainers(combinedInitContainers) //
                 .withVolumes(combinedVolumes) //
                 .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
@@ -330,6 +328,18 @@ public class PodTemplateUtils {
         Pod pod = specBuilder.endSpec().build();
         LOGGER.finest(() -> "Pods combined: " + Serialization.asYaml(pod));
         return pod;
+    }
+
+    @Nonnull
+    private static List<Container> combineContainers(List<Container> parent, List<Container> child) {
+        LinkedHashMap<String, Container> combinedContainers = new LinkedHashMap<>(); // Need to retain insertion order
+        Map<String, Container> parentContainers = parent.stream()
+                .collect(toMap(Container::getName, c -> c));
+        Map<String, Container> childContainers = child.stream()
+                .collect(toMap(Container::getName, c -> combine(parentContainers.get(c.getName()), c)));
+        combinedContainers.putAll(parentContainers);
+        combinedContainers.putAll(childContainers);
+        return new ArrayList<>(combinedContainers.values());
     }
 
     private static List<Volume> combineVolumes(@Nonnull List<Volume> volumes1, @Nonnull List<Volume> volumes2) {
