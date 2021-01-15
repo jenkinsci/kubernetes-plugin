@@ -6,6 +6,7 @@ podTemplate(label: '$NAME', containers: [
       semaphore 'pod'
       stage('Run') {
         container('busybox') {
+          echo "container=$POD_CONTAINER"
           sh """
             ## durable-task plugin generates a script.sh file.
             ##
