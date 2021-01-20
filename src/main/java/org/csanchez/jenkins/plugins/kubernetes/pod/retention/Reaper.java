@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import io.fabric8.kubernetes.client.WatcherException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -172,7 +173,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     }
 
     @Override
-    public void onClose(KubernetesClientException cause) {
+    public void onClose(WatcherException cause) {
         // TODO ignore, or do we need to manually reattach the watcher?
         // AllContainersRunningPodWatcher is not reattached, but this is expected to be short-lived,
         // useful only until the containers of a single pod start running.

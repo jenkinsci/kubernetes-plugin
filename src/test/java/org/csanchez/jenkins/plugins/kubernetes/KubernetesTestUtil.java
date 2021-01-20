@@ -216,8 +216,7 @@ public class KubernetesTestUtil {
                 try {
                     forkJoinPool.submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
                         try {
-                            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                                    .withLabels(labels);
+                            FilterWatchListDeletable<Pod, PodList> pods = client.pods().withLabels(labels);
                             LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
                             boolean allTerminated = pods.list().getItems().isEmpty();
                             if (allTerminated) {
@@ -238,8 +237,7 @@ public class KubernetesTestUtil {
                 }
             }
 
-            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                    .withLabels(labels);
+            FilterWatchListDeletable<Pod, PodList> pods = client.pods().withLabels(labels);
             if (!pods.list().getItems().isEmpty()) {
                 LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(pods));
                 if (Boolean.TRUE.equals(pods.delete())) {
@@ -251,7 +249,7 @@ public class KubernetesTestUtil {
         return false;
     }
 
-    private static List<String> print(FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods) {
+    private static List<String> print(FilterWatchListDeletable<Pod, PodList> pods) {
         return pods.list().getItems().stream()
                 .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());

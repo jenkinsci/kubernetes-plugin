@@ -29,6 +29,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -48,12 +49,10 @@ import org.mockito.Mockito;
 
 import hudson.model.Label;
 import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
@@ -181,7 +180,7 @@ public class KubernetesCloudTest {
             public KubernetesClient connect() {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
                 Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
                 Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
                 PodList podList = Mockito.mock(PodList.class);
@@ -216,7 +215,7 @@ public class KubernetesCloudTest {
             public KubernetesClient connect()  {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
                 Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
                 Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
                 PodList podList = Mockito.mock(PodList.class);

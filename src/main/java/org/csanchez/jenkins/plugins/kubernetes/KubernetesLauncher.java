@@ -296,7 +296,7 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (containers != null) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
-                PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
+                PrettyLoggable<LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
                         .inContainer(containerStatus.getName()).tailingLines(30);
                 String log = tailingLines.getLog();
                 if (!StringUtils.isBlank(log)) {
