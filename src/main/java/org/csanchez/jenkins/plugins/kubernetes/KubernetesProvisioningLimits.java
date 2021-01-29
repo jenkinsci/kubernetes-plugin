@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.init.InitMilestone;
@@ -63,6 +64,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
+    @SuppressFBWarnings(value="JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Trust me here")
     public boolean register(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
         AtomicInteger globalCount = getGlobalCount(cloud.name);
         AtomicInteger podTemplateCount = getPodTemplateCount(podTemplate.getId());
@@ -92,6 +94,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
+    @SuppressFBWarnings(value="JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Trust me here")
     public void unregister(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
         AtomicInteger globalCount = getGlobalCount(cloud.name);
         AtomicInteger podTemplateCount = getPodTemplateCount(podTemplate.getId());
