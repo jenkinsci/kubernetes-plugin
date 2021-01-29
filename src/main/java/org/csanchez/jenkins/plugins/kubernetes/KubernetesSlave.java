@@ -94,6 +94,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return template;
     }
 
+    @Nonnull
+    public String getTemplateId() {
+        return podTemplateId;
+    }
+
     @CheckForNull
     public PodTemplate getTemplateOrNull() {
         if (template == null) {
@@ -288,6 +293,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             LOGGER.log(Level.SEVERE, String.format("Unable to terminate agent %s. Cloud may have been removed. There may be leftover resources on the Kubernetes cluster.", name));
             return;
         }
+        cloud.onTerminate(this);
 
         KubernetesClient client;
         try {

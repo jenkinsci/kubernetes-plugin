@@ -531,45 +531,23 @@ public class KubernetesCloud extends Cloud {
             Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label); // Nodes being launched
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
-            Set<Node> nodes = getNodes(label);
-            int currentExecutorsCount = (int) nodes.stream().filter(KubernetesSlave.class::isInstance).map(Node::getNumExecutors).count();
-            int launchingExecutorsCount = (int) nodes.stream().filter(KubernetesSlave.class::isInstance).filter(n -> n.toComputer() != null && ((KubernetesComputer)n.toComputer()).isLaunching()).map(Node::getNumExecutors).count();
-            LOGGER.log(Level.INFO, "Label \"{0}\" excess workload: {1}," +
-                    " executors: {2}," +
-                    " plannedCapacity: {3}," +
-                            " launching: {4}",
-                    new Object[] {label, toBeProvisioned, currentExecutorsCount, plannedCapacity, launchingExecutorsCount});
             List<NodeProvisioner.PlannedNode> plannedNodes = new ArrayList<>();
-            List<Pod> pods = getPodsWithLabels(namespace, getPodLabelsMap());
-            if (pods != null) {
-                // Count planned and executors not yet launching (e.g. everything that is not in kubernetes yet)
-                int plannedCount = plannedCapacity + currentExecutorsCount - launchingExecutorsCount;
-                int remainingGlobalSlots = getRemainingGlobalSlots(pods, plannedCount);
-                if (remainingGlobalSlots > 0) {
-                    LOGGER.fine(() -> "Global slots left for " + name + ": " + remainingGlobalSlots);
-                    for (PodTemplate podTemplate : getTemplatesFor(label)) {
-                        LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
-                        // check overall concurrency limit using the default label(s) on all templates
-                        int remainingPodTemplateSlots = getRemainingPodTemplateSlots(podTemplate, pods, plannedCount);
-                        LOGGER.log(remainingPodTemplateSlots > 0 ? Level.FINE : Level.INFO, "Slots left for template \"{0}\" in \"{1}\": {2}", new Object[]{podTemplate.getName(), name, remainingPodTemplateSlots});
-                        int provisioningLimit = Math.min(remainingGlobalSlots, remainingPodTemplateSlots);
-                        while (plannedNodes.size() < Math.min(provisioningLimit, toBeProvisioned)) {
-                            plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).build());
-                        }
-                        if (!plannedNodes.isEmpty()) {
-                            // Return early when a matching template was found and nodes were planned
-                            LOGGER.log(Level.FINEST, "Planned {0} Kubernetes agents with template \"{1}\"", new Object[]{plannedNodes.size(), podTemplate.getName()});
-                            Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
-                            if (plannedNodes.size() == provisioningLimit && plannedNodes.size() < toBeProvisioned) {
-                                Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
-                            }
+            LOGGER.log(Level.FINE, "Label \"{0}\" excess workload: {1}, executors: {2}",
+                    new Object[] {label, toBeProvisioned, plannedCapacity});
 
-                            return plannedNodes;
-                        }
-                    }
-                } else {
-                    LOGGER.log(Level.INFO, "No slot left for provisioning (global limit)");
-                    Metrics.metricRegistry().counter(MetricNames.REACHED_GLOBAL_CAP).inc();
+            for (PodTemplate podTemplate : getTemplatesFor(label)) {
+                LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
+                // check overall concurrency limit using the default label(s) on all templates
+                int numExecutors = 1;
+                while (toBeProvisioned > 0 && KubernetesProvisioningLimits.get().register(this, podTemplate, numExecutors)) {
+                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).numExecutors(1).build());
+                    toBeProvisioned--;
+                }
+                if (!plannedNodes.isEmpty()) {
+                    // Return early when a matching template was found and nodes were planned
+                    LOGGER.log(Level.FINEST, "Planned {0} Kubernetes agents with template \"{1}\"", new Object[]{plannedNodes.size(), podTemplate.getName()});
+                    Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
+                    return plannedNodes;
                 }
             }
             Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
@@ -584,55 +562,14 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes",
                         cause != null ? cause : e);
             }
-        } catch (ConnectException e) {
-            LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}", serverUrl);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
         }
         return Collections.emptyList();
     }
 
-    private Set<Node> getNodes(@CheckForNull Label label) {
-        if (label != null) {
-            return label.getNodes();
-        } else {
-            return Jenkins.get().getNodes().stream()
-                    .filter(n -> n.getLabelString() == null)
-                    .collect(Collectors.toSet());
-        }
-    }
-
-    @VisibleForTesting
-    int getRemainingPodTemplateSlots(PodTemplate template, List<Pod> pods, int plannedCount) {
-        List<Pod> filteredPodList = pods.stream()
-                .filter(pod -> pod.getMetadata().getLabels().entrySet().containsAll(template.getLabelsMap().entrySet()))
-                .collect(Collectors.toList());
-        return Math.max(0, template.getInstanceCap() - filteredPodList.size() - plannedCount);
-    }
-
-    @VisibleForTesting
-    int getRemainingGlobalSlots(List<Pod> pods, int plannedCount) {
-        // FIXME plannedCount only includes current requested label
-        return Math.max(0, getContainerCap() - pods.size() - plannedCount);
-    }
-
-    /**
-     * Query for running or pending pods
-     */
-    @CheckForNull
-    private List<Pod> getPodsWithLabels(String namespace, Map<String, String> labels) throws IOException, KubernetesAuthException {
-        KubernetesClient client = connect();
-        PodList podList = client.pods()
-                .inNamespace(StringUtils.defaultIfEmpty(namespace,client.getNamespace()))
-                .withLabels(labels)
-                .list();
-        // JENKINS-53370 check for nulls
-        if (podList != null && podList.getItems() != null) {
-            return podList.getItems().stream() //
-                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                    .collect(Collectors.toList());
-        }
-        return null;
+    public void onTerminate(@NonNull KubernetesSlave slave) {
+        KubernetesProvisioningLimits.get().unregister(slave.getKubernetesCloud(), slave.getTemplate(), slave.getNumExecutors());
     }
 
     @Override
