@@ -38,9 +38,11 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.common.base.Throwables;
@@ -255,6 +257,14 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
+            try {
+                List<Event> podEvents = ((KubernetesComputer) computer).getPodEvents();
+                if (!podEvents.isEmpty()) {
+                    ex.addSuppressed(new KubernetesEventsException(podEvents));
+                }
+            } catch (KubernetesAuthException | IOException e) {
+                LOGGER.log(Level.FINE, "Unable to add Kubernetes events");
+            }
             setProblem(ex);
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());

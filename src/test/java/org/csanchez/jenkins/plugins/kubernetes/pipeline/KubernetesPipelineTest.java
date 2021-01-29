@@ -30,8 +30,10 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeW
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertEquals;
@@ -673,6 +675,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to create pod", b);
         r.assertLogContains("ERROR: Queue task was cancelled", b);
+    }
+
+    @Test
+    public void podEventsPrinted() throws Exception {
+        Thread.sleep(5000);
+        b.doKill();
+        assertThat(logs.getMessages(), hasItem(containsString("Readiness probe failed")));
     }
 
     @Issue("SECURITY-1646")
