@@ -29,12 +29,12 @@ public final class KubernetesProvisioningLimits {
     /**
      * Tracks current number of kubernetes agents per pod template
      */
-    private final transient Map<String, AtomicInteger> podTemplateCounts = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, AtomicInteger> podTemplateCounts = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Tracks current number of kubernetes agents per kubernetes cloud
      */
-    private final transient Map<String, AtomicInteger> cloudCounts = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, AtomicInteger> cloudCounts = Collections.synchronizedMap(new HashMap<>());
 
     @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED)
     public static void init() {
