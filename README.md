@@ -756,9 +756,9 @@ spec:
 
 ## Using WebSockets with a Jenkins master with self-signed HTTPS certificate
 
-Using WebSockets is the most easy and recommend way to set the connection between the agents and a Jenkins master running outside of the cluster.
+Using WebSockets is the easiest and recommended way to establish the connection between agents and a Jenkins master running outside of the cluster.
 However, if your Jenkins master has HTTPS configured with self-signed certificate, you'll need to make sure the agent container trusts the CA.
-To do that, you can extend the `jenkins/inbound-agent` image and add your certificate through something like:
+To do that, you can extend the `jenkins/inbound-agent` image and add your certificate as follows:
 
 ```Dockerfile
 FROM jenkins/inbound-agent
@@ -775,7 +775,7 @@ RUN keytool -noprompt -storepass changeit \
 USER jenkins
 ```
 
-Then, use it as the `jnlp` container on the `podTemplates` as usual. No command or args needs to be specified.
+Then, use it as the `jnlp` container for the pod template as usual. No command or args need to be specified.
 
 > **Note:** when using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
 
