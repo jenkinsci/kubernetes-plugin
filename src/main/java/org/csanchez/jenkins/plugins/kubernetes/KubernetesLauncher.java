@@ -269,7 +269,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     private Watch eventWatch(KubernetesClient client, String podName, String namespace, TaskListener runListener) {
         try {
-            return client.events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener));
+            return client.v1().events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener));
         } catch (KubernetesClientException e) {
             LOGGER.log(Level.INFO, e, () -> "Cannot watch events on " + namespace + "/" +podName);
         }
