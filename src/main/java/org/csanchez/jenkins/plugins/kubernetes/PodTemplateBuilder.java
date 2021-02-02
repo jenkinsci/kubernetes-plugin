@@ -175,6 +175,9 @@ public class PodTemplateBuilder {
             }
         }
 
+        // initialise WorkspaceVolume
+        template.getWorkspaceVolume().processAnnotations(template.getAnnotations());
+
         volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, agent != null ? agent.getPodName() : null));
 
         Map<String, Container> containers = new HashMap<>();

@@ -25,6 +25,12 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
 import java.io.Serializable;
+import java.util.Collection;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 
 import hudson.model.AbstractDescribableImpl;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -51,7 +57,17 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
     // Builds a Volume model with the given name.require podName to generate pvc name
     public Volume buildVolume(String volumeName, String podName){
         return buildVolume(volumeName);
-    };
+    }
+
+    /**
+     * This method is called as first thing to process pod annotations that could have
+     * required informations to build this volume.
+     * 
+     * @param annotations a list of pod annotations defined by template or by
+     *        providers
+     */
+    public void processAnnotations(@Nonnull Collection<PodAnnotation> annotations) {
+    }
 
     // Builds a Volume model with the given name.
     @Deprecated
@@ -62,4 +78,5 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
     public PersistentVolumeClaim createVolume(KubernetesClient client, ObjectMeta podMetaData) {
         return null;
     }
+
 }

@@ -4,6 +4,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -26,14 +27,17 @@ import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
+import hudson.EnvVars;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.slaves.Cloud;
+
 import java.util.Collections;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.PodAnnotationProvider;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -115,11 +119,19 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setListener(getContext().get(TaskListener.class));
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
-        if(run!=null) {
+        if (run != null) { // FIXME it is not null or you got NPE in row 69 checkAccess
             String url = cloud.getJenkinsUrlOrNull();
-            if(url != null) {
+            if (url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
-                newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
+            }
+            newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
+
+            TaskListener listener = getContext().get(TaskListener.class);
+            EnvVars env = run.getEnvironment(listener);
+            for (PodAnnotationProvider provider : PodAnnotationProvider.all()) {
+                List<PodAnnotation> annotations = newTemplate.getAnnotations();
+                annotations.addAll(provider.buildFor(env));
+                annotations.addAll(provider.buildFor(run));
             }
         }
         newTemplate.setImagePullSecrets(
