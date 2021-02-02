@@ -74,8 +74,8 @@ public final class KubernetesProvisioningLimits {
                     if (podTemplateCount.get() + numExecutors <= podTemplate.getInstanceCap()) {
                         int g = globalCount.addAndGet(numExecutors);
                         int p = podTemplateCount.addAndGet(numExecutors);
-                        LOGGER.log(Level.FINEST, () -> cloud.name + ": " + g + "/" + cloud.getContainerCap());
-                        LOGGER.log(Level.FINEST, () -> podTemplate.getId() + ": " + p + "/" + podTemplate.getInstanceCap());
+                        LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + g + "/" + cloud.getContainerCap());
+                        LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + p + "/" + podTemplate.getInstanceCap());
                         return true;
                     } else {
                         Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
@@ -106,13 +106,13 @@ public final class KubernetesProvisioningLimits {
                     LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
                     globalCount.set(0);
                 } else {
-                    LOGGER.log(Level.FINEST, () -> cloud.name + ": " + newGlobalCount + "/" + cloud.getContainerCap());
+                    LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + newGlobalCount + "/" + cloud.getContainerCap());
                 }
                 if (newPodTemplateCount < 0) {
                     LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getId() + " went below zero. There is likely a bug in kubernetes-plugin");
                     podTemplateCount.set(0);
                 } else {
-                    LOGGER.log(Level.FINEST, () -> podTemplate.getId() + ": " + newPodTemplateCount + "/" + podTemplate.getInstanceCap());
+                    LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + newPodTemplateCount + "/" + podTemplate.getInstanceCap());
                 }
             }
         }
