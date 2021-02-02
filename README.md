@@ -236,21 +236,20 @@ In order to support any possible value in Kubernetes `Pod` object, we can pass a
 for the template. If any other properties are set outside of the yaml they will take precedence.
 
 ```groovy
-podTemplate(yaml: """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    some-label: some-label-value
-spec:
-  containers:
-  - name: busybox
-    image: busybox
-    command:
-    - cat
-    tty: true
-"""
-) {
+podTemplate(yaml: """\
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    labels:
+        some-label: some-label-value
+    spec:
+    containers:
+    - name: busybox
+        image: busybox
+        command:
+        - cat
+        tty: true
+    """.stripIndent()) {
     node(POD_LABEL) {
       container('busybox') {
         echo POD_CONTAINER // displays 'busybox'
@@ -427,25 +426,25 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    some-label: some-label-value
-spec:
-  containers:
-  - name: maven
-    image: maven:alpine
-    command:
-    - cat
-    tty: true
-  - name: busybox
-    image: busybox
-    command:
-    - cat
-    tty: true
-"""
+      yaml """\
+        apiVersion: v1
+        kind: Pod
+        metadata:
+        labels:
+            some-label: some-label-value
+        spec:
+        containers:
+        - name: maven
+            image: maven:alpine
+            command:
+            - cat
+            tty: true
+        - name: busybox
+            image: busybox
+            command:
+            - cat
+            tty: true
+        """.stripIndent()
     }
   }
   stages {
@@ -550,15 +549,15 @@ pipeline {
   agent {
     kubernetes {
       label 'parent-pod'
-      yaml """
-spec:
-  containers:
-  - name: golang
-    image: golang:1.6.3-alpine
-    command:
-    - cat
-    tty: true
-"""
+      yaml """\
+        spec:
+        containers:
+        - name: golang
+            image: golang:1.6.3-alpine
+            command:
+            - cat
+            tty: true
+        """.stripIndent()
     }
   }
   stages {
@@ -566,15 +565,15 @@ spec:
         agent {
             kubernetes {
                 label 'nested-pod'
-                yaml """
-spec:
-  containers:
-  - name: maven
-    image: maven:3.3.9-jdk-8-alpine
-    command:
-    - cat
-    tty: true
-"""
+                yaml """\
+                    spec:
+                    containers:
+                    - name: maven
+                        image: maven:3.3.9-jdk-8-alpine
+                        command:
+                        - cat
+                        tty: true
+                    """.stripIndent()
             }
         }
       steps {
