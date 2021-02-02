@@ -6,7 +6,6 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Node;
 import hudson.model.Queue;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
@@ -36,18 +35,19 @@ public final class KubernetesProvisioningLimits {
      */
     private final Map<String, AtomicInteger> cloudCounts = Collections.synchronizedMap(new HashMap<>());
 
-    @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED)
+    @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
     public static void init() {
         // We don't want anything to be provisioned while we do the initial count.
         Queue.withLock(() -> {
-            KubernetesProvisioningLimits instance = get();
-            for (Node node : Jenkins.get().getNodes()) {
-                if (node instanceof KubernetesSlave) {
-                    KubernetesSlave kubernetesSlave = (KubernetesSlave) node;
-                    instance.getGlobalCount(kubernetesSlave.getCloudName()).addAndGet(node.getNumExecutors());
-                    instance.getPodTemplateCount(kubernetesSlave.getTemplateId()).addAndGet(node.getNumExecutors());
-                }
-            }
+            final KubernetesProvisioningLimits instance = get();
+            Jenkins.get().getNodes()
+                    .stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .map(KubernetesSlave.class::cast)
+                    .forEach(node -> {
+                instance.getGlobalCount(node.getCloudName()).addAndGet(node.getNumExecutors());
+                instance.getPodTemplateCount(node.getTemplateId()).addAndGet(node.getNumExecutors());
+            });
         });
     }
 
