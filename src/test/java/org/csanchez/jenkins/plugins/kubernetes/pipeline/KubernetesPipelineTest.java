@@ -24,39 +24,12 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.oneOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.*;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import hudson.model.Computer;
 import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.model.Computer;
 import hudson.model.Label;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
 import hudson.util.VersionNumber;
@@ -64,38 +37,65 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesLauncher;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
+import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
-import hudson.model.Result;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
-import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
-import org.junit.Ignore;
-import org.jvnet.hudson.test.FlagRule;
-import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.oneOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeNotNull;
 
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
@@ -679,9 +679,25 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void podEventsPrinted() throws Exception {
-        Thread.sleep(5000);
+        warnings.record(KubernetesLauncher.class.getName(), Level.WARNING).capture(1000);
+        Thread.sleep(15000);
         b.doKill();
-        assertThat(logs.getMessages(), hasItem(containsString("Readiness probe failed")));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        assertThat(warnings, LoggerRule.recorded(Level.WARNING, any(String.class),
+                new CustomTypeSafeMatcher<Throwable>("has \"Readiness probe failed\" in suppressed exceptions") {
+            @Override
+            protected boolean matchesSafely(Throwable item) {
+                if (item instanceof KubernetesClientTimeoutException) {
+                    for (Throwable t : item.getSuppressed()) {
+                        if (t.getMessage().contains("Readiness probe failed")) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                return false;
+            }
+        }));
     }
 
     @Issue("SECURITY-1646")

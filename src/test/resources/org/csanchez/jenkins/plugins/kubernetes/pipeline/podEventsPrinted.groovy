@@ -9,8 +9,8 @@ podTemplate(slaveConnectTimeout:10, yaml:'''
           command:
           - cat
           - /tmp/healthy
-        initialDelaySeconds: 5
-        periodSeconds: 5
+        initialDelaySeconds: 1
+        periodSeconds: 1
 ''') {
   node(POD_LABEL) {
     sh 'true'
