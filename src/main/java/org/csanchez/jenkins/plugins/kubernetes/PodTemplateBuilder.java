@@ -213,7 +213,7 @@ public class PodTemplateBuilder {
             builder.withVolumes(volumes.values().toArray(new Volume[volumes.size()]));
         }
         if (template.getServiceAccount() != null) {
-            builder.withServiceAccount(substituteEnv(template.getServiceAccount()));
+            builder.withServiceAccountName(substituteEnv(template.getServiceAccount()));
         }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()

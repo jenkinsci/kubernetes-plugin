@@ -112,7 +112,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 fields.put("involvedObject.name", podMeta.getName());
                 fields.put("involvedObject.namespace", podNamespace);
 
-                EventList eventList = client.events().inNamespace(podNamespace).withFields(fields).list();
+                EventList eventList = client.v1().events().inNamespace(podNamespace).withFields(fields).list();
                 if(eventList != null) {
                     return eventList.getItems();
                 }

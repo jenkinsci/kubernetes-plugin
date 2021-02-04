@@ -1,16 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,8 +23,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -38,21 +31,13 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.mockito.Mockito;
 
-import hudson.model.Label;
-import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
@@ -171,77 +156,6 @@ public class KubernetesCloudTest {
     public void testKubernetesCloudDefaults() {
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
-    }
-
-    @Test
-    public void testInstanceCap() {
-        KubernetesCloud cloud = new KubernetesCloud("name") {
-            @Override
-            public KubernetesClient connect() {
-                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
-                Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
-                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
-                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
-                PodList podList = Mockito.mock(PodList.class);
-                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
-                Mockito.when(operation.list()).thenReturn(podList);
-                Mockito.when(mockClient.pods()).thenReturn(operation);
-                return mockClient;
-            }
-        };
-
-        PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setName("test");
-        podTemplate.setLabel("test");
-
-        cloud.addTemplate(podTemplate);
-
-        Label test = Label.get("test");
-        assertTrue(cloud.canProvision(test));
-
-        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
-
-        podTemplate.setInstanceCap(5);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(5, plannedNodes.size());
-    }
-
-    @Test
-    public void testContainerCap() {
-        KubernetesCloud cloud = new KubernetesCloud("name") {
-            @Override
-            public KubernetesClient connect()  {
-                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
-                Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
-                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
-                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
-                PodList podList = Mockito.mock(PodList.class);
-                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
-                Mockito.when(operation.list()).thenReturn(podList);
-                Mockito.when(mockClient.pods()).thenReturn(operation);
-                return mockClient;
-            }
-        };
-
-        PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setName("test");
-        podTemplate.setLabel("test");
-
-        cloud.addTemplate(podTemplate);
-
-        Label test = Label.get("test");
-        assertTrue(cloud.canProvision(test));
-
-        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
-
-        cloud.setContainerCapStr("10");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(10, plannedNodes.size());
     }
 
     @Test
@@ -383,7 +297,6 @@ public class KubernetesCloudTest {
     public void readResolveContainerCapZero() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         assertEquals(cloud.getContainerCap(), Integer.MAX_VALUE);
-        assertThat(cloud.getRemainingGlobalSlots(Collections.emptyList(), 1), greaterThan(0));
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {
@@ -394,55 +307,6 @@ public class KubernetesCloudTest {
             }
         }
         return null;
-    }
-
-    @Test
-    public void globalLimit() {
-        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
-        cloud.setContainerCap(10);
-        assertEquals(10, cloud.getRemainingGlobalSlots(Collections.emptyList(), 0));
-        assertEquals(0, cloud.getRemainingGlobalSlots(Collections.emptyList(), 10));
-        List<Pod> pods = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            Pod pod = new Pod();
-            pods.add(pod);
-        }
-        assertEquals(5, cloud.getRemainingGlobalSlots(pods, 0));
-        assertEquals(2, cloud.getRemainingGlobalSlots(pods, 3));
-        assertEquals(0, cloud.getRemainingGlobalSlots(pods, 5));
-    }
-
-    @Test
-    public void podTemplateLimit() {
-        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
-        PodTemplate pt1 = addPodTemplate(cloud, "label1", 1);
-        PodTemplate pt2 = addPodTemplate(cloud, "label2", 1);
-        PodTemplate pt3 = addPodTemplate(cloud, "label3", 1);
-
-        List<Pod> pods = new ArrayList<>();
-        addPod(pods, pt1);
-        addPod(pods, pt2);
-
-        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt1, pods, 0));
-        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt2, pods, 0));
-        assertEquals(1, cloud.getRemainingPodTemplateSlots(pt3, pods, 0));
-        assertEquals(0, cloud.getRemainingPodTemplateSlots(pt3, pods, 1));
-    }
-
-    private void addPod(List<Pod> pods, PodTemplate pt1) {
-        pods.add(new PodBuilder()
-                    .withNewMetadata()
-                        .withLabels(pt1.getLabelsMap())
-                    .endMetadata()
-                .build());
-    }
-
-    private PodTemplate addPodTemplate(KubernetesCloud cloud, String label, int instanceCap) {
-        PodTemplate pt = new PodTemplate();
-        pt.setLabel(label);
-        pt.setInstanceCap(instanceCap);
-        cloud.addTemplate(pt);
-        return pt;
     }
 
 }

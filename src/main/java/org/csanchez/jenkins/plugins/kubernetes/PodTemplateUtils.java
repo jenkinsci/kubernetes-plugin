@@ -247,6 +247,9 @@ public class PodTemplateUtils {
         String serviceAccount = Strings.isNullOrEmpty(template.getSpec().getServiceAccount())
                 ? parent.getSpec().getServiceAccount()
                 : template.getSpec().getServiceAccount();
+        String serviceAccountName = Strings.isNullOrEmpty(template.getSpec().getServiceAccountName())
+                ? parent.getSpec().getServiceAccountName()
+                : template.getSpec().getServiceAccountName();
 
         Boolean hostNetwork = template.getSpec().getHostNetwork() != null
                 ? template.getSpec().getHostNetwork()
@@ -294,6 +297,7 @@ public class PodTemplateUtils {
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
+                .withServiceAccountName(serviceAccountName) //
                 .withHostNetwork(hostNetwork) //
                 .withContainers(combinedContainers) //
                 .withInitContainers(combinedInitContainers) //
