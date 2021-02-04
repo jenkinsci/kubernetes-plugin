@@ -53,8 +53,6 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
@@ -296,13 +294,12 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (containers != null) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
-                PrettyLoggable<LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
-                        .inContainer(containerStatus.getName()).tailingLines(30);
-                String log = tailingLines.getLog();
+                String log = client.pods().inNamespace(namespace).withName(podId)
+                        .inContainer(containerStatus.getName()).tailingLines(30).getLog();
                 if (!StringUtils.isBlank(log)) {
                     String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
                     LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                            new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
+                            new Object[]{slave, slave.getTemplate(), containerName, msg, log});
                 }
             }
         }
