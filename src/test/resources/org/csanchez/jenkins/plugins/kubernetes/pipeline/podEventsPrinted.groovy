@@ -1,9 +1,7 @@
 podTemplate(slaveConnectTimeout:10, yaml:'''
   spec:
     containers:
-    - name: neverready
-      image: busybox
-      command: ['sleep', '99999999']
+    - name: jnlp
       readinessProbe:
         exec:
           command:
