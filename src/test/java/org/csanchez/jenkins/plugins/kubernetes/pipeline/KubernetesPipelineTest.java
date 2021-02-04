@@ -681,14 +681,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void podEventsPrinted() throws Exception {
         warnings.record(KubernetesLauncher.class.getName(), Level.WARNING).capture(1000);
-        Thread.sleep(15000);
+        Thread.sleep(20000);
         b.doKill();
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         assertThat(warnings, LoggerRule.recorded(Level.WARNING, any(String.class),
                 new CustomTypeSafeMatcher<Throwable>("has \"Readiness probe failed\" in suppressed exceptions") {
             @Override
             protected boolean matchesSafely(Throwable item) {
-                if (item instanceof KubernetesClientTimeoutException) {
+                if (item != null) {
                     for (Throwable t : item.getSuppressed()) {
                         if (t.getMessage().contains("Readiness probe failed")) {
                             return true;
