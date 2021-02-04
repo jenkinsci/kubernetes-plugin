@@ -18,11 +18,8 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.PodResource;
-import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TailPrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -74,18 +71,18 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             client = nodeContext.connectToCloud();
 
             String podName = nodeContext.getPodName();
-            PodResource<Pod> pod = client.pods() //
-                    .inNamespace(nodeContext.getNamespace()) //
-                    .withName(podName);
 
             TimeTailPrettyLoggable<LogWatch> limited = limitBytes > 0
-                    ? pod.inContainer(containerName).limitBytes(limitBytes)
-                    : pod.inContainer(containerName);
+                    ? client.pods() //
+                            .inNamespace(nodeContext.getNamespace()) //
+                            .withName(podName).inContainer(containerName).limitBytes(limitBytes)
+                    : client.pods() //
+                            .inNamespace(nodeContext.getNamespace()) //
+                            .withName(podName).inContainer(containerName);
 
             TailPrettyLoggable<LogWatch> since = sinceSeconds > 0 ? limited.sinceSeconds(sinceSeconds) : limited;
 
-            PrettyLoggable<LogWatch> tailed = tailingLines > 0 ? since.tailingLines(tailingLines) : since;
-            String log = tailed.getLog();
+            String log = (tailingLines > 0 ? since.tailingLines(tailingLines) : since).getLog();
 
             if (returnLog) {
                 return log;
