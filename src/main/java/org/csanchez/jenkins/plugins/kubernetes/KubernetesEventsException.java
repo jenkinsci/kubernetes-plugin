@@ -5,7 +5,7 @@ import io.fabric8.kubernetes.api.model.Event;
 import java.util.List;
 
 /**
- * Prints
+ * Custom exception which adds information about Kubernetes events.
  */
 public class KubernetesEventsException extends Exception {
     public KubernetesEventsException(List<Event> events) {
