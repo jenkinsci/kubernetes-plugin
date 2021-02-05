@@ -245,12 +245,12 @@ podTemplate(yaml: """\
     labels:
         some-label: some-label-value
     spec:
-    containers:
-    - name: busybox
-        image: busybox
-        command:
-        - cat
-        tty: true
+        containers:
+        - name: busybox
+            image: busybox
+            command:
+            - cat
+            tty: true
     """.stripIndent()) {
     node(POD_LABEL) {
       container('busybox') {
