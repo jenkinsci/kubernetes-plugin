@@ -53,7 +53,6 @@ import com.google.common.collect.Maps;
 
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Node;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -62,9 +61,6 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import java.net.InetAddress;
 import java.net.URL;
@@ -216,14 +212,13 @@ public class KubernetesTestUtil {
                 try {
                     forkJoinPool.submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
                         try {
-                            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                                    .withLabels(labels);
-                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
-                            boolean allTerminated = pods.list().getItems().isEmpty();
+                            PodList list = client.pods().withLabels(labels).list();
+                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
+                            boolean allTerminated = list.getItems().isEmpty();
                             if (allTerminated) {
-                                LOGGER.log(INFO, "All pods are terminated: {0}", print(pods));
+                                LOGGER.log(INFO, "All pods are terminated: {0}", print(list));
                             } else {
-                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
+                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
                                 Thread.sleep(5000);
                             }
                             return allTerminated;
@@ -238,11 +233,10 @@ public class KubernetesTestUtil {
                 }
             }
 
-            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                    .withLabels(labels);
-            if (!pods.list().getItems().isEmpty()) {
-                LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(pods));
-                if (Boolean.TRUE.equals(pods.delete())) {
+            PodList list = client.pods().withLabels(labels).list();
+            if (!list.getItems().isEmpty()) {
+                LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(list));
+                if (Boolean.TRUE.equals(client.pods().withLabels(labels).delete())) {
                     return true;
                 }
 
@@ -251,8 +245,8 @@ public class KubernetesTestUtil {
         return false;
     }
 
-    private static List<String> print(FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods) {
-        return pods.list().getItems().stream()
+    private static List<String> print(PodList podList) {
+        return podList.getItems().stream()
                 .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());
     }

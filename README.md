@@ -77,6 +77,8 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins master is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
+> **Note:** if your Jenkins master is outside of the cluster and uses a self-signed HTTPS certificate, you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+
 ### Restricting what jobs can use your configured cloud
 
 Clouds can be configured to only allow certain jobs to use them.
@@ -236,21 +238,20 @@ In order to support any possible value in Kubernetes `Pod` object, we can pass a
 for the template. If any other properties are set outside of the yaml they will take precedence.
 
 ```groovy
-podTemplate(yaml: """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    some-label: some-label-value
-spec:
-  containers:
-  - name: busybox
-    image: busybox
-    command:
-    - cat
-    tty: true
-"""
-) {
+podTemplate(yaml: """\
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      labels: 
+        some-label: some-label-value
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+        - cat
+        tty: true
+    """.stripIndent()) {
     node(POD_LABEL) {
       container('busybox') {
         echo POD_CONTAINER // displays 'busybox'
@@ -427,25 +428,25 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    some-label: some-label-value
-spec:
-  containers:
-  - name: maven
-    image: maven:alpine
-    command:
-    - cat
-    tty: true
-  - name: busybox
-    image: busybox
-    command:
-    - cat
-    tty: true
-"""
+      yaml """\
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          labels:
+            some-label: some-label-value
+        spec:
+          containers:
+          - name: maven
+            image: maven:alpine
+            command:
+            - cat
+            tty: true
+          - name: busybox
+            image: busybox
+            command:
+            - cat
+            tty: true
+        """.stripIndent()
     }
   }
   stages {
@@ -550,15 +551,15 @@ pipeline {
   agent {
     kubernetes {
       label 'parent-pod'
-      yaml """
-spec:
-  containers:
-  - name: golang
-    image: golang:1.6.3-alpine
-    command:
-    - cat
-    tty: true
-"""
+      yaml """\
+        spec:
+        containers:
+        - name: golang
+            image: golang:1.6.3-alpine
+            command:
+            - cat
+            tty: true
+        """.stripIndent()
     }
   }
   stages {
@@ -566,15 +567,15 @@ spec:
         agent {
             kubernetes {
                 label 'nested-pod'
-                yaml """
-spec:
-  containers:
-  - name: maven
-    image: maven:3.3.9-jdk-8-alpine
-    command:
-    - cat
-    tty: true
-"""
+                yaml """\
+                    spec:
+                    containers:
+                    - name: maven
+                        image: maven:3.3.9-jdk-8-alpine
+                        command:
+                        - cat
+                        tty: true
+                    """.stripIndent()
             }
         }
       steps {
@@ -751,6 +752,31 @@ spec:
     - cat
     tty: true
 ```
+
+## Using WebSockets with a Jenkins master with self-signed HTTPS certificate
+
+Using WebSockets is the easiest and recommended way to establish the connection between agents and a Jenkins master running outside of the cluster.
+However, if your Jenkins master has HTTPS configured with self-signed certificate, you'll need to make sure the agent container trusts the CA.
+To do that, you can extend the `jenkins/inbound-agent` image and add your certificate as follows:
+
+```Dockerfile
+FROM jenkins/inbound-agent
+
+USER root
+
+ADD cert.pem /tmp/cert.pem
+
+RUN keytool -noprompt -storepass changeit \
+  -keystore "$JAVA_HOME/jre/lib/security/cacerts" \
+  -import -file /tmp/cert.pem -alias jenkinsMaster && \
+  rm -f /tmp/cert.pem
+
+USER jenkins
+```
+
+Then, use it as the `jnlp` container for the pod template as usual. No command or args need to be specified.
+
+> **Note:** when using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
 
 # Building and Testing
 
