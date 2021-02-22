@@ -115,6 +115,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String label;
 
+    /**
+     * Set of label atoms this pod template provides in Jenkins. Jenkins indexes them on creation.
+     */
+    private transient Set<LabelAtom> labelSet;
+
+    private transient Map<String, String> labelsMap;
+
     private String serviceAccount;
 
     private String nodeSelector;
@@ -421,21 +428,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Set<LabelAtom> getLabelSet() {
-        return Label.parse(label);
+        return labelSet;
     }
 
     public Map<String, String> getLabelsMap() {
-        if (label == null) {
-            return ImmutableMap.of(
-                    "jenkins/label", DEFAULT_LABEL,
-                    "jenkins/label-digest", "0"
-            );
-        } else {
-            return ImmutableMap.of(
-                    "jenkins/label", sanitizeLabel(label),
-                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
-            );
-        }
+        return labelsMap;
     }
 
     static String sanitizeLabel(String input) {
@@ -455,6 +452,22 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = Util.fixEmptyAndTrim(label);
+        recomputeLabelDerivedFields();
+    }
+
+    private void recomputeLabelDerivedFields() {
+        this.labelSet = Label.parse(label);
+        if (label == null) {
+            labelsMap = ImmutableMap.of(
+                    "jenkins/label", DEFAULT_LABEL,
+                    "jenkins/label-digest", "0"
+            );
+        } else {
+            labelsMap = ImmutableMap.of(
+                    "jenkins/label", sanitizeLabel(label),
+                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
+            );
+        }
     }
 
     public String getLabel() {
@@ -850,6 +863,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             // Use the label and a digest of the current object representation to get the same value every restart if the object isn't saved.
             id = getLabel() + "-" + Util.getDigestOf(toString());
         }
+        recomputeLabelDerivedFields();
 
         return this;
     }
