@@ -421,7 +421,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Set<LabelAtom> getLabelSet() {
-        return Label.parse(label);
+        Set<LabelAtom> labelAtoms = Label.parse(label);
+        if (name != null) {
+            labelAtoms.add(LabelAtom.get(name));
+        }
+        return labelAtoms;
     }
 
     public Map<String, String> getLabelsMap() {
@@ -455,6 +459,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = Util.fixEmptyAndTrim(label);
+        getLabelSet();
     }
 
     public String getLabel() {
@@ -850,6 +855,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             // Use the label and a digest of the current object representation to get the same value every restart if the object isn't saved.
             id = getLabel() + "-" + Util.getDigestOf(toString());
         }
+        // Eagerly Instantiate LabelAtoms
+        getLabelSet();
 
         return this;
     }

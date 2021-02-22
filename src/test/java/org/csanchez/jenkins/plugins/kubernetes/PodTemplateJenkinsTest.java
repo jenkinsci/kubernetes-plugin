@@ -1,13 +1,17 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.model.Label;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplate.LABEL_DIGEST_FUNCTION;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 
 public class PodTemplateJenkinsTest {
@@ -42,5 +46,17 @@ public class PodTemplateJenkinsTest {
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("slave-default", labelsMap.get("jenkins/label"));
         assertEquals("0", labelsMap.get("jenkins/label-digest"));
+    }
+
+    @Test
+    public void jenkinsLabels() {
+        KubernetesCloud kubernetesCloud = new KubernetesCloud("kubernetes");
+        j.jenkins.clouds.add(kubernetesCloud);
+        PodTemplate podTemplate = new PodTemplate();
+        kubernetesCloud.addTemplate(podTemplate);
+        podTemplate.setName("foo");
+        podTemplate.setLabel("bar baz");
+        assertThat(j.jenkins.getLabels().stream().map(Label::getName).collect(Collectors.toSet()),
+                containsInAnyOrder("master", "foo", "bar", "baz"));
     }
 }
