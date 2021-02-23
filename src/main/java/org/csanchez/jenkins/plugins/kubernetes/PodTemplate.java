@@ -210,6 +210,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         } else {
             this.id = id;
         }
+        recomputeLabelDerivedFields();
     }
 
     public PodTemplate(PodTemplate from) {
@@ -217,6 +218,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
         this.yamls = from.yamls;
         this.listener = from.listener;
+        recomputeLabelDerivedFields();
     }
 
     @Deprecated
