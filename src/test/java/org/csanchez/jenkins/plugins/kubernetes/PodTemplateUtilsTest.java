@@ -40,6 +40,7 @@ import java.util.Map;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
+import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
@@ -62,8 +63,12 @@ import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class PodTemplateUtilsTest {
+
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
 
     private static final PodImagePullSecret SECRET_1 = new PodImagePullSecret("secret1");
     private static final PodImagePullSecret SECRET_2 = new PodImagePullSecret("secret2");
