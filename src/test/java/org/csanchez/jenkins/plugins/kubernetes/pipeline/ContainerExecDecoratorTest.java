@@ -25,12 +25,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,6 +62,8 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.junit.After;
 import org.junit.Before;
@@ -253,11 +261,19 @@ public class ContainerExecDecoratorTest {
 
     @Test
     public void commandsEscaping() {
-        ProcStarter procStarter = new DummyLauncher(null).launch();
-        procStarter = procStarter.cmds("$$$$", "$$?");
-
-        String[] commands = ContainerExecDecorator.getCommands(procStarter, null);
-        assertArrayEquals(new String[] { "\\$\\$", "\\$?" }, commands);
+        DummyLauncher launcher = new DummyLauncher(null);
+        assertThat(
+                ContainerExecDecorator.getCommands(launcher.launch().cmds("$$$$", "$$?"), null, true),
+                arrayContaining("\\$\\$", "\\$?")
+        );
+        assertThat(
+                ContainerExecDecorator.getCommands(launcher.launch().cmds("\""), null, true),
+                arrayContaining("\\\"")
+        );
+        assertThat(
+                ContainerExecDecorator.getCommands(launcher.launch().cmds("\"\""), null, false),
+                arrayContaining("\"\"")
+        );
     }
 
     @Test
@@ -270,7 +286,17 @@ public class ContainerExecDecoratorTest {
     }
 
     @Test
-    public void testCommandExecutionOutput() throws Exception {
+    @Issue("JENKINS-62502")
+    public void testCommandExecutionEscapingDoubleQuotes() throws Exception {
+        ProcReturn r = execCommand(false, false, "sh", "-c", "cd /tmp; false; echo \"result is 1\" > test; cat /tmp/test");
+        assertTrue("Output should contain result: " + r.output,
+                Pattern.compile("^(result is 1)$", Pattern.MULTILINE).matcher(r.output).find());
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+	
+	@Test
+	public void testCommandExecutionOutput() throws Exception {
         String testString = "Should appear once";
 
         // Check output with quiet=false
