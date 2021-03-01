@@ -6,9 +6,11 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.model.Node;
 import hudson.model.Queue;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
+import jenkins.model.NodeListener;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
@@ -128,6 +130,17 @@ public final class KubernetesProvisioningLimits {
     @VisibleForTesting
     AtomicInteger getPodTemplateCount(String id) {
         return podTemplateCounts.computeIfAbsent(id, k -> new AtomicInteger());
+    }
+
+    @Extension
+    public static class NodeListenerImpl extends NodeListener {
+        @Override
+        protected void onDeleted(@Nonnull Node node) {
+            if (node instanceof KubernetesSlave) {
+                KubernetesSlave kubernetesNode = (KubernetesSlave) node;
+                KubernetesProvisioningLimits.get().unregister(kubernetesNode.getKubernetesCloud(), kubernetesNode.getTemplate(), node.getNumExecutors());
+            }
+        }
     }
 
 }
