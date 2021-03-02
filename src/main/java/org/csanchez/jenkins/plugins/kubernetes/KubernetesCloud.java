@@ -568,10 +568,6 @@ public class KubernetesCloud extends Cloud {
         return Collections.emptyList();
     }
 
-    public void onTerminate(@NonNull KubernetesSlave slave) {
-        KubernetesProvisioningLimits.get().unregister(slave.getKubernetesCloud(), slave.getTemplate(), slave.getNumExecutors());
-    }
-
     @Override
     public boolean canProvision(@NonNull Cloud.CloudState state) {
         return getTemplate(state.getLabel()) != null;
