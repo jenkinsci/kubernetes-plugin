@@ -207,7 +207,7 @@ spec:
 ```
 
 你可以使用步骤 [`readFile`](https://jenkins.io/zh/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) 
-或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中年加载 yaml.
+或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中加载 yaml.
 它从 Jenkins 控制台的插件配置界面上也能访问到。
 
 #### 存活性探测的使用
