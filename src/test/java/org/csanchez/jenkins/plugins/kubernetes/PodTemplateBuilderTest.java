@@ -636,6 +636,31 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void yamlOverrideSchedulerName() {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml(
+                "apiVersion: v1\n" +
+                "kind: Pod\n" +
+                "metadata:\n" +
+                "  labels:\n" +
+                "    some-label: some-label-value\n" +
+                "spec:\n" +
+                "  schedulerName: default-scheduler\n"
+        );
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml(
+                "spec:\n" +
+                "  schedulerName: custom-scheduler\n"
+        );
+        child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result, slave).build();
+        assertEquals("custom-scheduler", pod.getSpec().getSchedulerName());
+    }
+
+    @Test
     public void yamlOverrideSecurityContext() {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(

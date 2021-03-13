@@ -250,6 +250,9 @@ public class PodTemplateUtils {
         String serviceAccountName = Strings.isNullOrEmpty(template.getSpec().getServiceAccountName())
                 ? parent.getSpec().getServiceAccountName()
                 : template.getSpec().getServiceAccountName();
+        String schedulerName = Strings.isNullOrEmpty(template.getSpec().getSchedulerName())
+                ? parent.getSpec().getSchedulerName()
+                 : template.getSpec().getSchedulerName();
 
         Boolean hostNetwork = template.getSpec().getHostNetwork() != null
                 ? template.getSpec().getHostNetwork()
@@ -298,6 +301,7 @@ public class PodTemplateUtils {
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
                 .withServiceAccountName(serviceAccountName) //
+                .withSchedulerName(schedulerName)
                 .withHostNetwork(hostNetwork) //
                 .withContainers(combinedContainers) //
                 .withInitContainers(combinedInitContainers) //
@@ -371,6 +375,7 @@ public class PodTemplateUtils {
         String label = template.getLabel();
         String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
         String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
+        String schedulerName = Strings.isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
@@ -406,6 +411,7 @@ public class PodTemplateUtils {
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
+        podTemplate.setSchedulerName(schedulerName);
         podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
@@ -433,6 +439,9 @@ public class PodTemplateUtils {
 
         podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
+
+        podTemplate.setSchedulerName(!Strings.isNullOrEmpty(template.getSchedulerName()) ?
+                                      template.getSchedulerName() : parent.getSchedulerName());
 
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
