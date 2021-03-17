@@ -849,7 +849,7 @@ bash test-in-k8s.sh
 # Docker image
 
 Docker image for Jenkins, with plugin installed.
-Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
+Based on the [official image](https://hub.docker.com/r/jenkins/jenkins/).
 
 ## Running the Docker image
 
