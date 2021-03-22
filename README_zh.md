@@ -643,7 +643,7 @@ kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubern
 
 # Docker 镜像
 
-Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://registry.hub.docker.com/_/jenkins/)。
+Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://hub.docker.com/r/jenkins/jenkins/)。
 
 ## 运行 Docker 镜像
 
