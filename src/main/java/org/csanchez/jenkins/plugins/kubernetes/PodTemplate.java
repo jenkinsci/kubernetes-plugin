@@ -124,6 +124,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String serviceAccount;
 
+    private String schedulerName;
+
     private String nodeSelector;
 
     private Node.Mode nodeUsageMode;
@@ -565,6 +567,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
         this.serviceAccount = Util.fixEmpty(serviceAccount);
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
+    }
+
+    @DataBoundSetter
+    public void setSchedulerName(String schedulerName) {
+        this.schedulerName = Util.fixEmpty(schedulerName);
     }
 
     @Deprecated
@@ -1018,6 +1029,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +
                 (label == null ? "" : ", label='" + label + '\'') +
                 (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'') +
+                (schedulerName == null ? "" : ", schedulerName='" + schedulerName + '\'') +
                 (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
                 (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
