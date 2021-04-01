@@ -207,7 +207,7 @@ spec:
 ```
 
 你可以使用步骤 [`readFile`](https://jenkins.io/zh/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) 
-或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中年加载 yaml.
+或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中加载 yaml.
 它从 Jenkins 控制台的插件配置界面上也能访问到。
 
 #### 存活性探测的使用
@@ -643,7 +643,7 @@ kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubern
 
 # Docker 镜像
 
-Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://registry.hub.docker.com/_/jenkins/)。
+Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://hub.docker.com/r/jenkins/jenkins/)。
 
 ## 运行 Docker 镜像
 

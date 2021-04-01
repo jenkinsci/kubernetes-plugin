@@ -53,6 +53,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @CheckForNull
     private String serviceAccount;
     @CheckForNull
+    private String schedulerName;
+    @CheckForNull
     private String nodeSelector;
     @CheckForNull
     private String namespace;
@@ -161,6 +163,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
         this.serviceAccount = serviceAccount;
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
+    }
+
+    @DataBoundSetter
+    public void setSchedulerName(String schedulerName) {
+        this.schedulerName = schedulerName;
     }
 
     public String getNodeSelector() {

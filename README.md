@@ -77,6 +77,8 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins master is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
+> **Note:** if your Jenkins master is outside of the cluster and uses a self-signed HTTPS certificate, you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+
 ### Restricting what jobs can use your configured cloud
 
 Clouds can be configured to only allow certain jobs to use them.
@@ -240,11 +242,11 @@ podTemplate(yaml: """\
     apiVersion: v1
     kind: Pod
     metadata:
-    labels:
+      labels: 
         some-label: some-label-value
     spec:
-    containers:
-    - name: busybox
+      containers:
+      - name: busybox
         image: busybox
         command:
         - cat
@@ -430,16 +432,16 @@ pipeline {
         apiVersion: v1
         kind: Pod
         metadata:
-        labels:
+          labels:
             some-label: some-label-value
         spec:
-        containers:
-        - name: maven
+          containers:
+          - name: maven
             image: maven:alpine
             command:
             - cat
             tty: true
-        - name: busybox
+          - name: busybox
             image: busybox
             command:
             - cat
@@ -751,6 +753,31 @@ spec:
     tty: true
 ```
 
+## Using WebSockets with a Jenkins master with self-signed HTTPS certificate
+
+Using WebSockets is the easiest and recommended way to establish the connection between agents and a Jenkins master running outside of the cluster.
+However, if your Jenkins master has HTTPS configured with self-signed certificate, you'll need to make sure the agent container trusts the CA.
+To do that, you can extend the `jenkins/inbound-agent` image and add your certificate as follows:
+
+```Dockerfile
+FROM jenkins/inbound-agent
+
+USER root
+
+ADD cert.pem /tmp/cert.pem
+
+RUN keytool -noprompt -storepass changeit \
+  -keystore "$JAVA_HOME/jre/lib/security/cacerts" \
+  -import -file /tmp/cert.pem -alias jenkinsMaster && \
+  rm -f /tmp/cert.pem
+
+USER jenkins
+```
+
+Then, use it as the `jnlp` container for the pod template as usual. No command or args need to be specified.
+
+> **Note:** when using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
+
 # Building and Testing
 
 Integration tests will use the currently configured context autodetected from kube config file or service account.
@@ -822,7 +849,7 @@ bash test-in-k8s.sh
 # Docker image
 
 Docker image for Jenkins, with plugin installed.
-Based on the [official image](https://registry.hub.docker.com/_/jenkins/).
+Based on the [official image](https://hub.docker.com/r/jenkins/jenkins/).
 
 ## Running the Docker image
 

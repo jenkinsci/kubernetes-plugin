@@ -336,7 +336,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 }
                 return doLaunch(starter.quiet(), fixDoubleDollar(envVars), starter.stdout(), containerWorkingDirFilePath, starter.masks(),
-                        getCommands(starter, containerWorkingDirFilePathStr));
+                        getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
             }
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
@@ -649,12 +649,16 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr) {
+    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr, boolean unix) {
         List<String> allCommands = new ArrayList<String>();
 
-        // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
+
         for (String cmd : starter.cmds()) {
-            String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
+            // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
+            String fixedCommand = cmd.replaceAll("\\$\\$", Matcher.quoteReplacement("\\$"));
+            if (unix) {
+                fixedCommand = fixedCommand.replaceAll("\\\"", Matcher.quoteReplacement("\\\""));
+            }
 
             String oldRemoteDir = null;
             FilePath oldRemoteDirFilepath = starter.pwd();

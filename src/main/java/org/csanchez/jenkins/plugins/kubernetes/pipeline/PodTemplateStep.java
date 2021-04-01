@@ -79,6 +79,9 @@ public class PodTemplateStep extends Step implements Serializable {
     private String serviceAccount;
 
     @CheckForNull
+    private String schedulerName;
+
+    @CheckForNull
     private String nodeSelector;
 
     private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
@@ -267,6 +270,14 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setServiceAccount(@CheckForNull String serviceAccount) {
         this.serviceAccount = Util.fixEmpty(serviceAccount);
+    }
+
+    @CheckForNull
+    public String getSchedulerName() { return schedulerName; }
+
+    @DataBoundSetter
+    public void setSchedulerName(@CheckForNull String schedulerName) {
+        this.schedulerName = Util.fixEmpty(schedulerName);
     }
 
     @CheckForNull

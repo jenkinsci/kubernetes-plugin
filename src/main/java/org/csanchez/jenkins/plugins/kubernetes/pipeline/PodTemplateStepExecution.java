@@ -107,6 +107,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeSelector(step.getNodeSelector());
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
+        newTemplate.setSchedulerName(step.getSchedulerName());
         newTemplate.setRunAsUser(step.getRunAsUser());
         newTemplate.setRunAsGroup(step.getRunAsGroup());
         if (step.getHostNetwork() != null) {
