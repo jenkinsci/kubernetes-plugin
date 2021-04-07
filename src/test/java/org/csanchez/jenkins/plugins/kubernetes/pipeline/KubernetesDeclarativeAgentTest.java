@@ -169,4 +169,12 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
+
+    @Issue("JENKINS-61360")
+    @Test
+    public void declarativeShowRawYamlFalse() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("CONTAINER_ENV_VAR = jnlp\n", b);
+    }
 }
