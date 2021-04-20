@@ -5,7 +5,7 @@
   </p>
 
   <p>
-  This is useful in scenarios where the master does not expose an HTTP(S) port, for example
+  This is useful in scenarios where the controller does not expose an HTTP(S) port, for example
   <a target="_blank" href="https://github.com/jenkinsci/jenkinsfile-runner">Jenkinsfile Runner</a>.
   </p>
 
@@ -27,10 +27,9 @@
   </p>
 
   <p>
-    <b>Note:</b> In <i>Direct Connection</i> mode agents will not be able to reconnect to a restarted master if a <i>Random</i> 'TCP port for inbound agents' is configured!<br/>
-    <b>Note:</b> <i>Direct Connection</i> requires a <a target="_blank" href="https://hub.docker.com/r/jenkins/jnlp-slave/tags">jnlp-slave</a> image with a version equal or higher than 3.35-5.
-    <br/><b>Note:</b> Images <a target="_blank" href="https://hub.docker.com/r/jenkinsci/jnlp-slave">jenkinsci/jnlp-slave</a> and <a target="_blank" href="https://hub.docker.com/r/jenkins/jnlp-slave">jenkins/jnlp-slave</a> are deprecated, use <a target="_blank" href="https://hub.docker.com/r/jenkins/inbound-agent/">jenkins/inbound-agent</a>.
-    <br/><b>Note:</b> <i>Direct Connection</i> does not work with the currently available <code>jenkins/inbound-agent:windowsservercore-1809</code> image.
+    <b>Note:</b> In <i>Direct Connection</i> mode agents will not be able to reconnect to a restarted controller if a <i>Random</i> 'TCP port for inbound agents' is configured!<br/>
+    <b>Note:</b> <i>Direct Connection</i> requires a <a target="_blank" href="https://hub.docker.com/r/jenkins/inbound-agent/tags">inbound-agent</a> image with a version equal or higher than 3.35-5.<br/>
+    <b>Note:</b> <i>Direct Connection</i> does not work with the currently available <code>jenkins/inbound-agent:windowsservercore-1809</code> image.
   </p>
 
 </div>
