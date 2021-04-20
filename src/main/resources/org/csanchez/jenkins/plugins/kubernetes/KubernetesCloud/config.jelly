@@ -84,7 +84,7 @@
             <f:number min="${descriptor.defaultRetentionTimeout}" default="${descriptor.defaultRetentionTimeout}" checkMethod="post"/>
         </f:entry>
 
-        <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
+        <f:entry title="${%Transfer proxy related environment variables from controller to agent}" field="addMasterProxyEnvVars">
           <f:checkbox />
         </f:entry>
 

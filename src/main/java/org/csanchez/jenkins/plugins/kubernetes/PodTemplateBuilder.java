@@ -319,7 +319,7 @@ public class PodTemplateBuilder {
             KubernetesCloud cloud = agent.getKubernetesCloud();
             if (cloud.isAddMasterProxyEnvVars()) {
                 // see if the env vars for proxy that the remoting.jar looks for
-                // are set on the master, and if so, propagate them to the slave
+                // are set on the controller, and if so, propagate them to the agent
                 // vs. having to set on each pod template; if explicitly set already
                 // the processing of globalEnvVars below will override;
                 // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
