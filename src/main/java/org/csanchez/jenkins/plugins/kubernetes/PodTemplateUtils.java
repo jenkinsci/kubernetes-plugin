@@ -460,6 +460,7 @@ public class PodTemplateUtils {
         List<String> yamls = new ArrayList<>(parent.getYamls());
         yamls.addAll(template.getYamls());
         podTemplate.setYamls(yamls);
+        podTemplate.setListener(template.getListener());
 
         LOGGER.log(Level.FINEST, "Pod templates combined: {0}", podTemplate);
         return podTemplate;
