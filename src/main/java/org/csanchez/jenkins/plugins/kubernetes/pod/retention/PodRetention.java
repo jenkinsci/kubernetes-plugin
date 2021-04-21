@@ -45,7 +45,7 @@ public abstract class PodRetention extends AbstractDescribableImpl<PodRetention>
 
     @Override
     public String toString() {
-        return getDescriptor().getDisplayName();
+        return getClass().getSimpleName();
     }
 
 }
