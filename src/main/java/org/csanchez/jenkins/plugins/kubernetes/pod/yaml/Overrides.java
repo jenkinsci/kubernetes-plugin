@@ -27,6 +27,11 @@ public class Overrides extends YamlMergeStrategy {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Override";
+    }
+
     @Extension
     @Symbol("override")
     public static class DescriptorImpl extends Descriptor<YamlMergeStrategy> {
