@@ -175,6 +175,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     public void declarativeShowRawYamlFalse() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("CONTAINER_ENV_VAR = jnlp\n", b);
+        // check yaml metadata labels not logged
+        r.assertLogNotContains("class: KubernetesDeclarativeAgentTest", b);
     }
 }
