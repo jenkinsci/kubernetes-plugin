@@ -107,9 +107,11 @@ public class PodTemplateUtils {
         String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
         String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
         String resourceLimitEphemeralStorage = Strings.isNullOrEmpty(template.getResourceLimitEphemeralStorage()) ? parent.getResourceLimitEphemeralStorage() : template.getResourceLimitEphemeralStorage();
+        String shell = Strings.isNullOrEmpty(template.getShell()) ? parent.getShell() : template.getShell();
         Map<String, PortMapping> ports = parent.getPorts().stream()
                 .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
         template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
+        ContainerLivenessProbe livenessProbe = template.getLivenessProbe() != null ? template.getLivenessProbe() : parent.getLivenessProbe();
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -124,12 +126,14 @@ public class PodTemplateUtils {
         combined.setResourceRequestCpu(resourceRequestCpu);
         combined.setResourceRequestMemory(resourceRequestMemory);
         combined.setResourceRequestEphemeralStorage(resourceRequestEphemeralStorage);
+        combined.setShell(shell);
         combined.setWorkingDir(workingDir);
         combined.setPrivileged(privileged);
         combined.setRunAsUser(runAsUser);
         combined.setRunAsGroup(runAsGroup);
         combined.setEnvVars(combineEnvVars(parent, template));
         combined.setPorts(new ArrayList<>(ports.values()));
+        combined.setLivenessProbe(livenessProbe);
         return combined;
     }
 
