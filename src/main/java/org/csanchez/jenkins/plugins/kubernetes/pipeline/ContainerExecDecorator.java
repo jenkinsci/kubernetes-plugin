@@ -58,6 +58,7 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.remoting.ProxyException;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
@@ -417,19 +418,31 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         });
 
                 ExecWatch watch;
-                try {
-                    watch = execable.exec(sh);
-                } catch (KubernetesClientException e) {
-                    if (e.getCause() instanceof InterruptedException) {
+                int retryCount = 0;
+                int maxTries = 3;
+                while(true) {
+                    try {
+                        watch = execable.exec(sh);
+                        break;
+                    } catch (KubernetesClientException e) {
+                        if (e.getCause() instanceof InterruptedException) {
+                            throw new IOException(
+                                    "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
+                                    e);
+                        } else if (e.getCause() instanceof ProxyException && e.getMessage().contains("container not found")) {
+                            if (++retryCount == maxTries) {
+                                throw e;
+                            } else {
+                                LOGGER.log(Level.WARNING,
+                                        "Caught ProxyException(container not found), retrying exec command...");
+                            }
+                        } else {
+                            throw e;
+                        }
+                    } catch (RejectedExecutionException e) {
                         throw new IOException(
-                                "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
-                                e);
-                    } else {
-                        throw e;
+                                "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                     }
-                } catch (RejectedExecutionException e) {
-                    throw new IOException(
-                            "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
 
                 boolean hasStarted = false;
