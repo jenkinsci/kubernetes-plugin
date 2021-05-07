@@ -120,7 +120,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setAnnotations(step.getAnnotations());
         newTemplate.setListener(getContext().get(TaskListener.class));
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
-        if(run!=null) {
+        if(run != null) {
             String url = cloud.getJenkinsUrlOrNull();
             if(url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
