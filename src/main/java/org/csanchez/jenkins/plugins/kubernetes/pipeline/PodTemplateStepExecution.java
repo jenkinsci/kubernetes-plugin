@@ -182,7 +182,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (input.length() > max) {
             input = input.substring(input.length() - max);
         }
-        input = input.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
         String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         assert PodTemplateUtils.validateLabel(label) : label;
         return label;
