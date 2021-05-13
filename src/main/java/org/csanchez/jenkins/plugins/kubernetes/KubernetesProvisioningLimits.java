@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -121,13 +120,11 @@ public final class KubernetesProvisioningLimits {
     }
 
     @Nonnull
-    @VisibleForTesting
     AtomicInteger getGlobalCount(String name) {
         return cloudCounts.computeIfAbsent(name, k -> new AtomicInteger());
     }
 
     @Nonnull
-    @VisibleForTesting
     AtomicInteger getPodTemplateCount(String id) {
         return podTemplateCounts.computeIfAbsent(id, k -> new AtomicInteger());
     }

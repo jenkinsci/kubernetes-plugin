@@ -6,6 +6,8 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -20,22 +22,24 @@ public class PodTemplateJenkinsTest {
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void singleLabel() {
+    public void singleLabel() throws NoSuchAlgorithmException {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo" , labelsMap.get("jenkins/label"));
-        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo").toString(), labelsMap.get("jenkins/label-digest"));
+        LABEL_DIGEST_FUNCTION.update("foo".getBytes(StandardCharsets.UTF_8));
+        assertEquals(LABEL_DIGEST_FUNCTION.digest().toString(), labelsMap.get("jenkins/label-digest"));
     }
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void multiLabel() {
+    public void multiLabel() throws NoSuchAlgorithmException {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo bar");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo_bar", labelsMap.get("jenkins/label"));
-        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo bar").toString(), labelsMap.get("jenkins/label-digest"));
+        LABEL_DIGEST_FUNCTION.update("foo bar".getBytes(StandardCharsets.UTF_8));
+        assertEquals(LABEL_DIGEST_FUNCTION.digest().toString(), labelsMap.get("jenkins/label-digest"));
     }
     
     @Test

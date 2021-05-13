@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+// Required for workflow-api graph analysis
 import com.google.common.base.Predicates;
 import java.util.List;
 import java.util.Map;

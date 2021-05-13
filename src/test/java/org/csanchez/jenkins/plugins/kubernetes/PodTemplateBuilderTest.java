@@ -12,8 +12,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,10 +48,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
@@ -105,9 +103,9 @@ public class PodTemplateBuilderTest {
     public void testParseDockerCommand() {
         assertNull(parseDockerCommand(""));
         assertNull(parseDockerCommand(null));
-        assertEquals(ImmutableList.of("bash"), parseDockerCommand("bash"));
-        assertEquals(ImmutableList.of("bash", "-c", "x y"), parseDockerCommand("bash -c \"x y\""));
-        assertEquals(ImmutableList.of("a", "b", "c", "d"), parseDockerCommand("a b c d"));
+        assertEquals(Collections.singletonList("bash"), parseDockerCommand("bash"));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("bash", "-c", "x y")), parseDockerCommand("bash -c \"x y\""));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("a", "b", "c", "d")), parseDockerCommand("a b c d"));
     }
 
     @WithoutJenkins
@@ -115,11 +113,11 @@ public class PodTemplateBuilderTest {
     public void testParseLivenessProbe() {
         assertNull(parseLivenessProbe(""));
         assertNull(parseLivenessProbe(null));
-        assertEquals(ImmutableList.of("docker", "info"), parseLivenessProbe("docker info"));
-        assertEquals(ImmutableList.of("echo", "I said: 'I am alive'"),
+        assertEquals(Collections.unmodifiableList(Arrays.asList("docker", "info")), parseLivenessProbe("docker info"));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("echo", "I said: 'I am alive'")),
                 parseLivenessProbe("echo \"I said: 'I am alive'\""));
-        assertEquals(ImmutableList.of("docker", "--version"), parseLivenessProbe("docker --version"));
-        assertEquals(ImmutableList.of("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080"),
+        assertEquals(Collections.unmodifiableList(Arrays.asList("docker", "--version")), parseLivenessProbe("docker --version"));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080")),
                 parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 
@@ -199,7 +197,7 @@ public class PodTemplateBuilderTest {
         Container container0 = containers.get(0);
         Container container1 = containers.get(1);
 
-        ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
+        List<VolumeMount> volumeMounts = Collections.singletonList(new VolumeMountBuilder()
                 .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build());
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
@@ -208,7 +206,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildWithDynamicPVCWorkspaceVolume(){
+    public void testBuildWithDynamicPVCWorkspaceVolume() throws NoSuchAlgorithmException {
         PodTemplate template = new PodTemplate();
         template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume(
                 null, null,null));
@@ -221,7 +219,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
         Container container0 = containers.get(0);
         Container container1 = containers.get(1);
-        ImmutableList<VolumeMount> volumeMounts = ImmutableList.of(new VolumeMountBuilder()
+        List<VolumeMount> volumeMounts = Collections.singletonList(new VolumeMountBuilder()
                 .withMountPath("/home/jenkins/agent").withName("workspace-volume").withReadOnly(false).build());
 
         assertEquals(volumeMounts, container0.getVolumeMounts());
@@ -260,7 +258,7 @@ public class PodTemplateBuilderTest {
 
         setupStubs();
         Pod pod = new PodTemplateBuilder(template, slave).build();
-        pod.getMetadata().setLabels(ImmutableMap.of("some-label","some-label-value"));
+        pod.getMetadata().setLabels(Collections.singletonMap("some-label", "some-label-value"));
         validatePod(pod, false, directConnection);
         ArrayList<Long> supplementalGroups = new ArrayList<Long>();
         supplementalGroups.add(5001L);
@@ -349,7 +347,7 @@ public class PodTemplateBuilderTest {
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave, boolean directConnection) {
         assertThat(jnlp.getCommand(), empty());
-        List<EnvVar> envVars = Lists.newArrayList();
+        List<EnvVar> envVars = new ArrayList<>();
         if (slave != null) {
             assertThat(jnlp.getArgs(), empty());
             if(directConnection) {
@@ -593,7 +591,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideHostNetwork() {
+    public void yamlOverrideHostNetwork() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -636,7 +634,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideSchedulerName() {
+    public void yamlOverrideSchedulerName() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -661,7 +659,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideSecurityContext() {
+    public void yamlOverrideSecurityContext() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -760,7 +758,7 @@ public class PodTemplateBuilderTest {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
         ContainerTemplate cT = new ContainerTemplate("jnlp", "jenkinsci/jnlp-slave:latest");
-        template.setContainers(Lists.newArrayList(cT));
+        template.setContainers(Arrays.asList(cT));
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template, slave).build();
@@ -773,7 +771,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() {
+    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() throws NoSuchAlgorithmException {
         setupStubs();
         PodTemplate template = new PodTemplate();
         template.setYaml("spec:\n" +

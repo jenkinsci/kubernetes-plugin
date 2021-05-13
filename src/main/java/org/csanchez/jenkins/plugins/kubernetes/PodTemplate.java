@@ -1,9 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,10 +18,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -37,9 +37,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
@@ -75,7 +72,17 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     /**
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
      */
-    public static final HashFunction LABEL_DIGEST_FUNCTION = Hashing.sha1();
+    protected static final MessageDigest LABEL_DIGEST_FUNCTION;
+    static {
+        try {
+            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            // will never happen, SHA-256 support required on every Java implementation
+            e.printStackTrace();
+            // throw runtime exception to allow variable to be set as final
+            throw new RuntimeException(e);
+        }
+    }
 
     private String id;
 
@@ -88,9 +95,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String image;
 
     private boolean privileged;
-    
+
     private Long runAsUser;
-    
+
     private Long runAsGroup;
 
     private String supplementalGroups;
@@ -461,17 +468,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private void recomputeLabelDerivedFields() {
         this.labelSet = Label.parse(label);
+        Map<String, String> tempMap = new HashMap<>();
         if (label == null) {
-            labelsMap = ImmutableMap.of(
-                    "jenkins/label", DEFAULT_LABEL,
-                    "jenkins/label-digest", "0"
-            );
+            tempMap.put("jenkins/label", DEFAULT_LABEL);
+            tempMap.put("jenkins/label-digest", "0");
         } else {
-            labelsMap = ImmutableMap.of(
-                    "jenkins/label", sanitizeLabel(label),
-                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
-            );
+            LABEL_DIGEST_FUNCTION.update(label.getBytes(StandardCharsets.UTF_8));
+            tempMap.put("jenkins/label", sanitizeLabel(label));
+            tempMap.put("jenkins/label-digest", Arrays.toString(LABEL_DIGEST_FUNCTION.digest()));
         }
+        labelsMap = Collections.unmodifiableMap(tempMap);
     }
 
     public String getLabel() {
@@ -516,7 +522,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public void setRunAsUser(String runAsUser) {
         this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
     }
-    
+
     public String getRunAsUser() {
         return runAsUser == null ? null : runAsUser.toString();
     }
@@ -781,7 +787,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return yamls;
     }
 
-    @VisibleForTesting
     @Restricted(NoExternalUse.class)
     List<String> _getYamls() {
         return yamls;
@@ -828,13 +833,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
-    protected Object readResolve() throws NoSuchAlgorithmException {
+    protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<>();
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
-            containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
+            containerTemplate.setArgs(PodTemplateUtils.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setRunAsUser(getRunAsUser());
             containerTemplate.setRunAsGroup(getRunAsGroup());

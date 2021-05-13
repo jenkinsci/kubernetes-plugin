@@ -9,6 +9,7 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +25,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
-import com.google.common.annotations.VisibleForTesting;
 import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
@@ -48,7 +48,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -93,7 +92,7 @@ public class KubernetesCloud extends Cloud {
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
     @Deprecated
-    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
+    public static final Map<String, String> DEFAULT_POD_LABELS = Collections.singletonMap("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -592,7 +591,7 @@ public class KubernetesCloud extends Cloud {
      * @param podTemplate the pod template to unwrap.
      * @return the unwrapped pod template
      */
-    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) throws NoSuchAlgorithmException {
         return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
     }
 

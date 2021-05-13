@@ -2,14 +2,13 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
-
-import hudson.model.Job;
 import hudson.slaves.Cloud;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
@@ -466,7 +465,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
         @Override
         public Set<? extends Class<?>> getRequiredContext() {
-            return ImmutableSet.of(Run.class, TaskListener.class);
+            return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(Run.class, TaskListener.class)));
         }
 
         @SuppressWarnings("unused") // jelly

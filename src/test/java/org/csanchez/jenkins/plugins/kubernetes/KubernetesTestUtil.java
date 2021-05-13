@@ -27,6 +27,7 @@ import static java.util.logging.Level.*;
 import static org.junit.Assume.*;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,9 +48,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.rules.TestName;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Node;
@@ -78,9 +76,6 @@ public class KubernetesTestUtil {
 
     private static final String BRANCH_NAME = System.getenv("BRANCH_NAME");
     private static final String BUILD_NUMBER = System.getenv("BUILD_NUMBER");
-    private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME",
-            BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
-            BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
 
     public static final String SECRET_KEY = "password";
     public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
@@ -181,7 +176,9 @@ public class KubernetesTestUtil {
      * Labels to add to the pods so we can match them to a specific build run, test class and method
      */
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
-        HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
+        Map<String, String> l = new HashMap<>();
+        l.put(BRANCH_NAME, BRANCH_NAME == null ? "undefined" : BRANCH_NAME);
+        l.put(BUILD_NUMBER, BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
         if (cloud != null) {
             l.putAll(cloud.getPodLabelsMap());
         }
@@ -253,17 +250,17 @@ public class KubernetesTestUtil {
 
     public static void createSecret(KubernetesClient client, String namespace) {
         Secret secret = new SecretBuilder()
-                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
+                .withStringData(Collections.singletonMap(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
 
         LOGGER.log(Level.INFO, "Created container secret: " + Serialization.asYaml(secret));
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
+        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
 
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
+        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, ""))
                 .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));

@@ -31,8 +31,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +45,6 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-
-import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
@@ -98,7 +98,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldReturnPodTemplateWhenParentIsNull() {
+    public void shouldReturnPodTemplateWhenParentIsNull() throws NoSuchAlgorithmException {
         PodTemplate template = new PodTemplate();
         template.setName("template");
         template.setServiceAccount("sa1");
@@ -107,7 +107,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideServiceAccountIfSpecified() {
+    public void shouldOverrideServiceAccountIfSpecified() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setServiceAccount("sa");
@@ -127,7 +127,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldOverrideNodeSelectorIfSpecified() {
+    public void shouldOverrideNodeSelectorIfSpecified() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -147,7 +147,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllImagePullSecrets() {
+    public void shouldCombineAllImagePullSecrets() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -175,7 +175,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllAnnotations() {
+    public void shouldCombineAllAnnotations() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setNodeSelector("key:value");
@@ -192,11 +192,18 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void shouldCombineAllLabels() {
+        Map<String, String> labelsMap1 = new HashMap<>();
+        labelsMap1.put("label1", "pod1");
+        labelsMap1.put("label2", "pod1");
         Pod pod1 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod1", "label2", "pod1") //
+                Collections.unmodifiableMap(labelsMap1) //
         ).endMetadata().withNewSpec().endSpec().build();
+
+        Map<String, String> labelsMap2 = new HashMap<>();
+        labelsMap2.put("label1", "pod2");
+        labelsMap2.put("label3", "pod2");
         Pod pod2 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod2", "label3", "pod2") //
+                Collections.unmodifiableMap(labelsMap2) //
         ).endMetadata().withNewSpec().endSpec().build();
 
         Map<String, String> labels = combine(pod1, pod2).getMetadata().getLabels();
@@ -206,7 +213,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapParent() {
+    public void shouldUnwrapParent() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -231,7 +238,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldDropNoDataWhenIdentical() {
+    public void shouldDropNoDataWhenIdentical() throws NoSuchAlgorithmException {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setName("Name");
         podTemplate.setNamespace("NameSpace");
@@ -267,7 +274,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldUnwrapMultipleParents() {
+    public void shouldUnwrapMultipleParents() throws NoSuchAlgorithmException {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
@@ -351,7 +358,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodKeyValueEnvVars() {
+    public void shouldCombineAllPodKeyValueEnvVars() throws NoSuchAlgorithmException {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("key-1", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -367,7 +374,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
+    public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() throws NoSuchAlgorithmException {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
         template1.setEnvVars(singletonList(podEnvVar1));
@@ -382,7 +389,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllPodSecretEnvVars() {
+    public void shouldCombineAllPodSecretEnvVars() throws NoSuchAlgorithmException {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("key-1", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -398,7 +405,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() {
+    public void shouldFilterOutNullOrEmptyPodSecretEnvVars() throws NoSuchAlgorithmException {
         PodTemplate template1 = new PodTemplate();
         SecretEnvVar podSecretEnvVar1 = new SecretEnvVar("", "secret-1", "secret-key-1", false);
         template1.setEnvVars(singletonList(podSecretEnvVar1));
@@ -497,7 +504,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllMounts() {
+    public void shouldCombineAllMounts() throws NoSuchAlgorithmException {
         PodTemplate template1 = new PodTemplate();
         HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
         HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
@@ -517,9 +524,15 @@ public class PodTemplateUtilsTest {
     }
 
     private ContainerBuilder containerBuilder() {
+        Map<String, Quantity> limitMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
+        Map<String, Quantity> requestMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
         return new ContainerBuilder().withNewSecurityContext().endSecurityContext().withNewResources()
-                .withLimits(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity()))
-                .withRequests(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity())).endResources();
+                .withLimits(Collections.unmodifiableMap(limitMap))
+                .withRequests(Collections.unmodifiableMap(requestMap)).endResources();
     }
 
     @Test
@@ -734,7 +747,7 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
-    public void shouldCombineAllToolLocations() {
+    public void shouldCombineAllToolLocations() throws NoSuchAlgorithmException {
 
         PodTemplate podTemplate1 = new PodTemplate();
         List<ToolLocationNodeProperty> nodeProperties1 = new ArrayList<>();

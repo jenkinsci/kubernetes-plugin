@@ -1,11 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.util.concurrent.Futures;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.slaves.NodeProvisioner;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 /**
@@ -25,10 +26,11 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
                     .cloud(cloud)
                     .build();
             displayName = agent.getDisplayName();
-            f = Futures.immediateFuture(agent);
-        } catch (IOException | Descriptor.FormException e) {
+            f = CompletableFuture.completedFuture(agent);
+        } catch (IOException | Descriptor.FormException | NoSuchAlgorithmException e) {
             displayName = null;
-            f = Futures.immediateFailedFuture(e);
+            f = new CompletableFuture();
+            ((CompletableFuture<?>) f).completeExceptionally(e);
         }
         return new NodeProvisioner.PlannedNode(Util.fixNull(displayName), f, getNumExecutors());
     }
