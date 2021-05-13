@@ -84,12 +84,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         String name = String.format(NAME_FORMAT, stepName, randString);
         String namespace = checkNamespace(cloud, podTemplateContext);
 
-        if (step.getId() != null) {
-            newTemplate = new PodTemplate(step.getId());
-        } else {
-            newTemplate = new PodTemplate();
-        }
-
+        newTemplate = new PodTemplate(step.getId());
         newTemplate.setName(name);
         newTemplate.setNamespace(namespace);
 
