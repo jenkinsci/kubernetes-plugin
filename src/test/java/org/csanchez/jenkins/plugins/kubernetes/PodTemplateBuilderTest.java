@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -206,7 +205,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void testBuildWithDynamicPVCWorkspaceVolume() throws NoSuchAlgorithmException {
+    public void testBuildWithDynamicPVCWorkspaceVolume() {
         PodTemplate template = new PodTemplate();
         template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume(
                 null, null,null));
@@ -591,7 +590,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideHostNetwork() throws NoSuchAlgorithmException {
+    public void yamlOverrideHostNetwork() {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -634,7 +633,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideSchedulerName() throws NoSuchAlgorithmException {
+    public void yamlOverrideSchedulerName() {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -659,7 +658,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void yamlOverrideSecurityContext() throws NoSuchAlgorithmException {
+    public void yamlOverrideSecurityContext() {
         PodTemplate parent = new PodTemplate();
         parent.setYaml(
                 "apiVersion: v1\n" +
@@ -771,7 +770,7 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
-    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() throws NoSuchAlgorithmException {
+    public void whenRuntimeClassNameIsSetDoNotSetDefaultNodeSelector() {
         setupStubs();
         PodTemplate template = new PodTemplate();
         template.setYaml("spec:\n" +

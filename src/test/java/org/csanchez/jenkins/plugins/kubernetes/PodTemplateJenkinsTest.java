@@ -7,7 +7,6 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,7 +22,7 @@ public class PodTemplateJenkinsTest {
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void singleLabel() throws NoSuchAlgorithmException {
+    public void singleLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
@@ -34,7 +33,7 @@ public class PodTemplateJenkinsTest {
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void multiLabel() throws NoSuchAlgorithmException {
+    public void multiLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo bar");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();

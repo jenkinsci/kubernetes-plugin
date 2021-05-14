@@ -79,8 +79,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         } catch (NoSuchAlgorithmException e) {
             // will never happen, SHA-256 support required on every Java implementation
             e.printStackTrace();
-            // throw runtime exception to allow variable to be set as final
-            throw new RuntimeException(e);
+            // throw error to allow variable to be set as final
+            throw new AssertionError(e);
         }
     }
 

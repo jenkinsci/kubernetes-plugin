@@ -3,7 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -369,7 +368,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static PodTemplate combine(PodTemplate parent, PodTemplate template) throws NoSuchAlgorithmException {
+    public static PodTemplate combine(PodTemplate parent, PodTemplate template) {
         if (template == null) {
             throw new IllegalArgumentException("Pod template should not be null");
         }
@@ -483,7 +482,7 @@ public class PodTemplateUtils {
      * @param allTemplates               A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) throws NoSuchAlgorithmException {
+    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
         if (template == null) {
             return null;
         }
@@ -522,7 +521,7 @@ public class PodTemplateUtils {
      * @param allTemplates            A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) throws NoSuchAlgorithmException {
+    static PodTemplate unwrap(PodTemplate template, Collection<PodTemplate> allTemplates) {
         return unwrap(template, null, allTemplates);
     }
 

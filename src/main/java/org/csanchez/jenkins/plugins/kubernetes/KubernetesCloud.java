@@ -9,7 +9,6 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,7 +18,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -591,7 +589,7 @@ public class KubernetesCloud extends Cloud {
      * @param podTemplate the pod template to unwrap.
      * @return the unwrapped pod template
      */
-    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) throws NoSuchAlgorithmException {
+    public PodTemplate getUnwrappedTemplate(PodTemplate podTemplate) {
         return PodTemplateUtils.unwrap(podTemplate, getDefaultsProviderTemplate(), getAllTemplates());
     }
 
