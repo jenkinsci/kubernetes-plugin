@@ -8,6 +8,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,7 @@ public class PodTemplateJenkinsTest {
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo" , labelsMap.get("jenkins/label"));
         LABEL_DIGEST_FUNCTION.update("foo".getBytes(StandardCharsets.UTF_8));
-        assertEquals(LABEL_DIGEST_FUNCTION.digest().toString(), labelsMap.get("jenkins/label-digest"));
+        assertEquals(Arrays.toString(LABEL_DIGEST_FUNCTION.digest()), labelsMap.get("jenkins/label-digest"));
     }
 
     @Test
@@ -39,7 +40,7 @@ public class PodTemplateJenkinsTest {
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo_bar", labelsMap.get("jenkins/label"));
         LABEL_DIGEST_FUNCTION.update("foo bar".getBytes(StandardCharsets.UTF_8));
-        assertEquals(LABEL_DIGEST_FUNCTION.digest().toString(), labelsMap.get("jenkins/label-digest"));
+        assertEquals(Arrays.toString(LABEL_DIGEST_FUNCTION.digest()), labelsMap.get("jenkins/label-digest"));
     }
     
     @Test
