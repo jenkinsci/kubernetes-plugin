@@ -98,8 +98,10 @@ public class PodTemplateBuilder {
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
+    @Restricted(NoExternalUse.class)
     static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
+    @Restricted(NoExternalUse.class)
     static final String DEFAULT_JNLP_IMAGE = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
 
