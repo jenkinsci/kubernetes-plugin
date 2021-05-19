@@ -33,6 +33,7 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +44,6 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-
-import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
@@ -192,11 +191,18 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void shouldCombineAllLabels() {
+        Map<String, String> labelsMap1 = new HashMap<>();
+        labelsMap1.put("label1", "pod1");
+        labelsMap1.put("label2", "pod1");
         Pod pod1 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod1", "label2", "pod1") //
+                Collections.unmodifiableMap(labelsMap1) //
         ).endMetadata().withNewSpec().endSpec().build();
+
+        Map<String, String> labelsMap2 = new HashMap<>();
+        labelsMap2.put("label1", "pod2");
+        labelsMap2.put("label3", "pod2");
         Pod pod2 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod2", "label3", "pod2") //
+                Collections.unmodifiableMap(labelsMap2) //
         ).endMetadata().withNewSpec().endSpec().build();
 
         Map<String, String> labels = combine(pod1, pod2).getMetadata().getLabels();
@@ -517,9 +523,15 @@ public class PodTemplateUtilsTest {
     }
 
     private ContainerBuilder containerBuilder() {
+        Map<String, Quantity> limitMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
+        Map<String, Quantity> requestMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
         return new ContainerBuilder().withNewSecurityContext().endSecurityContext().withNewResources()
-                .withLimits(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity()))
-                .withRequests(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity())).endResources();
+                .withLimits(Collections.unmodifiableMap(limitMap))
+                .withRequests(Collections.unmodifiableMap(requestMap)).endResources();
     }
 
     @Test

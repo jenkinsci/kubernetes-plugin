@@ -1,12 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import hudson.model.PeriodicWork;
 import io.fabric8.kubernetes.client.HttpClientAware;
 import okhttp3.Dispatcher;
@@ -14,10 +17,6 @@ import okhttp3.OkHttpClient;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import com.google.common.base.Objects;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 import hudson.Extension;
 import hudson.XmlFile;
@@ -41,14 +40,14 @@ public class KubernetesClientProvider {
     private static final long CACHE_EXPIRATION = Long.getLong(
             KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration", TimeUnit.MINUTES.toSeconds(10));
 
-    private static final Cache<String, Client> clients = CacheBuilder.newBuilder()
+    private static final Cache<String, Client> clients = Caffeine.newBuilder()
             .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
-            .removalListener(rl -> {
-                Client client = (Client) rl.getValue();
+            .removalListener( (key, value, cause) -> {
+                Client client = (Client) value;
                 if (client != null) {
-                    LOGGER.log(Level.FINE, () -> "Expiring Kubernetes client " + rl.getKey() + " " + client.client);
+                    LOGGER.log(Level.FINE, () -> "Expiring Kubernetes client " + key + " " + client.client + ": " + cause);
                 }
-            })
+            } )
             .build();
 
     private KubernetesClientProvider() {
@@ -69,9 +68,10 @@ public class KubernetesClientProvider {
     }
 
     private static int getValidity(KubernetesCloud cloud) {
-        return Objects.hashCode(cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
+        Object cloudObjects[] = { cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
                 cloud.getCredentialsId(), cloud.isSkipTlsVerify(), cloud.getConnectTimeout(), cloud.getReadTimeout(),
-                cloud.getMaxRequestsPerHostStr(), cloud.isUseJenkinsProxy());
+                cloud.getMaxRequestsPerHostStr(), cloud.isUseJenkinsProxy() };
+        return Arrays.hashCode(cloudObjects);
     }
 
     private static class Client {

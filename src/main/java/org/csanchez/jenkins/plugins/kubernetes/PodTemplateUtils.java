@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,18 +26,14 @@ import java.util.stream.Stream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
 import hudson.slaves.NodeProperty;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.Util;
@@ -76,7 +73,6 @@ public class PodTemplateUtils {
     private static final Pattern LABEL_VALIDATION = Pattern.compile("[a-zA-Z0-9]([_\\.\\-a-zA-Z0-9]*[a-zA-Z0-9])?");
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
-    @VisibleForTesting
     public static boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
 
     /**
@@ -86,28 +82,30 @@ public class PodTemplateUtils {
      * @return              The combined container template.
      */
     public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @Nonnull ContainerTemplate template) {
-        Preconditions.checkNotNull(template, "Container template should not be null");
+        if (template == null) {
+            throw new IllegalArgumentException("Container template should not be null");
+        }
         if (parent == null) {
             return template;
         }
 
         String name = template.getName();
-        String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
+        String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
         String runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
         String runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
         boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
-        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir()) ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
-        String command = Strings.isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
-        String args = Strings.isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
+        String workingDir = isNullOrEmpty(template.getWorkingDir()) ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
+        String command = isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
+        String args = isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
         boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
-        String resourceRequestCpu = Strings.isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
-        String resourceRequestMemory = Strings.isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
-        String resourceRequestEphemeralStorage = Strings.isNullOrEmpty(template.getResourceRequestEphemeralStorage()) ? parent.getResourceRequestEphemeralStorage() : template.getResourceRequestEphemeralStorage();
-        String resourceLimitCpu = Strings.isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
-        String resourceLimitMemory = Strings.isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-        String resourceLimitEphemeralStorage = Strings.isNullOrEmpty(template.getResourceLimitEphemeralStorage()) ? parent.getResourceLimitEphemeralStorage() : template.getResourceLimitEphemeralStorage();
-        String shell = Strings.isNullOrEmpty(template.getShell()) ? parent.getShell() : template.getShell();
+        String resourceRequestCpu = isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
+        String resourceRequestMemory = isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
+        String resourceRequestEphemeralStorage = isNullOrEmpty(template.getResourceRequestEphemeralStorage()) ? parent.getResourceRequestEphemeralStorage() : template.getResourceRequestEphemeralStorage();
+        String resourceLimitCpu = isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
+        String resourceLimitMemory = isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
+        String resourceLimitEphemeralStorage = isNullOrEmpty(template.getResourceLimitEphemeralStorage()) ? parent.getResourceLimitEphemeralStorage() : template.getResourceLimitEphemeralStorage();
+        String shell = isNullOrEmpty(template.getShell()) ? parent.getShell() : template.getShell();
         Map<String, PortMapping> ports = parent.getPorts().stream()
                 .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
         template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
@@ -147,13 +145,15 @@ public class PodTemplateUtils {
      * @return The combined container.
      */
     public static Container combine(@CheckForNull Container parent, @Nonnull Container template) {
-        Preconditions.checkNotNull(template, "Container template should not be null");
+        if (template == null) {
+            throw new IllegalArgumentException("Container template should not be null");
+        }
         if (parent == null) {
             return template;
         }
 
         String name = template.getName();
-        String image = Strings.isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
+        String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
         Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
@@ -163,10 +163,10 @@ public class PodTemplateUtils {
         Long runAsGroup = template.getSecurityContext() != null && template.getSecurityContext().getRunAsGroup() != null
                 ? template.getSecurityContext().getRunAsGroup()
                 : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsGroup() : null);
-        String imagePullPolicy = Strings.isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
+        String imagePullPolicy = isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
-        String workingDir = Strings.isNullOrEmpty(template.getWorkingDir())
-                ? (Strings.isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
+        String workingDir = isNullOrEmpty(template.getWorkingDir())
+                ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
                 : template.getWorkingDir();
         List<String> command = template.getCommand() == null ? parent.getCommand() : template.getCommand();
         List<String> args = template.getArgs() == null ? parent.getArgs() : template.getArgs();
@@ -187,8 +187,8 @@ public class PodTemplateUtils {
                 .withArgs(args) //
                 .withTty(tty) //
                 .withNewResources() //
-                .withRequests(ImmutableMap.copyOf(requests)) //
-                .withLimits(ImmutableMap.copyOf(limits)) //
+                .withRequests(Collections.unmodifiableMap(new HashMap<>(requests))) //
+                .withLimits(Collections.unmodifiableMap(new HashMap<>(limits))) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
@@ -239,7 +239,9 @@ public class PodTemplateUtils {
      * @param template      The child Pod
      */
     public static Pod combine(Pod parent, Pod template) {
-        Preconditions.checkNotNull(template, "Pod template should not be null");
+        if (template == null) {
+            throw new IllegalArgumentException("Pod template should not be null");
+        }
         if (parent == null) {
             return template;
         }
@@ -248,13 +250,13 @@ public class PodTemplateUtils {
 
         Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
                 template.getSpec().getNodeSelector());
-        String serviceAccount = Strings.isNullOrEmpty(template.getSpec().getServiceAccount())
+        String serviceAccount = isNullOrEmpty(template.getSpec().getServiceAccount())
                 ? parent.getSpec().getServiceAccount()
                 : template.getSpec().getServiceAccount();
-        String serviceAccountName = Strings.isNullOrEmpty(template.getSpec().getServiceAccountName())
+        String serviceAccountName = isNullOrEmpty(template.getSpec().getServiceAccountName())
                 ? parent.getSpec().getServiceAccountName()
                 : template.getSpec().getServiceAccountName();
-        String schedulerName = Strings.isNullOrEmpty(template.getSpec().getSchedulerName())
+        String schedulerName = isNullOrEmpty(template.getSpec().getSchedulerName())
                 ? parent.getSpec().getSchedulerName()
                  : template.getSpec().getSchedulerName();
 
@@ -280,7 +282,7 @@ public class PodTemplateUtils {
         List<Volume> combinedVolumes = combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
 
         // Tolerations
-        List<Toleration> combinedTolerations = Lists.newLinkedList();
+        List<Toleration> combinedTolerations = new LinkedList<>();
         Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
         Optional.ofNullable(template.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
 
@@ -293,10 +295,10 @@ public class PodTemplateUtils {
 
         MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
-        if (!Strings.isNullOrEmpty(template.getMetadata().getName())) {
+        if (!isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
         }
-        if (!Strings.isNullOrEmpty(template.getMetadata().getNamespace())) {
+        if (!isNullOrEmpty(template.getMetadata().getNamespace())) {
             metadataBuilder.withNamespace(template.getMetadata().getNamespace());
         }
 
@@ -311,7 +313,7 @@ public class PodTemplateUtils {
                 .withInitContainers(combinedInitContainers) //
                 .withVolumes(combinedVolumes) //
                 .withTolerations(combinedTolerations) //
-                .withImagePullSecrets(Lists.newArrayList(imagePullSecrets));
+                .withImagePullSecrets(new ArrayList<>(imagePullSecrets));
 
 
         // Security context
@@ -367,7 +369,9 @@ public class PodTemplateUtils {
      * @return              The combined container template.
      */
     public static PodTemplate combine(PodTemplate parent, PodTemplate template) {
-        Preconditions.checkNotNull(template, "Pod template should not be null");
+        if (template == null) {
+            throw new IllegalArgumentException("Pod template should not be null");
+        }
         if (parent == null) {
             return template;
         }
@@ -377,9 +381,9 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String label = template.getLabel();
-        String nodeSelector = Strings.isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
-        String serviceAccount = Strings.isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
-        String schedulerName = Strings.isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
+        String nodeSelector = isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
+        String serviceAccount = isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
+        String schedulerName = isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
         Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
@@ -411,7 +415,7 @@ public class PodTemplateUtils {
 
         PodTemplate podTemplate = new PodTemplate(template.getId());
         podTemplate.setName(name);
-        podTemplate.setNamespace(!Strings.isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
+        podTemplate.setNamespace(!isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
@@ -425,7 +429,7 @@ public class PodTemplateUtils {
         podTemplate.setNodeProperties(nodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
         podTemplate.setYamlMergeStrategy(template.getYamlMergeStrategy());
-        podTemplate.setInheritFrom(!Strings.isNullOrEmpty(template.getInheritFrom()) ?
+        podTemplate.setInheritFrom(!isNullOrEmpty(template.getInheritFrom()) ?
                                    template.getInheritFrom() : parent.getInheritFrom());
 
         podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ?
@@ -441,10 +445,10 @@ public class PodTemplateUtils {
                                              template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds());
 
 
-        podTemplate.setServiceAccount(!Strings.isNullOrEmpty(template.getServiceAccount()) ?
+        podTemplate.setServiceAccount(!isNullOrEmpty(template.getServiceAccount()) ?
                                       template.getServiceAccount() : parent.getServiceAccount());
 
-        podTemplate.setSchedulerName(!Strings.isNullOrEmpty(template.getSchedulerName()) ?
+        podTemplate.setSchedulerName(!isNullOrEmpty(template.getSchedulerName()) ?
                                       template.getSchedulerName() : parent.getSchedulerName());
 
         podTemplate.setPodRetention(template.getPodRetention());
@@ -484,16 +488,16 @@ public class PodTemplateUtils {
         }
 
         StringBuilder sb = new StringBuilder();
-        if (!Strings.isNullOrEmpty(defaultProviderTemplate)) {
+        if (!isNullOrEmpty(defaultProviderTemplate)) {
             sb.append(defaultProviderTemplate).append(" ");
 
         }
-        if (!Strings.isNullOrEmpty(template.getInheritFrom())) {
+        if (!isNullOrEmpty(template.getInheritFrom())) {
             sb.append(template.getInheritFrom()).append(" ");
         }
         String inheritFrom = sb.toString();
 
-        if (Strings.isNullOrEmpty(inheritFrom)) {
+        if (isNullOrEmpty(inheritFrom)) {
             return template;
         } else {
             String[] parentNames = inheritFrom.split("[ ]+");
@@ -585,7 +589,7 @@ public class PodTemplateUtils {
      */
     @Deprecated
     public static String substitute(String s, Map<String, String> properties, String defaultValue) {
-        return Strings.isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
+        return isNullOrEmpty(s) ? defaultValue : replaceMacro(s, properties);
     }
 
     public static Pod parseFromYaml(String yaml) {
@@ -663,12 +667,11 @@ public class PodTemplateUtils {
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
         Map<String,EnvVar> combinedEnvVars = mergeMaps(envVarstoMap(parent.getEnv()),envVarstoMap(template.getEnv()));
         return combinedEnvVars.entrySet().stream()
-                .filter(envVar -> !Strings.isNullOrEmpty(envVar.getKey()))
+                .filter(envVar -> !isNullOrEmpty(envVar.getKey()))
                 .map(Map.Entry::getValue)
                 .collect(toList());
     }
 
-    @VisibleForTesting
     static Map<String, EnvVar> envVarstoMap(List<EnvVar> envVarList) {
         return envVarList.stream().collect(toMap(EnvVar::getName, Function.identity()));
     }
@@ -686,12 +689,11 @@ public class PodTemplateUtils {
         return combinedEnvVars
                 .entrySet()
                 .stream()
-                .filter(entry -> !Strings.isNullOrEmpty(entry.getKey()))
+                .filter(entry -> !isNullOrEmpty(entry.getKey()))
                 .map(Map.Entry::getValue)
                 .collect(toList());
     }
 
-    @VisibleForTesting
     static Map<String, TemplateEnvVar> templateEnvVarstoMap(List<TemplateEnvVar> envVarList) {
         return envVarList
                 .stream()
@@ -707,8 +709,8 @@ public class PodTemplateUtils {
         combinedEnvFromSources.addAll(parent.getEnvFrom());
         combinedEnvFromSources.addAll(template.getEnvFrom());
         return combinedEnvFromSources.stream().filter(envFromSource ->
-                envFromSource.getConfigMapRef() != null && !Strings.isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
-                        envFromSource.getSecretRef() != null && !Strings.isNullOrEmpty(envFromSource.getSecretRef().getName())
+                envFromSource.getConfigMapRef() != null && !isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
+                        envFromSource.getSecretRef() != null && !isNullOrEmpty(envFromSource.getSecretRef().getName())
         ).collect(toList());
     }
 
@@ -732,5 +734,13 @@ public class PodTemplateUtils {
         } else {
             return null;
         }
+    }
+
+    public static boolean isNullOrEmpty(@Nullable String string) {
+        return string == null || string.length() == 0;
+    }
+
+    public static @Nullable String emptyToNull(@Nullable String string) {
+        return isNullOrEmpty(string) ? null : string;
     }
 }

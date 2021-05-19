@@ -28,6 +28,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,9 +43,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
@@ -176,7 +174,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
-            List<String> validStates = ImmutableList.of("Running");
+            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Running"));
 
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
@@ -263,7 +261,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             } catch (IOException | InterruptedException e) {
                 LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
             }
-            throw Throwables.propagate(ex);
+            throw new RuntimeException(ex);
         }
     }
 

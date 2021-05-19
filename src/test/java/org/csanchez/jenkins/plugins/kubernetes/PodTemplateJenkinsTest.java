@@ -6,6 +6,9 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -25,7 +28,8 @@ public class PodTemplateJenkinsTest {
         podTemplate.setLabel("foo");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo" , labelsMap.get("jenkins/label"));
-        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo").toString(), labelsMap.get("jenkins/label-digest"));
+        LABEL_DIGEST_FUNCTION.update("foo".getBytes(StandardCharsets.UTF_8));
+        assertEquals(String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())), labelsMap.get("jenkins/label-digest"));
     }
 
     @Test
@@ -35,7 +39,8 @@ public class PodTemplateJenkinsTest {
         podTemplate.setLabel("foo bar");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
         assertEquals("foo_bar", labelsMap.get("jenkins/label"));
-        assertEquals(LABEL_DIGEST_FUNCTION.hashString("foo bar").toString(), labelsMap.get("jenkins/label-digest"));
+        LABEL_DIGEST_FUNCTION.update("foo bar".getBytes(StandardCharsets.UTF_8));
+        assertEquals(String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())), labelsMap.get("jenkins/label-digest"));
     }
     
     @Test
