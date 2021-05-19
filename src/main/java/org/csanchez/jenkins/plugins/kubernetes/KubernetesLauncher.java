@@ -261,13 +261,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             } catch (IOException | InterruptedException e) {
                 LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
             }
-            if (ex instanceof Error) {
-                throw new Error(ex);
-            } else if (ex instanceof RuntimeException) {
-                throw new RuntimeException(ex);
-            } else {
-                throw new RuntimeException(ex);
-            }
+            throw new RuntimeException(ex);
         }
     }
 
