@@ -65,10 +65,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
     /**
-     * Connection timeout expiration in seconds, default to 100 seconds
+     * Connection timeout expiration in seconds, default to 1000 seconds
      */
     public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = Integer
-            .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 100);
+            .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 1000);
 
     /**
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
