@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -71,11 +72,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     /**
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
+     * Not used for security.
      */
     protected static final MessageDigest LABEL_DIGEST_FUNCTION;
     static {
         try {
-            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-256");
+            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
             // will never happen, SHA-256 support required on every Java implementation
             e.printStackTrace();
@@ -475,7 +477,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         } else {
             LABEL_DIGEST_FUNCTION.update(label.getBytes(StandardCharsets.UTF_8));
             tempMap.put("jenkins/label", sanitizeLabel(label));
-            tempMap.put("jenkins/label-digest", Arrays.toString(LABEL_DIGEST_FUNCTION.digest()));
+            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())));
         }
         labelsMap = Collections.unmodifiableMap(tempMap);
     }
