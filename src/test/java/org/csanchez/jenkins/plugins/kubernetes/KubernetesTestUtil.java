@@ -177,8 +177,8 @@ public class KubernetesTestUtil {
      */
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
         Map<String, String> l = new HashMap<>();
-        l.put(BRANCH_NAME, BRANCH_NAME == null ? "undefined" : BRANCH_NAME);
-        l.put(BUILD_NUMBER, BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
+        l.put("BRANCH_NAME", BRANCH_NAME == null ? "undefined" : BRANCH_NAME);
+        l.put("BUILD_NUMBER", BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
         if (cloud != null) {
             l.putAll(cloud.getPodLabelsMap());
         }
