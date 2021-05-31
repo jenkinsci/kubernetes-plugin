@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
@@ -620,6 +621,21 @@ public class PodTemplateUtilsTest {
         assertQuantity("2Gi", result.getResources().getLimits().get("memory"));
         assertQuantity("200m", result.getResources().getRequests().get("cpu"));
         assertQuantity("256Mi", result.getResources().getRequests().get("memory"));
+    }
+
+    @Test
+    public void shouldCombineContainersInOrder() {
+        Container container1 = containerBuilder().withName("mysql").build();
+        Container container2 = containerBuilder().withName("jnlp").build();
+        Pod pod1 = podBuilder().withContainers(container1, container2).endSpec().build();
+        
+        Container container3 = containerBuilder().withName("alpine").build();
+        Container container4 = containerBuilder().withName("node").build();
+        Container container5 = containerBuilder().withName("mvn").build();
+        Pod pod2 = podBuilder().withContainers(container3, container4, container5).endSpec().build();
+        
+        Pod result = combine(pod1, pod2);
+        assertEquals(Arrays.asList("mysql", "jnlp", "alpine", "node", "mvn"), result.getSpec().getContainers().stream().map(Container::getName).collect(Collectors.toList()));
     }
 
     /**
