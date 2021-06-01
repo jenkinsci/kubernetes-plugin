@@ -149,13 +149,13 @@ public class RestartPipelinePodTemplateIdConsistencyTest {
             r.jenkins.setNumExecutors(0);
 	    // Do this stuff here and then again in a new story.then() call to simulate restart
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
-            r.waitForMessage("dynamic pod template step success", b);
+            r.waitForMessage("End of Pipeline", b);
 	    r.assertBuildStatus(Result.SUCCESS, r.waitForCompletion(b));
         });
         story.then(r -> {
 	    // Do what we do in the first one again, except the configureCloud and before bits
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
-            r.waitForMessage("dynamic pod template step success", b);
+            r.waitForMessage("End of Pipeline", b);
 	    r.assertBuildStatus(Result.SUCCESS, r.waitForCompletion(b));
         });
     }
