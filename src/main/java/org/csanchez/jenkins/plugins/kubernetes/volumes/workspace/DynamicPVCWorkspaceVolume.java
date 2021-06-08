@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
-import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
@@ -22,6 +21,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.annotation.CheckForNull;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -145,11 +145,9 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume {
     }
 
     protected Map<String, Quantity> getResourceMap() {
-        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
         String actualStorage = substituteEnv(getRequestsSizeOrDefault());
-            Quantity storageQuantity = new Quantity(actualStorage);
-            builder.put("storage", storageQuantity);
-        return builder.build();
+        Quantity storageQuantity = new Quantity(actualStorage);
+        return Collections.singletonMap("storage", storageQuantity);
     }
 
     @Override

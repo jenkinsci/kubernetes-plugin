@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -11,6 +10,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,11 +54,11 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      */
     @Nonnull
     static Map<String, String> toMap(@Nonnull Iterable<PodLabel> labels) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> builder = new HashMap<>();
         for (PodLabel podLabel : labels) {
             builder.put(podLabel.getKey(), substituteEnv(podLabel.getValue()));
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     /**

@@ -25,6 +25,11 @@ public class Merge extends YamlMergeStrategy {
         return combine(yamls.stream().map(PodTemplateUtils::parseFromYaml).collect(Collectors.toList()));
     }
 
+    @Override
+    public String toString() {
+        return "Merge";
+    }
+
     @Extension
     @Symbol("merge")
     public static class DescriptorImpl extends Descriptor<YamlMergeStrategy> {

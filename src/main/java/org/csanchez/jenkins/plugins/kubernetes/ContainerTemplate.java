@@ -15,8 +15,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import com.google.common.base.Preconditions;
-
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -78,7 +76,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @DataBoundConstructor
     public ContainerTemplate(String name, String image) {
-        Preconditions.checkArgument(PodTemplateUtils.validateImage(image));
+        if (!PodTemplateUtils.validateImage(image)) {
+            throw new IllegalArgumentException();
+        }
         this.name = name;
         this.image = image;
     }

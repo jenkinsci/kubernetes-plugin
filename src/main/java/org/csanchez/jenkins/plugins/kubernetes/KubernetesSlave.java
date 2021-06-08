@@ -341,8 +341,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
             deleteSlavePod(listener, client);
             Metrics.metricRegistry().counter(MetricNames.PODS_TERMINATED).inc();
         } else {
-            // Log warning, as the slave pod may still be running
-            LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
+            // Log warning, as the agent pod may still be running
+            LOGGER.log(Level.WARNING, "Agent pod {0} was not deleted due to retention policy {1}.",
                     new Object[] { name, getPodRetention(cloud) });
         }
         String msg = String.format("Disconnected computer %s", name);
@@ -599,9 +599,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
             if (e == null) {
                 return null;
             }
-            // Tell the slave JNLP agent to not attempt further reconnects.
+            // Tell the JNLP agent to not attempt further reconnects.
             e.setNoReconnect(true);
-            LOGGER.log(Level.INFO, "Disabled slave engine reconnects.");
+            LOGGER.log(Level.INFO, "Disabled agent engine reconnects.");
             return null;
         }
 

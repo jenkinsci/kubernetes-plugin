@@ -33,9 +33,11 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
@@ -43,8 +45,6 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-
-import com.google.common.collect.ImmutableMap;
 
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
@@ -192,11 +192,18 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void shouldCombineAllLabels() {
+        Map<String, String> labelsMap1 = new HashMap<>();
+        labelsMap1.put("label1", "pod1");
+        labelsMap1.put("label2", "pod1");
         Pod pod1 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod1", "label2", "pod1") //
+                Collections.unmodifiableMap(labelsMap1) //
         ).endMetadata().withNewSpec().endSpec().build();
+
+        Map<String, String> labelsMap2 = new HashMap<>();
+        labelsMap2.put("label1", "pod2");
+        labelsMap2.put("label3", "pod2");
         Pod pod2 = new PodBuilder().withNewMetadata().withLabels( //
-                ImmutableMap.of("label1", "pod2", "label3", "pod2") //
+                Collections.unmodifiableMap(labelsMap2) //
         ).endMetadata().withNewSpec().endSpec().build();
 
         Map<String, String> labels = combine(pod1, pod2).getMetadata().getLabels();
@@ -517,9 +524,15 @@ public class PodTemplateUtilsTest {
     }
 
     private ContainerBuilder containerBuilder() {
+        Map<String, Quantity> limitMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
+        Map<String, Quantity> requestMap = new HashMap<>();
+        limitMap.put("cpu", new Quantity());
+        limitMap.put("memory", new Quantity());
         return new ContainerBuilder().withNewSecurityContext().endSecurityContext().withNewResources()
-                .withLimits(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity()))
-                .withRequests(ImmutableMap.of("cpu", new Quantity(), "memory", new Quantity())).endResources();
+                .withLimits(Collections.unmodifiableMap(limitMap))
+                .withRequests(Collections.unmodifiableMap(requestMap)).endResources();
     }
 
     @Test
@@ -608,6 +621,21 @@ public class PodTemplateUtilsTest {
         assertQuantity("2Gi", result.getResources().getLimits().get("memory"));
         assertQuantity("200m", result.getResources().getRequests().get("cpu"));
         assertQuantity("256Mi", result.getResources().getRequests().get("memory"));
+    }
+
+    @Test
+    public void shouldCombineContainersInOrder() {
+        Container container1 = containerBuilder().withName("mysql").build();
+        Container container2 = containerBuilder().withName("jnlp").build();
+        Pod pod1 = podBuilder().withContainers(container1, container2).endSpec().build();
+        
+        Container container3 = containerBuilder().withName("alpine").build();
+        Container container4 = containerBuilder().withName("node").build();
+        Container container5 = containerBuilder().withName("mvn").build();
+        Pod pod2 = podBuilder().withContainers(container3, container4, container5).endSpec().build();
+        
+        Pod result = combine(pod1, pod2);
+        assertEquals(Arrays.asList("mysql", "jnlp", "alpine", "node", "mvn"), result.getSpec().getContainers().stream().map(Container::getName).collect(Collectors.toList()));
     }
 
     /**

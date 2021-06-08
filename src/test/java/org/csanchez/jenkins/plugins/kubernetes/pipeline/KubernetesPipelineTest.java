@@ -207,6 +207,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("container=busybox", b);
         r.assertLogContains("script file contents: ", b);
+        r.assertLogContains("Created container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
         assertThat("routine build should not issue warnings",
@@ -289,6 +290,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void bourneShellElsewhereInPath() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("/kaniko:/busybox", b);
+    }
+
+    @Test
+    public void inheritFrom() throws Exception {
+        PodTemplate standard = new PodTemplate();
+        standard.setName("standard");
+        cloud.addTemplate(standard);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Created container jnlp", b);
     }
 
     @Test

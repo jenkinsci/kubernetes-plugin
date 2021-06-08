@@ -22,7 +22,6 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
@@ -90,9 +89,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNamespace(namespace);
 
         if (step.getInheritFrom() == null) {
-            newTemplate.setInheritFrom(Strings.emptyToNull(parentTemplates));
+            newTemplate.setInheritFrom(PodTemplateUtils.emptyToNull(parentTemplates));
         } else {
-            newTemplate.setInheritFrom(Strings.emptyToNull(step.getInheritFrom()));
+            newTemplate.setInheritFrom(PodTemplateUtils.emptyToNull(step.getInheritFrom()));
         }
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setIdleMinutes(step.getIdleMinutes());
@@ -182,7 +181,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (input.length() > max) {
             input = input.substring(input.length() - max);
         }
-        input = input.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
         String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         assert PodTemplateUtils.validateLabel(label) : label;
         return label;
@@ -210,9 +209,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull PodTemplateContext podTemplateContext) {
         String namespace = null;
-        if (!Strings.isNullOrEmpty(step.getNamespace())) {
+        if (!PodTemplateUtils.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
-        } else if (podTemplateContext != null && !Strings.isNullOrEmpty(podTemplateContext.getNamespace())) {
+        } else if (podTemplateContext != null && !PodTemplateUtils.isNullOrEmpty(podTemplateContext.getNamespace())) {
             namespace = podTemplateContext.getNamespace();
         } else {
             namespace = kubernetesCloud.getNamespace();

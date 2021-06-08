@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+// Required for workflow-api graph analysis
 import com.google.common.base.Predicates;
 import java.util.List;
 import java.util.Map;
@@ -168,5 +169,14 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
+    }
+
+    @Issue("JENKINS-61360")
+    @Test
+    public void declarativeShowRawYamlFalse() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        // check yaml metadata labels not logged
+        r.assertLogNotContains("class: KubernetesDeclarativeAgentTest", b);
     }
 }

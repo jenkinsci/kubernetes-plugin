@@ -1,12 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import com.google.common.util.concurrent.Futures;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.slaves.NodeProvisioner;
 
 import java.io.IOException;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The default {@link PlannedNodeBuilder} implementation, in case there is other registered.
@@ -16,7 +15,7 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
     public NodeProvisioner.PlannedNode build() {
         KubernetesCloud cloud = getCloud();
         PodTemplate t = getTemplate();
-        Future f;
+        CompletableFuture f;
         String displayName;
         try {
             KubernetesSlave agent = KubernetesSlave
@@ -25,10 +24,11 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
                     .cloud(cloud)
                     .build();
             displayName = agent.getDisplayName();
-            f = Futures.immediateFuture(agent);
+            f = CompletableFuture.completedFuture(agent);
         } catch (IOException | Descriptor.FormException e) {
             displayName = null;
-            f = Futures.immediateFailedFuture(e);
+            f = new CompletableFuture();
+            f.completeExceptionally(e);
         }
         return new NodeProvisioner.PlannedNode(Util.fixNull(displayName), f, getNumExecutors());
     }
