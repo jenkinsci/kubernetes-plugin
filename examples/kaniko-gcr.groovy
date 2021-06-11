@@ -8,28 +8,28 @@
  * kubectl create secret generic kaniko-secret --from-file=kaniko-secret.json
  */
 
-podTemplate(yaml: """
-kind: Pod
-spec:
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    imagePullPolicy: Always
-    command:
-    - sleep
-    args:
-    - 9999999
-    volumeMounts:
-      - name: kaniko-secret
-        mountPath: /secret
-    env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/kaniko-secret.json
-  volumes:
-    - name: kaniko-secret
-      secret:
-        secretName: kaniko-secret
-"""
+podTemplate(yaml: '''
+              kind: Pod
+              spec:
+                containers:
+                - name: kaniko
+                  image: gcr.io/kaniko-project/executor:debug
+                  imagePullPolicy: Always
+                  command:
+                  - sleep
+                  args:
+                  - 9999999
+                  volumeMounts:
+                    - name: kaniko-secret
+                      mountPath: /secret
+                  env:
+                    - name: GOOGLE_APPLICATION_CREDENTIALS
+                      value: /secret/kaniko-secret.json
+                volumes:
+                  - name: kaniko-secret
+                    secret:
+                      secretName: kaniko-secret
+'''.stripIndent()
   ) {
 
   node(POD_LABEL) {
