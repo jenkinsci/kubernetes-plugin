@@ -279,8 +279,7 @@ Container templates are part of pod. They can be configured via the user interfa
 
 #### Specifying a different default agent connection timeout
 
-By default, the agent connection timeout is set to 1000 seconds. In some case, you would like to set a different value, if so you can set the system property `org.csanchez.jenkins.plugins.kubernetes.PodTemplate.connectionTimeout` to a different value. Please read [Features controlled by system properties](https://wiki.jenkins.io/display/JENKINS/Features+controlled+by+system+properties) page to know how to set up system properties within Jenkins.
-
+By default, the agent connection timeout is set to 1000 seconds. It can be customized using a system property. Please refer to the section below.
 
 #### Using yaml to Define Pod Templates
 
@@ -697,6 +696,20 @@ containerLog 'mongodb'
 * **limitBytes** limit output to n bytes (from the beginning of the log, not exact).
 
 Also see the online help and [examples/containerLog.groovy](examples/containerLog.groovy).
+
+# Features controlled using system properties
+
+Please read [Features controlled by system properties](https://www.jenkins.io/doc/book/managing/system-properties/) page to know how to set up system properties within Jenkins.
+
+| System property                                                                                      | Since  | Default   | Description                                                                     |
+| -----------------------------------------------------------------------------------------------------|:------:| ---------:|---------------------------------------------------------------------------------|
+| `KUBERNETES_JENKINS_URL`                                                                             | N/A    | undefined | Jenkins URL to be used by agents. This is meant to be used for OEM integration. |
+| `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning`                                           | 1.19.1 |   `false` | Whether to disable the no-delay provisioning strategy the plugin uses           |
+| `jenkins.host.address`                                                                               | N/A    | undefined | (for unit tests) controls the host agents should use to contact Jenkins         |
+| `org.csanchez.jenkins.plugins.kubernetes.PodTemplate.connectionTimeout`                              | N/A    |   `1000`  | The time in seconds to wait before considering the pod scheduling has failed    |
+| `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.stdinBufferSize`            | N/A    | `16*1024` | stdin buffer size in bytes for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed. A higher value will consume more memory |
+| `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.websocketConnectionTimeout` | N/A    |      `30` | Time to wait for the websocket used by `container` step to connect              |
+
 
 # Running on OpenShift
 
