@@ -34,8 +34,9 @@ It is not required to run the Jenkins controller inside Kubernetes.
 ## Configuration
 
 Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
-**Manage Jenkins -> Configure System -> Cloud -> Kubernetes** and enter the *Kubernetes URL* and *Jenkins URL*
-appropriately, this is unless Jenkins is running in Kubernetes in which case the defaults work.
+**Manage Jenkins -> Manage Nodes and Clouds -> Configure Clouds -> Add a new cloud -> Kubernetes** and enter
+the *Kubernetes URL* and *Jenkins URL* appropriately, this is unless Jenkins is running in Kubernetes in which case
+the defaults work.
 
 Supported credentials include:
 
@@ -66,7 +67,8 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
-> **Note:** if your Jenkins controller is outside of the cluster and uses a self-signed HTTPS certificate, you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+> **Note:** if your Jenkins controller is outside of the cluster and uses a self-signed HTTPS certificate, you will need
+> some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
 
 ### Restricting what jobs can use your configured cloud
 
@@ -79,19 +81,25 @@ use this cloud configuration you will need to add it in the jobs folder's config
 # Usage
 ## Overview
 
-The Kubernetes plugin allocates Jenkins agents in Kubernetes pods. Within these pods, there is always one special container `jnlp` that is running the Jenkins agent. Other containers can run arbitrary processes of your choosing, and it is possible to run commands dynamically in any container in the agent pod. 
+The Kubernetes plugin allocates Jenkins agents in Kubernetes pods. Within these pods, there is always one special
+container `jnlp` that is running the Jenkins agent. Other containers can run arbitrary processes of your choosing,
+and it is possible to run commands dynamically in any container in the agent pod. 
 
 ## Using a label
 
-Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using `node(label)` uses a label declared by a pod template, the Kubernetes Cloud will allocate a new pod to run the Jenkins agent.
+Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using
+`node(label)` uses a label declared by a pod template, the Kubernetes Cloud will allocate a new pod to run the
+Jenkins agent.
 
 It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of
-existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new
-Kubernetes builds should use the `podTemplate` step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
+existing projects (incl. freestyle) to run on Kubernetes without changing job definitions.
+New users setting up new Kubernetes builds should use the `podTemplate` step as shown in the example snippets
+[here](https://github.com/jenkinsci/kubernetes-plugin/pull/707).
 
 ## Using the pipeline step
 
-Pod templates can be defined as well using the step `podTemplate` available in pipelines. An ephemeral pod template is created while the pipeline execution is within the `podTemplate` block. It is immediately deleted afterwards.
+Pod templates can be defined as well using the step `podTemplate` available in pipelines. An ephemeral pod template is
+created while the pipeline execution is within the `podTemplate` block. It is immediately deleted afterwards.
 
 The following idiom creates a pod template with a generated unique label (available as `POD_LABEL`) and runs commands inside it.
 
@@ -138,7 +146,8 @@ spec:
 
 ### Multiple containers support
 
-Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can be accessed as in any Kubernetes pod, by using `localhost`.
+Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can
+be accessed as in any Kubernetes pod, by using `localhost`.
 
 The `container` step allows executing commands directly into each container.
 
@@ -215,7 +224,8 @@ podTemplate(yaml:'''\
 }
 ```
 
-Note the variable `POD_CONTAINER` contains the name of the container in the current context. It is defined only within a `container` block.
+Note the variable `POD_CONTAINER` contains the name of the container in the current context.
+It is defined only within a `container` block.
 
 ```groovy
 podTemplate(containers: […]) {
@@ -232,7 +242,8 @@ podTemplate(containers: […]) {
 # Configuration reference
 ## Pod template
 
-Pod templates are used to create agents. They can be either configured via the user interface, or in a pipeline, using the `podTemplate` step.
+Pod templates are used to create agents. They can be either configured via the user interface, or in a pipeline, using
+the `podTemplate` step.
 Either way it provides access to the following fields:
 
 * **cloud** The name of the cloud as defined in Jenkins settings. Defaults to `kubernetes`
@@ -255,12 +266,17 @@ Either way it provides access to the following fields:
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
 * **podRetention** Controls the behavior of keeping agent pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to `never()` or `onFailure()`, the pod is deleted after this deadline is passed.
-* **idleMinutes** Allows the Pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it. Use this only when defining a pod template in the user interface.
+* **idleMinutes** Allows the pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it. Use this only when defining a pod template in the user interface.
 * **showRawYaml** Enable or disable the output of the raw pod manifest. Defaults to `true`
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
-* **workspaceVolume** The type of volume to use for the workspace. Can be `emptyDirWorkspaceVolume` (default), `dynamicPVC()`, `hostPathWorkspaceVolume()`, `nfsWorkspaceVolume()`, or `persistentVolumeClaimWorkspaceVolume()`.
+* **workspaceVolume** The type of volume to use for the workspace.
+  * `emptyDirWorkspaceVolume` (default): an empty dir allocated on the host machine
+  * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
+  * `hostPathWorkspaceVolume()` : a host path volume
+  * `nfsWorkspaceVolume()` : a nfs volume
+  * `persistentVolumeClaimWorkspaceVolume()` : an existing persistent volume claim by name.
 
 ## Container template
 
