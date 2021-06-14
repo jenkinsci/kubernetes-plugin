@@ -30,7 +30,7 @@ podTemplate(yaml: '''
       }
     }
     stage('Build a Golang project') {
-      git url: 'https://github.com/terraform-providers/terraform-provider-aws.git'
+      git url: 'https://github.com/hashicorp/terraform-provider-google.git'
       container('golang') {
         sh 'make build'
       }

@@ -21,13 +21,11 @@ podTemplate(yaml: '''
                     path: /var/run/docker.sock
 '''.stripIndent()
   ) {
-
-  def image = "jenkins/inbound-agent"
   node(POD_LABEL) {
     stage('Build Docker image') {
       git 'https://github.com/jenkinsci/docker-inbound-agent.git'
       container('docker') {
-        sh "docker build -t ${image} ."
+        sh 'docker build -t jenkins/inbound-agent .'
       }
     }
   }
