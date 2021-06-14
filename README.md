@@ -113,7 +113,7 @@ podTemplate {
 }
 ```
 
-Commands will be executed by default in the `jnlp` container where the Jenkins agent is running.
+Commands will be executed by default in the `jnlp` container, where the Jenkins agent is running.
 
 This will run in jnlp container
 ```groovy
@@ -377,6 +377,8 @@ See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod
 
 # Inheritance
 
+## Overview
+
 A pod template may or may not inherit from an existing template.
 This means that the pod template will inherit node selector, service account, image pull secrets, container templates
 and volumes from the template it inherits from.
@@ -517,7 +519,7 @@ In scripted pipelines, there are cases where this implicit inheritance via neste
 explicit inheritance is preferred.
 In this case, use `inheritFrom ''` to remove any inheritance, or `inheritFrom 'otherParent'` to override it.
 
-## Declarative Pipeline
+# Declarative Pipeline
 
 Declarative agents can be defined from yaml
 
@@ -642,7 +644,7 @@ pipeline {
 }
 ```
 
-### Default inheritance
+## Default inheritance
 Unlike scripted k8s template, declarative templates do not inherit from parent template.
 Since the agents declared at stage level can override a global agent, implicit inheritance was leading to confusion.
 
@@ -690,6 +692,8 @@ pipeline {
 }
 
 ```
+
+# Misc.
 
 ## Accessing container logs from the pipeline
 
