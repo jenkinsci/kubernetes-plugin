@@ -26,7 +26,7 @@ see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-a
 
 It is not required to run the Jenkins controller inside Kubernetes. 
 # Generic Setup
-### Prerequisites
+## Prerequisites
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
@@ -34,6 +34,8 @@ It is not required to run the Jenkins controller inside Kubernetes.
 It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
 existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
 Kubernetes builds should use the `podTemplate` step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
+
+## Configuration
 
 Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
 **Manage Jenkins -> Configure System -> Cloud -> Kubernetes** and enter the *Kubernetes URL* and *Jenkins URL*
@@ -62,17 +64,6 @@ Docker image - the docker image name that will be used as a reference to spin up
 
 ![image](images/pod-template-configuration.png)
 
-# Configuration
-
-## Overview
-
-In Jenkins settings click on add cloud, select `Kubernetes` and fill the information, like
-_Name_, _Kubernetes URL_, _Kubernetes server certificate key_, ...
-
-If _Kubernetes URL_ is not set, the connection options will be autoconfigured from service account or kube config file.
-
-When running the Jenkins controller outside of Kubernetes you will need to set the credential to secret text. The value of the credential will be the token of the service account you created for Jenkins in the cluster the agents will run on.
-
 If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
 This is unnecessary when the Jenkins controller runs in the same Kubernetes cluster,
 but can greatly simplify setup when agents are in an external cluster
@@ -81,7 +72,7 @@ See [JEP-222](https://jenkins.io/jep/222) for more.
 
 > **Note:** if your Jenkins controller is outside of the cluster and uses a self-signed HTTPS certificate, you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
 
-## Restricting what jobs can use your configured cloud
+### Restricting what jobs can use your configured cloud
 
 Clouds can be configured to only allow certain jobs to use them.
 
