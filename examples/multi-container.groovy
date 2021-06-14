@@ -30,9 +30,13 @@ podTemplate(yaml: '''
       }
     }
     stage('Build a Golang project') {
-      git url: 'https://github.com/hashicorp/terraform-provider-google.git'
+      git url: 'https://github.com/hashicorp/terraform.git', branch: 'main'
       container('golang') {
-        sh 'make build'
+        sh '''
+          mkdir -p /go/src/github.com/hashicorp
+          ln -s `pwd` /go/src/github.com/hashicorp/terraform
+          cd /go/src/github.com/hashicorp/terraform && make
+        '''
       }
     }
   }
