@@ -722,15 +722,12 @@ Also see the online help and [examples/containerLog.groovy](examples/containerLo
 
 Please read [Features controlled by system properties](https://www.jenkins.io/doc/book/managing/system-properties/) page to know how to set up system properties within Jenkins.
 
-| System property                                                                                      | Since  | Default   | Description                                                                     |
-| -----------------------------------------------------------------------------------------------------|:------:| ---------:|---------------------------------------------------------------------------------|
-| `KUBERNETES_JENKINS_URL`                                                                             | N/A    | undefined | Jenkins URL to be used by agents. This is meant to be used for OEM integration. |
-| `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning`                                           | 1.19.1 |   `false` | Whether to disable the no-delay provisioning strategy the plugin uses           |
-| `jenkins.host.address`                                                                               | N/A    | undefined | (for unit tests) controls the host agents should use to contact Jenkins         |
-| `org.csanchez.jenkins.plugins.kubernetes.PodTemplate.connectionTimeout`                              | N/A    |   `1000`  | The time in seconds to wait before considering the pod scheduling has failed    |
-| `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.stdinBufferSize`            | N/A    | `16*1024` | stdin buffer size in bytes for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed. A higher value will consume more memory |
-| `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.websocketConnectionTimeout` | N/A    |      `30` | Time to wait for the websocket used by `container` step to connect              |
-
+* `KUBERNETES_JENKINS_URL` : Jenkins URL to be used by agents. This is meant to be used for OEM integration.
+* `io.jenkins.plugins.kubernetes.disableNoDelayProvisioning` (since 1.19.1) Whether to disable the no-delay provisioning strategy the plugin uses (defaults to `false`).
+* `jenkins.host.address` : (for unit tests) controls the host agents should use to contact Jenkins
+* `org.csanchez.jenkins.plugins.kubernetes.PodTemplate.connectionTimeout` : The time in seconds to wait before considering the pod scheduling has failed (defaults to `1000`)
+* `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.stdinBufferSize` : stdin buffer size in bytes for commands sent to Kubernetes exec api. A low value will cause slowness in commands executed. A higher value will consume more memory (defaults to `16*1024`)
+* `org.csanchez.jenkins.plugins.kubernetes.pipeline.ContainerExecDecorator.websocketConnectionTimeout` : Time to wait for the websocket used by `container` step to connect (defaults to `30`)
 
 # Running on OpenShift
 
