@@ -10,21 +10,21 @@ Jenkins plugin to run dynamic agents in a Kubernetes cluster.
 Based on the [Scaling Docker with Kubernetes](http://www.infoq.com/articles/scaling-docker-with-kubernetes) article,
 automates the scaling of Jenkins agents running in Kubernetes.
 
-The plugin creates a Kubernetes Pod for each agent started,
-defined by the Docker image to run, and stops it after each build.
+The plugin creates a Kubernetes Pod for each agent started, and stops it after each build.
 
-Agents are launched using JNLP, so it is expected that the image connects automatically to the Jenkins controller.
+Agents are launched as inbound agents, so it is expected that the container connects automatically to the Jenkins controller.
 For that some environment variables are automatically injected:
 
-* `JENKINS_URL`: Jenkins web interface url
-* `JENKINS_SECRET`: the secret key for authentication
-* `JENKINS_AGENT_NAME`: the name of the Jenkins agent
-* `JENKINS_NAME`: the name of the Jenkins agent (Deprecated. Only here for backwards compatibility)
+* `JENKINS_URL` : Jenkins web interface url
+* `JENKINS_SECRET` : the secret key for authentication
+* `JENKINS_AGENT_NAME` : the name of the Jenkins agent
+* `JENKINS_NAME` : the name of the Jenkins agent (Deprecated. Only here for backwards compatibility)
 
 Tested with [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent),
 see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-agent).
 
-It is not required to run the Jenkins controller inside Kubernetes. 
+It is not required to run the Jenkins controller inside Kubernetes.
+
 # Generic Setup
 ## Prerequisites
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
@@ -33,7 +33,8 @@ It is not required to run the Jenkins controller inside Kubernetes.
 
 ## Configuration
 
-Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
+Fill in the Kubernetes plugin configuration.
+In order to do that, you will open the Jenkins UI and navigate to 
 **Manage Jenkins -> Manage Nodes and Clouds -> Configure Clouds -> Add a new cloud -> Kubernetes** and enter
 the *Kubernetes URL* and *Jenkins URL* appropriately, this is unless Jenkins is running in Kubernetes in which case
 the defaults work.
@@ -67,7 +68,7 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
-> **Note:** if your Jenkins controller is outside of the cluster and uses a self-signed HTTPS certificate, you will need
+> **Note:** if your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate, you will need
 > some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
 
 ### Restricting what jobs can use your configured cloud
@@ -88,7 +89,7 @@ and it is possible to run commands dynamically in any container in the agent pod
 ## Using a label
 
 Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using
-`node(label)` uses a label declared by a pod template, the Kubernetes Cloud will allocate a new pod to run the
+`node(label)` uses a label declared by a pod template, the Kubernetes Cloud allocates a new pod to run the
 Jenkins agent.
 
 It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of
@@ -98,8 +99,9 @@ New users setting up new Kubernetes builds should use the `podTemplate` step as 
 
 ## Using the pipeline step
 
-Pod templates can be defined as well using the step `podTemplate` available in pipelines. An ephemeral pod template is
-created while the pipeline execution is within the `podTemplate` block. It is immediately deleted afterwards.
+The `podTemplate` step defines an ephemeral pod template. It is created while the pipeline execution is within the
+`podTemplate` block. It is immediately deleted afterwards. Such pod templates are not intended to be shared with other
+builds or projects in the Jenkins instance.
 
 The following idiom creates a pod template with a generated unique label (available as `POD_LABEL`) and runs commands inside it.
 
@@ -180,7 +182,7 @@ podTemplate(containers: [
 }
 ```
 
-or 
+or
 
 ```groovy
 podTemplate(yaml:'''\
@@ -224,7 +226,9 @@ podTemplate(yaml:'''\
 }
 ```
 
-Note the variable `POD_CONTAINER` contains the name of the container in the current context.
+#### `POD_CONTAINER` variable
+
+The variable `POD_CONTAINER` contains the name of the container in the current context.
 It is defined only within a `container` block.
 
 ```groovy
@@ -330,7 +334,38 @@ podTemplate(yaml: '''\
 }
 ```
 
-You can use [`readFile`](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) or [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) steps to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
+You can use [`readFile`](https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/#readfile-read-file-from-workspace) or [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) steps to load the yaml from a file.  It is also accessible from this plugin's configuration panel in the Jenkins console.
+
+##### Example
+
+`pod.yaml`
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: maven
+    image: maven:3.8.1-jdk-8
+    command:
+    - sleep
+    args:
+    - 99d
+  - name: golang
+    image: golang:1.16.5
+    command:
+    - sleep
+    args:
+    - 99d
+```
+
+`Jenkinsfile`
+```groovy
+podTemplate(yaml: readTrusted('pod.yaml')) {
+  node(POD_LABEL) {
+    // ...
+  }
+}
+```
 
 ### Liveness Probe Usage
 ```groovy
@@ -342,20 +377,24 @@ See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod
 
 # Inheritance
 
-A pod template may or may not inherit from an existing template. This means that the pod template will inherit node selector, service account, image pull secrets, containerTemplates and volumes from the template it inherits from.
+A pod template may or may not inherit from an existing template.
+This means that the pod template will inherit node selector, service account, image pull secrets, container templates
+and volumes from the template it inherits from.
 
-**yaml** is merged according to the value of  `yamlMergeStrategy`.
+**yaml** is merged according to the value of `yamlMergeStrategy`.
 
 **Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
 
-**Container templates** that are added to the podTemplate, that has a matching containerTemplate (a containerTemplate with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
-If no matching containerTemplate is found, the template is added as is.
+**Container templates** that are added to the podTemplate, that has a matching containerTemplate (a container template
+with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
+If no matching container template is found, the template is added as is.
 
 **Volume** inheritance works exactly as **Container templates**.
 
 **Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
 
-In the example below, we will inherit from a pod template we created previously, and will just override the version of 'maven' so that it uses jdk-11 instead:
+In the example below, we will inherit from a pod template we created previously, and will just override the version of
+`maven` so that it uses jdk-11 instead:
 
 ![image](images/mypod.png)
 
@@ -391,18 +430,21 @@ pipeline {
 }
 ```
 
-Note that we only need to specify the things that are different. So, `command` and `arguments` are not specified, as they are inherited.
+Note that we only need to specify the things that are different. So, `command` and `arguments` are not specified, as
+they are inherited.
 Also, the `golang` container will be added as defined in the 'parent' template.
 
 ## Multiple Pod template inheritance
 
-Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will be processed in the order they appear in the list *(later items overriding earlier ones)*.
+Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will
+be processed in the order they appear in the list *(later items overriding earlier ones)*.
 In any case if the referenced template is not found it will be ignored.
 
 
 ## Nesting Pod templates
 
-Field `inheritFrom` provides an easy way to compose podTemplates that have been pre-configured. In many cases it would be useful to define and compose podTemplates directly in the pipeline using groovy.
+Field `inheritFrom` provides an easy way to compose podTemplates that have been pre-configured. In many cases it would
+be useful to define and compose podTemplates directly in the pipeline using groovy.
 This is made possible via nesting. You can nest multiple pod templates together in order to compose a single one.
 
 The example below composes two different pod templates in order to create one with maven and docker capabilities.
@@ -417,7 +459,8 @@ podTemplate(containers: [containerTemplate(image: 'docker', name: 'docker', comm
 }
 ```
 
-This feature is extra useful, pipeline library developers as it allows you to wrap pod templates into functions and let users nest those functions according to their needs.
+This feature is extra useful, pipeline library developers as it allows you to wrap pod templates into functions and let
+users nest those functions according to their needs.
 
 For example one could create functions for their podTemplates and import them for use.
 Say here's our file `src/com/foo/utils/PodTemplates.groovy`:
@@ -444,9 +487,12 @@ public void mavenTemplate(body) {
 return this
 ```
 
-Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two, however once again, you will need to express the specific container you wish to execute commands in.  You can **NOT** omit the `node` statement.
+Then consumers of the library could just express the need for a maven pod with docker capabilities by combining the two,
+however once again, you will need to express the specific container you wish to execute commands in.
+You can **NOT** omit the `node` statement.
 
-Note that `POD_LABEL` will be the innermost generated label to get a node which has all the outer pods available on the node, as shown in this example:
+Note that `POD_LABEL` will be the innermost generated label to get a node which has all the outer pods available on the
+node, as shown in this example:
 
 ```groovy
 import com.foo.utils.PodTemplates
@@ -467,7 +513,8 @@ podTemplates.dockerTemplate {
 }
 ```
 
-In scripted pipelines, there are cases where this implicit inheritance via nested declaration is not wanted or another explicit inheritance is preferred.
+In scripted pipelines, there are cases where this implicit inheritance via nested declaration is not wanted or another
+explicit inheritance is preferred.
 In this case, use `inheritFrom ''` to remove any inheritance, or `inheritFrom 'otherParent'` to override it.
 
 ## Declarative Pipeline
