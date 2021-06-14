@@ -31,10 +31,6 @@ It is not required to run the Jenkins controller inside Kubernetes.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
 
-It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of 
-existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new 
-Kubernetes builds should use the `podTemplate` step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
-
 ## Configuration
 
 Fill in the Kubernetes plugin configuration. In order to do that, you will open the Jenkins UI and navigate to 
@@ -87,7 +83,11 @@ The Kubernetes plugin allocates Jenkins agents in Kubernetes pods. Within these 
 
 ## Using a label
 
-Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using `node(label)` uses a label declared by a pod template, the Kubernetes Cloud will allocate a new pod to run the Jenkins agent. 
+Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using `node(label)` uses a label declared by a pod template, the Kubernetes Cloud will allocate a new pod to run the Jenkins agent.
+
+It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of
+existing projects (incl. freestyle) to run on Kubernetes without changing job definitions. New users setting up new
+Kubernetes builds should use the `podTemplate` step as shown in the example snippets [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707)
 
 ## Using the pipeline step
 
