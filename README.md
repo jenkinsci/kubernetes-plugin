@@ -36,7 +36,7 @@ It is not required to run the Jenkins controller inside Kubernetes.
 Fill in the Kubernetes plugin configuration.
 In order to do that, you will open the Jenkins UI and navigate to 
 **Manage Jenkins -> Manage Nodes and Clouds -> Configure Clouds -> Add a new cloud -> Kubernetes** and enter
-the *Kubernetes URL* and *Jenkins URL* appropriately, this is unless Jenkins is running in Kubernetes in which case
+the *Kubernetes URL* and *Jenkins URL* appropriately, unless Jenkins is running in Kubernetes in which case
 the defaults work.
 
 Supported credentials include:
@@ -68,8 +68,8 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
-> **Note:** if your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate, you will need
-> some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+> **Note:** if your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
+> you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
 
 ### Restricting what jobs can use your configured cloud
 
@@ -89,11 +89,11 @@ and it is possible to run commands dynamically in any container in the agent pod
 ## Using a label
 
 Pod templates defined using the user interface declare a label. When a freestyle job or a pipeline job using
-`node(label)` uses a label declared by a pod template, the Kubernetes Cloud allocates a new pod to run the
+`node('some-label')` uses a label declared by a pod template, the Kubernetes Cloud allocates a new pod to run the
 Jenkins agent.
 
 It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of
-existing projects (incl. freestyle) to run on Kubernetes without changing job definitions.
+existing projects (including freestyle) to run on Kubernetes without changing job definitions.
 New users setting up new Kubernetes builds should use the `podTemplate` step as shown in the example snippets
 [here](https://github.com/jenkinsci/kubernetes-plugin/pull/707).
 
@@ -114,8 +114,9 @@ podTemplate {
 ```
 
 Commands will be executed by default in the `jnlp` container, where the Jenkins agent is running.
+(The `jnlp` name is historical and is retained for compatibility.)
 
-This will run in jnlp container
+This will run in the `jnlp` container:
 ```groovy
 podTemplate {
     node(POD_LABEL) {
@@ -195,7 +196,7 @@ podTemplate(containers: [
 or
 
 ```groovy
-podTemplate(yaml:'''\
+podTemplate(yaml: '''\
     apiVersion: v1
     kind: Pod
     spec:
@@ -321,7 +322,7 @@ By default, the agent connection timeout is set to 1000 seconds. It can be custo
 #### Using yaml to Define Pod Templates
 
 In order to support any possible value in Kubernetes `Pod` object, we can pass a yaml snippet that will be used as a base
-for the template. If any other properties are set outside the yaml, they will take precedence.
+for the template. If any other properties are set outside the YAML, they will take precedence.
 
 ```groovy
 podTemplate(yaml: '''\
