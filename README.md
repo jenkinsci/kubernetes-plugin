@@ -316,7 +316,7 @@ Container templates are part of pod. They can be configured via the user interfa
 
 By default, the agent connection timeout is set to 1000 seconds. It can be customized using a system property. Please refer to the section below.
 
-#### Using yaml to Define Pod Templates
+#### Using yaml to define Pod Templates
 
 In order to support any possible value in Kubernetes `Pod` object, we can pass a yaml snippet that will be used as a base
 for the template. If any other properties are set outside the YAML, they will take precedence.
@@ -347,6 +347,7 @@ podTemplate(yaml: '''
 ```
 
 You can use [`readFile`](https://www.jenkins.io/doc/pipeline/steps/workflow-basic-steps/#readfile-read-file-from-workspace) or [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) steps to load the yaml from a file.
+Also note that in declarative pipelines the `yamlFile` can be used (see this [example](examples/declarative_from_yaml_file)).
 
 ##### Example
 
