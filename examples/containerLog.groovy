@@ -15,8 +15,7 @@ podTemplate(yaml: '''
                   tty: true
                 - name: mongo
                   image: mongo
-'''.stripIndent()
-) {
+''') {
   node(POD_LABEL) {
     stage('Integration Test') {
       try {

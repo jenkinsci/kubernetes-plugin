@@ -34,10 +34,7 @@ It is not required to run the Jenkins controller inside Kubernetes.
 ## Configuration
 
 Fill in the Kubernetes plugin configuration.
-In order to do that, you will open the Jenkins UI and navigate to 
-**Manage Jenkins -> Manage Nodes and Clouds -> Configure Clouds -> Add a new cloud -> Kubernetes** and enter
-the *Kubernetes URL* and *Jenkins URL* appropriately, unless Jenkins is running in Kubernetes in which case
-the defaults work.
+In order to do that, you will open the Jenkins UI and navigate to **Manage Jenkins -> Manage Nodes and Clouds -> Configure Clouds -> Add a new cloud -> Kubernetes** and enter the *Kubernetes URL* and *Jenkins URL* appropriately, unless Jenkins is running in Kubernetes in which case the defaults work.
 
 Supported credentials include:
 
@@ -95,7 +92,7 @@ Jenkins agent.
 It should be noted that the main reason to use the global pod template definition is to migrate a huge corpus of
 existing projects (including freestyle) to run on Kubernetes without changing job definitions.
 New users setting up new Kubernetes builds should use the `podTemplate` step as shown in the example snippets
-[here](https://github.com/jenkinsci/kubernetes-plugin/pull/707).
+[here](examples).
 
 ## Using the pipeline step
 
@@ -196,7 +193,7 @@ podTemplate(containers: [
 or
 
 ```groovy
-podTemplate(yaml: '''\
+podTemplate(yaml: '''
     apiVersion: v1
     kind: Pod
     spec:
@@ -213,7 +210,7 @@ podTemplate(yaml: '''\
         - sleep
         args:
         - 99d
-'''.stripIndent()) {
+''') {
   node(POD_LABEL) {
     stage('Get a Maven project') {
       git 'https://github.com/jenkinsci/kubernetes-plugin.git'
@@ -325,7 +322,7 @@ In order to support any possible value in Kubernetes `Pod` object, we can pass a
 for the template. If any other properties are set outside the YAML, they will take precedence.
 
 ```groovy
-podTemplate(yaml: '''\
+podTemplate(yaml: '''
     apiVersion: v1
     kind: Pod
     metadata:
@@ -339,7 +336,7 @@ podTemplate(yaml: '''\
         - sleep
         args:
         - 99d
-    '''.stripIndent()) {
+    ''') {
     node(POD_LABEL) {
       container('busybox') {
         echo POD_CONTAINER // displays 'busybox'
@@ -437,7 +434,7 @@ pipeline {
         containers:
         - name: maven
           image: maven:3.8.1-jdk-11
-'''.stripIndent()
+'''
       …
     }
   }
@@ -542,7 +539,7 @@ Declarative agents can be defined from yaml
 pipeline {
   agent {
     kubernetes {
-      yaml '''\
+      yaml '''
         apiVersion: v1
         kind: Pod
         metadata:
@@ -560,7 +557,7 @@ pipeline {
             command:
             - cat
             tty: true
-        '''.stripIndent()
+        '''
     }
   }
   stages {
@@ -671,7 +668,7 @@ In the following example, `nested-pod` will only contain the `maven` container.
 pipeline {
   agent {
     kubernetes {
-      yaml '''\
+      yaml '''
         spec:
         containers:
         - name: golang
@@ -680,14 +677,14 @@ pipeline {
             - sleep
             args:
             - 99d
-        '''.stripIndent()
+        '''
     }
   }
   stages {
     stage('Run maven') {
         agent {
             kubernetes {
-                yaml '''\
+                yaml '''
                     spec:
                     containers:
                     - name: maven
@@ -696,7 +693,7 @@ pipeline {
                       - sleep
                       args:
                       - 99d
-                    '''.stripIndent()
+                    '''
             }
         }
       steps {

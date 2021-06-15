@@ -33,7 +33,7 @@ podTemplate(yaml:'''
                 volumes:
                 - name: home-volume
                   emptyDir: {}
-'''.stripIndent()) {
+''') {
   node(POD_LABEL) {
     stage('Build a Maven project') {
       container('maven') {

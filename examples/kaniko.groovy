@@ -31,7 +31,7 @@ podTemplate(yaml: '''
                         items:
                           - key: .dockerconfigjson
                             path: config.json
-'''.stripIndent()
+'''
   ) {
 
   node(POD_LABEL) {

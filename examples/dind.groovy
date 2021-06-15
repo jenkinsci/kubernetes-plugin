@@ -30,7 +30,7 @@ podTemplate(yaml: '''
                   volumeMounts:
                   - name: docker-socket
                     mountPath: /var/run
-'''.stripIndent()) {
+''') {
   node(POD_LABEL) {
     writeFile file: 'Dockerfile', text: 'FROM scratch'
     container('docker') {

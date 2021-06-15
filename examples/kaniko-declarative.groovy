@@ -39,7 +39,7 @@ pipeline {
                   items:
                     - key: .dockerconfigjson
                       path: config.json
-'''.stripIndent()
+'''
     }
   }
   stages {

@@ -19,7 +19,7 @@ podTemplate(yaml: '''
                   - sleep
                   args:
                   - 99d
-'''.stripIndent()
+'''
   ) {
 
   node(POD_LABEL) {

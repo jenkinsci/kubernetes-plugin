@@ -29,7 +29,7 @@ podTemplate(yaml: '''
                   - name: kaniko-secret
                     secret:
                       secretName: kaniko-secret
-'''.stripIndent()
+'''
   ) {
 
   node(POD_LABEL) {

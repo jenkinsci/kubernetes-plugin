@@ -19,8 +19,7 @@ podTemplate(yaml: '''
                 - name: dockersock
                   hostPath:
                     path: /var/run/docker.sock
-'''.stripIndent()
-  ) {
+''') {
   node(POD_LABEL) {
     stage('Build Docker image') {
       git 'https://github.com/jenkinsci/docker-inbound-agent.git'

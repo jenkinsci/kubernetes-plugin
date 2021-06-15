@@ -44,7 +44,7 @@ podTemplate(yaml: '''
                     value: :98.0
                   - name: SE_OPTS
                     value: -port 5557
-'''.stripIndent()) {
+''') {
 
   node(POD_LABEL) {
     stage('Checkout') {
