@@ -218,8 +218,8 @@ The `containerTemplate` is a template of container that will be added to the pod
 * **envVars** Environment variables that are applied to the container **(supplementing and overriding env vars that are set on pod level)**.
     * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
-* **command** The command the container will execute, will overwrite the docker entrypoint, default value is `sleep`.
-* **args** The arguments passed to the command, default value is `99999999`.
+* **command** The command the container will execute. Will overwrite the Docker entrypoint. A typical value is `sleep`.
+* **args** The arguments passed to the command. A typical value is `99999999`.
 * **ttyEnabled** Flag to mark that tty should be enabled.
 * **livenessProbe** Parameters to be added to a exec liveness probe in the container (does not support httpGet liveness probes)
 * **ports** Expose ports on the container.
