@@ -140,7 +140,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials-binding</artifactId>
-      <version>1.26-rc457.6dc28f0f8735</version> <!-- TODO https://github.com/jenkinsci/credentials-binding-plugin/pull/139 -->
+      <version>1.26</version>
     </dependency>
 
     <!-- for testing -->
