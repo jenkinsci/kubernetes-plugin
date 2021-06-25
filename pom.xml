@@ -9,7 +9,7 @@
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
-  <version>1.27.8</version>
+  <version>${revision}${changelist}</version>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
@@ -19,7 +19,7 @@
     <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
     <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/kubernetes-plugin</url>
-    <tag>kubernetes-1.27.8</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <licenses>
@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.27.8</revision>
+    <revision>1.27.9</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
