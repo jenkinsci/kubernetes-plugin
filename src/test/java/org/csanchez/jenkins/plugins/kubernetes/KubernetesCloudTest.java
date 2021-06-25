@@ -46,7 +46,6 @@ import org.mockito.Mockito;
 
 import hudson.model.Label;
 import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.DoneablePod;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -163,7 +162,7 @@ public class KubernetesCloudTest {
             public KubernetesClient connect() {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
                 Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
                 Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
                 PodList podList = Mockito.mock(PodList.class);
@@ -198,7 +197,7 @@ public class KubernetesCloudTest {
             public KubernetesClient connect()  {
                 KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
                 Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
+                MixedOperation<Pod, PodList, PodResource<Pod>> operation = Mockito.mock(MixedOperation.class);
                 Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
                 Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
                 PodList podList = Mockito.mock(PodList.class);
