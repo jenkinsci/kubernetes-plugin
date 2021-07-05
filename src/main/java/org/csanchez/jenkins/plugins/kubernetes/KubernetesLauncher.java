@@ -145,7 +145,10 @@ public class KubernetesLauncher extends JNLPLauncher {
                     }
                     else {
                         runListener.getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
-                        PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                        // Only pod template originating from a pod template step have the sufficient annotations to filter the tasks
+                        if (pod.getMetadata().getAnnotations() != null) {
+                            PodUtils.cancelQueueItemFor(pod, e.getMessage());
+                        }
                     }
                 } else if (500 <= httpCode && httpCode < 600) { // 5xx
                     LOGGER.log(FINE,"Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {e.getCode(), e.getStatus()});
