@@ -19,8 +19,10 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Queue;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
+import java.util.Map;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 
@@ -71,9 +73,23 @@ public final class PodUtils {
     public static void cancelQueueItemFor(Pod pod, String reason) {
         Queue q = Jenkins.get().getQueue();
         boolean cancelled = false;
+        ObjectMeta metadata = pod.getMetadata();
+        if (metadata == null) {
+            return;
+        }
+        Map<String, String> annotations = metadata.getAnnotations();
+        if (annotations == null) {
+            LOGGER.log(Level.FINE, "Pod .metadata.annotations is null: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
+            return;
+        }
+        String runUrl = annotations.get("runUrl");
+        if (runUrl == null) {
+            LOGGER.log(Level.FINE, "Pod .metadata.annotations.runUrl is null: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
+            return;
+        }
         for (Queue.Item item: q.getItems()) {
             Queue.Task task = item.task;
-            if (task.getUrl().equals(pod.getMetadata().getAnnotations().get("runUrl"))) {
+            if (runUrl.equals(task.getUrl())) {
                 LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}",
                         new Object[]{ task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""});
                 q.cancel(item);
@@ -82,7 +98,7 @@ public final class PodUtils {
             }
         }
         if (!cancelled) {
-            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {pod.getMetadata().getNamespace(), pod.getMetadata().getName()});
+            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
         }
     }
 }
