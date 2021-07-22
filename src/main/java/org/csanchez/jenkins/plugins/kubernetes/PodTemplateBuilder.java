@@ -71,7 +71,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
-
+import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
 
 import javax.annotation.CheckForNull;
@@ -103,7 +103,7 @@ public class PodTemplateBuilder {
             .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
     @Restricted(NoExternalUse.class)
     static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", getDefaultImageName());
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
@@ -135,6 +135,15 @@ public class PodTemplateBuilder {
         this.template = template;
         this.agent = agent;
         this.cloud = agent.getKubernetesCloud();
+    }
+
+    private static String getDefaultImageName() {
+      // TODO: Reverse logic after inbound-agent:4.9-1
+      String name = "jenkins/inbound-agent:4.3-4";
+      if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
+        name = name + "-jdk11";
+      }
+      return name;
     }
 
     public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
