@@ -24,8 +24,15 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.Arrays.*;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static java.util.Arrays.asList;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupHost;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.createSecret;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.createPipelineJobThenScheduleRun;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
