@@ -1,8 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.util.List;
-
 import io.fabric8.kubernetes.api.model.VolumeMount;
+
+import java.util.List;
 
 @Deprecated
 public class PodVolumes {
@@ -15,12 +15,12 @@ public class PodVolumes {
     public static class EmptyDirVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume {
 
         public EmptyDirVolume(String mountPath, Boolean memory) {
-            super(mountPath, memory);
+            super(mountPath, memory, null);
         }
 
         protected Object readResolve() {
             return new org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume(this.getMountPath(),
-                    this.getMemory());
+                    this.getMemory(), null);
         }
     }
 
@@ -41,12 +41,12 @@ public class PodVolumes {
     public static class HostPathVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume {
 
         public HostPathVolume(String hostPath, String mountPath) {
-            super(hostPath, mountPath);
+            super(hostPath, mountPath, null);
         }
 
         protected Object readResolve() {
             return new org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume(this.getHostPath(),
-                    this.getMountPath());
+                    this.getMountPath(), null);
         }
     }
 
@@ -54,12 +54,12 @@ public class PodVolumes {
     public static class NfsVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume {
 
         public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
-            super(serverAddress, serverPath, readOnly, mountPath);
+            super(serverAddress, serverPath, readOnly, mountPath, null);
         }
 
         protected Object readResolve() {
             return new org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume(this.getServerAddress(),
-                    this.getServerPath(), this.getReadOnly(), this.getMountPath());
+                    this.getServerPath(), this.getReadOnly(), this.getMountPath(), null);
         }
     }
 

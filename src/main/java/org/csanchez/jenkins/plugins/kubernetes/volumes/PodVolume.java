@@ -24,12 +24,12 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import java.io.Serializable;
-import java.util.List;
-
 import hudson.model.AbstractDescribableImpl;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+
+import java.io.Serializable;
+import java.util.List;
 
 /**
  * Base class for all Kubernetes volume types
@@ -40,6 +40,9 @@ public abstract class PodVolume extends AbstractDescribableImpl<PodVolume> imple
 
     // Where to mount this volume in the pod.
     public abstract String getMountPath();
+
+    // What path to mount from the volume
+    public abstract String getSubPath();
 
     // Builds a Volume model with the given name.
     public abstract Volume buildVolume(String volumeName);

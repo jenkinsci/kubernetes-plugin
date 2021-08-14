@@ -24,27 +24,29 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 public class PersistentVolumeClaim extends PodVolume {
     private String mountPath;
     private String claimName;
     @CheckForNull
+    private String subPath;
+    @CheckForNull
     private Boolean readOnly;
 
     @DataBoundConstructor
-    public PersistentVolumeClaim(String mountPath, String claimName, Boolean readOnly) {
+    public PersistentVolumeClaim(String mountPath, String claimName, String subPath, Boolean readOnly) {
         this.mountPath = mountPath;
         this.claimName = claimName;
+        this.subPath = subPath;
         this.readOnly = readOnly;
     }
 
@@ -55,6 +57,11 @@ public class PersistentVolumeClaim extends PodVolume {
 
     public String getClaimName() {
         return claimName;
+    }
+
+    @Override
+    public String getSubPath() {
+        return subPath;
     }
 
     @Nonnull

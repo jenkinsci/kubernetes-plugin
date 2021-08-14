@@ -24,24 +24,16 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.TcpSlaveAgentListener;
 import hudson.Util;
-import io.fabric8.kubernetes.api.model.PodSpecFluent;
+import hudson.slaves.SlaveComputer;
+import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
+import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
+import io.fabric8.kubernetes.client.utils.Serialization;
+import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -50,37 +42,19 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import hudson.TcpSlaveAgentListener;
-import hudson.slaves.SlaveComputer;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.ContainerPort;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.ExecAction;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
-import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
-import io.fabric8.kubernetes.api.model.Probe;
-import io.fabric8.kubernetes.api.model.ProbeBuilder;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
-import io.fabric8.kubernetes.client.utils.Serialization;
-import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
-import jenkins.model.Jenkins;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -173,8 +147,20 @@ public class PodTemplateBuilder {
             //We need to normalize the path or we can end up in really hard to debug issues.
             final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMountBuilder() //
-                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
+                VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
+                        .withMountPath(mountPath)
+                        .withName(volumeName)
+                        .withReadOnly(false);
+
+                final String volumeSubPath = volume.getSubPath();
+                if (StringUtils.isNotBlank(volumeSubPath)) {
+                    // We need to normalize the subPath, or we can end up in really hard to debug issues Just in case.
+                    final String subPath = substituteEnv(Paths.get(volumeSubPath).normalize().toString().replace("\\", "/"));
+                    if (StringUtils.isNotBlank(subPath)) {
+                        volumeMountBuilder = volumeMountBuilder.withSubPath(subPath);
+                    }
+                }
+                volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }
