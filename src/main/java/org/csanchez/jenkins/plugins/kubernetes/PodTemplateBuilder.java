@@ -81,6 +81,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -164,8 +165,16 @@ public class PodTemplateBuilder {
             //We need to normalize the path or we can end up in really hard to debug issues.
             final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMountBuilder() //
-                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
+                VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
+                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false);
+
+                if (volume instanceof ConfigMapVolume) {
+                    final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
+                        //We need to normalize the subPath or we can end up in really hard to debug issues Just in case.
+                        final String subPath = substituteEnv(Paths.get(configmapVolume.getSubPath()).normalize().toString().replace("\\", "/"));
+                        volumeMountBuilder = volumeMountBuilder.withSubPath(subPath);
+                            }
+                volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }

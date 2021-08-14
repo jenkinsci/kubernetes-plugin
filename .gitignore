@@ -8,6 +8,7 @@
 /.idea/
 *.iml
 nbactions.xml
+nb-configuration.xml
 *.bak
 /.vscode/
 
