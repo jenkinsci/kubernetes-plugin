@@ -1,5 +1,10 @@
 #!/bin/bash
 set -euxo pipefail
+function cleanup() {
+    kubectl describe pod
+}
+trap cleanup EXIT
+
 kubectl get ns kubernetes-plugin-test || kubectl create ns kubernetes-plugin-test
 kubectl get ns kubernetes-plugin-test-overridden-namespace || kubectl create ns kubernetes-plugin-test-overridden-namespace
 kubectl config set-context --current --namespace=kubernetes-plugin-test
