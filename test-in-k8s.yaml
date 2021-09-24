@@ -24,7 +24,7 @@ spec:
   serviceAccountName: jenkins
   containers:
   - name: jenkins
-    image: maven:3.6.2-jdk-8
+    image: maven:3.8.2-jdk-8
     command:
       - sleep
     args:
