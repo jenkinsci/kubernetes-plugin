@@ -49,9 +49,7 @@
     <java.level>8</java.level>
     <jenkins.version>2.263.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
     <useBeta>true</useBeta>
-    <jenkins-test-harness.version>2.71</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
@@ -63,7 +61,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
-      <version>2.12.3</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -112,13 +109,11 @@
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency> <!-- DeclarativeGeneratorTester -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
@@ -135,12 +130,10 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>caffeine-api</artifactId>
-      <version>2.9.1-23.v51c4e2c879c8</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials-binding</artifactId>
-      <version>1.26</version>
     </dependency>
 
     <!-- for testing -->
@@ -168,7 +161,6 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SnippetizerTest -->
@@ -221,7 +213,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.20</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -266,7 +257,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.263.x</artifactId>
-        <version>876.vc43b4c6423b6</version>
+        <version>966.v3857b7c82032</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
