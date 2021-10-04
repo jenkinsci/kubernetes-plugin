@@ -266,6 +266,12 @@
         <artifactId>joda-time</artifactId>
         <version>2.10.2</version>
       </dependency>
+      <!-- Fix InjectedTest -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>docker-commons</artifactId>
+        <version>1.15</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
