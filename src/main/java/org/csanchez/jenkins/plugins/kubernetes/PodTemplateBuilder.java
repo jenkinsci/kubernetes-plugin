@@ -39,8 +39,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
@@ -51,9 +49,6 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 
 import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
@@ -76,7 +71,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
-
+import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
 
 import javax.annotation.CheckForNull;
@@ -84,6 +79,7 @@ import javax.annotation.Nonnull;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
@@ -102,12 +98,12 @@ public class PodTemplateBuilder {
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
-    @VisibleForTesting
+    @Restricted(NoExternalUse.class)
     static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
-    @VisibleForTesting
+    @Restricted(NoExternalUse.class)
     static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", getDefaultImageName());
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
@@ -139,6 +135,15 @@ public class PodTemplateBuilder {
         this.template = template;
         this.agent = agent;
         this.cloud = agent.getKubernetesCloud();
+    }
+
+    private static String getDefaultImageName() {
+      // TODO: Reverse logic after inbound-agent:4.9-1
+      String name = "jenkins/inbound-agent:4.3-4";
+      if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
+        name = name + "-jdk11";
+      }
+      return name;
     }
 
     public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
@@ -214,6 +219,9 @@ public class PodTemplateBuilder {
         }
         if (template.getServiceAccount() != null) {
             builder.withServiceAccountName(substituteEnv(template.getServiceAccount()));
+        }
+        if (template.getSchedulerName() != null) {
+            builder.withSchedulerName(substituteEnv(template.getSchedulerName()));
         }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
@@ -316,7 +324,7 @@ public class PodTemplateBuilder {
             KubernetesCloud cloud = agent.getKubernetesCloud();
             if (cloud.isAddMasterProxyEnvVars()) {
                 // see if the env vars for proxy that the remoting.jar looks for
-                // are set on the master, and if so, propagate them to the slave
+                // are set on the controller, and if so, propagate them to the agent
                 // vs. having to set on each pod template; if explicitly set already
                 // the processing of globalEnvVars below will override;
                 // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
@@ -420,7 +428,7 @@ public class PodTemplateBuilder {
                         .replaceAll(NAME_REF, computer.getName());
             }
         }
-        List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
+        List<String> arguments = isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(cmd);
 
         ContainerPort[] ports = containerTemplate.getPorts().stream().map(entry -> entry.toPort()).toArray(size -> new ContainerPort[size]);
@@ -479,7 +487,7 @@ public class PodTemplateBuilder {
 
     private List<VolumeMount> getContainerVolumeMounts(Collection<VolumeMount> volumeMounts, String workingDir) {
         List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
-        if (!Strings.isNullOrEmpty(workingDir) && !PodVolume.volumeMountExists(workingDir, volumeMounts)) {
+        if (!isNullOrEmpty(workingDir) && !PodVolume.volumeMountExists(workingDir, volumeMounts)) {
             containerMounts.add(getDefaultVolumeMount(workingDir));
         }
         return containerMounts;
@@ -526,7 +534,7 @@ public class PodTemplateBuilder {
     }
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {
-        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
+        Map<String, Quantity> builder = new HashMap<>();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
         String actualEphemeralStorage = substituteEnv(ephemeralStorage);
@@ -542,47 +550,47 @@ public class PodTemplateBuilder {
             Quantity ephemeralStorageQuantity = new Quantity(actualEphemeralStorage);
             builder.put("ephemeral-storage", ephemeralStorageQuantity);
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     private Map<String, String> getAnnotationsMap(List<PodAnnotation> annotations) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+        Map<String, String> builder = new HashMap<>();
         if (annotations != null) {
             for (PodAnnotation podAnnotation : annotations) {
                 builder.put(podAnnotation.getKey(), substituteEnv(podAnnotation.getValue()));
             }
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     private Map<String, String> getNodeSelectorMap(String selectors) {
-        if (Strings.isNullOrEmpty(selectors)) {
-            return ImmutableMap.of();
+        if (isNullOrEmpty(selectors)) {
+            return Collections.EMPTY_MAP;
         } else {
-            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+            Map<String, String> builder = new HashMap<>();
 
             for (String selector : selectors.split(",")) {
                 String[] parts = selector.split("=");
                 if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
-                    builder = builder.put(parts[0], substituteEnv(parts[1]));
+                    builder.put(parts[0], substituteEnv(parts[1]));
                 } else {
                     LOGGER.log(Level.WARNING, "Ignoring selector '" + selector
                             + "'. Selectors must be in the format 'label1=value1,label2=value2'.");
                 }
             }
-            return builder.build();
+            return Collections.unmodifiableMap(builder);
         }
     }
 
     private List<Long> parseSupplementalGroupList(String gids) {
-        if (Strings.isNullOrEmpty(gids)) {
-            return ImmutableList.of();
+        if (isNullOrEmpty(gids)) {
+            return Collections.EMPTY_LIST;
         }
-        ImmutableList.Builder<Long> builder = ImmutableList.builder();
+        List<Long>builder = new ArrayList<>();
         for (String gid : gids.split(",")) {
             try {
-                if (!Strings.isNullOrEmpty(gid)) {
-                    builder = builder.add(Long.parseLong(gid));
+                if (!isNullOrEmpty(gid)) {
+                    builder.add(Long.parseLong(gid));
                 } else {
                     LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's cannot be empty or null.", gid);
                 }
@@ -590,6 +598,6 @@ public class PodTemplateBuilder {
                 LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's must be valid longs.", gid);
             }
         }
-        return builder.build();
+        return Collections.unmodifiableList(builder);
     }
 }

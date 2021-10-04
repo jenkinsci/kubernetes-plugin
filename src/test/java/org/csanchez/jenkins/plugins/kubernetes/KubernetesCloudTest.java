@@ -1,16 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,9 +21,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import io.fabric8.kubernetes.api.model.PodBuilder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -37,23 +29,13 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.mockito.Mockito;
 
-import hudson.model.Label;
-import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.DoneablePod;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
@@ -217,12 +199,12 @@ public class KubernetesCloudTest {
 
 
         cloud.setLabels(null);
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getLabels());
 
         cloud.setLabels(new LinkedHashMap<>());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getLabels());
     }
 
     @Test
@@ -231,7 +213,7 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        ArrayList<String> objectProperties = Lists.newArrayList("templates", "podRetention", "podLabels", "labels", "serverCertificate");
+        ArrayList<String> objectProperties = new ArrayList<>(Arrays.asList("templates", "podRetention", "podLabels", "labels", "serverCertificate"));
         for (String property: PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
@@ -258,7 +240,7 @@ public class KubernetesCloudTest {
         cloud.setTemplates(Collections.singletonList(pt));
         cloud.setPodRetention(new Always());
         cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
-        cloud.setLabels(ImmutableMap.of("foo", "bar"));
+        cloud.setLabels(Collections.singletonMap("foo", "bar"));
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
         assertEquals("copy", copy.name);

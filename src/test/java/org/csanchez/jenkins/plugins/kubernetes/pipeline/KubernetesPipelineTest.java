@@ -157,14 +157,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             new Thread(() -> {
                 long pos = 0;
                 try {
-                    while (true) {
-                        Jenkins j = Jenkins.getInstanceOrNull();
-                        if (j == null) {
-                            break;
-                        }
-                        // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
-                        File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
-                        if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
+                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
+                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
                             pos = c.getLogText().writeLogTo(pos, System.out);
                         }
                         Thread.sleep(100);
@@ -210,6 +204,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("container=busybox", b);
         r.assertLogContains("script file contents: ", b);
+        r.assertLogContains("Created container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
         assertThat("routine build should not issue warnings",
@@ -276,7 +271,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
         r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
-        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
@@ -292,6 +287,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void bourneShellElsewhereInPath() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("/kaniko:/busybox", b);
+    }
+
+    @Test
+    public void inheritFrom() throws Exception {
+        PodTemplate standard = new PodTemplate();
+        standard.setName("standard");
+        cloud.addTemplate(standard);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Created container jnlp", b);
     }
 
     @Test
@@ -382,9 +386,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_LEGACY = " + CONTAINER_ENV_VAR_VALUE + "\n", b);
-        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         r.assertLogContains("INSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
-        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = **** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         r.assertLogContains("INSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("INSIDE_GLOBAL = " + GLOBAL + "\n", b);
 
@@ -392,7 +396,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_LEGACY =\n", b);
         r.assertLogContains("OUTSIDE_CONTAINER_ENV_VAR_FROM_SECRET = or\n", b);
         r.assertLogContains("OUTSIDE_POD_ENV_VAR = " + POD_ENV_VAR_VALUE + "\n", b);
-        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
+        r.assertLogContains("OUTSIDE_POD_ENV_VAR_FROM_SECRET = **** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         r.assertLogContains("OUTSIDE_EMPTY_POD_ENV_VAR_FROM_SECRET = ''", b);
         r.assertLogContains("OUTSIDE_GLOBAL = " + GLOBAL + "\n", b);
     }
@@ -654,8 +658,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assumeWindows();
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = ******** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
-        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = ******** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = **** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
         r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
         r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
     }

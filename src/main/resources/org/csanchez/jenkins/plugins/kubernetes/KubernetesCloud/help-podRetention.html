@@ -1,15 +1,15 @@
 <div>
     <p>
-        This setting controls how slave pods are retained after the Jenkins build completes.
+        This setting controls how agent pods are retained after the Jenkins build completes.
         The following retention policies are provided:
     </p>
     <ol>
-        <li>Never - always delete the slave pod.</li>
-        <li>On Failure - keep the slave pod if it fails during the build.</li>
-        <li>Always - always keep the slave pod.</li>
+        <li>Never - always delete the agent pod.</li>
+        <li>On Failure - keep the agent pod if it fails during the build.</li>
+        <li>Always - always keep the agent pod.</li>
     </ol>
     <p>
-        <strong>Note:</strong> Kubernetes administrators are responsible for managing any kept slave pod.
+        <strong>Note:</strong> Kubernetes administrators are responsible for managing any kept agent pod.
         These will not be deleted by the Jenkins Kubernetes plugin.
     </p>
 </div>

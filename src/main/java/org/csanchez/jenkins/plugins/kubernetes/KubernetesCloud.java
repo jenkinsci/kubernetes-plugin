@@ -18,13 +18,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
-import com.google.common.annotations.VisibleForTesting;
 import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
@@ -48,7 +46,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -93,7 +90,7 @@ public class KubernetesCloud extends Cloud {
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
     @Deprecated
-    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
+    public static final Map<String, String> DEFAULT_POD_LABELS = Collections.singletonMap("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -568,10 +565,6 @@ public class KubernetesCloud extends Cloud {
         return Collections.emptyList();
     }
 
-    public void onTerminate(@NonNull KubernetesSlave slave) {
-        KubernetesProvisioningLimits.get().unregister(slave.getKubernetesCloud(), slave.getTemplate(), slave.getNumExecutors());
-    }
-
     @Override
     public boolean canProvision(@NonNull Cloud.CloudState state) {
         return getTemplate(state.getLabel()) != null;
@@ -806,7 +799,7 @@ public class KubernetesCloud extends Cloud {
                 if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
                 if(slaveAgentPort == 0) return FormValidation.warning(
-                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
+                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted controller with random port!");
             } else {
                 if (isEmpty(jenkinsUrl)) {
                     String url = StringUtils.defaultIfBlank(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")), JenkinsLocationConfiguration.get().getUrl());

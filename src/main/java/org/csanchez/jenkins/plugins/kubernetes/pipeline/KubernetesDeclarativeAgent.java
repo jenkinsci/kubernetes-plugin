@@ -53,6 +53,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @CheckForNull
     private String serviceAccount;
     @CheckForNull
+    private String schedulerName;
+    @CheckForNull
     private String nodeSelector;
     @CheckForNull
     private String namespace;
@@ -71,6 +73,8 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     private String yaml;
     @CheckForNull
     private String yamlFile;
+    @CheckForNull
+    private Boolean showRawYaml;
     private YamlMergeStrategy yamlMergeStrategy;
     @CheckForNull
     private WorkspaceVolume workspaceVolume;
@@ -161,6 +165,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
         this.serviceAccount = serviceAccount;
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
+    }
+
+    @DataBoundSetter
+    public void setSchedulerName(String schedulerName) {
+        this.schedulerName = schedulerName;
     }
 
     public String getNodeSelector() {
@@ -261,6 +274,15 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     }
 
     @DataBoundSetter
+    public void setShowRawYaml(Boolean showRawYaml) {
+        this.showRawYaml = showRawYaml;
+    }
+
+    public Boolean getShowRawYaml() {
+        return showRawYaml;
+    }
+
+    @DataBoundSetter
     public void setYamlFile(String yamlFile) {
         this.yamlFile = yamlFile;
     }
@@ -316,6 +338,9 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
         if (!StringUtils.isEmpty(yaml)) {
             argMap.put("yaml", yaml);
         }
+        if (showRawYaml != null) {
+            argMap.put("showRawYaml", showRawYaml);
+        }
         if (yamlMergeStrategy != null) {
             argMap.put("yamlMergeStrategy", yamlMergeStrategy);
         }
@@ -366,7 +391,7 @@ public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDecla
     @Symbol("kubernetes")
     public static class DescriptorImpl extends DeclarativeAgentDescriptor<KubernetesDeclarativeAgent> {
 
-        static final String[] POD_TEMPLATE_FIELDS = {"namespace", "inheritFrom", "yaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+        static final String[] POD_TEMPLATE_FIELDS = {"namespace", "inheritFrom", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
 
         public DescriptorImpl() {
             for (String field: new String[] {"cloud", "label"}) {

@@ -3,8 +3,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Functions;
 import hudson.model.TaskListener;
 import io.fabric8.kubernetes.api.model.Event;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 
 import java.io.PrintStream;
 import java.util.logging.Logger;
@@ -35,7 +35,7 @@ class TaskListenerEventWatcher implements Watcher<Event> {
     }
 
     @Override
-    public void onClose(KubernetesClientException cause) {
+    public void onClose(WatcherException cause) {
         String msg = String.format("%s onClose: %s", getClass().getSimpleName(), name);
         if (cause != null) {
             LOGGER.log(WARNING, msg, cause);

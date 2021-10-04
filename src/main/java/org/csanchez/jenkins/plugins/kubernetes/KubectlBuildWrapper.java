@@ -34,12 +34,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
-import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-
-import static com.google.common.collect.Sets.newHashSet;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -83,7 +82,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
         workspace.mkdirs();
         FilePath configFile = workspace.createTempFile(".kube", "config");
-        Set<String> tempFiles = newHashSet(configFile.getRemote());
+        Set<String> tempFiles = new HashSet<>(Arrays.asList(configFile.getRemote()));
 
         context.env("KUBECONFIG", configFile.getRemote());
         context.setDisposer(new CleanupDisposer(tempFiles));

@@ -1,9 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.io.Serializable;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,10 +19,6 @@ import java.util.logging.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -37,9 +38,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 
 import hudson.Extension;
 import hudson.Util;
@@ -67,15 +65,26 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private static final Logger LOGGER = Logger.getLogger(PodTemplate.class.getName());
 
     /**
-     * Connection timeout expiration in seconds, default to 100 seconds
+     * Connection timeout expiration in seconds, default to 1000 seconds
      */
     public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT = Integer
-            .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 100);
+            .getInteger(PodTemplate.class.getName() + ".connectionTimeout", 1000);
 
     /**
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
+     * Not used for security.
      */
-    public static final HashFunction LABEL_DIGEST_FUNCTION = Hashing.sha1();
+    protected static final MessageDigest LABEL_DIGEST_FUNCTION;
+    static {
+        try {
+            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            // will never happen, SHA-256 support required on every Java implementation
+            e.printStackTrace();
+            // throw error to allow variable to be set as final
+            throw new AssertionError(e);
+        }
+    }
 
     private String id;
 
@@ -88,9 +97,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     private String image;
 
     private boolean privileged;
-    
+
     private Long runAsUser;
-    
+
     private Long runAsGroup;
 
     private String supplementalGroups;
@@ -115,7 +124,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String label;
 
+    /**
+     * Set of label atoms this pod template provides in Jenkins. Jenkins indexes them on creation.
+     */
+    private transient Set<LabelAtom> labelSet;
+
+    private transient Map<String, String> labelsMap;
+
     private String serviceAccount;
+
+    private String schedulerName;
 
     private String nodeSelector;
 
@@ -203,6 +221,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         } else {
             this.id = id;
         }
+        recomputeLabelDerivedFields();
     }
 
     public PodTemplate(PodTemplate from) {
@@ -210,6 +229,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
         this.yamls = from.yamls;
         this.listener = from.listener;
+        recomputeLabelDerivedFields();
     }
 
     @Deprecated
@@ -421,21 +441,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public Set<LabelAtom> getLabelSet() {
-        return Label.parse(label);
+        return labelSet;
     }
 
     public Map<String, String> getLabelsMap() {
-        if (label == null) {
-            return ImmutableMap.of(
-                    "jenkins/label", DEFAULT_LABEL,
-                    "jenkins/label-digest", "0"
-            );
-        } else {
-            return ImmutableMap.of(
-                    "jenkins/label", sanitizeLabel(label),
-                    "jenkins/label-digest", LABEL_DIGEST_FUNCTION.hashString(label).toString()
-            );
-        }
+        return labelsMap;
     }
 
     static String sanitizeLabel(String input) {
@@ -455,6 +465,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = Util.fixEmptyAndTrim(label);
+        recomputeLabelDerivedFields();
+    }
+
+    private void recomputeLabelDerivedFields() {
+        this.labelSet = Label.parse(label);
+        Map<String, String> tempMap = new HashMap<>();
+        if (label == null) {
+            tempMap.put("jenkins/label", DEFAULT_LABEL);
+            tempMap.put("jenkins/label-digest", "0");
+        } else {
+            LABEL_DIGEST_FUNCTION.update(label.getBytes(StandardCharsets.UTF_8));
+            tempMap.put("jenkins/label", sanitizeLabel(label));
+            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())));
+        }
+        labelsMap = Collections.unmodifiableMap(tempMap);
     }
 
     public String getLabel() {
@@ -499,7 +524,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public void setRunAsUser(String runAsUser) {
         this.runAsUser = PodTemplateUtils.parseLong(runAsUser);
     }
-    
+
     public String getRunAsUser() {
         return runAsUser == null ? null : runAsUser.toString();
     }
@@ -550,6 +575,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setServiceAccount(String serviceAccount) {
         this.serviceAccount = Util.fixEmpty(serviceAccount);
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
+    }
+
+    @DataBoundSetter
+    public void setSchedulerName(String schedulerName) {
+        this.schedulerName = Util.fixEmpty(schedulerName);
     }
 
     @Deprecated
@@ -755,7 +789,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return yamls;
     }
 
-    @VisibleForTesting
     @Restricted(NoExternalUse.class)
     List<String> _getYamls() {
         return yamls;
@@ -802,13 +835,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
-    protected Object readResolve() throws NoSuchAlgorithmException {
+    protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<>();
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
-            containerTemplate.setArgs(Strings.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
+            containerTemplate.setArgs(PodTemplateUtils.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
             containerTemplate.setPrivileged(privileged);
             containerTemplate.setRunAsUser(getRunAsUser());
             containerTemplate.setRunAsGroup(getRunAsGroup());
@@ -850,6 +883,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             // Use the label and a digest of the current object representation to get the same value every restart if the object isn't saved.
             id = getLabel() + "-" + Util.getDigestOf(toString());
         }
+        recomputeLabelDerivedFields();
 
         return this;
     }
@@ -1002,6 +1036,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +
                 (label == null ? "" : ", label='" + label + '\'') +
                 (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'') +
+                (schedulerName == null ? "" : ", schedulerName='" + schedulerName + '\'') +
                 (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'') +
                 (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode) +
                 (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +

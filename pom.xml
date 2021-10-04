@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.16</version>
+    <version>4.26</version>
     <relativePath />
   </parent>
 
@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.29.1</revision>
+    <revision>1.30.3</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -47,23 +47,20 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.263</jenkins.version>
+    <jenkins.version>2.263.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
     <useBeta>true</useBeta>
-    <jenkins-test-harness.version>2.71</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>4.13.2-1</version>
+      <version>5.4.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
-      <version>2.12.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -112,13 +109,11 @@
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency> <!-- DeclarativeGeneratorTester -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
@@ -130,7 +125,15 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>metrics</artifactId>
-      <version>4.0.2.6</version>
+      <version>4.0.2.8</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>caffeine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials-binding</artifactId>
     </dependency>
 
     <!-- for testing -->
@@ -158,7 +161,6 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SnippetizerTest -->
@@ -211,7 +213,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.18</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -256,7 +257,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.263.x</artifactId>
-        <version>21</version>
+        <version>966.v3857b7c82032</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

@@ -45,7 +45,7 @@
                                   deleteCaption="${%Delete Volume}" />
     </f:entry>
 
-    <f:entry field="annotations" title="${%Annotations}" description="${%List of annotations to set in slave pod}">
+    <f:entry field="annotations" title="${%Annotations}" description="${%List of annotations to set in agent pod}">
       <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="${%Add Annotation}"
                                   deleteCaption="${%Delete annotation Variable}" />
     </f:entry>

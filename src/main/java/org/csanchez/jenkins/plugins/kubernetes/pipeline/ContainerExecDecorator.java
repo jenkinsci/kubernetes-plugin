@@ -336,7 +336,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 }
                 return doLaunch(starter.quiet(), fixDoubleDollar(envVars), starter.stdout(), containerWorkingDirFilePath, starter.masks(),
-                        getCommands(starter, containerWorkingDirFilePathStr));
+                        getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
             }
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
@@ -464,7 +464,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        in.println(String.format("cd \"%s\"", pwd));
+                        in.print(String.format("cd \"%s\"", pwd));
+                        in.print(newLine(!launcher.isUnix()));
                     }
 
                     EnvVars envVars = new EnvVars();
@@ -491,9 +492,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
-                    setupEnvironmentVariable(envVars, in, sh.equals("cmd"));
+                    setupEnvironmentVariable(envVars, in, !launcher.isUnix());
 
-                    doExec(in, printStream, masks, commands);
+                    doExec(in, !launcher.isUnix(), printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
@@ -527,17 +528,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                     //Check that key is bash compliant.
                     if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
-                            out.println(
+                            out.print(
                                     String.format(
                                             windows ? "set %s=%s" : "export %s='%s'",
                                             entry.getKey(),
                                             windows ? entry.getValue() : entry.getValue().replace("'", "'\\''")
                                     )
                             );
+                            out.print(newLine(windows));
                         }
                     }
             }
         };
+    }
+
+    private static String newLine(boolean windows) {
+        return windows ? "\r\n" : "\n";
     }
 
     @Override
@@ -618,7 +624,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
     }
 
-    private static void doExec(PrintStream in, PrintStream out, boolean[] masks, String... statements) {
+    private static void doExec(PrintStream in, boolean windows, PrintStream out, boolean[] masks, String... statements) {
         long start = System.nanoTime();
         // For logging
         ByteArrayOutputStream loggingOutput = new ByteArrayOutputStream();
@@ -639,22 +645,27 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                    .append(statements[i])
                    .append("\" ");
             }
-            tee.println();
+            tee.print(newLine(windows));
             LOGGER.log(Level.FINEST, loggingOutput.toString(encoding) + "[" + TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start) + " μs." + "]");
             // We need to exit so that we know when the command has finished.
-            tee.println(EXIT);
+            tee.print(EXIT);
+            tee.print(newLine(windows));
             tee.flush();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
     }
 
-    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr) {
+    static String[] getCommands(Launcher.ProcStarter starter, String containerWorkingDirStr, boolean unix) {
         List<String> allCommands = new ArrayList<String>();
 
-        // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
+
         for (String cmd : starter.cmds()) {
-            String fixedCommand = cmd.replaceAll("\\$\\$", "\\\\\\$");
+            // BourneShellScript.launchWithCookie escapes $ as $$, we convert it to \$
+            String fixedCommand = cmd.replaceAll("\\$\\$", Matcher.quoteReplacement("\\$"));
+            if (unix) {
+                fixedCommand = fixedCommand.replaceAll("\\\"", Matcher.quoteReplacement("\\\""));
+            }
 
             String oldRemoteDir = null;
             FilePath oldRemoteDirFilepath = starter.pwd();

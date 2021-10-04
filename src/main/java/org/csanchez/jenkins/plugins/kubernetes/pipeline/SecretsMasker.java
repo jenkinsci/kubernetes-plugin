@@ -17,7 +17,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.Extension;
-import hudson.console.LineTransformationOutputStream;
 import hudson.remoting.Channel;
 import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.api.model.Container;
@@ -45,6 +44,7 @@ import javax.annotation.CheckForNull;
 import okhttp3.Response;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.DynamicContext;
@@ -67,28 +67,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
 
     @Override
     public OutputStream decorate(OutputStream logger) throws IOException, InterruptedException {
-        // TODO better to pick up a standard API from credentials-binding (more efficient)
-        // https://github.com/jenkinsci/credentials-binding-plugin/pull/59#discussion_r288735761
-        return new LineTransformationOutputStream() {
-            @Override
-            protected void eol(byte[] b, int len) throws IOException {
-                String s = new String(b, 0, len, StandardCharsets.UTF_8);
-                for (String value : values) {
-                    s = s.replace(value, "********");
-                }
-                logger.write(s.getBytes(StandardCharsets.UTF_8));
-            }
-            @Override
-            public void flush() throws IOException {
-                logger.flush();
-            }
-            @Override
-            public void close() throws IOException {
-                super.close();
-                logger.close();
-            }
-
-        };
+        return new SecretPatterns.MaskingOutputStream(logger, () -> SecretPatterns.getAggregateSecretPattern(values), "UTF-8");
     }
 
     @Extension

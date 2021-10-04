@@ -10,14 +10,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.model.TaskListener;
-import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 
 import javax.annotation.CheckForNull;
@@ -70,7 +69,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     }
 
     @Override
-    public void onClose(KubernetesClientException cause) {
+    public void onClose(WatcherException cause) {
 
     }
 

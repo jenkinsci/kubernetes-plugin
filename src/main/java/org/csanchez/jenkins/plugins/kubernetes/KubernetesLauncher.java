@@ -28,6 +28,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -45,9 +46,6 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
@@ -55,8 +53,6 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.PrettyLoggable;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
@@ -178,7 +174,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
-            List<String> validStates = ImmutableList.of("Running");
+            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Running"));
 
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
@@ -273,7 +269,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             } catch (IOException | InterruptedException e) {
                 LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
             }
-            throw Throwables.propagate(ex);
+            throw new RuntimeException(ex);
         }
     }
 
@@ -306,13 +302,12 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (containers != null) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
-                PrettyLoggable<String, LogWatch> tailingLines = client.pods().inNamespace(namespace).withName(podId)
-                        .inContainer(containerStatus.getName()).tailingLines(30);
-                String log = tailingLines.getLog();
+                String log = client.pods().inNamespace(namespace).withName(podId)
+                        .inContainer(containerStatus.getName()).tailingLines(30).getLog();
                 if (!StringUtils.isBlank(log)) {
                     String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
                     LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                            new Object[]{slave, slave.getTemplate(), containerName, msg, tailingLines.getLog()});
+                            new Object[]{slave, slave.getTemplate(), containerName, msg, log});
                 }
             }
         }

@@ -3,45 +3,48 @@
  * and in parallel
  */
 
-podTemplate(yaml: """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: maven-firefox
-    image: maven:3.3.9-jdk-8-alpine
-    command: ['sleep']
-    args: ['9999999']
-  - name: maven-chrome
-    image: maven:3.3.9-jdk-8-alpine
-    command: ['sleep']
-    args: ['9999999']
-  - name: selenium-hub
-    image: selenium/hub:3.4.0
-  - name: selenium-chrome
-    image: selenium/node-chrome:3.4.0
-    env:
-    - name: HUB_PORT_4444_TCP_ADDR
-      value: localhost
-    - name: HUB_PORT_4444_TCP_PORT
-      value: 4444
-    - name: DISPLAY
-      value: :99.0
-    - name: SE_OPTS
-      value: -port 5556
-  - name: selenium-firefox
-    image: selenium/node-firefox:3.4.0
-    env:
-    - name: HUB_PORT_4444_TCP_ADDR
-      value: localhost
-    - name: HUB_PORT_4444_TCP_PORT
-      value: 4444
-    - name: DISPLAY
-      value: :98.0
-    - name: SE_OPTS
-      value: -port 5557
-"""
-  ) {
+podTemplate(yaml: '''
+              apiVersion: v1
+              kind: Pod
+              spec:
+                containers:
+                - name: maven-firefox
+                  image: maven:3.8.1-jdk-8
+                  command:
+                  - sleep
+                  args: 
+                  - 99d
+                - name: maven-chrome
+                  image: maven:3.8.1-jdk-8
+                  command:
+                  - sleep
+                  args: 
+                  - 99d
+                - name: selenium-hub
+                  image: selenium/hub:3.141.59
+                - name: selenium-chrome
+                  image: selenium/node-chrome:3.141.59
+                  env:
+                  - name: HUB_PORT_4444_TCP_ADDR
+                    value: localhost
+                  - name: HUB_PORT_4444_TCP_PORT
+                    value: 4444
+                  - name: DISPLAY
+                    value: :99.0
+                  - name: SE_OPTS
+                    value: -port 5556
+                - name: selenium-firefox
+                  image: selenium/node-firefox:3.141.59
+                  env:
+                  - name: HUB_PORT_4444_TCP_ADDR
+                    value: localhost
+                  - name: HUB_PORT_4444_TCP_PORT
+                    value: 4444
+                  - name: DISPLAY
+                    value: :98.0
+                  - name: SE_OPTS
+                    value: -port 5557
+''') {
 
   node(POD_LABEL) {
     stage('Checkout') {

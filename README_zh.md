@@ -9,7 +9,7 @@ automates the scaling of Jenkins agents running in Kubernetes.
 该插件在节点启动时创建一个包含 Docker 镜像的 Kubernetes Pod，并在构建结束时停止。
 
 For that some environment variables are automatically injected:
-节点使用 JNLP 来启动，并自动连接到 Jenkins master 上。期间，会自动注入一些环境变量：
+节点使用 JNLP 来启动，并自动连接到 Jenkins controller 上。期间，会自动注入一些环境变量：
 
 * `JENKINS_URL`: Jenkins 界面地址
 * `JENKINS_SECRET`: 认证用的密钥
@@ -19,7 +19,7 @@ For that some environment variables are automatically injected:
 使用镜像 [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent) 做的测试。
 查看[Docker 镜像源码](https://github.com/jenkinsci/docker-inbound-agent)。
 
-Jenkins master 可以不在 Kubernetes 上运行。
+Jenkins controller 可以不在 Kubernetes 上运行。
 
 # Kubernetes 云配置
 
@@ -28,7 +28,7 @@ _名称_、_Kubernetes 地址_、 _Kubernetes server 服务证书 key_ 等等。
 
 如果没有设置 _Kubernetes 地址_，连接选项会自动从 `Service Account` 或 `kube config` 文件中读取。
 
-在 Kubernetes 外运行的 Jenkins master 话，则需要设置凭据。凭据的值就是你为 Jenkins 在集群中创建
+在 Kubernetes 外运行的 Jenkins controller 话，则需要设置凭据。凭据的值就是你为 Jenkins 在集群中创建
 的 `Service Account` 的 `Token`，节点运行时也会使用。
 
 ### 限制哪些任务可以使用你配置的云
@@ -207,7 +207,7 @@ spec:
 ```
 
 你可以使用步骤 [`readFile`](https://jenkins.io/zh/doc/pipeline/steps/workflow-basic-steps/#code-readfile-code-read-file-from-workspace) 
-或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中年加载 yaml.
+或 [`readTrusted`](https://jenkins.io/doc/pipeline/steps/coding-webhook/#readtrusted-read-trusted-file-from-scm) 从文件中加载 yaml.
 它从 Jenkins 控制台的插件配置界面上也能访问到。
 
 #### 存活性探测的使用
@@ -643,7 +643,7 @@ kubectl apply -n kubernetes-plugin-test-overridden-namespace2 -f src/test/kubern
 
 # Docker 镜像
 
-Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://registry.hub.docker.com/_/jenkins/)。
+Jenkins 的 Docker 镜像，并安装好插件。基于[官方镜像](https://hub.docker.com/r/jenkins/jenkins/)。
 
 ## 运行 Docker 镜像
 
