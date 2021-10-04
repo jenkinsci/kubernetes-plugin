@@ -32,6 +32,7 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.KeyToPath;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.kohsuke.stapler.DataBoundSetter;
 
 public class ConfigMapVolume extends PodVolume {
 
@@ -40,16 +41,11 @@ public class ConfigMapVolume extends PodVolume {
     private String configMapName;
     private Boolean optional;
 
-     @DataBoundConstructor
-    public ConfigMapVolume(String mountPath, String configMapName, Boolean optional, String subPath) {
+    @DataBoundConstructor
+    public ConfigMapVolume(String mountPath, String configMapName, Boolean optional) {
         this.mountPath = mountPath;
-        this.subPath = subPath;
         this.configMapName = configMapName;
         this.optional = optional;
-    }
-    
-    public ConfigMapVolume(String mountPath, String configMapName, Boolean optional) {
-        this(mountPath, configMapName, optional, (String) null);
     }
 
 
@@ -79,6 +75,11 @@ public class ConfigMapVolume extends PodVolume {
     
     public String getSubPath() {
         return subPath;
+    }
+    
+    @DataBoundSetter
+    public void setSubPath(String subPath) {
+        this.subPath = subPath;
     }
     
     @Extension

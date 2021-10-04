@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.263.1</jenkins.version>
+    <jenkins.version>2.277.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
   </properties>
@@ -93,7 +93,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>durable-task</artifactId>
-      <version>1.35</version>
+      <version>1.39</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
