@@ -1,6 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.annotation.Nonnull;
+
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.init.InitMilestone;
@@ -10,16 +19,6 @@ import hudson.model.Queue;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.NodeListener;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import javax.annotation.Nonnull;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Implements provisioning limits for clouds and pod templates
@@ -31,26 +30,28 @@ public final class KubernetesProvisioningLimits {
     /**
      * Tracks current number of kubernetes agents per pod template
      */
-    private final Map<String, AtomicInteger> podTemplateCounts = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Integer> podTemplateCounts = new HashMap<>();
 
     /**
      * Tracks current number of kubernetes agents per kubernetes cloud
      */
-    private final Map<String, AtomicInteger> cloudCounts = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Integer> cloudCounts = new HashMap<>();
 
     @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
     public static void init() {
         // We don't want anything to be provisioned while we do the initial count.
         Queue.withLock(() -> {
             final KubernetesProvisioningLimits instance = get();
-            Jenkins.get().getNodes()
-                    .stream()
-                    .filter(KubernetesSlave.class::isInstance)
-                    .map(KubernetesSlave.class::cast)
-                    .forEach(node -> {
-                instance.getGlobalCount(node.getCloudName()).addAndGet(node.getNumExecutors());
-                instance.getPodTemplateCount(node.getTemplateId()).addAndGet(node.getNumExecutors());
-            });
+            synchronized(instance) {
+                Jenkins.get().getNodes()
+                        .stream()
+                        .filter(KubernetesSlave.class::isInstance)
+                        .map(KubernetesSlave.class::cast)
+                        .forEach(node -> {
+                    instance.cloudCounts.put(node.getCloudName(), instance.getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                    instance.podTemplateCounts.put(node.getTemplateId(), instance.getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+                });
+            }
         });
     }
 
@@ -67,26 +68,24 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    @SuppressFBWarnings(value="JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Trust me here")
-    public boolean register(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
-        AtomicInteger globalCount = getGlobalCount(cloud.name);
-        AtomicInteger podTemplateCount = getPodTemplateCount(podTemplate.getId());
-        synchronized (globalCount) {
-            synchronized (podTemplateCount) {
-                if (globalCount.get() + numExecutors <= cloud.getContainerCap()) {
-                    if (podTemplateCount.get() + numExecutors <= podTemplate.getInstanceCap()) {
-                        int g = globalCount.addAndGet(numExecutors);
-                        int p = podTemplateCount.addAndGet(numExecutors);
-                        LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + g + "/" + cloud.getContainerCap());
-                        LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + p + "/" + podTemplate.getInstanceCap());
-                        return true;
-                    } else {
-                        Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
-                    }
-                } else {
-                    Metrics.metricRegistry().counter(MetricNames.REACHED_GLOBAL_CAP).inc();
-                }
+    public synchronized boolean register(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
+        int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
+        if (newGlobalCount <= cloud.getContainerCap()) {
+            int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) + numExecutors;
+            if (newPodTemplateCount <= podTemplate.getInstanceCap()) {
+                cloudCounts.put(cloud.name, newGlobalCount);
+                LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + newGlobalCount + "/" + cloud.getContainerCap());
+
+                podTemplateCounts.put(podTemplate.getId(), newPodTemplateCount);
+                LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + newPodTemplateCount + "/" + podTemplate.getInstanceCap());
+                return true;
+            } else {
+                LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit reached: " + getPodTemplateCount(podTemplate.getId()) + "/" + podTemplate.getInstanceCap() + ". Cannot add " + numExecutors + " more!");
+                Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
             }
+        } else {
+            LOGGER.log(Level.FINEST, () -> cloud.name + " global limit reached: " + getGlobalCount(cloud.name) + "/" + cloud.getContainerCap() + ". Cannot add " + numExecutors + " more!");
+            Metrics.metricRegistry().counter(MetricNames.REACHED_GLOBAL_CAP).inc();
         }
         return false;
     }
@@ -97,40 +96,32 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    @SuppressFBWarnings(value="JLM_JSR166_UTILCONCURRENT_MONITORENTER", justification = "Trust me here")
-    public void unregister(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
-        AtomicInteger globalCount = getGlobalCount(cloud.name);
-        AtomicInteger podTemplateCount = getPodTemplateCount(podTemplate.getId());
-        synchronized (globalCount) {
-            synchronized (podTemplateCount) {
-                int newGlobalCount = globalCount.addAndGet(numExecutors * -1);
-                int newPodTemplateCount = podTemplateCount.addAndGet(numExecutors * -1);
-                if (newGlobalCount < 0) {
-                    LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
-                    globalCount.set(0);
-                } else {
-                    LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + newGlobalCount + "/" + cloud.getContainerCap());
-                }
-                if (newPodTemplateCount < 0) {
-                    LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getId() + " went below zero. There is likely a bug in kubernetes-plugin");
-                    podTemplateCount.set(0);
-                } else {
-                    LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + newPodTemplateCount + "/" + podTemplate.getInstanceCap());
-                }
-            }
+    public synchronized void unregister(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
+        int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
+        if (newGlobalCount < 0) {
+            LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
         }
+        cloudCounts.put(cloud.name, Math.max(0, newGlobalCount));
+        LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/" + cloud.getContainerCap());
+
+        int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) - numExecutors;
+        if (newPodTemplateCount < 0) {
+            LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getName() + " went below zero. There is likely a bug in kubernetes-plugin");
+        }
+        podTemplateCounts.put(podTemplate.getId(), Math.max(0, newPodTemplateCount));
+        LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/" + podTemplate.getInstanceCap());
     }
 
     @Nonnull
     @Restricted(NoExternalUse.class)
-    AtomicInteger getGlobalCount(String name) {
-        return cloudCounts.computeIfAbsent(name, k -> new AtomicInteger());
+    int getGlobalCount(String cloudName) {
+        return cloudCounts.getOrDefault(cloudName, 0);
     }
 
     @Nonnull
     @Restricted(NoExternalUse.class)
-    AtomicInteger getPodTemplateCount(String id) {
-        return podTemplateCounts.computeIfAbsent(id, k -> new AtomicInteger());
+    int getPodTemplateCount(String podTemplate) {
+        return podTemplateCounts.getOrDefault(podTemplate, 0);
     }
 
     @Extension
