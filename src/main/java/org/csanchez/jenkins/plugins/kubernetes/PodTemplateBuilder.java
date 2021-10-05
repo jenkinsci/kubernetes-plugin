@@ -47,6 +47,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -81,7 +82,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 
 /**
  * Helper class to build Pods from PodTemplates
@@ -179,10 +179,10 @@ public class PodTemplateBuilder {
 
                 if (volume instanceof ConfigMapVolume) {
                     final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
-                        //We need to normalize the subPath or we can end up in really hard to debug issues Just in case.
-                        final String subPath = substituteEnv(Paths.get(configmapVolume.getSubPath()).normalize().toString().replace("\\", "/"));
-                        volumeMountBuilder = volumeMountBuilder.withSubPath(subPath);
-                            }
+                    //We need to normalize the subPath or we can end up in really hard to debug issues Just in case.
+                    final String subPath = substituteEnv(Paths.get(configmapVolume.getSubPath()).normalize().toString().replace("\\", "/"));
+                    volumeMountBuilder = volumeMountBuilder.withSubPath(subPath);
+                }
                 volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
