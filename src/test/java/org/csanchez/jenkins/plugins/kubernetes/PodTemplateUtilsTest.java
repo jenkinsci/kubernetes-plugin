@@ -24,46 +24,27 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import hudson.model.Node;
+import hudson.tools.ToolLocationNodeProperty;
+import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-
-import hudson.model.Node;
-import hudson.tools.ToolLocationNodeProperty;
-import io.fabric8.kubernetes.api.model.ConfigMapEnvSource;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EnvFromSource;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
-import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
-import io.fabric8.kubernetes.api.model.SecretEnvSource;
-import io.fabric8.kubernetes.api.model.Toleration;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 public class PodTemplateUtilsTest {
 
@@ -506,13 +487,13 @@ public class PodTemplateUtilsTest {
     @Test
     public void shouldCombineAllMounts() {
         PodTemplate template1 = new PodTemplate();
-        HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1");
-        HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2");
+        HostPathVolume hostPathVolume1 = new HostPathVolume("/host/mnt1", "/container/mnt1", null);
+        HostPathVolume hostPathVolume2 = new HostPathVolume("/host/mnt2", "/container/mnt2", null);
         template1.setVolumes(asList(hostPathVolume1, hostPathVolume2));
 
         PodTemplate template2 = new PodTemplate();
-        HostPathVolume hostPathVolume3 = new HostPathVolume("/host/mnt3", "/container/mnt3");
-        HostPathVolume hostPathVolume4 = new HostPathVolume("/host/mnt1", "/container/mnt4");
+        HostPathVolume hostPathVolume3 = new HostPathVolume("/host/mnt3", "/container/mnt3", null);
+        HostPathVolume hostPathVolume4 = new HostPathVolume("/host/mnt1", "/container/mnt4", null);
         template2.setVolumes(asList(hostPathVolume3, hostPathVolume4));
 
         PodTemplate result = combine(template1, template2);

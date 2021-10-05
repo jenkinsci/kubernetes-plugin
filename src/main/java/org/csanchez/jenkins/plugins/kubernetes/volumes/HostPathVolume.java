@@ -34,12 +34,14 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 public class HostPathVolume extends PodVolume {
     private String mountPath;
+    private String subPath;
     private String hostPath;
 
     @DataBoundConstructor
-    public HostPathVolume(String hostPath, String mountPath) {
+    public HostPathVolume(String hostPath, String mountPath, String subPath) {
         this.hostPath = hostPath;
         this.mountPath = mountPath;
+        this.subPath = subPath;
     }
 
     public Volume buildVolume(String volumeName) {
@@ -51,6 +53,11 @@ public class HostPathVolume extends PodVolume {
 
     public String getMountPath() {
         return mountPath;
+    }
+
+    @Override
+    public String getSubPath() {
+        return subPath;
     }
 
     public String getHostPath() {

@@ -24,30 +24,31 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 public class NfsVolume extends PodVolume {
     private String mountPath;
+    private String subPath;
     private String serverAddress;
     private String serverPath;
     @CheckForNull
     private Boolean readOnly;
 
     @DataBoundConstructor
-    public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
+    public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath, String subPath) {
         this.serverAddress = serverAddress;
         this.serverPath = serverPath;
         this.readOnly = readOnly;
         this.mountPath = mountPath;
+        this.subPath = subPath;
     }
 
     public Volume buildVolume(String volumeName) {
@@ -59,6 +60,11 @@ public class NfsVolume extends PodVolume {
 
     public String getMountPath() {
         return mountPath;
+    }
+
+    @Override
+    public String getSubPath() {
+        return subPath;
     }
 
     public String getServerAddress() {

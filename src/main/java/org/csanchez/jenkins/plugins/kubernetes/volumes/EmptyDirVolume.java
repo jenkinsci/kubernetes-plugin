@@ -24,16 +24,15 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 public class EmptyDirVolume extends PodVolume {
 
@@ -43,16 +42,23 @@ public class EmptyDirVolume extends PodVolume {
     private String mountPath;
     @CheckForNull
     private Boolean memory;
+    private String subPath;
 
     @DataBoundConstructor
-    public EmptyDirVolume(String mountPath, Boolean memory) {
+    public EmptyDirVolume(String mountPath, Boolean memory, String subPath) {
         this.mountPath = mountPath;
         this.memory = memory;
+        this.subPath = subPath;
     }
 
     @Override
     public String getMountPath() {
         return mountPath;
+    }
+
+    @Override
+    public String getSubPath() {
+        return subPath;
     }
 
     public String getMedium() {

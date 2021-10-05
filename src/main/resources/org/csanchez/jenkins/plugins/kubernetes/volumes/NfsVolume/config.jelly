@@ -18,4 +18,7 @@
     <f:checkbox />
   </f:entry>
 
+  <f:entry title="${%Mount subPath}" field="subPath">
+    <f:textbox />
+  </f:entry>
 </j:jelly>
