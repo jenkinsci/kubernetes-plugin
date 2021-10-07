@@ -130,7 +130,10 @@ public final class KubernetesProvisioningLimits {
         protected void onDeleted(@Nonnull Node node) {
             if (node instanceof KubernetesSlave) {
                 KubernetesSlave kubernetesNode = (KubernetesSlave) node;
-                KubernetesProvisioningLimits.get().unregister(kubernetesNode.getKubernetesCloud(), kubernetesNode.getTemplate(), node.getNumExecutors());
+                PodTemplate template = kubernetesNode.getTemplateOrNull();
+                if (template != null) {
+                    KubernetesProvisioningLimits.get().unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
+                }
             }
         }
     }
