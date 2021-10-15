@@ -479,6 +479,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+        r.assertLogContains("busybox -- terminated (137)", b);
+        r.assertLogContains("jnlp -- terminated (143)", b);
     }
 
     @Issue("JENKINS-59340")
@@ -487,6 +489,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertBuildStatus(r.waitForCompletion(b), Result.FAILURE, Result.ABORTED);
         r.waitForMessage("Container stress-ng was terminated", b);
         r.waitForMessage("Reason: OOMKilled", b);
+    }
+
+    @Test
+    public void errorPod() throws Exception {
+        r.waitForMessage("jnlp -- terminated (1)", b);
+        r.waitForMessage("Foo", b);
+        b.doKill();
     }
 
     @Issue("JENKINS-59340")

@@ -16,12 +16,15 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Util;
 import hudson.model.Queue;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Map;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
@@ -100,5 +103,46 @@ public final class PodUtils {
         if (!cancelled) {
             LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
         }
+    }
+
+    @CheckForNull
+    public static String logLastLines(@NonNull Pod pod, @NonNull KubernetesClient client) {
+        PodStatus status = pod.getStatus();
+        ObjectMeta metadata = pod.getMetadata();
+        if (status == null || metadata == null) {
+             return null;
+        }
+        String podName = metadata.getName();
+        String namespace = metadata.getNamespace();
+        List<ContainerStatus> containers = status.getContainerStatuses();
+        StringBuilder sb = new StringBuilder();
+        if (containers != null) {
+            for (ContainerStatus containerStatus : containers) {
+                sb.append("\n");
+                sb.append("- ");
+                sb.append(containerStatus.getName());
+                if (containerStatus.getState().getTerminated() != null) {
+                    sb.append(" -- terminated (");
+                    sb.append(containerStatus.getState().getTerminated().getExitCode());
+                    sb.append(")");
+                }
+                if (containerStatus.getState().getRunning() != null) {
+                    sb.append(" -- running");
+                }
+                if (containerStatus.getState().getWaiting() != null) {
+                    sb.append(" -- waiting");
+                }
+                sb.append("\n");
+                sb.append("-----Logs-------------\n");
+                sb.append(client.pods()
+                        .inNamespace(namespace)
+                        .withName(podName)
+                        .inContainer(containerStatus.getName())
+                        .tailingLines(30)
+                        .getLog());
+                sb.append("\n");
+            }
+        }
+        return Util.fixEmpty(sb.toString());
     }
 }

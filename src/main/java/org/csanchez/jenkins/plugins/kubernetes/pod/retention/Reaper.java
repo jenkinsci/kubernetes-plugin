@@ -22,8 +22,6 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Computer;
 import hudson.model.Node;
-import hudson.model.Queue;
-import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.security.ACL;
@@ -36,7 +34,6 @@ import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
@@ -49,12 +46,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.fabric8.kubernetes.client.WatcherException;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 
 /**
  * Checks for deleted pods corresponding to {@link KubernetesSlave} and ensures the node is removed from Jenkins too.
@@ -251,7 +248,13 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 TaskListener runListener = node.getTemplate().getListener();
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
                 runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
-                node.terminate();
+                try {
+                    runListener.getLogger().println(PodUtils.logLastLines(pod, node.getKubernetesCloud().connect()));
+                } catch (KubernetesAuthException e) {
+                    LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
+                } finally {
+                    node.terminate();
+                }
             }
         }
     }
