@@ -29,20 +29,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import hudson.Util;
-import java.util.logging.Logger;
 import hudson.model.Descriptor;
-import io.fabric8.kubernetes.api.model.KeyToPath;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import java.io.IOException;
-import java.util.logging.Level;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundSetter;
 
 
 public class ConfigMapVolume extends PodVolume {
-    private static final Logger LOGGER = Logger.getLogger(ConfigMapVolume.class.getName());
-
     private String mountPath;
     private String subPath;
     private String configMapName;
@@ -81,24 +74,17 @@ public class ConfigMapVolume extends PodVolume {
     }
     
     public String getSubPath() {
-        if (subPath == null ) {
-            LOGGER.warning("Kubernetes-plugin: subPath Not set in config.xml Setting empty String instead of null: & Saving Instance configuration.");
-            this.subPath ="";
-            try {
-                //Saving Jenkins Configuration whenever we found a missing subPath.
-                Jenkins j = Jenkins.getInstanceOrNull();
-                if (j != null) j.save();
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
-            }
-        }
         return subPath;
     }
     
     @DataBoundSetter
     public void setSubPath(String subPath) {
-        this.subPath = Util.fixNull(subPath);
-        //LOGGER.info("Kubernetes-plugin: ConfigMap SET");
+        this.subPath = Util.fixEmpty(subPath);
+    }
+
+    protected Object readResolve() {
+        this.subPath = Util.fixEmpty(subPath);
+        return this;
     }
     
     @Extension

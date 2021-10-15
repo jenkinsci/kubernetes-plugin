@@ -15,8 +15,6 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.util.FormValidation;
-import java.util.Collections;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 
 import static org.junit.Assert.*;
@@ -27,7 +25,7 @@ public class ConfigMapVolumeTest {
     @Test
     public void testNullSubPathValue() {
         ConfigMapVolume configMapVolume= new ConfigMapVolume("oneMountPath", "Myvolume",false);
-        assertEquals(configMapVolume.getSubPath(),"");
+        assertNull(configMapVolume.getSubPath());
     }
 
     @Test
