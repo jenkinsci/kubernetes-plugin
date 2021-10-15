@@ -28,14 +28,14 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Descriptor;
-import io.fabric8.kubernetes.api.model.KeyToPath;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import org.kohsuke.stapler.DataBoundSetter;
 
-public class ConfigMapVolume extends PodVolume {
 
+public class ConfigMapVolume extends PodVolume {
     private String mountPath;
     private String subPath;
     private String configMapName;
@@ -79,7 +79,12 @@ public class ConfigMapVolume extends PodVolume {
     
     @DataBoundSetter
     public void setSubPath(String subPath) {
-        this.subPath = subPath;
+        this.subPath = Util.fixEmpty(subPath);
+    }
+
+    protected Object readResolve() {
+        this.subPath = Util.fixEmpty(subPath);
+        return this;
     }
     
     @Extension
