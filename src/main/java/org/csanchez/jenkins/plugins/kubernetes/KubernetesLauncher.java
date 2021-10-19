@@ -254,7 +254,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         } catch (Throwable ex) {
             Throwable[] suppressed = ex.getSuppressed();
             if (suppressed[0] instanceof ContainerLogs) {
-                runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " : " + suppressed[0].getMessage());
+                runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
+                runListener.getLogger().print(suppressed[0].getMessage());
             }
             setProblem(ex);
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);

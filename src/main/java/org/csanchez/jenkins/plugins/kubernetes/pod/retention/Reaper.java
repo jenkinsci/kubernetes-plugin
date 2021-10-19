@@ -249,7 +249,10 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
                 runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
                 try {
-                    runListener.getLogger().println(PodUtils.logLastLines(pod, node.getKubernetesCloud().connect()));
+                    String lines = PodUtils.logLastLines(pod, node.getKubernetesCloud().connect());
+                    if (lines != null) {
+                        runListener.getLogger().print(lines);
+                    }
                 } catch (KubernetesAuthException e) {
                     LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
                 } finally {
