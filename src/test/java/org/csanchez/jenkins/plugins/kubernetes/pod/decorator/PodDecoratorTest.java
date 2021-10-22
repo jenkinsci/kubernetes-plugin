@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.decorator;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -12,12 +13,8 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import javax.annotation.Nonnull;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
@@ -42,9 +39,9 @@ public class PodDecoratorTest {
 
     @TestExtension("activeDecorator")
     public static class PodDecoratorImpl implements PodDecorator {
-        @Nonnull
+        @NonNull
         @Override
-        public Pod decorate(@Nonnull KubernetesCloud kubernetesCloud, @Nonnull Pod pod) {
+        public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
             // @formatter:off
             return new PodBuilder(pod)
                     .editOrNewMetadata()

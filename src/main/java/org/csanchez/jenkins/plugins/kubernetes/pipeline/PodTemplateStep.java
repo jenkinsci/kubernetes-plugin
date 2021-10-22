@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.slaves.Cloud;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
@@ -35,8 +36,6 @@ import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import org.kohsuke.stapler.QueryParameter;
-
-import javax.annotation.CheckForNull;
 
 public class PodTemplateStep extends Step implements Serializable {
 

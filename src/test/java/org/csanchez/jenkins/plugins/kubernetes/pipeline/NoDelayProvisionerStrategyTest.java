@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.model.Label;
 import hudson.model.Node;
@@ -7,16 +8,13 @@ import hudson.model.queue.CauseOfBlockage;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.TestExtension;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.verification.VerificationMode;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
@@ -61,7 +59,7 @@ public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTe
         }
 
         @Override
-        public void onCommit(@Nonnull NodeProvisioner.PlannedNode plannedNode, @Nonnull Node node) {
+        public void onCommit(@NonNull NodeProvisioner.PlannedNode plannedNode, @NonNull Node node) {
             delegate.onCommit(plannedNode, node);
         }
 
@@ -71,7 +69,7 @@ public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTe
         }
 
         @Override
-        public void onRollback(@Nonnull NodeProvisioner.PlannedNode plannedNode, @Nonnull Node node, @Nonnull Throwable t) {
+        public void onRollback(@NonNull NodeProvisioner.PlannedNode plannedNode, @NonNull Node node, @NonNull Throwable t) {
             delegate.onRollback(plannedNode, node, t);
         }
 

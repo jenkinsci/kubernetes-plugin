@@ -10,8 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -242,7 +241,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     @Extension
     public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
-        @Nonnull
+        @NonNull
         @Override
         public String getDisplayName() {
             return Messages.KubernetesFolderProperty_displayName();

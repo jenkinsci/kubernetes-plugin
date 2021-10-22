@@ -3,9 +3,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Label;
@@ -30,7 +29,7 @@ public abstract class PodTemplateFilter implements ExtensionPoint {
      * @param label The label that was requested for provisioning
      * @return The pod template list after filtering
      */
-    public static List<PodTemplate> applyAll(@Nonnull KubernetesCloud cloud, @Nonnull List<PodTemplate> podTemplates, @CheckForNull Label label) {
+    public static List<PodTemplate> applyAll(@NonNull KubernetesCloud cloud, @NonNull List<PodTemplate> podTemplates, @CheckForNull Label label) {
         List<PodTemplate> result = new ArrayList<>();
         for (PodTemplate t : podTemplates) {
             PodTemplate output = t;
@@ -56,5 +55,5 @@ public abstract class PodTemplateFilter implements ExtensionPoint {
      * @return A new pod template after transformation. It can be null if the filter denies access to the given pod template.
      */
     @CheckForNull
-    protected abstract PodTemplate transform(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, @CheckForNull Label label);
+    protected abstract PodTemplate transform(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, @CheckForNull Label label);
 }
