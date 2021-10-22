@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -171,7 +170,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
                 .stream()
                 .filter(KubernetesCloud::isUsageRestricted)
                 .collect(Collectors.toList());
-        Collections.sort(clouds, Comparator.<Cloud, String>comparing(o -> o.name));
+        clouds.sort(Comparator.<Cloud, String>comparing(o -> o.name));
         return clouds;
     }
 

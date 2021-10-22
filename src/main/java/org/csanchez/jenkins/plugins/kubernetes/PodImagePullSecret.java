@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecret> implements Serializable {
 
@@ -39,7 +40,7 @@ public class PodImagePullSecret extends AbstractDescribableImpl<PodImagePullSecr
 
         PodImagePullSecret that = (PodImagePullSecret) o;
 
-        return name != null ? name.equals(that.name) : that.name == null;
+        return Objects.equals(name, that.name);
 
     }
 

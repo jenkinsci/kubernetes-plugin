@@ -191,11 +191,11 @@ public class ContainerExecDecoratorTest {
         for (int i = 0; i < t.length; i++) {
             t[i] = newThread(i, results);
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].start();
+        for (Thread thread : t) {
+            thread.start();
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].join();
+        for (Thread thread : t) {
+            thread.join();
         }
         assertEquals("Not all threads finished successfully", t.length, results.size());
         for (ProcReturn r : results) {
