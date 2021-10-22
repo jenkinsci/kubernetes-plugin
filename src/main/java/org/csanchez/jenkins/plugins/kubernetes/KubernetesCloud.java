@@ -10,6 +10,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +29,6 @@ import hudson.model.ItemGroup;
 import hudson.model.Node;
 import hudson.util.XStream2;
 import jenkins.metrics.api.Metrics;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -905,7 +905,7 @@ public class KubernetesCloud extends Cloud {
 
     private Object readResolve() {
         if ((serverCertificate != null) && !serverCertificate.trim().startsWith("-----BEGIN CERTIFICATE-----")) {
-            serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes(UTF_8)), UTF_8);
+            serverCertificate = new String(Base64.getDecoder().decode(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
                     serverCertificate.substring(0, 80));
         }

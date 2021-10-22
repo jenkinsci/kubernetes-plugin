@@ -41,7 +41,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.*;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -154,14 +153,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             new Thread(() -> {
                 long pos = 0;
                 try {
-                    while (true) {
-                        Jenkins j = Jenkins.getInstanceOrNull();
-                        if (j == null) {
-                            break;
-                        }
-                        // not using Computer#getLogDir as it has side-effect of creating log directories which can create a race condition with main code
-                        File logFile = new File(j.getRootDir(), "logs/slaves/" + c.getName() + "/slave.log");
-                        if (logFile.isFile()) { // TODO should LargeText.FileSession handle this?
+                    while (Jenkins.getInstanceOrNull() != null) { // otherwise get NPE from Computer.getLogDir
+                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
                             pos = c.getLogText().writeLogTo(pos, System.out);
                         }
                         Thread.sleep(100);
@@ -486,6 +479,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+        r.assertLogContains("busybox -- terminated (137)", b);
+        r.assertLogContains("jnlp -- terminated (143)", b);
     }
 
     @Issue("JENKINS-59340")
@@ -494,6 +489,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertBuildStatus(r.waitForCompletion(b), Result.FAILURE, Result.ABORTED);
         r.waitForMessage("Container stress-ng was terminated", b);
         r.waitForMessage("Reason: OOMKilled", b);
+    }
+
+    @Test
+    public void errorPod() throws Exception {
+        r.waitForMessage("jnlp -- terminated (1)", b);
+        r.waitForMessage("Foo", b);
+        b.doKill();
     }
 
     @Issue("JENKINS-59340")

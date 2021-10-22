@@ -90,7 +90,8 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
             return periodicAwait(0, System.currentTimeMillis(), 0, 0);
         }
         try {
-            return periodicAwait(10, System.currentTimeMillis(), Math.max(remaining / 10, 1000L), remaining);
+            // Retry with 10% of the remaining time, with a min of 1s and a max of 10s
+            return periodicAwait(10, System.currentTimeMillis(), Math.min(10000L, Math.max(remaining / 10, 1000L)), remaining);
         } catch (KubernetesClientTimeoutException e) {
             // Wrap using the right timeout
             throw new KubernetesClientTimeoutException(pod, amount, timeUnit);
@@ -129,13 +130,18 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         List<ContainerStatus> terminatedContainers = PodUtils.getTerminatedContainers(pod);
         if (!terminatedContainers.isEmpty()) {
-            throw new IllegalStateException(String.format("Pod has terminated containers: %s/%s (%s)",
+            IllegalStateException ise = new IllegalStateException(String.format("Pod has terminated containers: %s/%s (%s)",
                     this.pod.getMetadata().getNamespace(),
                     this.pod.getMetadata().getName(),
                     terminatedContainers.stream()
                             .map(ContainerStatus::getName)
                             .collect(joining(", ")
                             )));
+            String logs = PodUtils.logLastLines(this.pod, client);
+            if (logs != null) {
+                ise.addSuppressed(new ContainerLogs(logs));
+            }
+            throw ise;
         }
         if (areAllContainersRunning(pod)) {
             return pod;

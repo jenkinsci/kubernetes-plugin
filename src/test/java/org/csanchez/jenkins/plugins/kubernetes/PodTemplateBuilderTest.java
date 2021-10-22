@@ -29,6 +29,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -563,6 +564,12 @@ public class PodTemplateBuilderTest {
                 "  labels:\n" +
                 "    some-label: some-label-value\n" +
                 "spec:\n" +
+                "  containers:\n" +
+                "  - name: jnlp\n" +
+                "    volumeMounts:\n" +
+                "    - name: host-volume\n" +
+                "      mountPath: /etc/config\n" +
+                "      subPath: mypath\n" +
                 "  volumes:\n" +
                 "  - name: host-volume\n" +
                 "    hostPath:\n" +
@@ -577,16 +584,30 @@ public class PodTemplateBuilderTest {
                 "    hostPath:\n" +
                 "      path: /host/data2\n"
         );
+        child.setContainers(Collections.singletonList(new ContainerTemplate("jnlp", "image")));
+        ConfigMapVolume cmVolume = new ConfigMapVolume("/etc/configmap", "my-configmap", false);
+        cmVolume.setSubPath("subpath");
+        child.setVolumes(Collections.singletonList(cmVolume));
         child.setInheritFrom("parent");
         child.setYamlMergeStrategy(merge());
         setupStubs();
         PodTemplate result = combine(parent, child);
         Pod pod = new PodTemplateBuilder(result, slave).build();
         assertEquals("some-label-value", pod.getMetadata().getLabels().get("some-label")); // inherit from parent
-        assertThat(pod.getSpec().getVolumes(), hasSize(2));
-        Optional<Volume> hostVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
-        assertTrue(hostVolume.isPresent());
-        assertThat(hostVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+        Optional<Volume> maybeVolume = pod.getSpec().getVolumes().stream().filter(v -> "host-volume".equals(v.getName())).findFirst();
+        assertTrue(maybeVolume.isPresent());
+        assertThat(maybeVolume.get().getHostPath().getPath(), equalTo("/host/data2")); // child value overrides parent value
+        assertThat(pod.getSpec().getContainers(), hasSize(1));
+        Container container = pod.getSpec().getContainers().get(0);
+        Optional<VolumeMount> maybeVolumeMount = container.getVolumeMounts().stream().filter(vm -> "host-volume".equals(vm.getName())).findFirst();
+        assertTrue(maybeVolumeMount.isPresent());
+        VolumeMount volumeMount = maybeVolumeMount.get();
+        assertEquals("/etc/config", volumeMount.getMountPath());
+        assertEquals("mypath", volumeMount.getSubPath());
+        Optional<VolumeMount> maybeVolumeMountCm = container.getVolumeMounts().stream().filter(vm -> "/etc/configmap".equals(vm.getMountPath())).findFirst();
+        assertTrue(maybeVolumeMountCm.isPresent());
+        VolumeMount cmVolumeMount = maybeVolumeMountCm.get();
+        assertEquals("subpath", cmVolumeMount.getSubPath());
     }
 
     @Test

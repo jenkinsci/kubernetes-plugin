@@ -882,7 +882,7 @@ However, if your Jenkins controller has HTTPS configured with self-signed certif
 To do that, you can extend the `jenkins/inbound-agent` image and add your certificate as follows:
 
 ```Dockerfile
-FROM jenkins/inbound-agent
+FROM jenkins/inbound-agent:jdk8
 
 USER root
 
@@ -896,9 +896,29 @@ RUN keytool -noprompt -storepass changeit \
 USER jenkins
 ```
 
+Or, if you are using JDK 11:
+
+```Dockerfile
+FROM jenkins/inbound-agent:jdk11
+
+USER root
+
+ADD cert.pem /tmp/cert.pem
+
+RUN keytool -noprompt -storepass changeit -cacerts \
+  -import -file /tmp/cert.pem -alias jenkinsMaster && \
+  rm -f /tmp/cert.pem
+
+USER jenkins
+```
+
 Then, use it as the `jnlp` container for the pod template as usual. No command or args need to be specified.
 
-> **Note:** when using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
+> **Notes:**
+>
+> * Support for using WebSockets with JDK 11 was added in the Remoting v4.11, so make sure your base image is new enough. See [here](https://issues.jenkins.io/browse/JENKINS-61212) for more information.
+>
+> * When using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
 
 # Building and Testing
 

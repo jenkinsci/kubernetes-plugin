@@ -85,6 +85,10 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
         Pod pod = client.pods().inNamespace(namespace).withName(getName()).get();
 
+        if (pod == null) {
+            return Collections.emptyList();
+        }
+
         return pod.getSpec().getContainers();
     }
 

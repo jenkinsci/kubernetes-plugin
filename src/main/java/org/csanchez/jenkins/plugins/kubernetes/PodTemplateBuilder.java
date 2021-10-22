@@ -47,6 +47,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -170,11 +171,19 @@ public class PodTemplateBuilder {
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
-            //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
+            final String mountPath = normalizePath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMountBuilder() //
-                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
+                VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
+                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false);
+                
+                if (volume instanceof ConfigMapVolume) {
+                    final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
+                    String subPath = configmapVolume.getSubPath();
+                    if (subPath != null) {
+                        volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
+                    }
+                }
+                volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }
@@ -316,6 +325,11 @@ public class PodTemplateBuilder {
         Pod finalPod = pod;
         LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(finalPod));
         return pod;
+    }
+
+    private String normalizePath(String np) {
+        //We need to normalize the path or we can end up in really hard to debug issues.
+        return substituteEnv(Paths.get(np).normalize().toString().replace("\\", "/"));
     }
 
     private Map<String, EnvVar> defaultEnvVars(Collection<TemplateEnvVar> globalEnvVars) {

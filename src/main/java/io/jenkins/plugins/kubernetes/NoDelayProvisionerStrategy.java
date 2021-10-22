@@ -112,7 +112,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
 
         @Override
         public void onEnterBuildable(Queue.BuildableItem item) {
-            if (!DISABLE_NODELAY_PROVISING) {
+            if (DISABLE_NODELAY_PROVISING) {
                 return;
             }
             final Jenkins jenkins = Jenkins.get();
