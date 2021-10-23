@@ -120,8 +120,10 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: jenkins
-          servicePort: 80
+          service:
+            name: jenkins
+            port:
+              number: 80
     host: jenkins.example.com
   tls:
   - hosts:
