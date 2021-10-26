@@ -253,7 +253,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
             Throwable[] suppressed = ex.getSuppressed();
-            if (suppressed[0] instanceof ContainerLogs) {
+            if (suppressed.length > 0 && suppressed[0] instanceof ContainerLogs) {
                 runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
                 runListener.getLogger().print(suppressed[0].getMessage());
             }
