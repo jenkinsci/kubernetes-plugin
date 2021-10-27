@@ -246,288 +246,290 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
-        return new Launcher.DecoratedLauncher(launcher) {
-            @Override
-            public Proc launch(ProcStarter starter) throws IOException {
-                LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
+        //Only decorate the launcher if the node is a KubernetesSlave
+        if(node instanceof KubernetesSlave) {
+            return new Launcher.DecoratedLauncher(launcher) {
+                @Override
+                public Proc launch(ProcStarter starter) throws IOException {
+                    LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
 
-                // find container working dir
-                KubernetesSlave slave = (KubernetesSlave) node;
-                FilePath containerWorkingDirFilePath = starter.pwd();
-                String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
-                        ? containerWorkingDirFilePath.getRemote() : ContainerTemplate.DEFAULT_WORKING_DIR;
-                String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
-                if (slave != null && slave.getPod().isPresent() && containerName != null) {
-                    Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
-                            .filter(container1 -> container1.getName().equals(containerName))
-                            .findAny();
-                    Optional<String> containerWorkingDir = Optional.empty();
-                    if (container.isPresent() && container.get().getWorkingDir() != null) {
-                        containerWorkingDir = Optional.of(container.get().getWorkingDir());
-                    }
-                    if (containerWorkingDir.isPresent()) {
-                        containerWorkingDirStr = containerWorkingDir.get();
-                    }
+                    // find container working dir
+                    KubernetesSlave slave = (KubernetesSlave) node;
+                    FilePath containerWorkingDirFilePath = starter.pwd();
+                    String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
+                            ? containerWorkingDirFilePath.getRemote() : ContainerTemplate.DEFAULT_WORKING_DIR;
+                    String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
+                    if (slave != null && slave.getPod().isPresent() && containerName != null) {
+                        Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
+                                .filter(container1 -> container1.getName().equals(containerName))
+                                .findAny();
+                        Optional<String> containerWorkingDir = Optional.empty();
+                        if (container.isPresent() && container.get().getWorkingDir() != null) {
+                            containerWorkingDir = Optional.of(container.get().getWorkingDir());
+                        }
+                        if (containerWorkingDir.isPresent()) {
+                            containerWorkingDirStr = containerWorkingDir.get();
+                        }
 
-                    if (containerWorkingDir.isPresent() &&
-                            containerWorkingDirFilePath != null &&
-                            ! containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
-                        // Container has a custom workingDir, updated the pwd to match container working dir
-                        containerWorkingDirFilePathStr = containerWorkingDirFilePath.getRemote().replaceFirst(
-                                ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
-                        containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirFilePathStr);
-                        LOGGER.log(Level.FINEST, "Modified the pwd to match {0} containers workspace directory : {1}",
-                                new String[]{containerName, containerWorkingDirFilePathStr});
-                    }
-                }
-
-                String[] envVars = starter.envs();
-                // modify the working dir on envvars part of starter env vars
-                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
-                    for (int i = 0; i < envVars.length; i++) {
-                        String keyValue = envVars[i];
-                        String[] split = keyValue.split("=", 2);
-                        if (split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
-                            // Container has a custom workingDir, update env vars with right workspace folder
-                            split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
-                            envVars[i] = split[0] + "=" + split[1];
-                            LOGGER.log(Level.FINEST, "Updated the starter environment variable, key: {0}, Value: {1}",
-                                    new String[]{split[0], split[1]});
+                        if (containerWorkingDir.isPresent() &&
+                                containerWorkingDirFilePath != null &&
+                                !containerWorkingDirFilePath.getRemote().startsWith(containerWorkingDirStr)) {
+                            // Container has a custom workingDir, updated the pwd to match container working dir
+                            containerWorkingDirFilePathStr = containerWorkingDirFilePath.getRemote().replaceFirst(
+                                    ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                            containerWorkingDirFilePath = new FilePath(containerWorkingDirFilePath.getChannel(), containerWorkingDirFilePathStr);
+                            LOGGER.log(Level.FINEST, "Modified the pwd to match {0} containers workspace directory : {1}",
+                                    new String[]{containerName, containerWorkingDirFilePathStr});
                         }
                     }
-                }
 
-                if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
-                    final Computer computer = node.toComputer();
-                    if (computer != null) {
-                        List<String> resultEnvVar = new ArrayList<>();
-                        try {
-                            EnvVars environment = computer.getEnvironment();
-                            if (environment != null) {
-                                Set<String> overriddenKeys = new HashSet<>();
-                                for (String keyValue : envVars) {
-                                    String[] split = keyValue.split("=", 2);
-                                    if (!split[1].equals(environment.get(split[0]))) {
-                                        // Only keep environment variables that differ from Computer's environment
-                                        resultEnvVar.add(keyValue);
-                                        overriddenKeys.add(split[0]);
-                                    }
-                                }
+                    String[] envVars = starter.envs();
+                    // modify the working dir on envvars part of starter env vars
+                    if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                        for (int i = 0; i < envVars.length; i++) {
+                            String keyValue = envVars[i];
+                            String[] split = keyValue.split("=", 2);
+                            if (split[1].startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                // Container has a custom workingDir, update env vars with right workspace folder
+                                split[1] = split[1].replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                envVars[i] = split[0] + "=" + split[1];
+                                LOGGER.log(Level.FINEST, "Updated the starter environment variable, key: {0}, Value: {1}",
+                                        new String[]{split[0], split[1]});
+                            }
+                        }
+                    }
 
-                                // modify the working dir on envvars part of Computer
-                                if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
-                                    for (Map.Entry<String, String> entry : environment.entrySet()) {
-                                        if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
-                                                && !overriddenKeys.contains(entry.getKey())) {
-                                            // Value should be overridden and is not overridden earlier
-                                            String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
-                                            String keyValue = entry.getKey() + "=" + newValue;
-                                            LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
-                                                    new String[]{entry.getKey(), newValue});
+                    if (node != null) { // It seems this is possible despite the method javadoc saying it is non-null
+                        final Computer computer = node.toComputer();
+                        if (computer != null) {
+                            List<String> resultEnvVar = new ArrayList<>();
+                            try {
+                                EnvVars environment = computer.getEnvironment();
+                                if (environment != null) {
+                                    Set<String> overriddenKeys = new HashSet<>();
+                                    for (String keyValue : envVars) {
+                                        String[] split = keyValue.split("=", 2);
+                                        if (!split[1].equals(environment.get(split[0]))) {
+                                            // Only keep environment variables that differ from Computer's environment
                                             resultEnvVar.add(keyValue);
+                                            overriddenKeys.add(split[0]);
                                         }
                                     }
+
+                                    // modify the working dir on envvars part of Computer
+                                    if (!containerWorkingDirStr.equals(ContainerTemplate.DEFAULT_WORKING_DIR)) {
+                                        for (Map.Entry<String, String> entry : environment.entrySet()) {
+                                            if (entry.getValue().startsWith(ContainerTemplate.DEFAULT_WORKING_DIR)
+                                                    && !overriddenKeys.contains(entry.getKey())) {
+                                                // Value should be overridden and is not overridden earlier
+                                                String newValue = entry.getValue().replaceFirst(ContainerTemplate.DEFAULT_WORKING_DIR, containerWorkingDirStr);
+                                                String keyValue = entry.getKey() + "=" + newValue;
+                                                LOGGER.log(Level.FINEST, "Updated the value for envVar, key: {0}, Value: {1}",
+                                                        new String[]{entry.getKey(), newValue});
+                                                resultEnvVar.add(keyValue);
+                                            }
+                                        }
+                                    }
+                                    envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
                                 }
-                                envVars = resultEnvVar.toArray(new String[resultEnvVar.size()]);
+                            } catch (InterruptedException e) {
+                                throw new IOException("Unable to retrieve environment variables", e);
                             }
-                        } catch (InterruptedException e) {
-                            throw new IOException("Unable to retrieve environment variables", e);
                         }
                     }
-                }
-                return doLaunch(starter.quiet(), fixDoubleDollar(envVars), starter.stdout(), containerWorkingDirFilePath, starter.masks(),
-                        getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
-            }
-
-            private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
-                    boolean[] masks, String... commands) throws IOException {
-                final CountDownLatch started = new CountDownLatch(1);
-                final CountDownLatch finished = new CountDownLatch(1);
-                final AtomicBoolean alive = new AtomicBoolean(false);
-                final AtomicLong startAlive = new AtomicLong();
-                long startMethod = System.nanoTime();
-
-                PrintStream printStream;
-                OutputStream stream;
-
-                // Only output to stdout at the beginning for diagnostics.
-                ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-                ToggleOutputStream toggleStdout = new ToggleOutputStream(stdout);
-
-                // Do not send this command to the output when in quiet mode
-                if (quiet) {
-                    stream = toggleStdout;
-                    printStream = new PrintStream(stream, true, StandardCharsets.UTF_8.toString());
-                } else {
-                    printStream = launcher.getListener().getLogger();
-                    stream = new TeeOutputStream(toggleStdout, printStream);
+                    return doLaunch(starter.quiet(), fixDoubleDollar(envVars), starter.stdout(), containerWorkingDirFilePath, starter.masks(),
+                            getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
                 }
 
-                // Send to proc caller as well if they sent one
-                if (outputForCaller != null && !outputForCaller.equals(printStream)) {
-                    stream = new TeeOutputStream(outputForCaller, stream);
-                }
-                ByteArrayOutputStream error = new ByteArrayOutputStream();
+                private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
+                                      boolean[] masks, String... commands) throws IOException {
+                    final CountDownLatch started = new CountDownLatch(1);
+                    final CountDownLatch finished = new CountDownLatch(1);
+                    final AtomicBoolean alive = new AtomicBoolean(false);
+                    final AtomicLong startAlive = new AtomicLong();
+                    long startMethod = System.nanoTime();
 
-                String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
-                String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
-                LOGGER.log(Level.FINEST, msg);
-                printStream.println(msg);
+                    PrintStream printStream;
+                    OutputStream stream;
 
-                if (closables == null) {
-                    closables = new ArrayList<>();
-                }
+                    // Only output to stdout at the beginning for diagnostics.
+                    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+                    ToggleOutputStream toggleStdout = new ToggleOutputStream(stdout);
 
-                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName) //
-                        .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
-                        .writingOutput(stream).writingError(stream).writingErrorChannel(error)
-                        .usingListener(new ExecListener() {
-                            @Override
-                            public void onOpen(Response response) {
-                                alive.set(true);
-                                started.countDown();
-                                startAlive.set(System.nanoTime());
-                                LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
-                            }
-
-                            @Override
-                            public void onFailure(Throwable t, Response response) {
-                                alive.set(false);
-                                t.printStackTrace(launcher.getListener().getLogger());
-                                started.countDown();
-                                LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
-                                if (finished.getCount() == 0) {
-                                    LOGGER.log(Level.WARNING,
-                                            "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
-                                }
-                                finished.countDown();
-                            }
-
-                            @Override
-                            public void onClose(int i, String s) {
-                                alive.set(false);
-                                started.countDown();
-                                LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
-                                if (finished.getCount() == 0) {
-                                    LOGGER.log(Level.WARNING,
-                                            "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
-                                }
-                                finished.countDown();
-                            }
-                        });
-
-                ExecWatch watch;
-                try {
-                    watch = execable.exec(sh);
-                } catch (KubernetesClientException e) {
-                    if (e.getCause() instanceof InterruptedException) {
-                        throw new IOException(
-                                "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
-                                e);
+                    // Do not send this command to the output when in quiet mode
+                    if (quiet) {
+                        stream = toggleStdout;
+                        printStream = new PrintStream(stream, true, StandardCharsets.UTF_8.toString());
                     } else {
+                        printStream = launcher.getListener().getLogger();
+                        stream = new TeeOutputStream(toggleStdout, printStream);
+                    }
+
+                    // Send to proc caller as well if they sent one
+                    if (outputForCaller != null && !outputForCaller.equals(printStream)) {
+                        stream = new TeeOutputStream(outputForCaller, stream);
+                    }
+                    ByteArrayOutputStream error = new ByteArrayOutputStream();
+
+                    String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
+                    String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
+                    LOGGER.log(Level.FINEST, msg);
+                    printStream.println(msg);
+
+                    if (closables == null) {
+                        closables = new ArrayList<>();
+                    }
+
+                    Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName) //
+                            .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
+                            .writingOutput(stream).writingError(stream).writingErrorChannel(error)
+                            .usingListener(new ExecListener() {
+                                @Override
+                                public void onOpen(Response response) {
+                                    alive.set(true);
+                                    started.countDown();
+                                    startAlive.set(System.nanoTime());
+                                    LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
+                                }
+
+                                @Override
+                                public void onFailure(Throwable t, Response response) {
+                                    alive.set(false);
+                                    t.printStackTrace(launcher.getListener().getLogger());
+                                    started.countDown();
+                                    LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
+                                    if (finished.getCount() == 0) {
+                                        LOGGER.log(Level.WARNING,
+                                                "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
+                                    }
+                                    finished.countDown();
+                                }
+
+                                @Override
+                                public void onClose(int i, String s) {
+                                    alive.set(false);
+                                    started.countDown();
+                                    LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
+                                    if (finished.getCount() == 0) {
+                                        LOGGER.log(Level.WARNING,
+                                                "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
+                                    }
+                                    finished.countDown();
+                                }
+                            });
+
+                    ExecWatch watch;
+                    try {
+                        watch = execable.exec(sh);
+                    } catch (KubernetesClientException e) {
+                        if (e.getCause() instanceof InterruptedException) {
+                            throw new IOException(
+                                    "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
+                                    e);
+                        } else {
+                            throw e;
+                        }
+                    } catch (RejectedExecutionException e) {
+                        throw new IOException(
+                                "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
+                    }
+
+                    boolean hasStarted = false;
+                    try {
+                        // prevent a wait forever if the connection is closed as the listener would never be called
+                        hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        closeWatch(watch);
+                        throw new IOException(
+                                "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
+                                e);
+                    }
+
+                    if (!hasStarted) {
+                        closeWatch(watch);
+                        throw new IOException("Timed out waiting for websocket connection. "
+                                + "You should increase the value of system property "
+                                + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                                + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                    }
+
+                    try {
+                        // Depends on the ping time with the Kubernetes API server
+                        // Not fully satisfied with this solution because it can delay the execution
+                        if (finished.await(COMMAND_FINISHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                            launcher.getListener().error("Process exited immediately after creation. See output below%n%s", stdout.toString(StandardCharsets.UTF_8.name()));
+                            throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
+                        }
+                        toggleStdout.disable();
+                        OutputStream stdin = watch.getInput();
+                        PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                        if (pwd != null) {
+                            // We need to get into the project workspace.
+                            // The workspace is not known in advance, so we have to execute a cd command.
+                            in.print(String.format("cd \"%s\"", pwd));
+                            in.print(newLine(!launcher.isUnix()));
+                        }
+
+                        EnvVars envVars = new EnvVars();
+
+                        //get global vars here, run the export first as they'll get overwritten.
+                        if (globalVars != null) {
+                            envVars.overrideAll(globalVars);
+                        }
+
+                        if (rcEnvVars != null) {
+                            envVars.overrideAll(rcEnvVars);
+                        }
+
+                        if (environmentExpander != null) {
+                            environmentExpander.expand(envVars);
+                        }
+
+                        //setup specific command envs passed into cmd
+                        if (cmdEnvs != null) {
+                            for (String cmdEnv : cmdEnvs) {
+                                envVars.addLine(cmdEnv);
+                            }
+                        }
+
+                        LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
+
+                        setupEnvironmentVariable(envVars, in, !launcher.isUnix());
+
+                        doExec(in, !launcher.isUnix(), printStream, masks, commands);
+
+                        LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
+                                + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
+                        ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
+                        closables.add(proc);
+                        return proc;
+                    } catch (InterruptedException ie) {
+                        throw new InterruptedIOException(ie.getMessage());
+                    } catch (Exception e) {
+                        closeWatch(watch);
                         throw e;
                     }
-                } catch (RejectedExecutionException e) {
-                    throw new IOException(
-                            "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
 
-                boolean hasStarted = false;
-                try {
-                    // prevent a wait forever if the connection is closed as the listener would never be called
-                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    closeWatch(watch);
-                    throw new IOException(
-                            "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
-                            e);
+                @Override
+                public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
+                    getListener().getLogger().println("Killing processes");
+
+                    String cookie = modelEnvVars.get(COOKIE_VAR);
+
+                    int exitCode = doLaunch(
+                            true, null, null, null, null,
+                            // TODO Windows
+                            "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie + "' /proc/*/environ | cut -d / -f 3 \\`"
+                    ).join();
+
+                    getListener().getLogger().println("kill finished with exit code " + exitCode);
                 }
 
-                if (!hasStarted) {
-                    closeWatch(watch);
-                    throw new IOException("Timed out waiting for websocket connection. "
-                            + "You should increase the value of system property "
-                            + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
-                            + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
-                }
-
-                try {
-                    // Depends on the ping time with the Kubernetes API server
-                    // Not fully satisfied with this solution because it can delay the execution
-                    if (finished.await(COMMAND_FINISHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                        launcher.getListener().error("Process exited immediately after creation. See output below%n%s", stdout.toString(StandardCharsets.UTF_8.name()));
-                        throw new AbortException("Process exited immediately after creation. Check logs above for more details.");
-                    }
-                    toggleStdout.disable();
-                    OutputStream stdin = watch.getInput();
-                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
-                    if (pwd != null) {
-                        // We need to get into the project workspace.
-                        // The workspace is not known in advance, so we have to execute a cd command.
-                        in.print(String.format("cd \"%s\"", pwd));
-                        in.print(newLine(!launcher.isUnix()));
-                    }
-
-                    EnvVars envVars = new EnvVars();
-
-                    //get global vars here, run the export first as they'll get overwritten.
-                    if (globalVars != null) {
-                        envVars.overrideAll(globalVars);
-                    }
-
-                    if(rcEnvVars != null) {
-                        envVars.overrideAll(rcEnvVars);
-                    }
-
-                    if (environmentExpander != null) {
-                        environmentExpander.expand(envVars);
-                    }
-
-                    //setup specific command envs passed into cmd
-                    if (cmdEnvs != null) {
-                        for (String cmdEnv : cmdEnvs) {
-                            envVars.addLine(cmdEnv);
-                        }
-                    }
-
-                    LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
-
-                    setupEnvironmentVariable(envVars, in, !launcher.isUnix());
-
-                    doExec(in, !launcher.isUnix(), printStream, masks, commands);
-
-                    LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
-                            + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
-                    closables.add(proc);
-                    return proc;
-                } catch (InterruptedException ie) {
-                    throw new InterruptedIOException(ie.getMessage());
-                } catch (Exception e) {
-                    closeWatch(watch);
-                    throw e;
-                }
-            }
-
-            @Override
-            public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
-                getListener().getLogger().println("Killing processes");
-
-                String cookie = modelEnvVars.get(COOKIE_VAR);
-
-                int exitCode = doLaunch(
-                        true, null, null, null, null,
-                        // TODO Windows
-                        "sh", "-c", "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie  +"' /proc/*/environ | cut -d / -f 3 \\`"
-                ).join();
-
-                getListener().getLogger().println("kill finished with exit code " + exitCode);
-            }
-
-            private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
-                for (Map.Entry<String, String> entry : vars.entrySet()) {
-                    //Check that key is bash compliant.
-                    if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
+                private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
+                    for (Map.Entry<String, String> entry : vars.entrySet()) {
+                        //Check that key is bash compliant.
+                        if (entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                             out.print(
                                     String.format(
                                             windows ? "set %s=%s" : "export %s='%s'",
@@ -538,8 +540,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             out.print(newLine(windows));
                         }
                     }
-            }
-        };
+                }
+            };
+        }else {
+            //Else return the launcher that was passed in
+            return launcher;
+        }
     }
 
     private static String newLine(boolean windows) {
