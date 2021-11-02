@@ -8,7 +8,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 

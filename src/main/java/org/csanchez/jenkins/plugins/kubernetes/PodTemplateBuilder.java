@@ -39,6 +39,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
@@ -74,9 +76,6 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
@@ -147,7 +146,7 @@ public class PodTemplateBuilder {
       return name;
     }
 
-    public PodTemplateBuilder withSlave(@Nonnull KubernetesSlave slave) {
+    public PodTemplateBuilder withSlave(@NonNull KubernetesSlave slave) {
         this.agent = slave;
         this.cloud = slave.getKubernetesCloud();
         return this;

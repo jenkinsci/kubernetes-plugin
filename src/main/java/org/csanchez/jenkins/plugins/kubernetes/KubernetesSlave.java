@@ -12,9 +12,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
@@ -46,7 +45,6 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
-import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -76,7 +74,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private final String cloudName;
     private String namespace;
-    @Nonnull
+    @NonNull
     private String podTemplateId;
     private transient PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
@@ -84,7 +82,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @CheckForNull
     private transient Pod pod;
 
-    @Nonnull
+    @NonNull
     public PodTemplate getTemplate() {
         // Look up updated pod template after a restart
         PodTemplate template = getTemplateOrNull();
@@ -94,7 +92,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return template;
     }
 
-    @Nonnull
+    @NonNull
     public String getTemplateId() {
         return podTemplateId;
     }
@@ -147,7 +145,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, new KubernetesLauncher(), rs);
     }
 
-    protected KubernetesSlave(String name, @Nonnull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         super(name, null, computerLauncher);
@@ -166,11 +164,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return cloudName;
     }
 
-    public void setNamespace(@Nonnull String namespace) {
+    public void setNamespace(@NonNull String namespace) {
         this.namespace = namespace;
     }
 
-    @Nonnull
+    @NonNull
     public String getNamespace() {
         return namespace;
     }
@@ -225,7 +223,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @return the cloud instance which created this agent.
      * @throws IllegalStateException if the cloud doesn't exist anymore, or is not a {@link KubernetesCloud}.
      */
-    @Nonnull
+    @NonNull
     public KubernetesCloud getKubernetesCloud() {
         return getKubernetesCloud(getCloudName());
     }

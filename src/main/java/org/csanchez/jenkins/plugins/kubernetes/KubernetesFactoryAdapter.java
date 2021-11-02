@@ -5,11 +5,10 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.ProxyConfiguration;
 import hudson.security.ACL;
 import hudson.util.Secret;

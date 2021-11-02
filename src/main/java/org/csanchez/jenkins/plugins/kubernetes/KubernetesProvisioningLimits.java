@@ -5,8 +5,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -68,7 +67,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized boolean register(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
+    public synchronized boolean register(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
         if (newGlobalCount <= cloud.getContainerCap()) {
             int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) + numExecutors;
@@ -96,7 +95,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized void unregister(@Nonnull KubernetesCloud cloud, @Nonnull PodTemplate podTemplate, int numExecutors) {
+    public synchronized void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
         if (newGlobalCount < 0) {
             LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
@@ -112,13 +111,13 @@ public final class KubernetesProvisioningLimits {
         LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/" + podTemplate.getInstanceCap());
     }
 
-    @Nonnull
+    @NonNull
     @Restricted(NoExternalUse.class)
     int getGlobalCount(String cloudName) {
         return cloudCounts.getOrDefault(cloudName, 0);
     }
 
-    @Nonnull
+    @NonNull
     @Restricted(NoExternalUse.class)
     int getPodTemplateCount(String podTemplate) {
         return podTemplateCounts.getOrDefault(podTemplate, 0);
@@ -127,7 +126,7 @@ public final class KubernetesProvisioningLimits {
     @Extension
     public static class NodeListenerImpl extends NodeListener {
         @Override
-        protected void onDeleted(@Nonnull Node node) {
+        protected void onDeleted(@NonNull Node node) {
             if (node instanceof KubernetesSlave) {
                 KubernetesSlave kubernetesNode = (KubernetesSlave) node;
                 PodTemplate template = kubernetesNode.getTemplateOrNull();

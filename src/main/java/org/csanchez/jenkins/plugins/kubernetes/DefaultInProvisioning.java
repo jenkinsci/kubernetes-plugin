@@ -5,8 +5,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.annotation.CheckForNull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.model.Computer;
 import hudson.model.Label;

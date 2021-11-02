@@ -5,6 +5,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -29,7 +30,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
@@ -50,8 +50,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     private String caCertificate;
 
     @DataBoundConstructor
-    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
-            @Nonnull String caCertificate) {
+    public KubectlBuildWrapper(@NonNull String serverUrl, @NonNull String credentialsId,
+            @NonNull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = Util.fixEmpty(credentialsId);
         this.caCertificate = Util.fixEmptyAndTrim(caCertificate);

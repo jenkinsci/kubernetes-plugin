@@ -24,9 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -59,7 +58,7 @@ public class EmptyDirVolume extends PodVolume {
         return getMemory() ? MEMORY_MEDIUM : DEFAULT_MEDIUM;
     }
 
-    @Nonnull
+    @NonNull
     public Boolean getMemory() {
         return memory != null && memory;
     }
@@ -78,6 +77,7 @@ public class EmptyDirVolume extends PodVolume {
     @Symbol("emptyDirVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
+        @NonNull
         public String getDisplayName() {
             return "Empty Dir Volume";
         }

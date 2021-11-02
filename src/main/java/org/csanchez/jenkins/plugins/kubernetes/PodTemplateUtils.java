@@ -24,10 +24,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.slaves.NodeProperty;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
@@ -81,7 +80,7 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @Nonnull ContainerTemplate template) {
+    public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @NonNull ContainerTemplate template) {
         if (template == null) {
             throw new IllegalArgumentException("Container template should not be null");
         }
@@ -144,7 +143,7 @@ public class PodTemplateUtils {
      *            The actual container
      * @return The combined container.
      */
-    public static Container combine(@CheckForNull Container parent, @Nonnull Container template) {
+    public static Container combine(@CheckForNull Container parent, @NonNull Container template) {
         if (template == null) {
             throw new IllegalArgumentException("Container template should not be null");
         }
@@ -344,7 +343,7 @@ public class PodTemplateUtils {
         return pod;
     }
 
-    @Nonnull
+    @NonNull
     private static List<Container> combineContainers(List<Container> parent, List<Container> child) {
         LinkedHashMap<String, Container> combinedContainers = new LinkedHashMap<>(); // Need to retain insertion order
         Map<String, Container> parentContainers = parent.stream()
@@ -356,7 +355,7 @@ public class PodTemplateUtils {
         return new ArrayList<>(combinedContainers.values());
     }
 
-    private static List<Volume> combineVolumes(@Nonnull List<Volume> volumes1, @Nonnull List<Volume> volumes2) {
+    private static List<Volume> combineVolumes(@NonNull List<Volume> volumes1, @NonNull List<Volume> volumes2) {
         Map<String, Volume> volumesByName = volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
         volumes2.forEach(v -> volumesByName.put(v.getName(), v));
         return new ArrayList<>(volumesByName.values());

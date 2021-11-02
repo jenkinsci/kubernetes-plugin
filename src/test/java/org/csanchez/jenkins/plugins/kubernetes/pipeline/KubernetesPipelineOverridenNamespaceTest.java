@@ -3,8 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.testingNamespace;
 import static org.junit.Assert.assertNotNull;
 
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import org.junit.Test;
 
 import java.util.HashMap;

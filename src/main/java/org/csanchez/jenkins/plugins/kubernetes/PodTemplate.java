@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,9 +16,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -179,7 +177,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     private transient List<String> yamls;
 
-    @Nonnull
+    @NonNull
     public String getId() {
         return id;
     }
@@ -671,7 +669,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.getNodeProperties().addAll(properties);
     }
 
-    @Nonnull
+    @NonNull
     public PodTemplateToolLocation getNodeProperties(){
         if( this.nodeProperties == null)
             this.nodeProperties = new PodTemplateToolLocation(this);
@@ -724,14 +722,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setVolumes(@Nonnull List<PodVolume> items) {
+    public void setVolumes(@NonNull List<PodVolume> items) {
         synchronized (this.volumes) {
             this.volumes.clear();
             this.volumes.addAll(items);
         }
     }
 
-    @Nonnull
+    @NonNull
     public List<PodVolume> getVolumes() {
         if (volumes == null) {
             return Collections.emptyList();
@@ -739,7 +737,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return volumes;
     }
 
-    @Nonnull
+    @NonNull
     public WorkspaceVolume getWorkspaceVolume() {
         return workspaceVolume == null ? WorkspaceVolume.getDefault() : workspaceVolume;
     }
@@ -750,14 +748,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setContainers(@Nonnull List<ContainerTemplate> items) {
+    public void setContainers(@NonNull List<ContainerTemplate> items) {
         synchronized (this.containers) {
             this.containers.clear();
             this.containers.addAll(items);
         }
     }
 
-    @Nonnull
+    @NonNull
     public List<ContainerTemplate> getContainers() {
         if (containers == null) {
             return Collections.emptyList();
@@ -777,7 +775,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.yaml = Util.fixEmpty(yaml);
     }
 
-    @Nonnull
+    @NonNull
     public List<String> getYamls() {
         if (yamls == null || yamls.isEmpty()) {
             if (yaml != null) {
@@ -818,7 +816,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.podRetention = PodRetention.getPodTemplateDefault().equals(podRetention) ? null : podRetention;
     }
 
-    @Nonnull
+    @NonNull
     public TaskListener getListener() {
         return listener == null ? TaskListener.NULL : listener;
     }
