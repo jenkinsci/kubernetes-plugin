@@ -115,10 +115,12 @@ metadata:
     ingress.kubernetes.io/proxy-body-size: 50m
     ingress.kubernetes.io/proxy-request-buffering: "off"
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
           service:
             name: jenkins
