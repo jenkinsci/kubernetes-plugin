@@ -58,7 +58,7 @@ public class ContainerStepExecution extends StepExecution {
         );
 
         EnvVars globalVars = null;
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.get();
 
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
         List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties

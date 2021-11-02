@@ -4,9 +4,10 @@ import hudson.util.XStream2;
 import org.junit.Test;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplate.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class PodTemplateTest {
     @Test

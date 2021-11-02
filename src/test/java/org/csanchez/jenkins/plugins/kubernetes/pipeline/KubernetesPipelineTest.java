@@ -225,7 +225,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         Map<String, String> labels1 = getLabels(cloud, this, name);
         labels1.put("jenkins/label",label1);
         PodList pods = cloud.connect().pods().withLabels(labels1).list();
-        assertTrue(!pods.getItems().isEmpty());
+        assertFalse(pods.getItems().isEmpty());
         SemaphoreStep.success("pod1/1", null);
 
         SemaphoreStep.waitForStart("podTemplate2/1", b);
@@ -239,7 +239,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         Map<String, String> labels2 = getLabels(cloud, this, name);
         labels1.put("jenkins/label", label2);
         PodList pods2 = cloud.connect().pods().withLabels(labels2).list();
-        assertTrue(!pods2.getItems().isEmpty());
+        assertFalse(pods2.getItems().isEmpty());
         SemaphoreStep.success("pod2/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);

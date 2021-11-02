@@ -78,7 +78,7 @@ public class KubernetesProvisioningLimitsTest {
 
         threadPool.shutdown();
         assertTrue(threadPool.awaitTermination(60, TimeUnit.SECONDS));
-        assertTrue(threadPool.shutdownNow().size() == 0);
+        assertEquals(0, threadPool.shutdownNow().size());
 
         // Check that every count is back to 0
         for (KubernetesCloud cloud : j.jenkins.clouds.getAll(KubernetesCloud.class)) {
