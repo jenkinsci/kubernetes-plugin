@@ -709,12 +709,15 @@ public class KubernetesCloud extends Cloud {
 
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
+        public FormValidation doTestConnection(@QueryParameter String name,
+                                               @QueryParameter String serverUrl,
+                                               @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
-                                               @QueryParameter int readTimeout) throws Exception {
+                                               @QueryParameter int readTimeout,
+                                               @QueryParameter boolean useJenkinsProxy) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             if (StringUtils.isBlank(name))
@@ -722,7 +725,7 @@ public class KubernetesCloud extends Cloud {
 
             try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient()) {
+                        connectionTimeout, readTimeout, DEFAULT_MAX_REQUESTS_PER_HOST, useJenkinsProxy).createClient()) {
                     // test listing pods
                     client.pods().list();
                 VersionInfo version = client.getVersion();

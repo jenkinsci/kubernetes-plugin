@@ -31,7 +31,7 @@
         <c:select/>
       </f:entry>
 
-      <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
+      <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace,connectTimeout,readTimeout,useJenkinsProxy" />
 
       <f:entry title="${%WebSocket}" field="webSocket">
         <f:checkbox/>
