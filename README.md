@@ -65,8 +65,11 @@ but can greatly simplify setup when agents are in an external cluster
 and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
 See [JEP-222](https://jenkins.io/jep/222) for more.
 
-> **Note:** if your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
-> you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+> **Notes:**
+> 
+> - If your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
+>   you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
+> - Be aware that there is a current bug in Jenkins which affects the resuming of builds during restarts of the controller when using WebSockets: [JENKINS-67062](https://issues.jenkins.io/browse/JENKINS-67062).
 
 ### Restricting what jobs can use your configured cloud
 
