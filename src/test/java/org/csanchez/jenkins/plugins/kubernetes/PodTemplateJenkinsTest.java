@@ -1,6 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import hudson.model.Label;
+
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -9,7 +11,10 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import net.bytebuddy.matcher.ElementMatchers;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplate.LABEL_DIGEST_FUNCTION;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,10 +64,12 @@ public class PodTemplateJenkinsTest {
         PodTemplate podTemplate = new PodTemplate();
         kubernetesCloud.addTemplate(podTemplate);
         podTemplate.setLabel("foo bar");
-        assertThat(j.jenkins.getLabels().stream()
-                .map(Label::getName)
-                .collect(Collectors.toSet()),
-                containsInAnyOrder("master", "foo", "bar")
+
+        Set<String> labels = j.jenkins.getLabels().stream().map(Label::getName).collect(Collectors.toSet());
+        assertThat(labels, Matchers.anyOf(
+                containsInAnyOrder("master", "foo", "bar"),
+                containsInAnyOrder("built-in","foo", "bar")
+                )
         );
     }
 }
