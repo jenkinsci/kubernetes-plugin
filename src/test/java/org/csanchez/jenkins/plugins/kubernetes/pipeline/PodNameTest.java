@@ -31,8 +31,8 @@ public class PodNameTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void trailingDots() throws Exception {
-        WorkflowJob p = r.createProject(WorkflowJob.class, "whatever...");
+    public void multipleDots() throws Exception {
+        WorkflowJob p = r.createProject(WorkflowJob.class, "whatever...man");
         p.setDefinition(new CpsFlowDefinition("podTemplate {node(POD_LABEL) {sh 'echo ok'}}", true));
         r.buildAndAssertSuccess(p);
     }
