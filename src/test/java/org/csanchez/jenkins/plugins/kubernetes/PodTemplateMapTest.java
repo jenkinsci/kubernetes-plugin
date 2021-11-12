@@ -29,7 +29,6 @@ public class PodTemplateMapTest {
 
     @Test
     public void concurrentAdds() throws Exception {
-
         assertEquals(0, this.instance.getTemplates(cloud).size());
         int n = 10;
         Thread[] t = new Thread[n];
