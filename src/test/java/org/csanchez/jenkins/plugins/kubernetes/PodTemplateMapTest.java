@@ -1,5 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.junit.Before;
 import org.junit.Rule;
@@ -27,6 +29,7 @@ public class PodTemplateMapTest {
 
     @Test
     public void concurrentAdds() throws Exception {
+
         assertEquals(0, this.instance.getTemplates(cloud).size());
         int n = 10;
         Thread[] t = new Thread[n];
@@ -39,7 +42,7 @@ public class PodTemplateMapTest {
         for (Thread thread : t) {
             thread.join();
         }
-        assertEquals(n, this.instance.getTemplates(cloud).size());
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> this.instance.getTemplates(cloud).size() == n);
     }
 
     private Thread newThread(int i) {
