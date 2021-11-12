@@ -72,12 +72,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
      * Not used for security.
      */
-    protected static final MessageDigest LABEL_DIGEST_FUNCTION;
-    static {
+    protected static MessageDigest getLabelDigestFunction() {
         try {
-            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-1");
+            return MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
-            // will never happen, SHA-256 support required on every Java implementation
+            // will never happen, SHA-1 support required on every Java implementation
             e.printStackTrace();
             // throw error to allow variable to be set as final
             throw new AssertionError(e);
@@ -473,9 +472,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             tempMap.put("jenkins/label", DEFAULT_LABEL);
             tempMap.put("jenkins/label-digest", "0");
         } else {
-            LABEL_DIGEST_FUNCTION.update(label.getBytes(StandardCharsets.UTF_8));
+            MessageDigest labelDigestFunction = getLabelDigestFunction();
+            labelDigestFunction.update(label.getBytes(StandardCharsets.UTF_8));
             tempMap.put("jenkins/label", sanitizeLabel(label));
-            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())));
+            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, labelDigestFunction.digest())));
         }
         labelsMap = Collections.unmodifiableMap(tempMap);
     }
