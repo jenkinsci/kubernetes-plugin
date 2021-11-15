@@ -45,6 +45,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final transient String NAME_FORMAT = "%s-%s";
 
+    private static /* almost final */ boolean VERBOSE = Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
+
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient PodTemplateStep step;
     private final String cloudName;
@@ -113,7 +115,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             newTemplate.setHostNetwork(step.getHostNetwork());
         }
         newTemplate.setAnnotations(step.getAnnotations());
-        newTemplate.setListener(getContext().get(TaskListener.class));
+        TaskListener listener = getContext().get(TaskListener.class);
+        newTemplate.setListener(listener);
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
             String url = cloud.getJenkinsUrlOrNull();
@@ -143,7 +146,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (!errors.isEmpty()) {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
-
+        if (VERBOSE) {
+            listener.getLogger().println("Registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel());
+        }
         cloud.addDynamicTemplate(newTemplate);
         BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
         if (step.getLabel() == null) {
@@ -229,7 +234,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             KubernetesCloud cloud = resolveCloud();
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
-            LOGGER.log(Level.FINE, "Injecting template after resume: " + newTemplate);
+            LOGGER.log(Level.FINE, "Re-registering template with id=" + newTemplate.getId() + " after resume");
+            if (VERBOSE) {
+                listener.getLogger().println("Re-registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel() + " after resume");
+            }
             cloud.addDynamicTemplate(newTemplate);
         } catch (AbortException e) {
             throw new RuntimeException(e.getMessage(), e.getCause());
