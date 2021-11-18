@@ -51,7 +51,7 @@ adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
 In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
 spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
-for your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the 
+For your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the
 ‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
 Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
 be run automatically during builds
