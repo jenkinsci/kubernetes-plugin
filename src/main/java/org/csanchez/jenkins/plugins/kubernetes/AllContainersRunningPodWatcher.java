@@ -89,8 +89,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
             return periodicAwait(0, System.currentTimeMillis(), 0, 0);
         }
         try {
-            // Retry with 10% of the remaining time, with a min of 1s and a max of 10s
-            return periodicAwait(10, System.currentTimeMillis(), Math.min(10000L, Math.max(remaining / 10, 1000L)), remaining);
+            return periodicAwait(10, System.currentTimeMillis(), Math.max(remaining / 10, 1000L), remaining);
         } catch (KubernetesClientTimeoutException e) {
             // Wrap using the right timeout
             throw new KubernetesClientTimeoutException(pod, amount, timeUnit);
