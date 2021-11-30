@@ -139,7 +139,7 @@ public class PodTemplateBuilder {
 
     private static String getDefaultImageName() {
       // TODO: Reverse logic after inbound-agent:4.9-1
-      String name = "jenkins/inbound-agent:4.3-4";
+      String name = "jenkins/inbound-agent:latest";
       if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
         name = name + "-jdk11";
       }
