@@ -56,6 +56,7 @@ public class KubernetesFactoryAdapter {
     private final int readTimeout;
     private final int maxRequestsPerHost;
     private final boolean useJenkinsProxy;
+    private String clientKeyAlgo;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
@@ -117,6 +118,11 @@ public class KubernetesFactoryAdapter {
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
         builder.withMaxConcurrentRequests(maxRequestsPerHost);
 
+        if(!StringUtils.isBlank(clientKeyAlgo)){
+            builder.withClientKeyAlgo(clientKeyAlgo);
+        }
+
+
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
         } else if (StringUtils.isBlank(builder.getNamespace())) {
@@ -155,11 +161,18 @@ public class KubernetesFactoryAdapter {
         }
         return password;
     }
+
+    public KubernetesFactoryAdapter clientKeyAlgo(String clientKeyAlgo) {
+        this.clientKeyAlgo = clientKeyAlgo;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "KubernetesFactoryAdapter [serviceAddress=" + serviceAddress + ", namespace=" + namespace
                 + ", caCertData=" + caCertData + ", credentials=" + auth + ", skipTlsVerify=" + skipTlsVerify
-                + ", connectTimeout=" + connectTimeout + ", readTimeout=" + readTimeout + "]";
+                + ", connectTimeout=" + connectTimeout + ", readTimeout=" + readTimeout
+                + ", clientKeyAlgo=" + clientKeyAlgo + "]";
     }
 
     @CheckForNull

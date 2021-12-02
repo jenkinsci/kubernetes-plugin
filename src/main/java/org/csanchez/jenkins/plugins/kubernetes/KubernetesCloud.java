@@ -126,6 +126,7 @@ public class KubernetesCloud extends Cloud {
     private transient Map<String, String> labels;
     private List<PodLabel> podLabels = new ArrayList<>();
     private boolean usageRestricted;
+    private String clientKeyAlgo;
 
     private int maxRequestsPerHost;
 
@@ -269,6 +270,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setNamespace(String namespace) {
         this.namespace = Util.fixEmpty(namespace);
+    }
+
+    @DataBoundSetter
+    public void setClientKeyAlgo(String clientKeyAlgo) {
+        this.clientKeyAlgo = Util.fixEmpty(clientKeyAlgo);
+    }
+
+    public String getClientKeyAlgo(){
+        return this.clientKeyAlgo;
     }
 
     @CheckForNull
@@ -668,7 +678,8 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(podLabels, that.podLabels) &&
                 Objects.equals(podRetention, that.podRetention) &&
                 Objects.equals(waitForPodSec, that.waitForPodSec) &&
-                useJenkinsProxy==that.useJenkinsProxy;
+                useJenkinsProxy==that.useJenkinsProxy &&
+                Objects.equals(clientKeyAlgo, that.clientKeyAlgo);
     }
 
     @Override
@@ -676,7 +687,7 @@ public class KubernetesCloud extends Cloud {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
                 addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
-                maxRequestsPerHost, podRetention, useJenkinsProxy);
+                maxRequestsPerHost, podRetention, useJenkinsProxy, clientKeyAlgo);
     }
 
     public Integer getWaitForPodSec() {
@@ -717,7 +728,8 @@ public class KubernetesCloud extends Cloud {
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
                                                @QueryParameter int readTimeout,
-                                               @QueryParameter boolean useJenkinsProxy) throws Exception {
+                                               @QueryParameter boolean useJenkinsProxy,
+                                               @QueryParameter String clientKeyAlgo) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             if (StringUtils.isBlank(name))
@@ -725,7 +737,8 @@ public class KubernetesCloud extends Cloud {
 
             try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout, DEFAULT_MAX_REQUESTS_PER_HOST, useJenkinsProxy).createClient()) {
+                        connectionTimeout, readTimeout, DEFAULT_MAX_REQUESTS_PER_HOST, useJenkinsProxy)
+                        .clientKeyAlgo(clientKeyAlgo).createClient()) {
                     // test listing pods
                     client.pods().list();
                 VersionInfo version = client.getVersion();

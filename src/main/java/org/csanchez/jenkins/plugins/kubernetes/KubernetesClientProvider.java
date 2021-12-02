@@ -59,7 +59,8 @@ public class KubernetesClientProvider {
         if (c == null) {
             KubernetesClient client = new KubernetesFactoryAdapter(cloud.getServerUrl(), cloud.getNamespace(),
                     cloud.getServerCertificate(), cloud.getCredentialsId(), cloud.isSkipTlsVerify(),
-                    cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost(), cloud.isUseJenkinsProxy()).createClient();
+                    cloud.getConnectTimeout(), cloud.getReadTimeout(), cloud.getMaxRequestsPerHost(), cloud.isUseJenkinsProxy())
+                    .clientKeyAlgo(cloud.getClientKeyAlgo()).createClient();
             clients.put(displayName, new Client(getValidity(cloud), client));
             LOGGER.log(Level.FINE, "Created new Kubernetes client: {0} {1}", new Object[] { displayName, client });
             return client;
