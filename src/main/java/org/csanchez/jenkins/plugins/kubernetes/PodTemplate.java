@@ -166,6 +166,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private Long terminationGracePeriodSeconds;
 
+    private String dnsConfigNameservers;
+
+    private String dnsPolicy;
+
     /**
      * Persisted yaml fragment
      */
@@ -833,6 +837,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
+    public String getDNSConfigNameservers() {
+        return dnsConfigNameservers;
+    }
+
+    @DataBoundSetter
+    public void setDNSConfigNameservers(String dnsConfigNameservers) {
+        this.dnsConfigNameservers = Util.fixEmpty(dnsConfigNameservers);
+    }
+
+    public String getDNSPolicy() {
+        return dnsPolicy;
+    }
+
+    @DataBoundSetter
+    public void setDNSPolicy(String dnsPolicy) {
+        this.dnsPolicy = Util.fixEmpty(dnsPolicy);
+    }
+
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
@@ -1051,6 +1073,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (annotations == null || annotations.isEmpty() ? "" : ", annotations=" + annotations) +
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
+                (dnsConfigNameservers == null ? "" : ", dnsConfigNameservers=" + dnsConfigNameservers) +
+                (dnsPolicy == null ? "" : ", dnsPolicy=" + dnsPolicy) +
                 (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls) +
                 '}';
     }

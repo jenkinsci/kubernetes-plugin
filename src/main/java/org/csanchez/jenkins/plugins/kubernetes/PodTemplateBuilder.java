@@ -63,6 +63,7 @@ import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodDNSConfig;
 import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
 import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Probe;
@@ -267,6 +268,14 @@ public class PodTemplateBuilder {
 
         if (template.isHostNetworkSet()) {
             builder.withHostNetwork(template.isHostNetwork());
+        }
+
+        if (template.getDNSConfigNameservers() != null) {
+            builder.withDnsConfig(parseDNSConfig(template.getDNSConfigNameservers()));
+        }
+
+        if (template.getDNSPolicy() != null) {
+            builder.withDnsPolicy(template.getDNSPolicy());
         }
 
         // merge with the yaml fragments
@@ -612,5 +621,21 @@ public class PodTemplateBuilder {
             }
         }
         return Collections.unmodifiableList(builder);
+    }
+
+    private PodDNSConfig parseDNSConfig(String dnsConfigNameservers) {
+        if (isNullOrEmpty(dnsConfigNameservers)) {
+            return new PodDNSConfig();
+        }
+
+        List<String> nameserversBuilder = new ArrayList<>();
+        for (String nameserver: dnsConfigNameservers.split(",")) {
+            if (!isNullOrEmpty(nameserver)) {
+                nameserversBuilder.add(nameserver);
+            } else {
+                LOGGER.log(Level.WARNING, "Ignoring nameserver '{0}'. Nameserver's cannot be empty or null.", nameserver);
+            }
+        }
+        return new PodDNSConfig(nameserversBuilder, new ArrayList<>(), new ArrayList<>());
     }
 }
