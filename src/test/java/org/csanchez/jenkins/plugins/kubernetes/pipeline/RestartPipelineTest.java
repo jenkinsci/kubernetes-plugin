@@ -45,8 +45,10 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -245,7 +247,9 @@ public class RestartPipelineTest {
             projectName.set(b.getParent().getFullName());
             r.waitForMessage("+ sleep", b);
         });
+        logs.record(DurableTaskStep.class, Level.FINE).record(Reaper.class, Level.FINE);
         story.then(r -> {
+            setupHost(); // otherwise JenkinsLocationConfiguration will be clobbered
             WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             // Note that the test is cheating here slightly.

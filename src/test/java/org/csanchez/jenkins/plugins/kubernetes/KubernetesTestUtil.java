@@ -127,7 +127,7 @@ public class KubernetesTestUtil {
         System.err.println("Calling home to address: " + hostAddress);
         URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
                 url.getFile());
-        // TODO better to set KUBERNETES_JENKINS_URL
+        // TODO better to set KUBERNETES_JENKINS_URL, or better yet KubernetesCloud.setJenkinsUrl
         JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
 
         Integer slaveAgentPort = Integer.getInteger("slaveAgentPort");
