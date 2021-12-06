@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.263.1</jenkins.version>
+    <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
   </properties>
@@ -135,6 +135,11 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials-binding</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>1122.v2d03a46f6f49</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+    </dependency>
 
     <!-- for testing -->
     <dependency>
@@ -145,11 +150,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -256,7 +256,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.263.x</artifactId>
+        <artifactId>bom-2.303.x</artifactId>
         <version>984.vb5eaac999a7e</version>
         <scope>import</scope>
         <type>pom</type>
