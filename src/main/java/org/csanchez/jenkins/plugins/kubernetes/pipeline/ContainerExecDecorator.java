@@ -104,9 +104,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private String containerName;
     private EnvironmentExpander environmentExpander;
     private EnvVars globalVars;
-    /** @deprecated no longer used */
-    @Deprecated
-    private FilePath ws;
     private EnvVars rcEnvVars;
     private String shell;
     private KubernetesNodeContext nodeContext;
@@ -118,7 +115,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     public ContainerExecDecorator(KubernetesClient client, String podName, String containerName, String namespace, EnvironmentExpander environmentExpander, FilePath ws) {
         this.containerName = containerName;
         this.environmentExpander = environmentExpander;
-        this.ws = ws;
     }
 
     @Deprecated
@@ -220,16 +216,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public EnvVars getRunContextEnvVars() {
         return this.rcEnvVars;
-    }
-
-    /** @deprecated unused */
-    @Deprecated
-    public FilePath getWs() {
-        return ws;
-    }
-
-    public void setWs(FilePath ws) {
-        this.ws = ws;
     }
 
     public void setShell(String shell) {
