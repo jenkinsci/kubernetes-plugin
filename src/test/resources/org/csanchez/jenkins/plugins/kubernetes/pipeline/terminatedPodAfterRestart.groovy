@@ -12,7 +12,7 @@ spec:
 ''') {
     node(POD_LABEL) {
         container('busybox') {
-            sh 'sleep 9999999'
+            sh 'sleep 15'
         }
     }
 }

@@ -49,7 +49,6 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
-import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -253,8 +252,9 @@ public class RestartPipelineTest {
             WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             deletePods(cloud.connect(), getLabels(this, name), false);
-            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-            r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
+            r.waitForMessage("assuming it is not coming back", b);
+            r.waitForMessage("Will retry failed node block from deleted pod", b);
+            r.assertBuildStatusSuccess(r.waitForCompletion(b));
         });
     }
 
