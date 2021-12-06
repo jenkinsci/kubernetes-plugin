@@ -531,6 +531,7 @@ public class PodTemplateUtils {
      * @param templates     The list of all templates.
      * @return              The first pod template from the collection that has a matching label.
      */
+    @CheckForNull
     public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
             if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
