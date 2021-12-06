@@ -77,7 +77,6 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setNodeContext(nodeContext);
         decorator.setContainerName(containerName);
         decorator.setEnvironmentExpander(env);
-        decorator.setWs(getContext().get(FilePath.class));
         decorator.setGlobalVars(globalVars);
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
