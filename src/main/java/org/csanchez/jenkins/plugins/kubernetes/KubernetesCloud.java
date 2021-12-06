@@ -571,6 +571,7 @@ public class KubernetesCloud extends Cloud {
      * @param label label to look for in templates
      * @return the template
      */
+    @CheckForNull
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
     }
