@@ -91,7 +91,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     private Watch watch;
 
     @Override
-    public void onOnline(Computer c, TaskListener listener) throws IOException, InterruptedException {
+    public void preLaunch(Computer c, TaskListener taskListener) throws IOException, InterruptedException {
         if (c instanceof KubernetesComputer && activated.compareAndSet(false, true)) {
             activate();
         }
