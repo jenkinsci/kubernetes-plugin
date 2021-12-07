@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.263.1</jenkins.version>
+    <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
   </properties>
@@ -256,8 +256,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.263.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <artifactId>bom-2.303.x</artifactId>
+        <version>1036.v9f5a1aba8fab</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
