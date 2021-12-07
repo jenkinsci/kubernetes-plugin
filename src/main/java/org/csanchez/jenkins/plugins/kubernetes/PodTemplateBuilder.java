@@ -106,9 +106,31 @@ public class PodTemplateBuilder {
     @Restricted(NoExternalUse.class)
     static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
+
+    private static final String defaultImageName;
+
+    static {
+        try (InputStream dockerfileStream = PodTemplateBuilder.class.getResourceAsStream("Dockerfile")) {
+            String s = IOUtils.readFirstLine(dockerfileStream, StandardCharsets.UTF_8.toString());
+            Matcher matcher = FROM_DIRECTIVE.matcher(s);
+            if (matcher.matches()) {
+                String name = matcher.group(1);
+                if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
+                    defaultImageName = name + "-jdk11";
+                } else {
+                    defaultImageName = name + "-jdk8";
+                }
+            } else {
+                throw new IllegalStateException("Dockerfile in plugin resources doesn't have the expected content");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Restricted(NoExternalUse.class)
     static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", getDefaultImageName());
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", defaultImageName);
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
@@ -140,31 +162,6 @@ public class PodTemplateBuilder {
         this.template = template;
         this.agent = agent;
         this.cloud = agent.getKubernetesCloud();
-    }
-
-    private static String defaultImageName;
-
-    static {
-        try (InputStream dockerfileStream = PodTemplateBuilder.class.getResourceAsStream("Dockerfile")) {
-            String s = IOUtils.readFirstLine(dockerfileStream, StandardCharsets.UTF_8.toString());
-            Matcher matcher = FROM_DIRECTIVE.matcher(s);
-            if (matcher.matches()) {
-                String name = matcher.group(1);
-                if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
-                    defaultImageName = name + "-jdk11";
-                } else {
-                    defaultImageName = name + "-jdk8";
-                }
-            } else {
-                throw new IllegalStateException("Dockerfile in plugin resources doesn't have the expected content");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static String getDefaultImageName() {
-        return defaultImageName;
     }
 
     public PodTemplateBuilder withSlave(@NonNull KubernetesSlave slave) {
