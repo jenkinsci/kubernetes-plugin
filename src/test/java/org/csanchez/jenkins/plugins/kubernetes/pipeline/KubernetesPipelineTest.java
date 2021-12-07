@@ -682,9 +682,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void invalidPodGetsCancelled() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to create pod", b);
-        r.assertLogContains("ERROR: Queue task was cancelled", b);
+        r.assertLogContains("Queue task was cancelled", b);
     }
 
     @Issue("SECURITY-1646")
