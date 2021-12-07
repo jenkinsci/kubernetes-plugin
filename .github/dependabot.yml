@@ -9,3 +9,7 @@ updates:
   - dependency-name: org.apache.commons:commons-lang3
     versions:
     - "> 3.8.1"
+- package-ecosystem: docker
+  directory: '/src/main/resources/org/csanchez/jenkins/plugins/kubernetes'
+  schedule:
+    interval: 'daily'

@@ -24,6 +24,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.util.IOUtils;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,6 +100,7 @@ public class PodTemplateBuilder {
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
+    public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -137,13 +142,29 @@ public class PodTemplateBuilder {
         this.cloud = agent.getKubernetesCloud();
     }
 
+    private static String defaultImageName;
+
+    static {
+        try (InputStream dockerfileStream = PodTemplateBuilder.class.getResourceAsStream("Dockerfile")) {
+            String s = IOUtils.readFirstLine(dockerfileStream, StandardCharsets.UTF_8.toString());
+            Matcher matcher = FROM_DIRECTIVE.matcher(s);
+            if (matcher.matches()) {
+                String name = matcher.group(1);
+                if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
+                    defaultImageName = name + "-jdk11";
+                } else {
+                    defaultImageName = name + "-jdk8";
+                }
+            } else {
+                throw new IllegalStateException("Dockerfile in plugin resources doesn't have the expected content");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static String getDefaultImageName() {
-      // TODO: Reverse logic after inbound-agent:4.9-1
-      String name = "jenkins/inbound-agent:4.3-4";
-      if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
-        name = name + "-jdk11";
-      }
-      return name;
+        return defaultImageName;
     }
 
     public PodTemplateBuilder withSlave(@NonNull KubernetesSlave slave) {
