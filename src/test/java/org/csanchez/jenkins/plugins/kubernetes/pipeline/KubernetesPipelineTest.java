@@ -518,6 +518,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void cascadingDelete() throws Exception {
         try {
             cloud.connect().apps().deployments().withName("cascading-delete").delete();
+            assumeNotNull(cloud.connect().serviceAccounts().withName("jenkins").get());
         } catch (KubernetesClientException x) {
             // Failure executing: DELETE at: https://…/apis/apps/v1/namespaces/kubernetes-plugin-test/deployments/cascading-delete. Message: Forbidden!Configured service account doesn't have access. Service account may have been revoked. deployments.apps "cascading-delete" is forbidden: User "system:serviceaccount:…:…" cannot delete resource "deployments" in API group "apps" in the namespace "kubernetes-plugin-test".
             assumeNoException("was not permitted to clean up any previous deployment, so presumably cannot run test either", x);
