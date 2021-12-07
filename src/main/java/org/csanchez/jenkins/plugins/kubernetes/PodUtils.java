@@ -25,6 +25,7 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.util.Map;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
@@ -133,14 +134,19 @@ public final class PodUtils {
                     sb.append(" -- waiting");
                 }
                 sb.append("\n");
-                sb.append("-----Logs-------------\n");
-                sb.append(client.pods()
-                        .inNamespace(namespace)
-                        .withName(podName)
-                        .inContainer(containerStatus.getName())
-                        .tailingLines(30)
-                        .getLog());
-                sb.append("\n");
+                try {
+                    String log = client.pods()
+                            .inNamespace(namespace)
+                            .withName(podName)
+                            .inContainer(containerStatus.getName())
+                            .tailingLines(30)
+                            .getLog();
+                    sb.append("-----Logs-------------\n");
+                    sb.append(log);
+                    sb.append("\n");
+                } catch (KubernetesClientException e) {
+                    LOGGER.log(Level.FINE, "Unable to retrieve container logs as it is already gone", e);
+                }
             }
         }
         return Util.fixEmpty(sb.toString());

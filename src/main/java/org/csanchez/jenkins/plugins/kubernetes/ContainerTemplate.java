@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
@@ -65,7 +66,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private String shell;
 
     private final List<TemplateEnvVar> envVars = new ArrayList<>();
-    private List<PortMapping> ports = new ArrayList<PortMapping>();
+    private List<PortMapping> ports = new ArrayList<>();
 
     private ContainerLivenessProbe livenessProbe;
 
@@ -326,7 +327,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
         public List<? extends Descriptor> getEnvVarsDescriptors() {
-            return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+            return DescriptorVisibilityFilter.apply(null, Jenkins.get().getDescriptorList(TemplateEnvVar.class));
         }
 
         public FormValidation doCheckName(@QueryParameter String value) {
@@ -391,10 +392,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         if (privileged != that.privileged) {
             return false;
         }
-        if (runAsUser != null ? !runAsUser.equals(that.runAsUser) : that.runAsUser != null) {
+        if (!Objects.equals(runAsUser, that.runAsUser)) {
             return false;
         }
-        if (runAsGroup != null ? !runAsGroup.equals(that.runAsGroup) : that.runAsGroup != null) {
+        if (!Objects.equals(runAsGroup, that.runAsGroup)) {
             return false;
         }
         if (alwaysPullImage != that.alwaysPullImage) {
@@ -403,49 +404,49 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         if (ttyEnabled != that.ttyEnabled) {
             return false;
         }
-        if (name != null ? !name.equals(that.name) : that.name != null) {
+        if (!Objects.equals(name, that.name)) {
             return false;
         }
-        if (image != null ? !image.equals(that.image) : that.image != null) {
+        if (!Objects.equals(image, that.image)) {
             return false;
         }
-        if (workingDir != null ? !workingDir.equals(that.workingDir) : that.workingDir != null) {
+        if (!Objects.equals(workingDir, that.workingDir)) {
             return false;
         }
-        if (command != null ? !command.equals(that.command) : that.command != null) {
+        if (!Objects.equals(command, that.command)) {
             return false;
         }
-        if (args != null ? !args.equals(that.args) : that.args != null) {
+        if (!Objects.equals(args, that.args)) {
             return false;
         }
-        if (resourceRequestCpu != null ? !resourceRequestCpu.equals(that.resourceRequestCpu) : that.resourceRequestCpu != null) {
+        if (!Objects.equals(resourceRequestCpu, that.resourceRequestCpu)) {
             return false;
         }
-        if (resourceRequestMemory != null ? !resourceRequestMemory.equals(that.resourceRequestMemory) : that.resourceRequestMemory != null) {
+        if (!Objects.equals(resourceRequestMemory, that.resourceRequestMemory)) {
             return false;
         }
-        if (resourceRequestEphemeralStorage != null ? !resourceRequestEphemeralStorage.equals(that.resourceRequestEphemeralStorage) : that.resourceRequestEphemeralStorage != null) {
+        if (!Objects.equals(resourceRequestEphemeralStorage, that.resourceRequestEphemeralStorage)) {
             return false;
         }
-        if (resourceLimitCpu != null ? !resourceLimitCpu.equals(that.resourceLimitCpu) : that.resourceLimitCpu != null) {
+        if (!Objects.equals(resourceLimitCpu, that.resourceLimitCpu)) {
             return false;
         }
-        if (resourceLimitMemory != null ? !resourceLimitMemory.equals(that.resourceLimitMemory) : that.resourceLimitMemory != null) {
+        if (!Objects.equals(resourceLimitMemory, that.resourceLimitMemory)) {
             return false;
         }
-        if (resourceLimitEphemeralStorage != null ? !resourceLimitEphemeralStorage.equals(that.resourceLimitEphemeralStorage) : that.resourceLimitEphemeralStorage != null) {
+        if (!Objects.equals(resourceLimitEphemeralStorage, that.resourceLimitEphemeralStorage)) {
             return false;
         }
-        if (shell != null ? !shell.equals(that.shell) : that.shell != null) {
+        if (!Objects.equals(shell, that.shell)) {
             return false;
         }
         if (envVars != null ? !envVars.equals(that.envVars) : that.envVars != null) {
             return false;
         }
-        if (ports != null ? !ports.equals(that.ports) : that.ports != null) {
+        if (!Objects.equals(ports, that.ports)) {
             return false;
         }
-        return livenessProbe != null ? livenessProbe.equals(that.livenessProbe) : that.livenessProbe == null;
+        return Objects.equals(livenessProbe, that.livenessProbe);
     }
 
     @Override

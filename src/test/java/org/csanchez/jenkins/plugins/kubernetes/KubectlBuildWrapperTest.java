@@ -5,8 +5,6 @@ import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.Result;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.AbstractKubernetesPipelineTest;
-import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
-import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.junit.Before;
 import org.junit.Test;
 

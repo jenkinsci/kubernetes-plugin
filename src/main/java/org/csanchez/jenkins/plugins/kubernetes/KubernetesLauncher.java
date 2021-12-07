@@ -36,8 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.annotation.CheckForNull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.metrics.api.Metrics;
@@ -252,13 +251,18 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
-            Throwable[] suppressed = ex.getSuppressed();
-            if (suppressed[0] instanceof ContainerLogs) {
-                runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
-                runListener.getLogger().print(suppressed[0].getMessage());
-            }
             setProblem(ex);
-            LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
+            if (ex instanceof AllContainersRunningPodWatcher.PodNotRunningException) {
+                Throwable[] suppressed = ex.getSuppressed();
+                if (suppressed.length > 0 && suppressed[0] instanceof ContainerLogs) {
+                    runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
+                    runListener.getLogger().print(suppressed[0].getMessage());
+                }
+                LOGGER.log(Level.WARNING, String.format("Error in provisioning: %s; agent=%s, template=%s", ex.getMessage(), node, template));
+                LOGGER.log(Level.FINE, null, ex);
+            } else {
+                LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
+            }
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {
                 node.terminate();

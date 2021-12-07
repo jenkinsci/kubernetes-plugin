@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
@@ -7,13 +8,13 @@ import org.apache.commons.lang.Validate;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
@@ -52,8 +53,8 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      * @param labels collection of pod labels to convert to a map
      * @return immutable map of pod labels
      */
-    @Nonnull
-    static Map<String, String> toMap(@Nonnull Iterable<PodLabel> labels) {
+    @NonNull
+    static Map<String, String> toMap(@NonNull Iterable<PodLabel> labels) {
         Map<String, String> builder = new HashMap<>();
         for (PodLabel podLabel : labels) {
             builder.put(podLabel.getKey(), substituteEnv(podLabel.getValue()));
@@ -66,8 +67,8 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
      * @param labels labels map
      * @return list of pod labels
      */
-    @Nonnull
-    static List<PodLabel> fromMap(@Nonnull Map<String, String> labels) {
+    @NonNull
+    static List<PodLabel> fromMap(@NonNull Map<String, String> labels) {
         List<PodLabel> list = new ArrayList<>();
         for (Map.Entry<String, String> label : labels.entrySet()) {
             list.add(new PodLabel(label.getKey(), label.getValue()));
@@ -91,7 +92,7 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
 
         PodLabel that = (PodLabel) o;
 
-        return key != null ? key.equals(that.key) : that.key == null;
+        return Objects.equals(key, that.key);
 
     }
 
@@ -109,7 +110,7 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
     @Symbol("podLabel")
     public static class DescriptorImpl extends Descriptor<PodLabel> {
         @Override
-        @Nonnull
+        @NonNull
         public String getDisplayName() {
             return "Pod Label";
         }

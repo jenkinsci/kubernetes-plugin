@@ -75,7 +75,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         // JENKINS-60886
         UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
         assertNotNull(podRetention);
-        assertTrue(podRetention.getModel().getType().equals(OnFailure.class));
+        assertEquals(podRetention.getModel().getType(), OnFailure.class);
     }
 
     @Issue("JENKINS-48135")

@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,9 +16,8 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -74,12 +72,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
      * Not used for security.
      */
-    protected static final MessageDigest LABEL_DIGEST_FUNCTION;
-    static {
+    protected static MessageDigest getLabelDigestFunction() {
         try {
-            LABEL_DIGEST_FUNCTION = MessageDigest.getInstance("SHA-1");
+            return MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
-            // will never happen, SHA-256 support required on every Java implementation
+            // will never happen, SHA-1 support required on every Java implementation
             e.printStackTrace();
             // throw error to allow variable to be set as final
             throw new AssertionError(e);
@@ -179,7 +176,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     private transient List<String> yamls;
 
-    @Nonnull
+    @NonNull
     public String getId() {
         return id;
     }
@@ -475,9 +472,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             tempMap.put("jenkins/label", DEFAULT_LABEL);
             tempMap.put("jenkins/label-digest", "0");
         } else {
-            LABEL_DIGEST_FUNCTION.update(label.getBytes(StandardCharsets.UTF_8));
+            MessageDigest labelDigestFunction = getLabelDigestFunction();
+            labelDigestFunction.update(label.getBytes(StandardCharsets.UTF_8));
             tempMap.put("jenkins/label", sanitizeLabel(label));
-            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, LABEL_DIGEST_FUNCTION.digest())));
+            tempMap.put("jenkins/label-digest", String.format("%040x", new BigInteger(1, labelDigestFunction.digest())));
         }
         labelsMap = Collections.unmodifiableMap(tempMap);
     }
@@ -671,7 +669,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.getNodeProperties().addAll(properties);
     }
 
-    @Nonnull
+    @NonNull
     public PodTemplateToolLocation getNodeProperties(){
         if( this.nodeProperties == null)
             this.nodeProperties = new PodTemplateToolLocation(this);
@@ -724,14 +722,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setVolumes(@Nonnull List<PodVolume> items) {
+    public void setVolumes(@NonNull List<PodVolume> items) {
         synchronized (this.volumes) {
             this.volumes.clear();
             this.volumes.addAll(items);
         }
     }
 
-    @Nonnull
+    @NonNull
     public List<PodVolume> getVolumes() {
         if (volumes == null) {
             return Collections.emptyList();
@@ -739,7 +737,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return volumes;
     }
 
-    @Nonnull
+    @NonNull
     public WorkspaceVolume getWorkspaceVolume() {
         return workspaceVolume == null ? WorkspaceVolume.getDefault() : workspaceVolume;
     }
@@ -750,14 +748,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
-    public void setContainers(@Nonnull List<ContainerTemplate> items) {
+    public void setContainers(@NonNull List<ContainerTemplate> items) {
         synchronized (this.containers) {
             this.containers.clear();
             this.containers.addAll(items);
         }
     }
 
-    @Nonnull
+    @NonNull
     public List<ContainerTemplate> getContainers() {
         if (containers == null) {
             return Collections.emptyList();
@@ -777,7 +775,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.yaml = Util.fixEmpty(yaml);
     }
 
-    @Nonnull
+    @NonNull
     public List<String> getYamls() {
         if (yamls == null || yamls.isEmpty()) {
             if (yaml != null) {
@@ -818,7 +816,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.podRetention = PodRetention.getPodTemplateDefault().equals(podRetention) ? null : podRetention;
     }
 
-    @Nonnull
+    @NonNull
     public TaskListener getListener() {
         return listener == null ? TaskListener.NULL : listener;
     }
@@ -992,7 +990,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class) // Used by jelly
         public List<? extends Descriptor> getEnvVarsDescriptors() {
-            return DescriptorVisibilityFilter.apply(null, Jenkins.getInstance().getDescriptorList(TemplateEnvVar.class));
+            return DescriptorVisibilityFilter.apply(null, Jenkins.get().getDescriptorList(TemplateEnvVar.class));
         }
 
         @SuppressWarnings("unused") // Used by jelly

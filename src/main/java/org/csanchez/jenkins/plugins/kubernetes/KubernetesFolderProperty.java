@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -10,8 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -171,7 +169,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
                 .stream()
                 .filter(KubernetesCloud::isUsageRestricted)
                 .collect(Collectors.toList());
-        Collections.sort(clouds, Comparator.<Cloud, String>comparing(o -> o.name));
+        clouds.sort(Comparator.<Cloud, String>comparing(o -> o.name));
         return clouds;
     }
 
@@ -242,7 +240,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     @Extension
     public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
-        @Nonnull
+        @NonNull
         @Override
         public String getDisplayName() {
             return Messages.KubernetesFolderProperty_displayName();

@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -58,7 +57,7 @@ public class ContainerStepExecution extends StepExecution {
         );
 
         EnvVars globalVars = null;
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.get();
 
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
         List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
@@ -93,7 +92,7 @@ public class ContainerStepExecution extends StepExecution {
     }
 
     @Override
-    public void stop(@Nonnull Throwable cause) throws Exception {
+    public void stop(@NonNull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
         closeQuietly(getContext(), decorator);
     }

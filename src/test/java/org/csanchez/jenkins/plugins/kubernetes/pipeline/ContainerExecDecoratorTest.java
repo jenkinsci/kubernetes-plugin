@@ -28,7 +28,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -62,8 +61,6 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +78,6 @@ import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
 import hudson.model.Node;
 import hudson.util.StreamTaskListener;
-import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
@@ -191,11 +187,11 @@ public class ContainerExecDecoratorTest {
         for (int i = 0; i < t.length; i++) {
             t[i] = newThread(i, results);
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].start();
+        for (Thread thread : t) {
+            thread.start();
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].join();
+        for (Thread thread : t) {
+            thread.join();
         }
         assertEquals("Not all threads finished successfully", t.length, results.size());
         for (ProcReturn r : results) {

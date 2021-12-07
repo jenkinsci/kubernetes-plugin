@@ -1,12 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.yaml;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Pod;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;
@@ -35,7 +35,7 @@ public class Overrides extends YamlMergeStrategy {
     @Extension
     @Symbol("override")
     public static class DescriptorImpl extends Descriptor<YamlMergeStrategy> {
-        @Nonnull
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Override";

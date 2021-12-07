@@ -1,7 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import antlr.ANTLRException;
-import hudson.model.Label;
 import hudson.model.labels.LabelAtom;
 import org.junit.Assert;
 import org.junit.Test;

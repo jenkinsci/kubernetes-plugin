@@ -99,7 +99,7 @@ spec:
       protocol: TCP
 
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: jenkins
@@ -115,13 +115,17 @@ metadata:
     ingress.kubernetes.io/proxy-body-size: 50m
     ingress.kubernetes.io/proxy-request-buffering: "off"
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: jenkins
-          servicePort: 80
+          service:
+            name: jenkins
+            port:
+              number: 80
     host: jenkins.example.com
   tls:
   - hosts:

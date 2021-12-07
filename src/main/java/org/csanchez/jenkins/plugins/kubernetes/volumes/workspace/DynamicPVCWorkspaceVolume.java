@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
@@ -20,7 +21,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import javax.annotation.CheckForNull;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;

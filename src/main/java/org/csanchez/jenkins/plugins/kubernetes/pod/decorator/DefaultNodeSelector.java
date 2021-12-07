@@ -1,10 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.decorator;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 
 /**
@@ -12,9 +12,9 @@ import java.util.Collections;
  */
 @Extension
 public class DefaultNodeSelector implements PodDecorator {
-    @Nonnull
+    @NonNull
     @Override
-    public Pod decorate(@Nonnull KubernetesCloud kubernetesCloud, @Nonnull Pod pod) {
+    public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
         // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
         if (pod.getSpec().getRuntimeClassName() == null &&
                 (pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&

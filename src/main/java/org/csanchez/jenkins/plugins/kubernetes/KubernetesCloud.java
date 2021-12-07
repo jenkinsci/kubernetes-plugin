@@ -20,13 +20,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Main;
 import hudson.model.ItemGroup;
-import hudson.model.Node;
 import hudson.util.XStream2;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
@@ -61,8 +59,6 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
@@ -101,7 +97,7 @@ public class KubernetesCloud extends Cloud {
 
     private String defaultsProviderTemplate;
 
-    @Nonnull
+    @NonNull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
     private boolean useJenkinsProxy;
@@ -211,7 +207,7 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = defaultsProviderTemplate;
     }
 
-    @Nonnull
+    @NonNull
     public List<PodTemplate> getTemplates() {
         return templates;
     }
@@ -220,13 +216,13 @@ public class KubernetesCloud extends Cloud {
      * Returns all pod templates for this cloud including the dynamic ones.
      * @return all pod templates for this cloud including the dynamic ones.
      */
-    @Nonnull
+    @NonNull
     public List<PodTemplate> getAllTemplates() {
         return PodTemplateSource.getAll(this);
     }
 
     @DataBoundSetter
-    public void setTemplates(@Nonnull List<PodTemplate> templates) {
+    public void setTemplates(@NonNull List<PodTemplate> templates) {
         this.templates = new ArrayList<>(templates);
     }
 
@@ -235,7 +231,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @DataBoundSetter
-    public void setServerUrl(@Nonnull String serverUrl) {
+    public void setServerUrl(@NonNull String serverUrl) {
         this.serverUrl = serverUrl;
     }
 
@@ -295,7 +291,7 @@ public class KubernetesCloud extends Cloud {
      * @return same as {@link #getJenkinsUrlOrNull}, if set
      * @throws IllegalStateException if no Jenkins URL could be computed.
      */
-    @Nonnull
+    @NonNull
     public String getJenkinsUrlOrDie() {
         String url = getJenkinsUrlOrNull();
         if (url == null) {
@@ -580,7 +576,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @CheckForNull
-    public PodTemplate getTemplateById(@Nonnull String id) {
+    public PodTemplate getTemplateById(@NonNull String id) {
         return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);
     }
 
@@ -713,12 +709,15 @@ public class KubernetesCloud extends Cloud {
 
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
+        public FormValidation doTestConnection(@QueryParameter String name,
+                                               @QueryParameter String serverUrl,
+                                               @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
-                                               @QueryParameter int readTimeout) throws Exception {
+                                               @QueryParameter int readTimeout,
+                                               @QueryParameter boolean useJenkinsProxy) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             if (StringUtils.isBlank(name))
@@ -726,7 +725,7 @@ public class KubernetesCloud extends Cloud {
 
             try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient()) {
+                        connectionTimeout, readTimeout, DEFAULT_MAX_REQUESTS_PER_HOST, useJenkinsProxy).createClient()) {
                     // test listing pods
                     client.pods().list();
                 VersionInfo version = client.getVersion();
@@ -933,9 +932,9 @@ public class KubernetesCloud extends Cloud {
 
     @Extension
     public static class PodTemplateSourceImpl extends PodTemplateSource {
-        @Nonnull
+        @NonNull
         @Override
-        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+        public List<PodTemplate> getList(@NonNull KubernetesCloud cloud) {
             return cloud.getTemplates();
         }
     }

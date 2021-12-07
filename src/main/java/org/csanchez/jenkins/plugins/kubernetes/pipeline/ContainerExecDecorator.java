@@ -640,10 +640,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             // To output things that shouldn't be considered for masking
             PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
             unmasked.print("Executing command: ");
-            for (int i = 0; i < statements.length; i++) {
+            for (String statement : statements) {
                 tee.append("\"")
-                   .append(statements[i])
-                   .append("\" ");
+                        .append(statement)
+                        .append("\" ");
             }
             tee.print(newLine(windows));
             LOGGER.log(Level.FINEST, loggingOutput.toString(encoding) + "[" + TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start) + " μs." + "]");
