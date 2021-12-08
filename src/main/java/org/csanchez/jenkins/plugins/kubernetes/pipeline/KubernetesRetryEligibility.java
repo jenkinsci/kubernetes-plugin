@@ -41,7 +41,7 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
 
     private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS = new HashSet<String>();
     static {
-        IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKiller");
+        IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKilled");
         IGNORED_CONTAINER_TERMINATION_REASONS.add("Completed");
         IGNORED_CONTAINER_TERMINATION_REASONS.add("DeadlineExceeded");
     }
@@ -61,7 +61,7 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
             LOGGER.fine(() -> "ignored termination reason(s) for " + node + ": " + terminationReasons);
             return false;
         }
-        LOGGER.fine(() -> "active on " + node);
+        LOGGER.fine(() -> "active on " + node + " (termination reasons: " + terminationReasons + ")");
         listener.getLogger().println("Will retry failed node block from deleted pod " + node);
         return true;
     }
