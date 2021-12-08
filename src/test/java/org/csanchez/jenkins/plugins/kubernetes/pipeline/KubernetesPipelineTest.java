@@ -476,8 +476,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void terminatedPod() throws Exception {
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
-        r.waitForMessage("busybox -- terminated", b);
-        r.waitForMessage("jnlp -- terminated", b);
+        r.waitForMessage("busybox --", b);
+        r.waitForMessage("jnlp --", b);
         r.waitForMessage("was deleted; cancelling node body", b);
         r.waitForMessage("Will retry failed node block from deleted pod", b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
