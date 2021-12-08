@@ -85,6 +85,9 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["get"]
 - apiGroups: ["apps"]
   resources: ["deployments"] # KubernetesPipelineTest#cascadingDelete
   verbs: ["create","delete","get","list","patch","update","watch"]
