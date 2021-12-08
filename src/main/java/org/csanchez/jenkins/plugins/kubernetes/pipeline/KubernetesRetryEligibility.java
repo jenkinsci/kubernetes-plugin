@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
+package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.Extension;
 import hudson.model.Label;
