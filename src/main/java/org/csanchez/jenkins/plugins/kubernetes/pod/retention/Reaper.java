@@ -46,6 +46,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.fabric8.kubernetes.client.WatcherException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
@@ -215,6 +220,9 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     @Extension
     public static class TerminateAgentOnContainerTerminated implements Listener {
+
+        private final Map<String, Set<String>> terminationReasons = new HashMap<>();
+
         @Override
         public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
             if (action != Action.MODIFIED) {
@@ -229,10 +237,27 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                     ContainerStateTerminated t = c.getState().getTerminated();
                     LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
                     runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
+                    synchronized (terminationReasons) {
+                        terminationReasons.computeIfAbsent(node.getNodeName(), k -> new HashSet<>()).add(t.getReason());
+                    }
                 });
                 node.terminate();
             }
         }
+
+        /**
+         * Get any reason(s) why a node was terminated by this listener.
+         * @param node a {@link Node#getNodeName}
+         * @return a possibly empty set of {@link ContainerStateTerminated#getReason}
+         */
+        @NonNull
+        public Set<String> terminationReasons(@NonNull String node) {
+            synchronized (terminationReasons) {
+                Set<String> reasons = terminationReasons.get(node);
+                return reasons == null ? Collections.emptySet() : new HashSet<>(reasons);
+            }
+        }
+
     }
 
     @Extension

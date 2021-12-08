@@ -17,13 +17,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.Cloud;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepRetryEligibility;
 
 /**
@@ -32,13 +37,32 @@ import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepRetryEligibility
 @Extension
 public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility {
 
+    private static final Logger LOGGER = Logger.getLogger(KubernetesRetryEligibility.class.getName());
+
+    private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS = new HashSet<String>();
+    static {
+        IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKiller");
+        IGNORED_CONTAINER_TERMINATION_REASONS.add("Completed");
+    }
+
     @Override
     public boolean shouldRetry(Throwable t, String node, String label, TaskListener listener) {
-        if (ExecutorStepRetryEligibility.isRemovedNode(t) && isKubernetesAgent(node, label)) {
-            listener.getLogger().println("Will retry failed node block from deleted pod " + node);
-            return true;
+        if (!ExecutorStepRetryEligibility.isRemovedNode(t)) {
+            LOGGER.fine(() -> "Not a RemovedNode failure: " + t);
+            return false;
         }
-        return false;
+        if (!isKubernetesAgent(node, label)) {
+            LOGGER.fine(() -> node + " was not a K8s agent");
+            return false;
+        }
+        Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.TerminateAgentOnContainerTerminated.class).terminationReasons(node);
+        if (terminationReasons.stream().anyMatch(r -> IGNORED_CONTAINER_TERMINATION_REASONS.contains(r))) {
+            LOGGER.fine(() -> "ignored termination reason(s) for " + node + ": " + terminationReasons);
+            return false;
+        }
+        LOGGER.fine(() -> "active on " + node);
+        listener.getLogger().println("Will retry failed node block from deleted pod " + node);
+        return true;
     }
 
     private static boolean isKubernetesAgent(String node, String label) {
