@@ -77,6 +77,7 @@ import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
 import hudson.model.Node;
+import hudson.slaves.DumbSlave;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -100,6 +101,7 @@ public class ContainerExecDecoratorTest {
     private ContainerExecDecorator decorator;
     private Pod pod;
     private KubernetesSlave agent;
+    private DumbSlave dumbAgent;
 
     @Rule
     public Timeout timeout = new Timeout(3, TimeUnit.MINUTES);
@@ -112,12 +114,12 @@ public class ContainerExecDecoratorTest {
     @Rule
     public TestName name = new TestName();
 
-    @BeforeClass
+    //@BeforeClass
     public static void isKubernetesConfigured() throws Exception {
         assumeKubernetes();
     }
 
-    @Before
+    //@Before
     public void configureCloud() throws Exception {
         cloud = setupCloud(this, name);
         client = cloud.connect();
@@ -170,7 +172,7 @@ public class ContainerExecDecoratorTest {
         decorator.setContainerName(image);
     }
 
-    @After
+    //@After
     public void after() throws Exception {
         client.pods().delete(pod);
         deletePods(client, getLabels(this, name), true);
@@ -422,6 +424,23 @@ public class ContainerExecDecoratorTest {
                 r.output.contains("MyCustomDir=/home/jenkins/agent1"));
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
+    }
+
+    /**
+     * Reproduce JENKINS-66986
+     *
+     * Allow non KubernetesSlave nodes to be provisioned inside the container clause
+     *
+     * @throws Exception
+     */
+    @Test
+    @Issue("JENKINS-66986")
+    public void testRunningANonKubernetesNodeInsideContainerClause() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
+        Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
+        //If the node is not a KubernetesSlave the original launcher is returned
+        assertEquals(dummyLauncher, launcher);
     }
 
     private ProcReturn execCommand(boolean quiet, boolean launcherStdout, String... cmd) throws Exception {
