@@ -114,12 +114,12 @@ public class ContainerExecDecoratorTest {
     @Rule
     public TestName name = new TestName();
 
-    //@BeforeClass
+    @BeforeClass
     public static void isKubernetesConfigured() throws Exception {
         assumeKubernetes();
     }
 
-    //@Before
+    @Before
     public void configureCloud() throws Exception {
         cloud = setupCloud(this, name);
         client = cloud.connect();
@@ -172,7 +172,7 @@ public class ContainerExecDecoratorTest {
         decorator.setContainerName(image);
     }
 
-    //@After
+    @After
     public void after() throws Exception {
         client.pods().delete(pod);
         deletePods(client, getLabels(this, name), true);
