@@ -479,8 +479,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
-        r.waitForMessage("busybox -- terminated", b);
-        r.waitForMessage("jnlp -- terminated", b);
+        r.waitForMessage("busybox --", b);
+        r.waitForMessage("jnlp --", b);
     }
 
     @Issue("JENKINS-59340")
