@@ -51,7 +51,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -98,7 +100,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     @Override
     public void preLaunch(Computer c, TaskListener taskListener) throws IOException, InterruptedException {
         if (c instanceof KubernetesComputer && activated.compareAndSet(false, true)) {
-            activate();
+            Timer.get().schedule(this::activate, 10, TimeUnit.SECONDS);
         }
     }
 
