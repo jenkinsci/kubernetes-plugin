@@ -184,7 +184,7 @@ public class PodTemplateBuilder {
         // Build volumes and volume mounts.
         Map<String, Volume> volumes = new HashMap<>();
         Map<String, VolumeMount> volumeMounts = new HashMap<>();
-
+        String podName = agent != null ? agent.getPodName() : null;
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
@@ -201,12 +201,12 @@ public class PodTemplateBuilder {
                     }
                 }
                 volumeMounts.put(mountPath, volumeMountBuilder.build());
-                volumes.put(volumeName, volume.buildVolume(volumeName));
+                volumes.put(volumeName, volume.buildVolume(volumeName, podName));
                 i++;
             }
         }
 
-        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, agent != null ? agent.getPodName() : null));
+        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, podName));
 
         Map<String, Container> containers = new HashMap<>();
         // containers from pod template

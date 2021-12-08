@@ -24,6 +24,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.io.Serializable;
 import java.util.List;
 
@@ -41,8 +44,26 @@ public abstract class PodVolume extends AbstractDescribableImpl<PodVolume> imple
     // Where to mount this volume in the pod.
     public abstract String getMountPath();
 
+    // Builds a Volume model with the given name.require podName to generate pvc name
+    public Volume buildVolume(String volumeName, String podName){
+        return buildVolume(volumeName);
+    };
+
     // Builds a Volume model with the given name.
-    public abstract Volume buildVolume(String volumeName);
+    @Deprecated
+    public Volume buildVolume(String volumeName){
+        throw new UnsupportedOperationException("could not build volume without podName");
+    }
+
+    /**
+     * Creates a volume claim.
+     * @param client Kubernetes client
+     * @param podMetaData Kubernetes pod metadata
+     * @return the created volume claim
+     */
+    public PersistentVolumeClaim createVolume(KubernetesClient client, ObjectMeta podMetaData) {
+        return null;
+    }
 
     public static boolean podVolumeExists(String path, List<PodVolume> existingVolumes) {
         for (PodVolume podVolume : existingVolumes) {

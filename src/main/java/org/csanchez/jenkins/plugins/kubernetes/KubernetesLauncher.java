@@ -25,6 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -161,7 +162,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             runListener.getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
             kubernetesComputer.setLaunching(true);
 
-            template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
+            ObjectMeta podMetadata = pod.getMetadata();
+            template.getWorkspaceVolume().createVolume(client, podMetadata);
+            template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
             watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
