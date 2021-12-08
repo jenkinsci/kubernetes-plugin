@@ -43,6 +43,7 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
     static {
         IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKiller");
         IGNORED_CONTAINER_TERMINATION_REASONS.add("Completed");
+        IGNORED_CONTAINER_TERMINATION_REASONS.add("DeadlineExceeded");
     }
 
     @Override
@@ -55,7 +56,7 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
             LOGGER.fine(() -> node + " was not a K8s agent");
             return false;
         }
-        Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.TerminateAgentOnContainerTerminated.class).terminationReasons(node);
+        Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
         if (terminationReasons.stream().anyMatch(r -> IGNORED_CONTAINER_TERMINATION_REASONS.contains(r))) {
             LOGGER.fine(() -> "ignored termination reason(s) for " + node + ": " + terminationReasons);
             return false;
