@@ -74,6 +74,7 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.Launcher;
+import hudson.Launcher.DecoratedLauncher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
 import hudson.model.Node;
@@ -439,8 +440,8 @@ public class ContainerExecDecoratorTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
         Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
-        //If the node is not a KubernetesSlave the original launcher is returned
-        assertEquals(dummyLauncher, launcher);
+        //Assert a DecoratedLauncher was returned successfully
+        assertTrue(launcher != null && launcher instanceof DecoratedLauncher);
     }
 
     private ProcReturn execCommand(boolean quiet, boolean launcherStdout, String... cmd) throws Exception {
