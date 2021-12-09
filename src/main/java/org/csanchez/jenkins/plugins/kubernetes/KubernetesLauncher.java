@@ -162,7 +162,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             kubernetesComputer.setLaunching(true);
 
             template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
-            watcher = new AllContainersRunningPodWatcher(client, pod, runListener);
+            watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
                 assert watcher != null; // assigned 3 lines above

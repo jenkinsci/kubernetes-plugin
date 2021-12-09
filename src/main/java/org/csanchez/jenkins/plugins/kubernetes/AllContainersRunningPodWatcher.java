@@ -9,9 +9,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.model.TaskListener;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
@@ -34,13 +31,9 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private KubernetesClient client;
 
-    @NonNull
-    private final TaskListener runListener;
-
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
         this.client = client;
         this.pod = pod;
-        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 

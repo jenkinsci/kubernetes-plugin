@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.30.12</revision>
+    <revision>1.31.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -47,7 +47,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.263.1</jenkins.version>
+    <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
   </properties>
@@ -56,7 +56,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>5.4.1</version>
+      <version>5.10.1-171.vaa0774fb8c20</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -256,8 +256,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.263.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <artifactId>bom-2.303.x</artifactId>
+        <version>1036.v9f5a1aba8fab</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

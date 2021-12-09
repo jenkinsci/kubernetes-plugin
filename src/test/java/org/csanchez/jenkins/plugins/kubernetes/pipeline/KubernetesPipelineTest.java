@@ -479,8 +479,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
-        r.waitForMessage("busybox -- terminated", b);
-        r.waitForMessage("jnlp -- terminated", b);
+        r.waitForMessage("busybox --", b);
+        r.waitForMessage("jnlp --", b);
     }
 
     @Issue("JENKINS-59340")
@@ -518,6 +518,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void cascadingDelete() throws Exception {
         try {
             cloud.connect().apps().deployments().withName("cascading-delete").delete();
+            assumeNotNull(cloud.connect().serviceAccounts().withName("jenkins").get());
         } catch (KubernetesClientException x) {
             // Failure executing: DELETE at: https://…/apis/apps/v1/namespaces/kubernetes-plugin-test/deployments/cascading-delete. Message: Forbidden!Configured service account doesn't have access. Service account may have been revoked. deployments.apps "cascading-delete" is forbidden: User "system:serviceaccount:…:…" cannot delete resource "deployments" in API group "apps" in the namespace "kubernetes-plugin-test".
             assumeNoException("was not permitted to clean up any previous deployment, so presumably cannot run test either", x);
@@ -682,9 +683,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void invalidPodGetsCancelled() throws Exception {
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to create pod", b);
-        r.assertLogContains("ERROR: Queue task was cancelled", b);
+        r.assertLogContains("Queue task was cancelled", b);
     }
 
     @Issue("SECURITY-1646")
