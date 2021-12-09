@@ -150,7 +150,7 @@ public class ContainerExecDecoratorTest {
                 .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
-        AllContainersRunningPodWatcher watcher = new AllContainersRunningPodWatcher(client, pod, TaskListener.NULL);
+        AllContainersRunningPodWatcher watcher = new AllContainersRunningPodWatcher(client, pod);
         try (Watch w1 = client.pods().withName(podName).watch(watcher);) {
             assert watcher != null; // assigned 3 lines above
             watcher.await(30, TimeUnit.SECONDS);
