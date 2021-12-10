@@ -135,7 +135,7 @@ The default jnlp agent image used can be customized by adding it to the template
 containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.7-1', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
-or with the yaml syntax
+or with the yaml syntax. Pretty much any field from the [pod model](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/) can be specified through the yaml syntax.
 
 ```yaml
 apiVersion: v1
@@ -269,7 +269,7 @@ Either way it provides access to the following fields:
 * **name** The name of the pod. This is only used for inheritance.
 * **namespace** The namespace of the pod.
 * **label** The node label. This is how the pod template can be referred to when asking for an agent through the `node` step. In a pipeline, it is recommended to omit this field and rely on the generated label that can be referred to using the `POD_LABEL` variable defined within the `podTemplate` block.
-* **yaml** [yaml representation of the Pod](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#pod-v1-core), to allow setting any values not supported as fields
+* **yaml** [yaml representation of the Pod](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/), to allow setting any values not supported as fields
 * **yamlMergeStrategy** `merge()` or `override()`. Controls whether the yaml definition overrides or is merged with the yaml definition inherited from pod templates declared with `inheritFrom`. Defaults to `override()` (for backward compatibility reasons).
 * **containers** The container templates part of the pod *(see below for details)*.
 * **serviceAccount** The service account of the pod.
