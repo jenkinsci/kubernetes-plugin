@@ -250,7 +250,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         //Allows other nodes to be provisioned inside the container clause
         //If the node is not a KubernetesSlave return the original launcher
         if(node != null && !(node instanceof KubernetesSlave)) {
-           return new Launcher.DecoratedLauncher(launcher) {};
+           return launcher;
         }
         return new Launcher.DecoratedLauncher(launcher) {
             @Override
