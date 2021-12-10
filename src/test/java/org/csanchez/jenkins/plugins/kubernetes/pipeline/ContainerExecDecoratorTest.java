@@ -86,6 +86,7 @@ import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import okhttp3.OkHttpClient;
 import org.junit.Ignore;
+import org.jvnet.hudson.test.JenkinsRule;
 
 /**
  * @author Carlos Sanchez
@@ -93,6 +94,9 @@ import org.junit.Ignore;
 public class ContainerExecDecoratorTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
+
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
 
     private KubernetesCloud cloud;
     private static KubernetesClient client;
@@ -438,6 +442,7 @@ public class ContainerExecDecoratorTest {
     public void testRunningANonKubernetesNodeInsideContainerClause() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
+        dumbAgent = j.createSlave("test", "", null);
         Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
         assertEquals(dummyLauncher, launcher);
     }
