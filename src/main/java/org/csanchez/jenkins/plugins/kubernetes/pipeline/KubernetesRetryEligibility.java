@@ -24,6 +24,7 @@ import hudson.model.TaskListener;
 import hudson.slaves.Cloud;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -48,8 +49,8 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
 
     @Override
     public boolean shouldRetry(Throwable t, String node, String label, TaskListener listener) {
-        if (!ExecutorStepRetryEligibility.isRemovedNode(t)) {
-            LOGGER.fine(() -> "Not a RemovedNode failure: " + t);
+        if (!ExecutorStepRetryEligibility.isRemovedNode(t) && !ExecutorStepRetryEligibility.isClosedChannel(t)) {
+            LOGGER.log(Level.FINE, "Not a recognized failure", t);
             return false;
         }
         if (!isKubernetesAgent(node, label)) {
