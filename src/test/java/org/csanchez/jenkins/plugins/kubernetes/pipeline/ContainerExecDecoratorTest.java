@@ -74,7 +74,6 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
 import hudson.Launcher;
-import hudson.Launcher.DecoratedLauncher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
 import hudson.model.Node;
