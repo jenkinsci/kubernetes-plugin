@@ -1,18 +1,19 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import java.util.Base64;
 import java.util.Collections;
 import java.util.logging.Logger;
-
-import javax.annotation.CheckForNull;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.ProxyConfiguration;
 import hudson.security.ACL;
+import hudson.util.Secret;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 
 import io.fabric8.kubernetes.client.Config;
@@ -54,6 +55,7 @@ public class KubernetesFactoryAdapter {
     private final int connectTimeout;
     private final int readTimeout;
     private final int maxRequestsPerHost;
+    private final boolean useJenkinsProxy;
 
     public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
@@ -67,11 +69,11 @@ public class KubernetesFactoryAdapter {
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
                                     @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) throws KubernetesAuthException {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST);
+        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST,false);
     }
 
     public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost) throws KubernetesAuthException {
+                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost, boolean useJenkinsProxy) throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = caCertData;
@@ -80,6 +82,7 @@ public class KubernetesFactoryAdapter {
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.maxRequestsPerHost = maxRequestsPerHost;
+        this.useJenkinsProxy = useJenkinsProxy;
     }
 
     public KubernetesClient createClient() throws KubernetesAuthException {
@@ -107,11 +110,12 @@ public class KubernetesFactoryAdapter {
 
         if (caCertData != null) {
             // JENKINS-38829 CaCertData expects a Base64 encoded certificate
-            builder.withCaCertData(Base64.encodeBase64String(caCertData.getBytes(UTF_8)));
+            builder.withCaCertData(Base64.getEncoder().encodeToString(caCertData.getBytes(UTF_8)));
         }
 
         builder = builder.withRequestTimeout(readTimeout * 1000).withConnectionTimeout(connectTimeout * 1000);
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
+        builder.withMaxConcurrentRequests(maxRequestsPerHost);
 
         if (!StringUtils.isBlank(namespace)) {
             builder.withNamespace(namespace);
@@ -120,9 +124,37 @@ public class KubernetesFactoryAdapter {
         }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
+        // JENKINS-63584 If Jenkins has an configured Proxy and cloud has enabled proxy usage pass the arguments to K8S
+        LOGGER.log(FINE, "Proxy Settings for Cloud: " + useJenkinsProxy);
+        if(useJenkinsProxy) {
+            Jenkins jenkins = Jenkins.getInstanceOrNull();
+            LOGGER.log(FINE, "Jenkins Instance: " + jenkins);
+            if (jenkins != null) {
+                ProxyConfiguration p = jenkins.proxy;
+                LOGGER.log(FINE,"Proxy Instance: " + p);
+                if (p != null) {
+                    builder.withHttpsProxy("http://" + p.name + ":" + p.port);
+                    builder.withHttpProxy("http://" + p.name + ":" + p.port);
+                    if (p.name != null) {
+                        String password = getProxyPasswordDecrypted(p);
+                        builder.withProxyUsername(p.name);
+                        builder.withProxyPassword(password);
+                    }
+                    builder.withNoProxy(p.getNoProxyHost().split("\n"));
+                }
+            }
+        }
         return new DefaultKubernetesClient(builder.build());
     }
-
+    private String getProxyPasswordDecrypted(ProxyConfiguration p) {
+        String passwordEncrypted = p.getPassword();
+        String password = null;
+        if (passwordEncrypted != null) {
+            Secret secret = Secret.fromString(passwordEncrypted);
+            password = Secret.toString(secret);
+        }
+        return password;
+    }
     @Override
     public String toString() {
         return "KubernetesFactoryAdapter [serviceAddress=" + serviceAddress + ", namespace=" + namespace
@@ -131,11 +163,11 @@ public class KubernetesFactoryAdapter {
     }
 
     @CheckForNull
-    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) {
+    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) throws KubernetesAuthException {
         if (credentialsId == null) {
             return null;
         }
-        return CredentialsMatchers.firstOrNull(
+        StandardCredentials c = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentials(
                         StandardCredentials.class,
                         Jenkins.get(),
@@ -147,5 +179,9 @@ public class KubernetesFactoryAdapter {
                         CredentialsMatchers.withId(credentialsId)
                 )
         );
+        if (c == null) {
+            throw new KubernetesAuthException("No credentials found with id " + credentialsId);
+        }
+        return c;
     }
 }

@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.yaml;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -7,7 +8,6 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,10 +25,15 @@ public class Merge extends YamlMergeStrategy {
         return combine(yamls.stream().map(PodTemplateUtils::parseFromYaml).collect(Collectors.toList()));
     }
 
+    @Override
+    public String toString() {
+        return "Merge";
+    }
+
     @Extension
     @Symbol("merge")
     public static class DescriptorImpl extends Descriptor<YamlMergeStrategy> {
-        @Nonnull
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Merge";

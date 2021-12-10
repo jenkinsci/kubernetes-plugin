@@ -276,11 +276,41 @@ public class RestartPipelineTest {
             assertTrue("Kubernetes node should be present after restart", first.isPresent());
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
-            node.getTemplate().getListener().getLogger().println("This got printed");
+            waitForTemplate(node).getListener().getLogger().println("This got printed");
             r.waitForMessage("This got printed", b);
             b.getExecutor().interrupt();
             r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         });
+    }
+
+    @Test
+    public void taskListenerAfterRestart_multipleLabels() {
+        AtomicReference<String> projectName = new AtomicReference<>();
+        story.then(r -> {
+            configureAgentListener();
+            configureCloud();
+            WorkflowRun b = getPipelineJobThenScheduleRun(r);
+            projectName.set(b.getParent().getFullName());
+            r.waitForMessage("+ sleep", b);
+        });
+        story.then(r -> {
+            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            Optional<Node> first = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).findFirst();
+            assertTrue("Kubernetes node should be present after restart", first.isPresent());
+            KubernetesSlave node = (KubernetesSlave) first.get();
+            r.waitForMessage("Ready to run", b);
+            waitForTemplate(node).getListener().getLogger().println("This got printed");
+            r.waitForMessage("This got printed", b);
+            b.getExecutor().interrupt();
+            r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        });
+    }
+
+    private PodTemplate waitForTemplate(KubernetesSlave node) throws InterruptedException {
+        while (node.getTemplateOrNull() == null) {
+            Thread.sleep(100L);
+        }
+        return node.getTemplate();
     }
 
     @Test

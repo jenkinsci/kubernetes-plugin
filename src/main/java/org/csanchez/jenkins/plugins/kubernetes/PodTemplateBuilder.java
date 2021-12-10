@@ -24,6 +24,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.util.IOUtils;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,20 +43,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
+import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.TcpSlaveAgentListener;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
@@ -68,15 +72,18 @@ import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
-
+import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
+
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 /**
@@ -93,15 +100,47 @@ public class PodTemplateBuilder {
     private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
+    public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
-    @VisibleForTesting
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
+    @Restricted(NoExternalUse.class)
+    static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
+
+    private static final String defaultImageName;
+
+    static {
+        try (InputStream dockerfileStream = PodTemplateBuilder.class.getResourceAsStream("Dockerfile")) {
+            String s = IOUtils.readFirstLine(dockerfileStream, StandardCharsets.UTF_8.toString());
+            Matcher matcher = FROM_DIRECTIVE.matcher(s);
+            if (matcher.matches()) {
+                String name = matcher.group(1);
+                if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
+                    defaultImageName = name + "-jdk11";
+                } else {
+                    defaultImageName = name + "-jdk8";
+                }
+            } else {
+                throw new IllegalStateException("Dockerfile in plugin resources doesn't have the expected content");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Restricted(NoExternalUse.class)
     static final String DEFAULT_JNLP_IMAGE = System
-            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", "jenkins/inbound-agent:4.3-4");
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", defaultImageName);
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryRequest", "256Mi");
     static final String DEFAULT_JNLP_CONTAINER_CPU_REQUEST = System
             .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuRequest", "100m");
+
+    static final String DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit");
+    static final String DEFAULT_JNLP_CONTAINER_CPU_LIMIT = System
+            .getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -109,14 +148,25 @@ public class PodTemplateBuilder {
     private PodTemplate template;
 
     @CheckForNull
-    private KubernetesSlave slave;
+    private KubernetesSlave agent;
 
+    @CheckForNull
+    private KubernetesCloud cloud;
+
+    @Deprecated
     public PodTemplateBuilder(PodTemplate template) {
         this.template = template;
     }
 
-    public PodTemplateBuilder withSlave(KubernetesSlave slave) {
-        this.slave = slave;
+    public PodTemplateBuilder(PodTemplate template, KubernetesSlave agent) {
+        this.template = template;
+        this.agent = agent;
+        this.cloud = agent.getKubernetesCloud();
+    }
+
+    public PodTemplateBuilder withSlave(@NonNull KubernetesSlave slave) {
+        this.agent = slave;
+        this.cloud = slave.getKubernetesCloud();
         return this;
     }
 
@@ -138,17 +188,25 @@ public class PodTemplateBuilder {
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
-            //We need to normalize the path or we can end up in really hard to debug issues.
-            final String mountPath = substituteEnv(Paths.get(volume.getMountPath()).normalize().toString().replace("\\", "/"));
+            final String mountPath = normalizePath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
-                volumeMounts.put(mountPath, new VolumeMountBuilder() //
-                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false).build());
+                VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
+                        .withMountPath(mountPath).withName(volumeName).withReadOnly(false);
+                
+                if (volume instanceof ConfigMapVolume) {
+                    final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
+                    String subPath = configmapVolume.getSubPath();
+                    if (subPath != null) {
+                        volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
+                    }
+                }
+                volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName));
                 i++;
             }
         }
 
-        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, slave != null ? slave.getPodName() : null));
+        volumes.put(WORKSPACE_VOLUME_NAME, template.getWorkspaceVolume().buildVolume(WORKSPACE_VOLUME_NAME, agent != null ? agent.getPodName() : null));
 
         Map<String, Container> containers = new HashMap<>();
         // containers from pod template
@@ -158,13 +216,13 @@ public class PodTemplateBuilder {
         }
 
         MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadata();
-        if (slave != null) {
-            metadataBuilder.withName(slave.getPodName());
+        if (agent != null) {
+            metadataBuilder.withName(agent.getPodName());
         }
 
         Map<String, String> labels = new HashMap<>();
-        if (slave != null) {
-            labels.putAll(slave.getKubernetesCloud().getPodLabelsMap());
+        if (agent != null) {
+            labels.putAll(agent.getKubernetesCloud().getPodLabelsMap());
         }
         labels.putAll(template.getLabelsMap());
         if (!labels.isEmpty()) {
@@ -186,7 +244,10 @@ public class PodTemplateBuilder {
             builder.withVolumes(volumes.values().toArray(new Volume[volumes.size()]));
         }
         if (template.getServiceAccount() != null) {
-            builder.withServiceAccount(substituteEnv(template.getServiceAccount()));
+            builder.withServiceAccountName(substituteEnv(template.getServiceAccount()));
+        }
+        if (template.getSchedulerName() != null) {
+            builder.withSchedulerName(substituteEnv(template.getSchedulerName()));
         }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
@@ -231,17 +292,6 @@ public class PodTemplateBuilder {
 
         // Apply defaults
 
-        // default restart policy
-        if (StringUtils.isBlank(pod.getSpec().getRestartPolicy())) {
-            pod.getSpec().setRestartPolicy("Never");
-        }
-
-        // default OS: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-        if ((pod.getSpec().getNodeSelector() == null || pod.getSpec().getNodeSelector().isEmpty()) &&
-                (pod.getSpec().getAffinity() == null || pod.getSpec().getAffinity().getNodeAffinity() == null)) {
-            pod.getSpec().setNodeSelector(Collections.singletonMap("kubernetes.io/os", "linux"));
-        }
-
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
                 .findFirst();
@@ -252,7 +302,11 @@ public class PodTemplateBuilder {
         }
         pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
-            jnlp.setImage(DEFAULT_JNLP_IMAGE);
+            String jnlpImage = DEFAULT_JNLP_IMAGE;
+            if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+                jnlpImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + jnlpImage;
+            }
+            jnlp.setImage(jnlpImage);
         }
         Map<String, EnvVar> envVars = new HashMap<>();
         envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
@@ -260,38 +314,48 @@ public class PodTemplateBuilder {
         envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
-            jnlp.setResources(new ContainerBuilder().editOrNewResources().addToRequests("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST)).addToRequests("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST)).endResources().build().getResources());
-        }
-        
-        // If the volume mounts of any container has been set to null, set it to empty list.
-        // Without this being done the code below would throw a NPE if such null existed.
-        pod.getSpec().getContainers().stream()
-               .filter(c -> c.getVolumeMounts() == null)
-               .forEach(c -> c.setVolumeMounts(new ArrayList<>()));
 
-        // default workspace volume, add an empty volume to share the workspace across the pod
-        if (pod.getSpec().getVolumes().stream().noneMatch(v -> WORKSPACE_VOLUME_NAME.equals(v.getName()))) {
-            pod.getSpec().getVolumes()
-                    .add(new VolumeBuilder().withName(WORKSPACE_VOLUME_NAME).withNewEmptyDir().endEmptyDir().build());
-        }
-        // default workspace volume mount. If something is already mounted in the same path ignore it
-        pod.getSpec().getContainers().stream()
-                .filter(c -> c.getVolumeMounts().stream()
-                        .noneMatch(vm -> vm.getMountPath().equals(
-                                c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR)))
-                .forEach(c -> c.getVolumeMounts().add(getDefaultVolumeMount(c.getWorkingDir())));
+            Map<String, Quantity> reqMap = new HashMap<>();
+            Map<String, Quantity> limMap = new HashMap<>();
+            reqMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_REQUEST));
+            reqMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST));
 
-        LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(pod));
+            if (DEFAULT_JNLP_CONTAINER_CPU_LIMIT!=null) {
+                limMap.put("cpu", new Quantity(DEFAULT_JNLP_CONTAINER_CPU_LIMIT));
+            }
+
+            if (DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT!=null) {
+                limMap.put("memory", new Quantity(DEFAULT_JNLP_CONTAINER_MEMORY_LIMIT));
+            }
+
+            ResourceRequirements reqs = new ResourceRequirementsBuilder()
+                        .withRequests(reqMap)
+                        .withLimits(limMap)
+                        .build();
+
+            jnlp.setResources(reqs);
+
+        }
+        if (cloud != null) {
+            pod = PodDecorator.decorateAll(cloud, pod);
+        }
+        Pod finalPod = pod;
+        LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(finalPod));
         return pod;
+    }
+
+    private String normalizePath(String np) {
+        //We need to normalize the path or we can end up in really hard to debug issues.
+        return substituteEnv(Paths.get(np).normalize().toString().replace("\\", "/"));
     }
 
     private Map<String, EnvVar> defaultEnvVars(Collection<TemplateEnvVar> globalEnvVars) {
         Map<String, String> env = new HashMap<>();
-        if (slave != null) {
-            KubernetesCloud cloud = slave.getKubernetesCloud();
+        if (agent != null) {
+            KubernetesCloud cloud = agent.getKubernetesCloud();
             if (cloud.isAddMasterProxyEnvVars()) {
                 // see if the env vars for proxy that the remoting.jar looks for
-                // are set on the master, and if so, propagate them to the slave
+                // are set on the controller, and if so, propagate them to the agent
                 // vs. having to set on each pod template; if explicitly set already
                 // the processing of globalEnvVars below will override;
                 // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
@@ -326,8 +390,8 @@ public class PodTemplateBuilder {
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
 
-        if (slave != null) {
-            SlaveComputer computer = slave.getComputer();
+        if (agent != null) {
+            SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 // Add some default env vars for Jenkins
                 env.put("JENKINS_SECRET", computer.getJnlpMac());
@@ -336,12 +400,12 @@ public class PodTemplateBuilder {
                 env.put("JENKINS_NAME", computer.getName());
                 env.put("JENKINS_AGENT_NAME", computer.getName());
             } else {
-                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", slave.getNodeName());
+                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", agent.getNodeName());
             }
 
             env.put("JENKINS_AGENT_WORKDIR", workingDir);
 
-            KubernetesCloud cloud = slave.getKubernetesCloud();
+            KubernetesCloud cloud = agent.getKubernetesCloud();
 
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
@@ -388,14 +452,14 @@ public class PodTemplateBuilder {
         EnvVar[] envVars = envVarsMap.values().stream().toArray(EnvVar[]::new);
 
         String cmd = containerTemplate.getArgs();
-        if (slave != null && cmd != null) {
-            SlaveComputer computer = slave.getComputer();
+        if (agent != null && cmd != null) {
+            SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 cmd = cmd.replaceAll(JNLPMAC_REF, computer.getJnlpMac()) //
                         .replaceAll(NAME_REF, computer.getName());
             }
         }
-        List<String> arguments = Strings.isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
+        List<String> arguments = isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList()
                 : parseDockerCommand(cmd);
 
         ContainerPort[] ports = containerTemplate.getPorts().stream().map(entry -> entry.toPort()).toArray(size -> new ContainerPort[size]);
@@ -437,8 +501,8 @@ public class PodTemplateBuilder {
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
-                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu()))
-                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu()))
+                .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(),containerTemplate.getResourceRequestEphemeralStorage()))
+                .withLimits(getResourcesMap(containerTemplate.getResourceLimitMemory(), containerTemplate.getResourceLimitCpu(), containerTemplate.getResourceLimitEphemeralStorage()))
                 .endResources()
                 .build();
     }
@@ -454,7 +518,7 @@ public class PodTemplateBuilder {
 
     private List<VolumeMount> getContainerVolumeMounts(Collection<VolumeMount> volumeMounts, String workingDir) {
         List<VolumeMount> containerMounts = new ArrayList<>(volumeMounts);
-        if (!Strings.isNullOrEmpty(workingDir) && !PodVolume.volumeMountExists(workingDir, volumeMounts)) {
+        if (!isNullOrEmpty(workingDir) && !PodVolume.volumeMountExists(workingDir, volumeMounts)) {
             containerMounts.add(getDefaultVolumeMount(workingDir));
         }
         return containerMounts;
@@ -500,10 +564,11 @@ public class PodTemplateBuilder {
         return commands;
     }
 
-    private Map<String, Quantity> getResourcesMap(String memory, String cpu) {
-        ImmutableMap.Builder<String, Quantity> builder = ImmutableMap.<String, Quantity>builder();
+    private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {
+        Map<String, Quantity> builder = new HashMap<>();
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
+        String actualEphemeralStorage = substituteEnv(ephemeralStorage);
         if (StringUtils.isNotBlank(actualMemory)) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
@@ -512,47 +577,51 @@ public class PodTemplateBuilder {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
         }
-        return builder.build();
+        if (StringUtils.isNotBlank(actualEphemeralStorage)) {
+            Quantity ephemeralStorageQuantity = new Quantity(actualEphemeralStorage);
+            builder.put("ephemeral-storage", ephemeralStorageQuantity);
+        }
+        return Collections.unmodifiableMap(builder);
     }
 
     private Map<String, String> getAnnotationsMap(List<PodAnnotation> annotations) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+        Map<String, String> builder = new HashMap<>();
         if (annotations != null) {
             for (PodAnnotation podAnnotation : annotations) {
                 builder.put(podAnnotation.getKey(), substituteEnv(podAnnotation.getValue()));
             }
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     private Map<String, String> getNodeSelectorMap(String selectors) {
-        if (Strings.isNullOrEmpty(selectors)) {
-            return ImmutableMap.of();
+        if (isNullOrEmpty(selectors)) {
+            return Collections.EMPTY_MAP;
         } else {
-            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+            Map<String, String> builder = new HashMap<>();
 
             for (String selector : selectors.split(",")) {
                 String[] parts = selector.split("=");
                 if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
-                    builder = builder.put(parts[0], substituteEnv(parts[1]));
+                    builder.put(parts[0], substituteEnv(parts[1]));
                 } else {
                     LOGGER.log(Level.WARNING, "Ignoring selector '" + selector
                             + "'. Selectors must be in the format 'label1=value1,label2=value2'.");
                 }
             }
-            return builder.build();
+            return Collections.unmodifiableMap(builder);
         }
     }
 
     private List<Long> parseSupplementalGroupList(String gids) {
-        if (Strings.isNullOrEmpty(gids)) {
-            return ImmutableList.of();
+        if (isNullOrEmpty(gids)) {
+            return Collections.EMPTY_LIST;
         }
-        ImmutableList.Builder<Long> builder = ImmutableList.builder();
+        List<Long>builder = new ArrayList<>();
         for (String gid : gids.split(",")) {
             try {
-                if (!Strings.isNullOrEmpty(gid)) {
-                    builder = builder.add(Long.parseLong(gid));
+                if (!isNullOrEmpty(gid)) {
+                    builder.add(Long.parseLong(gid));
                 } else {
                     LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's cannot be empty or null.", gid);
                 }
@@ -560,6 +629,6 @@ public class PodTemplateBuilder {
                 LOGGER.log(Level.WARNING, "Ignoring GID '{0}'. Group ID's must be valid longs.", gid);
             }
         }
-        return builder.build();
+        return Collections.unmodifiableList(builder);
     }
 }

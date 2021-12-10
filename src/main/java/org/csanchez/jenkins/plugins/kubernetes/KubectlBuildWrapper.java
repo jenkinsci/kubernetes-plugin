@@ -5,6 +5,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -19,6 +20,7 @@ import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
@@ -28,17 +30,15 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
-import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-
-import static com.google.common.collect.Sets.newHashSet;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -50,8 +50,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     private String caCertificate;
 
     @DataBoundConstructor
-    public KubectlBuildWrapper(@Nonnull String serverUrl, @Nonnull String credentialsId,
-            @Nonnull String caCertificate) {
+    public KubectlBuildWrapper(@NonNull String serverUrl, @NonNull String credentialsId,
+            @NonNull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = Util.fixEmpty(credentialsId);
         this.caCertificate = Util.fixEmptyAndTrim(caCertificate);
@@ -82,7 +82,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
         workspace.mkdirs();
         FilePath configFile = workspace.createTempFile(".kube", "config");
-        Set<String> tempFiles = newHashSet(configFile.getRemote());
+        Set<String> tempFiles = new HashSet<>(Arrays.asList(configFile.getRemote()));
 
         context.env("KUBECONFIG", configFile.getRemote());
         context.setDisposer(new CleanupDisposer(tempFiles));
@@ -126,7 +126,12 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return "Setup Kubernetes CLI (kubectl)";
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
+            if (item == null
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    : !item.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(

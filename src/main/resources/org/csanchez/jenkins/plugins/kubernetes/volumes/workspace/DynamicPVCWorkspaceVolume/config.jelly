@@ -3,7 +3,7 @@
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:description>
         Allocates a PVC dynamically using the specified parameters, then deletes it when the pod is deleted.
-        Note that this requires the Jenkins master to have additional RBAC permissions than are typically needed for agent provisioning.
+        Note that this requires the Jenkins controller to have additional RBAC permissions than are typically needed for agent provisioning.
     </f:description>
 
     <f:entry title="${%Storage Class Name}" field="storageClassName">

@@ -22,8 +22,6 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Computer;
 import hudson.model.Node;
-import hudson.model.Queue;
-import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.security.ACL;
@@ -36,7 +34,6 @@ import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.IOException;
@@ -48,12 +45,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import io.fabric8.kubernetes.client.utils.Serialization;
+import io.fabric8.kubernetes.client.WatcherException;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 
 /**
  * Checks for deleted pods corresponding to {@link KubernetesSlave} and ensures the node is removed from Jenkins too.
@@ -172,7 +170,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     }
 
     @Override
-    public void onClose(KubernetesClientException cause) {
+    public void onClose(WatcherException cause) {
         // TODO ignore, or do we need to manually reattach the watcher?
         // AllContainersRunningPodWatcher is not reattached, but this is expected to be short-lived,
         // useful only until the containers of a single pod start running.
@@ -250,7 +248,16 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 TaskListener runListener = node.getTemplate().getListener();
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
                 runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
-                node.terminate();
+                try {
+                    String lines = PodUtils.logLastLines(pod, node.getKubernetesCloud().connect());
+                    if (lines != null) {
+                        runListener.getLogger().print(lines);
+                    }
+                } catch (KubernetesAuthException e) {
+                    LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
+                } finally {
+                    node.terminate();
+                }
             }
         }
     }

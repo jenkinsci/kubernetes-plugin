@@ -24,7 +24,7 @@ spec:
   serviceAccountName: jenkins
   containers:
   - name: jenkins
-    image: maven:3.6.2-jdk-8
+    image: maven:3.8.2-jdk-8
     command:
       - sleep
     args:
@@ -60,7 +60,7 @@ spec:
       protocol: TCP
 ---
 kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: jenkins
 rules:
@@ -85,6 +85,9 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create","delete","get","list","patch","update","watch"]
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["get"]
 - apiGroups: ["apps"]
   resources: ["deployments"] # KubernetesPipelineTest#cascadingDelete
   verbs: ["create","delete","get","list","patch","update","watch"]
@@ -103,7 +106,7 @@ rules:
   resourceNames:
   - privileged
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: jenkins

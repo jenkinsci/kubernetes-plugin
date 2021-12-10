@@ -5,6 +5,10 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
+  <f:invisibleEntry>
+    <input type="hidden" name="_.id" value="${instance.id}"/>
+  </f:invisibleEntry>
+
   <f:entry field="name" title="${%Name}">
     <f:textbox/>
   </f:entry>
@@ -41,7 +45,7 @@
                                   deleteCaption="${%Delete Volume}" />
     </f:entry>
 
-    <f:entry field="annotations" title="${%Annotations}" description="${%List of annotations to set in slave pod}">
+    <f:entry field="annotations" title="${%Annotations}" description="${%List of annotations to set in agent pod}">
       <f:repeatableHeteroProperty field="annotations" hasHeader="true" addCaption="${%Add Annotation}"
                                   deleteCaption="${%Delete annotation Variable}" />
     </f:entry>

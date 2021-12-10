@@ -10,9 +10,9 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,14 +20,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
-import org.apache.commons.codec.binary.Base64;
+import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -45,8 +44,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -62,7 +59,6 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
@@ -70,6 +66,8 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
+
 import jenkins.websocket.WebSockets;
 
 /**
@@ -88,7 +86,7 @@ public class KubernetesCloud extends Cloud {
     public static final String JNLP_NAME = "jnlp";
     /** label for all pods started by the plugin */
     @Deprecated
-    public static final Map<String, String> DEFAULT_POD_LABELS = ImmutableMap.of("jenkins", "slave");
+    public static final Map<String, String> DEFAULT_POD_LABELS = Collections.singletonMap("jenkins", "slave");
 
     /** Default timeout for idle workers that don't correctly indicate exit. */
     public static final int DEFAULT_RETENTION_TIMEOUT_MINUTES = 5;
@@ -99,9 +97,10 @@ public class KubernetesCloud extends Cloud {
 
     private String defaultsProviderTemplate;
 
-    @Nonnull
+    @NonNull
     private List<PodTemplate> templates = new ArrayList<>();
     private String serverUrl;
+    private boolean useJenkinsProxy;
     @CheckForNull
     private String serverCertificate;
 
@@ -118,7 +117,7 @@ public class KubernetesCloud extends Cloud {
     private String jenkinsTunnel;
     @CheckForNull
     private String credentialsId;
-    private int containerCap = Integer.MAX_VALUE;
+    private Integer containerCap;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
     private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
@@ -177,6 +176,10 @@ public class KubernetesCloud extends Cloud {
 
     }
 
+    public boolean isUseJenkinsProxy() { return useJenkinsProxy; }
+    @DataBoundSetter
+    public void setUseJenkinsProxy(boolean useJenkinsProxy) { this.useJenkinsProxy = useJenkinsProxy; }
+
     public boolean isUsageRestricted() {
         return usageRestricted;
     }
@@ -204,7 +207,7 @@ public class KubernetesCloud extends Cloud {
         this.defaultsProviderTemplate = defaultsProviderTemplate;
     }
 
-    @Nonnull
+    @NonNull
     public List<PodTemplate> getTemplates() {
         return templates;
     }
@@ -213,13 +216,13 @@ public class KubernetesCloud extends Cloud {
      * Returns all pod templates for this cloud including the dynamic ones.
      * @return all pod templates for this cloud including the dynamic ones.
      */
-    @Nonnull
+    @NonNull
     public List<PodTemplate> getAllTemplates() {
         return PodTemplateSource.getAll(this);
     }
 
     @DataBoundSetter
-    public void setTemplates(@Nonnull List<PodTemplate> templates) {
+    public void setTemplates(@NonNull List<PodTemplate> templates) {
         this.templates = new ArrayList<>(templates);
     }
 
@@ -228,7 +231,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @DataBoundSetter
-    public void setServerUrl(@Nonnull String serverUrl) {
+    public void setServerUrl(@NonNull String serverUrl) {
         this.serverUrl = serverUrl;
     }
 
@@ -285,17 +288,10 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
-     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
-     *
-     * Uses in order:
-     * * cloud configuration
-     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
-     * * Jenkins Location URL
-     *
-     * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     * @return same as {@link #getJenkinsUrlOrNull}, if set
      * @throws IllegalStateException if no Jenkins URL could be computed.
      */
-    @Nonnull
+    @NonNull
     public String getJenkinsUrlOrDie() {
         String url = getJenkinsUrlOrNull();
         if (url == null) {
@@ -305,26 +301,26 @@ public class KubernetesCloud extends Cloud {
     }
 
     /**
-     * Returns Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
+     * Jenkins URL to be used by agents launched by this cloud.
      *
-     * Uses in order:
-     * * cloud configuration
-     * * environment variable <b>KUBERNETES_JENKINS_URL</b>
-     * * Jenkins Location URL
+     * <p>Tries in order:<ol>
+     * <li>an explicitly configured URL ({@link #getJenkinsUrl})
+     * <li>the system property or environment variable {@code KUBERNETES_JENKINS_URL}, unless {@link #isWebSocket} mode and {@link #getCredentialsId} is defined
+     * <li>{@link JenkinsLocationConfiguration#getUrl}
+     * </ol>
      *
      * @return Jenkins URL to be used by agents launched by this cloud. Always ends with a trailing slash.
      *         Null if no Jenkins URL could be computed.
      */
     @CheckForNull
     public String getJenkinsUrlOrNull() {
-        JenkinsLocationConfiguration locationConfiguration = JenkinsLocationConfiguration.get();
-        String url = StringUtils.defaultIfBlank(
-                getJenkinsUrl(),
-                StringUtils.defaultIfBlank(
-                        System.getProperty("KUBERNETES_JENKINS_URL",System.getenv("KUBERNETES_JENKINS_URL")),
-                        locationConfiguration.getUrl()
-                )
-        );
+        String url = getJenkinsUrl();
+        if (url == null && (!isWebSocket() || getCredentialsId() == null)) {
+            url = Util.fixEmpty(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")));
+        }
+        if (url == null) {
+            url = JenkinsLocationConfiguration.get().getUrl();
+        }
         if (url == null) {
             return null;
         }
@@ -374,33 +370,21 @@ public class KubernetesCloud extends Cloud {
     }
 
     public int getContainerCap() {
-        return containerCap;
+        return containerCap != null ? containerCap : Integer.MAX_VALUE;
     }
 
     @DataBoundSetter
     public void setContainerCapStr(String containerCapStr) {
-        if (containerCapStr.equals("")) {
-            setContainerCap(Integer.MAX_VALUE);
-        } else {
-            setContainerCap(Integer.parseInt(containerCapStr));
-        }
+        setContainerCap(containerCapStr.equals("") ? null : Integer.parseInt(containerCapStr));
     }
 
-    @DataBoundSetter
-    public void setContainerCap(int containerCap) {
-        if (containerCap < 0) {
-            this.containerCap = Integer.MAX_VALUE;
-        } else {
-            this.containerCap = containerCap;
-        }
+    public void setContainerCap(Integer containerCap) {
+        this.containerCap = (containerCap != null && containerCap > 0) ? containerCap : null;
     }
 
     public String getContainerCapStr() {
-        if (containerCap == Integer.MAX_VALUE) {
-            return "";
-        } else {
-            return String.valueOf(containerCap);
-        }
+        // null, serialized Integer.MAX_VALUE, or 0 means no limit
+        return (containerCap == null || containerCap == Integer.MAX_VALUE || containerCap == 0) ? "" : String.valueOf(containerCap);
     }
 
     public int getReadTimeout() {
@@ -532,33 +516,37 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Override
-    public synchronized Collection<NodeProvisioner.PlannedNode> provision(@CheckForNull final Label label, final int excessWorkload) {
+    public Collection<NodeProvisioner.PlannedNode> provision(@NonNull final Cloud.CloudState state, final int excessWorkload) {
         try {
-            Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label);
+            Metrics.metricRegistry().meter(metricNameForLabel(state.getLabel())).mark(excessWorkload);
+            Label label = state.getLabel();
+            int plannedCapacity = state.getAdditionalPlannedCapacity(); // Planned nodes, will be launched on the next round of NodeProvisioner
+            Set<String> allInProvisioning = InProvisioning.getAllInProvisioning(label); // Nodes being launched
             LOGGER.log(Level.FINE, () -> "In provisioning : " + allInProvisioning);
             int toBeProvisioned = Math.max(0, excessWorkload - allInProvisioning.size());
-            LOGGER.log(Level.INFO, "Excess workload after pending Kubernetes agents: {0}", toBeProvisioned);
-
             List<NodeProvisioner.PlannedNode> plannedNodes = new ArrayList<>();
+            LOGGER.log(Level.FINE, "Label \"{0}\" excess workload: {1}, executors: {2}",
+                    new Object[] {label, toBeProvisioned, plannedCapacity});
 
-            for (PodTemplate podTemplate: getTemplatesFor(label)) {
-                LOGGER.log(Level.INFO, "Template for label {0}: {1}", new Object[] { label, podTemplate.getName() });
-                for (int i = 0; i < toBeProvisioned; i++) {
-                    // Check concurrency limits
-                    if (!addProvisionedSlave(podTemplate, label, i + allInProvisioning.size())) {
-                        break;
-                    }
-                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).build());
+            for (PodTemplate podTemplate : getTemplatesFor(label)) {
+                LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
+                // check overall concurrency limit using the default label(s) on all templates
+                int numExecutors = 1;
+                while (toBeProvisioned > 0 && KubernetesProvisioningLimits.get().register(this, podTemplate, numExecutors)) {
+                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).numExecutors(1).build());
+                    toBeProvisioned--;
                 }
-                LOGGER.log(Level.FINEST, "Planned Kubernetes agents for template \"{0}\": {1}",
-                        new Object[] { podTemplate.getName(), plannedNodes.size() });
-                if (plannedNodes.size() > 0) {
+                if (!plannedNodes.isEmpty()) {
                     // Return early when a matching template was found and nodes were planned
+                    LOGGER.log(Level.FINEST, "Planned {0} Kubernetes agents with template \"{1}\"", new Object[]{plannedNodes.size(), podTemplate.getName()});
+                    Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
                     return plannedNodes;
                 }
             }
+            Metrics.metricRegistry().counter(MetricNames.PROVISION_NODES).inc(plannedNodes.size());
             return plannedNodes;
         } catch (KubernetesClientException e) {
+            Metrics.metricRegistry().counter(MetricNames.PROVISION_FAILED).inc();
             Throwable cause = e.getCause();
             if (cause instanceof SocketTimeoutException || cause instanceof ConnectException || cause instanceof UnknownHostException) {
                 LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}: {1}",
@@ -567,74 +555,15 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes",
                         cause != null ? cause : e);
             }
-        } catch (ConnectException e) {
-            LOGGER.log(Level.WARNING, "Failed to connect to Kubernetes at {0}", serverUrl);
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to count the # of live instances on Kubernetes", e);
         }
         return Collections.emptyList();
     }
 
-    /**
-     * Check not too many already running.
-     *
-     */
-    private boolean addProvisionedSlave(@Nonnull PodTemplate template, @CheckForNull Label label, int numProvisioned) throws Exception {
-        if (containerCap == 0) {
-            return false;
-        }
-
-        KubernetesClient client = connect();
-        String templateNamespace = template.getNamespace();
-        // If template's namespace is not defined, take the
-        // Kubernetes Namespace.
-        if (Strings.isNullOrEmpty(templateNamespace)) {
-            templateNamespace = client.getNamespace();
-        }
-
-        // check overall concurrency limit using the default label(s) on all templates
-        Map<String, String> podLabels = getPodLabelsMap();
-        long numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
-        if (numRunningOrPending + numProvisioned >= containerCap) {
-            LOGGER.log(Level.INFO,
-                    "Maximum number of concurrently running agent pods ({0}) reached for Kubernetes Cloud {4}, " +
-                            "not provisioning: {1} running or pending in namespace {2} with Kubernetes labels {3}",
-                    new Object[] { containerCap, numRunningOrPending, templateNamespace, getLabels(), name });
-            return false;
-        }
-
-        // check template-level concurrency limit using template-level labels
-        Map<String, String> templateLabels = new HashMap<>(podLabels);
-        templateLabels.putAll(template.getLabelsMap());
-        numRunningOrPending = getNumActiveSlavePods(client, templateNamespace, podLabels);
-        if (numRunningOrPending + numProvisioned >= template.getInstanceCap()) {
-            LOGGER.log(Level.INFO,
-                    "Maximum number of concurrently running agent pods ({0}) reached for template {1} in Kubernetes Cloud {6}, " +
-                            "not provisioning: {2} running or pending in namespace {3} with label \"{4}\" and Kubernetes labels {5}",
-                    new Object[] { template.getInstanceCap(), template.getName(), numRunningOrPending,
-                            templateNamespace, label == null ? "" : label.toString(), templateLabels, name });
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Query for running or pending pods
-     */
-    private long getNumActiveSlavePods(KubernetesClient client, String templateNamespace, Map<String, String> podLabels) {
-        PodList slaveList = client.pods().inNamespace(templateNamespace).withLabels(podLabels).list();
-        // JENKINS-53370 check for nulls
-        if (slaveList != null && slaveList.getItems() != null) {
-            return slaveList.getItems().stream() //
-                    .filter(x -> x.getStatus().getPhase().toLowerCase().matches("(running|pending)"))
-                    .count();
-        }
-        return 0;
-    }
-
     @Override
-    public boolean canProvision(@CheckForNull Label label) {
-        return getTemplate(label) != null;
+    public boolean canProvision(@NonNull Cloud.CloudState state) {
+        return getTemplate(state.getLabel()) != null;
     }
 
     /**
@@ -644,6 +573,11 @@ public class KubernetesCloud extends Cloud {
      */
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+
+    @CheckForNull
+    public PodTemplate getTemplateById(@NonNull String id) {
+        return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);
     }
 
     /**
@@ -717,7 +651,7 @@ public class KubernetesCloud extends Cloud {
         return skipTlsVerify == that.skipTlsVerify &&
                 addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
                 capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
-                containerCap == that.containerCap &&
+                Objects.equals(containerCap, that.containerCap) &&
                 retentionTimeout == that.retentionTimeout &&
                 connectTimeout == that.connectTimeout &&
                 readTimeout == that.readTimeout &&
@@ -733,7 +667,8 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(credentialsId, that.credentialsId) &&
                 Objects.equals(podLabels, that.podLabels) &&
                 Objects.equals(podRetention, that.podRetention) &&
-                Objects.equals(waitForPodSec, that.waitForPodSec);
+                Objects.equals(waitForPodSec, that.waitForPodSec) &&
+                useJenkinsProxy==that.useJenkinsProxy;
     }
 
     @Override
@@ -741,7 +676,7 @@ public class KubernetesCloud extends Cloud {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
                 addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
-                maxRequestsPerHost, podRetention);
+                maxRequestsPerHost, podRetention, useJenkinsProxy);
     }
 
     public Integer getWaitForPodSec() {
@@ -774,12 +709,15 @@ public class KubernetesCloud extends Cloud {
 
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doTestConnection(@QueryParameter String name, @QueryParameter String serverUrl, @QueryParameter String credentialsId,
+        public FormValidation doTestConnection(@QueryParameter String name,
+                                               @QueryParameter String serverUrl,
+                                               @QueryParameter String credentialsId,
                                                @QueryParameter String serverCertificate,
                                                @QueryParameter boolean skipTlsVerify,
                                                @QueryParameter String namespace,
                                                @QueryParameter int connectionTimeout,
-                                               @QueryParameter int readTimeout) throws Exception {
+                                               @QueryParameter int readTimeout,
+                                               @QueryParameter boolean useJenkinsProxy) throws Exception {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
             if (StringUtils.isBlank(name))
@@ -787,11 +725,11 @@ public class KubernetesCloud extends Cloud {
 
             try (KubernetesClient client = new KubernetesFactoryAdapter(serverUrl, namespace,
                         Util.fixEmpty(serverCertificate), Util.fixEmpty(credentialsId), skipTlsVerify,
-                        connectionTimeout, readTimeout).createClient()) {
+                        connectionTimeout, readTimeout, DEFAULT_MAX_REQUESTS_PER_HOST, useJenkinsProxy).createClient()) {
                     // test listing pods
                     client.pods().list();
                 VersionInfo version = client.getVersion();
-                return FormValidation.ok("Connected to Kubernetes " + version.getMajor() + "." + version.getMinor());
+                return FormValidation.ok("Connected to Kubernetes " + version.getGitVersion());
             } catch (KubernetesClientException e) {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
                 return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getCause() == null
@@ -860,7 +798,7 @@ public class KubernetesCloud extends Cloud {
                 if(!isEmpty(jenkinsUrl)) return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
                 if(slaveAgentPort == 0) return FormValidation.warning(
-                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted master with random port!");
+                        "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted controller with random port!");
             } else {
                 if (isEmpty(jenkinsUrl)) {
                     String url = StringUtils.defaultIfBlank(System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")), JenkinsLocationConfiguration.get().getUrl());
@@ -937,9 +875,8 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public String toString() {
-        return "KubernetesCloud{" +
-                "defaultsProviderTemplate='" + defaultsProviderTemplate + '\'' +
-                ", templates=" + templates +
+        return "KubernetesCloud{name=" + name +
+                ", defaultsProviderTemplate='" + defaultsProviderTemplate + '\'' +
                 ", serverUrl='" + serverUrl + '\'' +
                 ", serverCertificate='" + serverCertificate + '\'' +
                 ", skipTlsVerify=" + skipTlsVerify +
@@ -949,6 +886,7 @@ public class KubernetesCloud extends Cloud {
                 ", jenkinsUrl='" + jenkinsUrl + '\'' +
                 ", jenkinsTunnel='" + jenkinsTunnel + '\'' +
                 ", credentialsId='" + credentialsId + '\'' +
+                ", webSocket=" + webSocket +
                 ", containerCap=" + containerCap +
                 ", retentionTimeout=" + retentionTimeout +
                 ", connectTimeout=" + connectTimeout +
@@ -959,12 +897,14 @@ public class KubernetesCloud extends Cloud {
                 ", maxRequestsPerHost=" + maxRequestsPerHost +
                 ", waitForPodSec=" + waitForPodSec +
                 ", podRetention=" + podRetention +
+                ", useJenkinsProxy=" + useJenkinsProxy +
+                ", templates=" + templates +
                 '}';
     }
 
     private Object readResolve() {
         if ((serverCertificate != null) && !serverCertificate.trim().startsWith("-----BEGIN CERTIFICATE-----")) {
-            serverCertificate = new String(Base64.decodeBase64(serverCertificate.getBytes(UTF_8)), UTF_8);
+            serverCertificate = new String(Base64.getDecoder().decode(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(Level.INFO, "Upgraded Kubernetes server certificate key: {0}",
                     serverCertificate.substring(0, 80));
         }
@@ -984,15 +924,17 @@ public class KubernetesCloud extends Cloud {
         if (podLabels == null && labels != null) {
             setPodLabels(PodLabel.fromMap(labels));
         }
-
+        if (containerCap != null && containerCap == 0) {
+            containerCap = null;
+        }
         return this;
     }
 
     @Extension
     public static class PodTemplateSourceImpl extends PodTemplateSource {
-        @Nonnull
+        @NonNull
         @Override
-        public List<PodTemplate> getList(@Nonnull KubernetesCloud cloud) {
+        public List<PodTemplate> getList(@NonNull KubernetesCloud cloud) {
             return cloud.getTemplates();
         }
     }

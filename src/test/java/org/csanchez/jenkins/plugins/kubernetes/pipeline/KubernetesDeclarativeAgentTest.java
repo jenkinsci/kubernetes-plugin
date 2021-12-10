@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+// Required for workflow-api graph analysis
 import com.google.common.base.Predicates;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         // JENKINS-60886
         UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
         assertNotNull(podRetention);
-        assertTrue(podRetention.getModel().getType().equals(OnFailure.class));
+        assertEquals(podRetention.getModel().getType(), OnFailure.class);
     }
 
     @Issue("JENKINS-48135")
@@ -166,16 +167,16 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     @Test
     public void declarativeWithNonexistentDockerImage() throws Exception {
         assertNotNull(createJobThenScheduleRun());
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
 
+    @Issue("JENKINS-61360")
     @Test
-    public void declarativeWithNonexistentDockerImageLongLabel() throws Exception {
+    public void declarativeShowRawYamlFalse() throws Exception {
         assertNotNull(createJobThenScheduleRun());
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        r.assertLogContains("ERROR: Unable to pull Docker image", b);
-        r.assertLogContains("Back-off pulling image \"nonexistent-docker-image\"", b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        // check yaml metadata labels not logged
+        r.assertLogNotContains("class: KubernetesDeclarativeAgentTest", b);
     }
-
 }

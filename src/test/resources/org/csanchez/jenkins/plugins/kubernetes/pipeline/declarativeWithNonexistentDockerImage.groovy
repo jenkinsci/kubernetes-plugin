@@ -1,8 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label "somelabel-${UUID.randomUUID().toString()}"
-      yaml """
+      yaml '''
 metadata:
   labels:
     some-label: some-label-value
@@ -26,7 +25,7 @@ spec:
     env:
     - name: CONTAINER_ENV_VAR
       value: maven
-"""
+'''
      }
   }
   stages {

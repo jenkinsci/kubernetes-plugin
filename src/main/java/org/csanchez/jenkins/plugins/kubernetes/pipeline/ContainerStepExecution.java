@@ -3,12 +3,12 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
@@ -51,9 +51,13 @@ public class ContainerStepExecution extends StepExecution {
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
 
-        EnvironmentExpander env = getContext().get(EnvironmentExpander.class);
+        EnvironmentExpander env = EnvironmentExpander.merge(
+                getContext().get(EnvironmentExpander.class),
+                EnvironmentExpander.constant(Collections.singletonMap("POD_CONTAINER", containerName))
+        );
+
         EnvVars globalVars = null;
-        Jenkins instance = Jenkins.getInstance();
+        Jenkins instance = Jenkins.get();
 
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
         List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
@@ -78,15 +82,17 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
         getContext().newBodyInvoker()
-                .withContext(BodyInvoker
-                        .mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator))
+                .withContexts(
+                        BodyInvoker.mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator),
+                        env
+                )
                 .withCallback(new ContainerExecCallback(decorator))
                 .start();
         return false;
     }
 
     @Override
-    public void stop(@Nonnull Throwable cause) throws Exception {
+    public void stop(@NonNull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
         closeQuietly(getContext(), decorator);
     }

@@ -12,21 +12,20 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.client.utils.Serialization;
+import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.jvnet.localizer.Localizable;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -46,7 +45,6 @@ import hudson.slaves.AbstractCloudSlave;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudRetentionStrategy;
 import hudson.slaves.ComputerLauncher;
-import hudson.slaves.OfflineCause;
 import hudson.slaves.RetentionStrategy;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -76,20 +74,33 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private final String cloudName;
     private String namespace;
+    @NonNull
+    private String podTemplateId;
     private transient PodTemplate template;
     private transient Set<Queue.Executable> executables = new HashSet<>();
 
     @CheckForNull
     private transient Pod pod;
 
-    @Nonnull
+    @NonNull
     public PodTemplate getTemplate() {
         // Look up updated pod template after a restart
+        PodTemplate template = getTemplateOrNull();
         if (template == null) {
-            template = getKubernetesCloud().getTemplate(Label.get(Util.fixEmpty(getLabelString())));
-            if (template == null) {
-                throw new IllegalStateException("Not expecting pod template to be null at this point");
-            }
+            throw new IllegalStateException("Unable to resolve pod template from id=" + podTemplateId);
+        }
+        return template;
+    }
+
+    @NonNull
+    public String getTemplateId() {
+        return podTemplateId;
+    }
+
+    @CheckForNull
+    public PodTemplate getTemplateOrNull() {
+        if (template == null) {
+            template = getKubernetesCloud().getTemplateById(podTemplateId);
         }
         return template;
     }
@@ -134,7 +145,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, new KubernetesLauncher(), rs);
     }
 
-    protected KubernetesSlave(String name, @Nonnull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         super(name, null, computerLauncher);
@@ -146,17 +157,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
         setNodeProperties(template.getNodeProperties());
         this.cloudName = cloudName;
         this.template = template;
+        this.podTemplateId = template.getId();
     }
 
     public String getCloudName() {
         return cloudName;
     }
 
-    public void setNamespace(@Nonnull String namespace) {
+    public void setNamespace(@NonNull String namespace) {
         this.namespace = namespace;
     }
 
-    @Nonnull
+    @NonNull
     public String getNamespace() {
         return namespace;
     }
@@ -211,7 +223,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @return the cloud instance which created this agent.
      * @throws IllegalStateException if the cloud doesn't exist anymore, or is not a {@link KubernetesCloud}.
      */
-    @Nonnull
+    @NonNull
     public KubernetesCloud getKubernetesCloud() {
         return getKubernetesCloud(getCloudName());
     }
@@ -249,7 +261,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     public PodRetention getPodRetention(KubernetesCloud cloud) {
         PodRetention retentionPolicy = cloud.getPodRetention();
-        PodTemplate template = getTemplate();
+        PodTemplate template = getTemplateOrNull();
         if (template != null) {
             PodRetention pr = template.getPodRetention();
             // https://issues.jenkins-ci.org/browse/JENKINS-53260
@@ -325,9 +337,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
         if (deletePod) {
             deleteSlavePod(listener, client);
+            Metrics.metricRegistry().counter(MetricNames.PODS_TERMINATED).inc();
         } else {
-            // Log warning, as the slave pod may still be running
-            LOGGER.log(Level.WARNING, "Slave pod {0} was not deleted due to retention policy {1}.",
+            // Log warning, as the agent pod may still be running
+            LOGGER.log(Level.WARNING, "Agent pod {0} was not deleted due to retention policy {1}.",
                     new Object[] { name, getPodRetention(cloud) });
         }
         String msg = String.format("Disconnected computer %s", name);
@@ -584,9 +597,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
             if (e == null) {
                 return null;
             }
-            // Tell the slave JNLP agent to not attempt further reconnects.
+            // Tell the JNLP agent to not attempt further reconnects.
             e.setNoReconnect(true);
-            LOGGER.log(Level.INFO, "Disabled slave engine reconnects.");
+            LOGGER.log(Level.INFO, "Disabled agent engine reconnects.");
             return null;
         }
 

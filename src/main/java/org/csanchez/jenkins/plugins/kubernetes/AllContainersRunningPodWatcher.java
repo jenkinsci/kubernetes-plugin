@@ -9,19 +9,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.model.TaskListener;
-import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 import io.fabric8.kubernetes.client.utils.Serialization;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * A pod watcher reporting when all containers are running
@@ -36,13 +31,9 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
 
     private KubernetesClient client;
 
-    @Nonnull
-    private final TaskListener runListener;
-
-    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod, @CheckForNull TaskListener runListener) {
+    public AllContainersRunningPodWatcher(KubernetesClient client, Pod pod) {
         this.client = client;
         this.pod = pod;
-        this.runListener = runListener == null ? TaskListener.NULL : runListener;
         updateState(pod);
     }
 
@@ -70,7 +61,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     }
 
     @Override
-    public void onClose(KubernetesClientException cause) {
+    public void onClose(WatcherException cause) {
 
     }
 
@@ -78,12 +69,12 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
      * Wait until all pod containers are running
      * 
      * @return the pod
-     * @throws IllegalStateException
+     * @throws PodNotRunningException
      *             if pod or containers are no longer running
      * @throws KubernetesClientTimeoutException
      *             if time ran out
      */
-    public Pod await(long amount, TimeUnit timeUnit) {
+    public Pod await(long amount, TimeUnit timeUnit) throws PodNotRunningException {
         long started = System.currentTimeMillis();
         long alreadySpent = System.currentTimeMillis() - started;
         long remaining = timeUnit.toMillis(amount) - alreadySpent;
@@ -113,16 +104,16 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
      * Wait until all pod containers are running
      * 
      * @return the pod
-     * @throws IllegalStateException
+     * @throws PodNotRunningException
      *             if pod or containers are no longer running
      * @throws KubernetesClientTimeoutException
      *             if time ran out
      */
-    private Pod periodicAwait(int i, long started, long interval, long amount) {
+    private Pod periodicAwait(int i, long started, long interval, long amount) throws PodNotRunningException {
         Pod pod = client.pods().inNamespace(this.pod.getMetadata().getNamespace())
                 .withName(this.pod.getMetadata().getName()).get();
         if (pod == null) {
-            throw new IllegalStateException(String.format("Pod is no longer available: %s/%s",
+            throw new PodNotRunningException(String.format("Pod is no longer available: %s/%s",
                     this.pod.getMetadata().getNamespace(), this.pod.getMetadata().getName()));
         } else {
             LOGGER.finest(() -> "Updating pod for " + this.pod.getMetadata().getNamespace() + "/" + this.pod.getMetadata().getName() + " : " + Serialization.asYaml(pod));
@@ -130,13 +121,18 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
         }
         List<ContainerStatus> terminatedContainers = PodUtils.getTerminatedContainers(pod);
         if (!terminatedContainers.isEmpty()) {
-            throw new IllegalStateException(String.format("Pod has terminated containers: %s/%s (%s)",
+            PodNotRunningException x = new PodNotRunningException(String.format("Pod has terminated containers: %s/%s (%s)",
                     this.pod.getMetadata().getNamespace(),
                     this.pod.getMetadata().getName(),
                     terminatedContainers.stream()
                             .map(ContainerStatus::getName)
                             .collect(joining(", ")
                             )));
+            String logs = PodUtils.logLastLines(this.pod, client);
+            if (logs != null) {
+                x.addSuppressed(new ContainerLogs(logs));
+            }
+            throw x;
         }
         if (areAllContainersRunning(pod)) {
             return pod;
@@ -157,4 +153,12 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
     public PodStatus getPodStatus() {
         return this.pod.getStatus();
     }
+
+    /** @see #await */
+    public static final class PodNotRunningException extends Exception {
+        PodNotRunningException(String s) {
+            super(s);
+        }
+    }
+
 }

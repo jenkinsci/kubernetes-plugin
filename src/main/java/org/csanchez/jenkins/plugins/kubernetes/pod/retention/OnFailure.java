@@ -46,6 +46,11 @@ public class OnFailure extends PodRetention implements Serializable {
         return this.toString().hashCode();
     }
 
+    @Override
+    public String toString() {
+        return Messages.on_Failure();
+    }
+
     @Extension
     @Symbol("onFailure")
     public static class DescriptorImpl extends PodRetentionDescriptor {

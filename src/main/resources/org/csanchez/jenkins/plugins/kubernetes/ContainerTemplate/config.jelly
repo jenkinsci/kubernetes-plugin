@@ -23,15 +23,15 @@
   </f:entry>
 
   <f:entry field="command" title="${%Command to run}">
-    <f:textbox default="/bin/sh -c"/>
+    <f:textbox default="sleep"/>
   </f:entry>
 
   <f:entry field="args" title="${%Arguments to pass to the command}">
-    <f:textbox default="cat"/>
+    <f:textbox default="9999999"/>
   </f:entry>
 
   <f:entry field="ttyEnabled" title="${%Allocate pseudo-TTY}">
-    <f:checkbox default="true"/>
+    <f:checkbox default="false"/>
   </f:entry>
 
     <f:entry title="${%Environment Variables}" field="envVars" description="${%List of environment variables to set in agent pod}">
@@ -60,11 +60,19 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry field="resourceRequestEphemeralStorage" title="${%Request Ephemeral Storage}">
+      <f:textbox/>
+    </f:entry>
+
     <f:entry field="resourceLimitCpu" title="${%Limit CPU}">
       <f:textbox/>
     </f:entry>
 
     <f:entry field="resourceLimitMemory" title="${%Limit Memory}">
+      <f:textbox/>
+    </f:entry>
+
+    <f:entry field="resourceLimitEphemeralStorage" title="${%Limit Ephemeral Storage}">
       <f:textbox/>
     </f:entry>
 

@@ -24,8 +24,13 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -203,7 +208,7 @@ public class KubernetesTest {
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
         assertEquals(1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
-        assertEquals("jenkins/jnlp-slave", containerTemplate.getImage());
+        assertEquals("jenkins/inbound-agent", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
         assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());

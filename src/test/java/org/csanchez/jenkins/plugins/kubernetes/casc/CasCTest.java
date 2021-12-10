@@ -14,15 +14,20 @@ import org.jvnet.hudson.test.RestartableJenkinsRule;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class CasCTest extends RoundTripAbstractTest {
 
     @Override
     protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
-        KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
+        List<KubernetesCloud> all = r.j.jenkins.clouds.getAll(KubernetesCloud.class);
+        assertThat(all, hasSize(1));
+        KubernetesCloud cloud = all.get(0);
         assertNotNull(cloud);
         assertEquals(10,cloud.getContainerCap());
         assertEquals("http://jenkinshost:8080/jenkins/", cloud.getJenkinsUrl());
@@ -32,7 +37,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertNotNull(templates);
         assertEquals(3, templates.size());
         PodTemplate podTemplate = templates.get(0);
-        assertEquals(false, podTemplate.isHostNetwork());
+        assertFalse(podTemplate.isHostNetwork());
         assertEquals("java", podTemplate.getLabel());
         assertEquals("default-java", podTemplate.getName());
         assertEquals(10, podTemplate.getInstanceCap());
@@ -41,7 +46,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals(66, podTemplate.getActiveDeadlineSeconds());
         assertThat(podTemplate.getYamlMergeStrategy(), isA(Overrides.class));
         podTemplate = templates.get(1);
-        assertEquals(false, podTemplate.isHostNetwork());
+        assertFalse(podTemplate.isHostNetwork());
         assertEquals("dynamic-pvc", podTemplate.getLabel());
         assertEquals("dynamic-pvc", podTemplate.getName());
         assertThat(podTemplate.getYamlMergeStrategy(), isA(Overrides.class));
@@ -53,7 +58,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals("1",dynamicPVCVolume.getRequestsSize());
         assertEquals("hostpath",dynamicPVCVolume.getStorageClassName());
         podTemplate = templates.get(2);
-        assertEquals(false, podTemplate.isHostNetwork());
+        assertFalse(podTemplate.isHostNetwork());
         assertEquals("test", podTemplate.getLabel());
         assertEquals("test", podTemplate.getName());
         assertThat(podTemplate.getYamlMergeStrategy(), isA(Merge.class));
@@ -71,7 +76,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals(4, livenessProbe.getSuccessThreshold());
         assertEquals(5, livenessProbe.getTimeoutSeconds());
         assertEquals("maven",container.getName());
-        assertEquals(true, container.isTtyEnabled());
+        assertTrue(container.isTtyEnabled());
         assertEquals("/src", container.getWorkingDir());
 
     }

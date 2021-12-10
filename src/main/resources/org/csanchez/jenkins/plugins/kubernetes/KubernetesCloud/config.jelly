@@ -11,6 +11,10 @@
         <f:textbox/>
       </f:entry>
 
+      <f:entry title="${%Use Jenkins Proxy}" field="useJenkinsProxy">
+        <f:checkbox/>
+      </f:entry>
+
       <f:entry title="${%Kubernetes server certificate key}" field="serverCertificate">
         <f:textarea/>
       </f:entry>
@@ -27,7 +31,7 @@
         <c:select/>
       </f:entry>
 
-      <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace" />
+      <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="name,serverUrl,credentialsId,serverCertificate,skipTlsVerify,namespace,connectTimeout,readTimeout,useJenkinsProxy" />
 
       <f:entry title="${%WebSocket}" field="webSocket">
         <f:checkbox/>
@@ -80,7 +84,7 @@
             <f:number min="${descriptor.defaultRetentionTimeout}" default="${descriptor.defaultRetentionTimeout}" checkMethod="post"/>
         </f:entry>
 
-        <f:entry title="${%Transfer proxy related environment variables from master to agent}" field="addMasterProxyEnvVars">
+        <f:entry title="${%Transfer proxy related environment variables from controller to agent}" field="addMasterProxyEnvVars">
           <f:checkbox />
         </f:entry>
 

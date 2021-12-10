@@ -27,6 +27,7 @@ import static java.util.logging.Level.*;
 import static org.junit.Assume.*;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,12 +49,8 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.rules.TestName;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Node;
-import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -62,9 +59,6 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import java.net.InetAddress;
 import java.net.URL;
@@ -82,9 +76,6 @@ public class KubernetesTestUtil {
 
     private static final String BRANCH_NAME = System.getenv("BRANCH_NAME");
     private static final String BUILD_NUMBER = System.getenv("BUILD_NUMBER");
-    private static Map<String, String> DEFAULT_LABELS = ImmutableMap.of("BRANCH_NAME",
-            BRANCH_NAME == null ? "undefined" : BRANCH_NAME, "BUILD_NUMBER",
-            BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
 
     public static final String SECRET_KEY = "password";
     public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
@@ -158,7 +149,7 @@ public class KubernetesTestUtil {
      * Verifies that we are running in a mixed cluster with Windows nodes.
      * (The cluster is assumed to always have Linux nodes.)
      * This means that we can run tests involving Windows agent pods.
-     * Note that running the <em>master</em> on Windows is untested.
+     * Note that running the <em>controller</em> on Windows is untested.
      */
     public static void assumeWindows() {
         assumeTrue("Cluster seems to contain no Windows nodes", isWindows());
@@ -185,7 +176,9 @@ public class KubernetesTestUtil {
      * Labels to add to the pods so we can match them to a specific build run, test class and method
      */
     public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
-        HashMap<String, String> l = Maps.newHashMap(DEFAULT_LABELS);
+        Map<String, String> l = new HashMap<>();
+        l.put("BRANCH_NAME", BRANCH_NAME == null ? "undefined" : BRANCH_NAME);
+        l.put("BUILD_NUMBER", BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
         if (cloud != null) {
             l.putAll(cloud.getPodLabelsMap());
         }
@@ -216,14 +209,13 @@ public class KubernetesTestUtil {
                 try {
                     forkJoinPool.submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
                         try {
-                            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                                    .withLabels(labels);
-                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
-                            boolean allTerminated = pods.list().getItems().isEmpty();
+                            PodList list = client.pods().withLabels(labels).list();
+                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
+                            boolean allTerminated = list.getItems().isEmpty();
                             if (allTerminated) {
-                                LOGGER.log(INFO, "All pods are terminated: {0}", print(pods));
+                                LOGGER.log(INFO, "All pods are terminated: {0}", print(list));
                             } else {
-                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(pods));
+                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
                                 Thread.sleep(5000);
                             }
                             return allTerminated;
@@ -238,11 +230,10 @@ public class KubernetesTestUtil {
                 }
             }
 
-            FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods = client.pods()
-                    .withLabels(labels);
-            if (!pods.list().getItems().isEmpty()) {
-                LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(pods));
-                if (Boolean.TRUE.equals(pods.delete())) {
+            PodList list = client.pods().withLabels(labels).list();
+            if (!list.getItems().isEmpty()) {
+                LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(list));
+                if (Boolean.TRUE.equals(client.pods().withLabels(labels).delete())) {
                     return true;
                 }
 
@@ -251,25 +242,25 @@ public class KubernetesTestUtil {
         return false;
     }
 
-    private static List<String> print(FilterWatchListDeletable<Pod, PodList, Boolean, Watch, Watcher<Pod>> pods) {
-        return pods.list().getItems().stream()
+    private static List<String> print(PodList podList) {
+        return podList.getItems().stream()
                 .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());
     }
 
     public static void createSecret(KubernetesClient client, String namespace) {
         Secret secret = new SecretBuilder()
-                .withStringData(ImmutableMap.of(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
+                .withStringData(Collections.singletonMap(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
                 .withName("container-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
 
         LOGGER.log(Level.INFO, "Created container secret: " + Serialization.asYaml(secret));
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
+        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
                 .withNewMetadata().withName("pod-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
 
-        secret = new SecretBuilder().withStringData(ImmutableMap.of(SECRET_KEY, ""))
+        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, ""))
                 .withNewMetadata().withName("empty-secret").endMetadata().build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));

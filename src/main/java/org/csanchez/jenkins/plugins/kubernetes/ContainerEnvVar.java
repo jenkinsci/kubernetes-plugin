@@ -1,8 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -42,7 +41,7 @@ public class ContainerEnvVar extends KeyValueEnvVar {
     @Extension
     public static class DescriptorVisibilityFilterImpl extends DescriptorVisibilityFilter {
         @Override
-        public boolean filter(@CheckForNull Object context, @Nonnull Descriptor descriptor) {
+        public boolean filter(@CheckForNull Object context, @NonNull Descriptor descriptor) {
             return !(descriptor instanceof ContainerEnvVar.DescriptorImpl);
         }
     }

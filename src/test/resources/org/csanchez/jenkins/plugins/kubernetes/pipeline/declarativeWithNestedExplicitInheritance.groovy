@@ -1,8 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label '$NAME-parent'
-      yaml """
+      yaml '''
 spec:
   containers:
   - name: golang
@@ -10,15 +9,14 @@ spec:
     command:
     - cat
     tty: true
-"""
+'''
     }
   }
   stages {
     stage('Run maven') {
         agent {
             kubernetes {
-                label '$NAME-nested'
-                yaml """
+                yaml '''
 spec:
   containers:
   - name: maven
@@ -26,7 +24,7 @@ spec:
     command:
     - cat
     tty: true
-"""
+'''
             }
         }
       steps {

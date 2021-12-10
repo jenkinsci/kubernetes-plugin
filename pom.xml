@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.7</version>
+    <version>4.31</version>
     <relativePath />
   </parent>
 
@@ -39,7 +39,7 @@
   </developers>
 
   <properties>
-    <revision>1.27.1</revision>
+    <revision>1.31.1</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- in minikube
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
@@ -47,10 +47,8 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <java.level>8</java.level>
-    <jenkins.version>2.222.4</jenkins.version>
+    <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
-    <pipeline-model-definition.version>1.7.2</pipeline-model-definition.version>
-    <workflow-cps.version>2.81</workflow-cps.version>
     <useBeta>true</useBeta>
   </properties>
 
@@ -58,12 +56,11 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>4.9.2-2</version>
+      <version>5.10.1-171.vaa0774fb8c20</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
-      <version>2.11.2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -80,7 +77,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.7.0</version>
+      <version>0.9.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -112,21 +109,31 @@
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-extensions</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <optional>true</optional>
     </dependency>
     <dependency> <!-- DeclarativeGeneratorTester -->
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>metrics</artifactId>
+      <version>4.0.2.8</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>caffeine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials-binding</artifactId>
     </dependency>
 
     <!-- for testing -->
@@ -154,13 +161,11 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>pipeline-model-definition</artifactId>
-      <version>${pipeline-model-definition.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SnippetizerTest -->
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>${workflow-cps.version}</version>
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
@@ -208,7 +213,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
-      <version>2.18</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -236,7 +240,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>docker-workflow</artifactId>
-      <version>1.23</version>
+      <version>1.26</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -252,10 +256,21 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.222.x</artifactId>
-        <version>11</version>
+        <artifactId>bom-2.303.x</artifactId>
+        <version>1036.v9f5a1aba8fab</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.10.2</version>
+      </dependency>
+      <!-- Fix InjectedTest -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>docker-commons</artifactId>
+        <version>1.17</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -268,7 +283,7 @@
         <configuration>
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <hudson.slaves.NodeProvisioner.recurrencePeriod>1000</hudson.slaves.NodeProvisioner.recurrencePeriod>
+            <hudson.slaves.NodeProvisioner.recurrencePeriod>3000</hudson.slaves.NodeProvisioner.recurrencePeriod>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->
@@ -286,6 +301,7 @@
             <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
             <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
+            <org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>true</org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>
           </systemProperties>
         </configuration>
       </plugin>

@@ -1,0 +1,15 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: org.apache.commons:commons-lang3
+    versions:
+    - "> 3.8.1"
+- package-ecosystem: docker
+  directory: '/src/main/resources/org/csanchez/jenkins/plugins/kubernetes'
+  schedule:
+    interval: 'daily'

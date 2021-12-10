@@ -22,7 +22,6 @@ import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 
-import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import hudson.AbortException;
@@ -45,6 +44,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     private static final long serialVersionUID = -6139090518333729333L;
 
     private static final transient String NAME_FORMAT = "%s-%s";
+
+    private static /* almost final */ boolean VERBOSE = Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient PodTemplateStep step;
@@ -90,9 +91,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNamespace(namespace);
 
         if (step.getInheritFrom() == null) {
-            newTemplate.setInheritFrom(Strings.emptyToNull(parentTemplates));
+            newTemplate.setInheritFrom(PodTemplateUtils.emptyToNull(parentTemplates));
         } else {
-            newTemplate.setInheritFrom(Strings.emptyToNull(step.getInheritFrom()));
+            newTemplate.setInheritFrom(PodTemplateUtils.emptyToNull(step.getInheritFrom()));
         }
         newTemplate.setInstanceCap(step.getInstanceCap());
         newTemplate.setIdleMinutes(step.getIdleMinutes());
@@ -107,13 +108,15 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setNodeSelector(step.getNodeSelector());
         newTemplate.setNodeUsageMode(step.getNodeUsageMode());
         newTemplate.setServiceAccount(step.getServiceAccount());
+        newTemplate.setSchedulerName(step.getSchedulerName());
         newTemplate.setRunAsUser(step.getRunAsUser());
         newTemplate.setRunAsGroup(step.getRunAsGroup());
         if (step.getHostNetwork() != null) {
             newTemplate.setHostNetwork(step.getHostNetwork());
         }
         newTemplate.setAnnotations(step.getAnnotations());
-        newTemplate.setListener(getContext().get(TaskListener.class));
+        TaskListener listener = getContext().get(TaskListener.class);
+        newTemplate.setListener(listener);
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if(run!=null) {
             String url = cloud.getJenkinsUrlOrNull();
@@ -143,7 +146,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (!errors.isEmpty()) {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
-
+        if (VERBOSE) {
+            listener.getLogger().println("Registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel());
+        }
         cloud.addDynamicTemplate(newTemplate);
         BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
         if (step.getLabel() == null) {
@@ -181,7 +186,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (input.length() > max) {
             input = input.substring(input.length() - max);
         }
-        input = input.replaceAll("[^_.a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
         String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         assert PodTemplateUtils.validateLabel(label) : label;
         return label;
@@ -209,9 +214,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull PodTemplateContext podTemplateContext) {
         String namespace = null;
-        if (!Strings.isNullOrEmpty(step.getNamespace())) {
+        if (!PodTemplateUtils.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
-        } else if (podTemplateContext != null && !Strings.isNullOrEmpty(podTemplateContext.getNamespace())) {
+        } else if (podTemplateContext != null && !PodTemplateUtils.isNullOrEmpty(podTemplateContext.getNamespace())) {
             namespace = podTemplateContext.getNamespace();
         } else {
             namespace = kubernetesCloud.getNamespace();
@@ -224,11 +229,14 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
      */
     @Override
     public void onResume() {
-        super.onResume();
         try {
             KubernetesCloud cloud = resolveCloud();
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
+            LOGGER.log(Level.FINE, "Re-registering template with id=" + newTemplate.getId() + " after resume");
+            if (VERBOSE) {
+                listener.getLogger().println("Re-registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel() + " after resume");
+            }
             cloud.addDynamicTemplate(newTemplate);
         } catch (AbortException e) {
             throw new RuntimeException(e.getMessage(), e.getCause());
@@ -252,20 +260,13 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          * Remove the template after step is done
          */
         protected void finished(StepContext context) throws Exception {
-            Cloud cloud = Jenkins.get().getCloud(cloudName);
-            if (cloud == null) {
-                LOGGER.log(Level.FINE, "Cloud {0} no longer exists, cannot delete pod template {1}",
-                        new Object[] { cloudName, podTemplate.getName() });
-                return;
-            }
-            if (cloud instanceof KubernetesCloud) {
-                LOGGER.log(Level.FINE, "Removing pod template {1} from cloud {0}",
-                        new Object[] { cloud.name, podTemplate.getName() });
-                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                kubernetesCloud.removeDynamicTemplate(podTemplate);
-            } else {
-                LOGGER.log(Level.WARNING, "Cloud is not a KubernetesCloud: {0} {1}",
-                        new String[] { cloud.name, cloud.getClass().getName() });
+            try {
+                KubernetesCloud cloud = resolveCloud();
+                LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
+                        + " from cloud " + cloud.name);
+                cloud.removeDynamicTemplate(podTemplate);
+            } catch (AbortException e) {
+                LOGGER.log(Level.WARNING, e, () -> "Unable to resolve cloud for " + podTemplate.getName() + ". Maybe the cloud was removed while running the build?");
             }
         }
     }

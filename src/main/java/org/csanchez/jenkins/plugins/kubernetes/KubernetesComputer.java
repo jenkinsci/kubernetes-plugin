@@ -37,6 +37,8 @@ import java.util.logging.Logger;
 public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());
 
+    private boolean launching;
+
     public KubernetesComputer(KubernetesSlave slave) {
         super(slave);
     }
@@ -67,7 +69,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Container> getContainers() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getContainers, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
@@ -83,12 +85,16 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
         Pod pod = client.pods().inNamespace(namespace).withName(getName()).get();
 
+        if (pod == null) {
+            return Collections.emptyList();
+        }
+
         return pod.getSpec().getContainers();
     }
 
     @Exported
     public List<Event> getPodEvents() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getPodEvents, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
@@ -110,7 +116,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 fields.put("involvedObject.name", podMeta.getName());
                 fields.put("involvedObject.namespace", podNamespace);
 
-                EventList eventList = client.events().inNamespace(podNamespace).withFields(fields).list();
+                EventList eventList = client.v1().events().inNamespace(podNamespace).withFields(fields).list();
                 if(eventList != null) {
                     return eventList.getItems();
                 }
@@ -122,7 +128,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     public void doContainerLog(@QueryParameter String containerId,
                                StaplerRequest req, StaplerResponse rsp) throws KubernetesAuthException, IOException {
-        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+        Jenkins.get().checkPermission(Computer.EXTENDED_READ);
 
         ByteBuffer outputStream = new ByteBuffer();
         KubernetesSlave slave = getNode();
@@ -141,7 +147,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Override
     public String toString() {
-        return String.format("KubernetesComputer name: %s slave: %s", getName(), getNode());
+        return String.format("KubernetesComputer name: %s agent: %s", getName(), getNode());
     }
 
     @Override
@@ -153,5 +159,25 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
             }
         };
+    }
+
+    public void setLaunching(boolean launching) {
+        this.launching = launching;
+    }
+
+    /**
+     *
+     * @return true if the Pod has been created in Kubernetes and the current instance is waiting for the pod to be usable.
+     */
+    public boolean isLaunching() {
+        return launching;
+    }
+
+    @Override
+    public void setAcceptingTasks(boolean acceptingTasks) {
+        super.setAcceptingTasks(acceptingTasks);
+        if (acceptingTasks) {
+            launching = false;
+        }
     }
 }

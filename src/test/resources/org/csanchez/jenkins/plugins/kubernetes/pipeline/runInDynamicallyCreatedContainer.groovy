@@ -9,7 +9,7 @@ spec:
 ''',
         containers: [
             containerTemplate(name: 'jnlp',
-                image: 'jenkins/jnlp-slave:latest',
+                image: 'jenkins/inbound-agent:latest',
                 alwaysPullImage: true,
                 args: '${computer.jnlpmac} ${computer.name}',
             ),

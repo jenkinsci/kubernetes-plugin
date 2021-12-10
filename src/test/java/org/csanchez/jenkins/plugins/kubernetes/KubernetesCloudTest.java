@@ -1,16 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,8 +21,6 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -42,16 +35,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.mockito.Mockito;
 
-import hudson.model.Label;
-import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.DoneablePod;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.JenkinsLocationConfiguration;
 
 public class KubernetesCloudTest {
@@ -66,6 +50,22 @@ public class KubernetesCloudTest {
     @After
     public void tearDown() {
         System.getProperties().remove("KUBERNETES_JENKINS_URL");
+    }
+
+    @Test
+    public void configRoundTrip() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        PodTemplate podTemplate = new PodTemplate();
+        podTemplate.setName("test-template");
+        podTemplate.setLabel("test");
+        cloud.addTemplate(podTemplate);
+        j.jenkins.clouds.add(cloud);
+        j.jenkins.save();
+        JenkinsRule.WebClient wc = j.createWebClient();
+        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlForm f = p.getFormByName("config");
+        j.submit(f);
+        assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
     }
 
     @Test
@@ -157,82 +157,6 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testInstanceCap() {
-        KubernetesCloud cloud = new KubernetesCloud("name") {
-            @Override
-            public KubernetesClient connect() {
-                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
-                Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
-                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
-                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
-                PodList podList = Mockito.mock(PodList.class);
-                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
-                Mockito.when(operation.list()).thenReturn(podList);
-                Mockito.when(mockClient.pods()).thenReturn(operation);
-                return mockClient;
-            }
-        };
-
-        PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setName("test");
-        podTemplate.setLabel("test");
-
-        cloud.addTemplate(podTemplate);
-
-        Label test = Label.get("test");
-        assertTrue(cloud.canProvision(test));
-
-        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
-
-        podTemplate.setInstanceCap(5);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(5, plannedNodes.size());
-    }
-
-    @Test
-    public void testContainerCap() {
-        KubernetesCloud cloud = new KubernetesCloud("name") {
-            @Override
-            public KubernetesClient connect()  {
-                KubernetesClient mockClient =  Mockito.mock(KubernetesClient.class);
-                Mockito.when(mockClient.getNamespace()).thenReturn("default");
-                MixedOperation<Pod, PodList, DoneablePod, PodResource<Pod, DoneablePod>> operation = Mockito.mock(MixedOperation.class);
-                Mockito.when(operation.inNamespace(Mockito.anyString())).thenReturn(operation);
-                Mockito.when(operation.withLabels(Mockito.anyMap())).thenReturn(operation);
-                PodList podList = Mockito.mock(PodList.class);
-                Mockito.when(podList.getItems()).thenReturn(new ArrayList<>());
-                Mockito.when(operation.list()).thenReturn(podList);
-                Mockito.when(mockClient.pods()).thenReturn(operation);
-                return mockClient;
-            }
-        };
-
-        PodTemplate podTemplate = new PodTemplate();
-        podTemplate.setName("test");
-        podTemplate.setLabel("test");
-
-        cloud.addTemplate(podTemplate);
-
-        Label test = Label.get("test");
-        assertTrue(cloud.canProvision(test));
-
-        Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(test, 200);
-        assertEquals(200, plannedNodes.size());
-
-        cloud.setContainerCapStr("0");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(0, plannedNodes.size());
-
-        cloud.setContainerCapStr("10");
-        podTemplate.setInstanceCap(20);
-        plannedNodes = cloud.provision(test, 200);
-        assertEquals(10, plannedNodes.size());
-    }
-
-    @Test
     public void testPodLabels() {
         List<PodLabel> defaultPodLabelsList = PodLabel.fromMap(KubernetesCloud.DEFAULT_POD_LABELS);
         KubernetesCloud cloud = new KubernetesCloud("name");
@@ -275,12 +199,12 @@ public class KubernetesCloudTest {
 
 
         cloud.setLabels(null);
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getLabels());
 
         cloud.setLabels(new LinkedHashMap<>());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getPodLabelsMap());
-        assertEquals(ImmutableMap.of("jenkins", "slave"), cloud.getLabels());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getPodLabelsMap());
+        assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getLabels());
     }
 
     @Test
@@ -289,7 +213,7 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        ArrayList<String> objectProperties = Lists.newArrayList("templates", "podRetention", "podLabels", "labels", "serverCertificate");
+        ArrayList<String> objectProperties = new ArrayList<>(Arrays.asList("templates", "podRetention", "podLabels", "labels", "serverCertificate"));
         for (String property: PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
@@ -316,7 +240,7 @@ public class KubernetesCloudTest {
         cloud.setTemplates(Collections.singletonList(pt));
         cloud.setPodRetention(new Always());
         cloud.setPodLabels(PodLabel.listOf("foo", "bar", "cat", "dog"));
-        cloud.setLabels(ImmutableMap.of("foo", "bar"));
+        cloud.setLabels(Collections.singletonMap("foo", "bar"));
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
         assertEquals("copy", copy.name);
@@ -357,9 +281,20 @@ public class KubernetesCloudTest {
 
     @Test
     @LocalData
-    public void minRetentionTimeoutReadResolve() {
+    public void emptyKubernetesCloudReadResolve() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
+        assertEquals(Integer.MAX_VALUE, cloud.getContainerCap());
+        assertEquals(KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST, cloud.getMaxRequestsPerHost());
+        assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
+        assertEquals(KubernetesCloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
+    }
+
+    @Test
+    @LocalData
+    public void readResolveContainerCapZero() {
+        KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
+        assertEquals(cloud.getContainerCap(), Integer.MAX_VALUE);
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {

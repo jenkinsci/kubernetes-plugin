@@ -3,6 +3,7 @@ podTemplate(label: '$NAME', containers: [
     ]) {
     node ('$NAME') {
         container('busybox') {
+            sh 'echo hello world'
             sh 'sleep 9999999'
         }
     }

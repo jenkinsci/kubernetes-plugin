@@ -24,9 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -65,7 +64,7 @@ public class NfsWorkspaceVolume extends WorkspaceVolume {
         return serverPath;
     }
 
-    @Nonnull
+    @NonNull
     public Boolean getReadOnly() {
         return readOnly != null && readOnly;
     }
@@ -89,6 +88,7 @@ public class NfsWorkspaceVolume extends WorkspaceVolume {
     @Symbol("nfsWorkspaceVolume")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
         @Override
+        @NonNull
         public String getDisplayName() {
             return "NFS Workspace Volume";
         }

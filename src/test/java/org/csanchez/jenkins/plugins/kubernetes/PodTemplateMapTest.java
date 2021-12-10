@@ -33,11 +33,11 @@ public class PodTemplateMapTest {
         for (int i = 0; i < t.length; i++) {
             t[i] = newThread(i);
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].start();
+        for (Thread thread : t) {
+            thread.start();
         }
-        for (int i = 0; i < t.length; i++) {
-            t[i].join();
+        for (Thread thread : t) {
+            thread.join();
         }
         assertEquals(n, this.instance.getTemplates(cloud).size());
     }

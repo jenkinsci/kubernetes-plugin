@@ -39,7 +39,7 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
             if (req != null) {
                 // We prevent the cloud reconfiguration from the web UI
                 String cloudName = req.getParameter("cloudName");
-                return Jenkins.getInstance().getCloud(cloudName);
+                return Jenkins.get().getCloud(cloudName);
             } else {
                 throw new IllegalStateException("Expecting req to be non-null");
             }
