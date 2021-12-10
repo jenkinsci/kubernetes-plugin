@@ -440,7 +440,6 @@ public class ContainerExecDecoratorTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
         Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
-        //Assert a DecoratedLauncher was returned successfully
         assertTrue(launcher != null && launcher instanceof DecoratedLauncher);
     }
 
