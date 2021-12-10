@@ -440,7 +440,7 @@ public class ContainerExecDecoratorTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
         Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
-        assertTrue(launcher != null && launcher instanceof DecoratedLauncher);
+        assertEquals(dummyLauncher, launcher);
     }
 
     private ProcReturn execCommand(boolean quiet, boolean launcherStdout, String... cmd) throws Exception {
