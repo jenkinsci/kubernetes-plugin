@@ -77,6 +77,7 @@ import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
 import hudson.model.Node;
+import hudson.slaves.DumbSlave;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -85,6 +86,7 @@ import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import okhttp3.OkHttpClient;
 import org.junit.Ignore;
+import org.jvnet.hudson.test.JenkinsRule;
 
 /**
  * @author Carlos Sanchez
@@ -93,6 +95,9 @@ public class ContainerExecDecoratorTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
+
     private KubernetesCloud cloud;
     private static KubernetesClient client;
     private static final Pattern PID_PATTERN = Pattern.compile("^((?:\\[\\d+\\] )?pid is \\d+)$", Pattern.MULTILINE);
@@ -100,6 +105,7 @@ public class ContainerExecDecoratorTest {
     private ContainerExecDecorator decorator;
     private Pod pod;
     private KubernetesSlave agent;
+    private DumbSlave dumbAgent;
 
     @Rule
     public Timeout timeout = new Timeout(3, TimeUnit.MINUTES);
@@ -422,6 +428,23 @@ public class ContainerExecDecoratorTest {
                 r.output.contains("MyCustomDir=/home/jenkins/agent1"));
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
+    }
+
+    /**
+     * Reproduce JENKINS-66986
+     *
+     * Allow non KubernetesSlave nodes to be provisioned inside the container clause
+     *
+     * @throws Exception
+     */
+    @Test
+    @Issue("JENKINS-66986")
+    public void testRunningANonKubernetesNodeInsideContainerClause() throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
+        dumbAgent = j.createSlave("test", "", null);
+        Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
+        assertEquals(dummyLauncher, launcher);
     }
 
     private ProcReturn execCommand(boolean quiet, boolean launcherStdout, String... cmd) throws Exception {
