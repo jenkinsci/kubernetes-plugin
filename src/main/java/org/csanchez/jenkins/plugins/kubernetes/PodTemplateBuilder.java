@@ -184,7 +184,10 @@ public class PodTemplateBuilder {
         // Build volumes and volume mounts.
         Map<String, Volume> volumes = new HashMap<>();
         Map<String, VolumeMount> volumeMounts = new HashMap<>();
-        String podName = agent != null ? agent.getPodName() : null;
+        if (agent == null) {
+            throw new IllegalStateException("No KubernetesSlave is set");
+        }
+        String podName = agent.getPodName();
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = "volume-" + i;
