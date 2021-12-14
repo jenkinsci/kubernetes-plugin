@@ -45,7 +45,10 @@ public class KubernetesDeclarativeAgentUnitTest {
         instance.setLabel("label");
         instance.setYaml("yaml");
         instance.setYamlMergeStrategy(new Merge());
-        DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume("sc", "1G", "ReadWrite");
+        DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume();
+        workspaceVolume.setStorageClassName("sc");
+        workspaceVolume.setRequestsSize("1G");
+        workspaceVolume.setAccessModes("ReadWrite");
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setIdleMinutes(1);
         instance.setInheritFrom("inheritFrom");
@@ -72,7 +75,10 @@ public class KubernetesDeclarativeAgentUnitTest {
         instance.setCloud("cloud");
         instance.setYaml("yaml");
         instance.setYamlMergeStrategy(new Merge());
-        DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume("sc", "1G", "ReadWrite");
+        DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume();
+        workspaceVolume.setStorageClassName("sc");
+        workspaceVolume.setRequestsSize("1G");
+        workspaceVolume.setAccessModes("ReadWrite");
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setPodRetention(new Never());
         instance.setInheritFrom("inheritFrom");

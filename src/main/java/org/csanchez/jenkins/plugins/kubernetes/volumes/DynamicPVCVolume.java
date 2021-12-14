@@ -1,4 +1,4 @@
-package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
+package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
@@ -10,9 +10,8 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
+import java.util.UUID;
 import javax.annotation.Nonnull;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.DynamicPVC;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PVCVolumeUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -21,15 +20,19 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
- * @author <a href="root@junwuhui.cn">runzexia</a>
+ * Implements a dynamic PVC volume, that is created before the agent pod is created, and terminated afterwards.
  */
-public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements DynamicPVC {
+public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
+    private String id;
     private String storageClassName;
     private String requestsSize;
     private String accessModes;
+    private String mountPath;
 
     @DataBoundConstructor
-    public DynamicPVCWorkspaceVolume() {}
+    public DynamicPVCVolume() {
+        this.id = UUID.randomUUID().toString().substring(0, 8);
+    }
 
     @CheckForNull
     public String getAccessModes() {
@@ -62,6 +65,11 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
     }
 
     @Override
+    public String getMountPath() {
+        return mountPath;
+    }
+
+    @Override
     public Volume buildVolume(String volumeName, String podName) {
         return buildPVC(volumeName, podName);
     }
@@ -71,29 +79,35 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
         return createPVC(client, podMetaData);
     }
 
+    @DataBoundSetter
+    public void setMountPath(String mountPath) {
+        this.mountPath = mountPath;
+    }
+
     @Nonnull
     public String getPvcName(String podName) {
-        return "pvc-workspace-" + podName;
+        return "pvc-" + podName + "-" + id;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        DynamicPVCWorkspaceVolume that = (DynamicPVCWorkspaceVolume) o;
-        return Objects.equals(storageClassName, that.storageClassName) &&
+        DynamicPVCVolume that = (DynamicPVCVolume) o;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(storageClassName, that.storageClassName) &&
                 Objects.equals(requestsSize, that.requestsSize) &&
                 Objects.equals(accessModes, that.accessModes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageClassName, requestsSize, accessModes);
+        return Objects.hash(id, storageClassName, requestsSize, accessModes);
     }
 
     @Extension
     @Symbol("dynamicPVC")
-    public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
+    public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {
             return "Dynamic Persistent Volume Claim";
@@ -102,7 +116,7 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
         @SuppressWarnings("unused") // by stapler
         @RequirePOST
         @Restricted(DoNotUse.class) // stapler only
-        public ListBoxModel doFillAccessModesItems(){
+        public ListBoxModel doFillAccessModesItems() {
             return PVCVolumeUtils.ACCESS_MODES_BOX;
         }
     }
