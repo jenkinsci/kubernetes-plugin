@@ -33,7 +33,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 /**
- * Base class for all Kubernetes volume types
+ * Base class for all Kubernetes workspace volume types
  */
 public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceVolume> implements Serializable {
 
@@ -59,6 +59,12 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
         throw new UnsupportedOperationException("could not build volume without podName");
     }
 
+    /**
+     * Create the workspace volume
+     * @param client Kubernetes client
+     * @param podMetaData Kubernetes pod metadata
+     * @return the created persistent volume claim
+     */
     public PersistentVolumeClaim createVolume(KubernetesClient client, ObjectMeta podMetaData) {
         return null;
     }

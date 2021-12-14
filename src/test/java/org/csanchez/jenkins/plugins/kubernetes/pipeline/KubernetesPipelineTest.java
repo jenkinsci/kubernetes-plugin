@@ -673,7 +673,18 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void dynamicPVC() throws Exception {
+    public void dynamicPVCWorkspaceVolume() throws Exception {
+        try {
+            cloud.connect().persistentVolumeClaims().list();
+        } catch (KubernetesClientException x) {
+            // Error from server (Forbidden): persistentvolumeclaims is forbidden: User "system:serviceaccount:kubernetes-plugin-test:default" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "kubernetes-plugin-test"
+            assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
+        }
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
+    @Test
+    public void dynamicPVCVolume() throws Exception {
         try {
             cloud.connect().persistentVolumeClaims().list();
         } catch (KubernetesClientException x) {

@@ -25,6 +25,17 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.TaskListener;
+import hudson.slaves.JNLPLauncher;
+import hudson.slaves.SlaveComputer;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,21 +46,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import hudson.model.TaskListener;
-import hudson.slaves.JNLPLauncher;
-import hudson.slaves.SlaveComputer;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.Watch;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
@@ -161,7 +160,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             runListener.getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
             kubernetesComputer.setLaunching(true);
 
-            template.getWorkspaceVolume().createVolume(client, pod.getMetadata());
+            ObjectMeta podMetadata = pod.getMetadata();
+            template.getWorkspaceVolume().createVolume(client, podMetadata);
+            template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
             watcher = new AllContainersRunningPodWatcher(client, pod);
             try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
                  Watch w2 = eventWatch(client, podName, namespace, runListener)) {
