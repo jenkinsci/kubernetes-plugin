@@ -49,7 +49,7 @@ public class KubernetesRetryEligibility implements ExecutorStepRetryEligibility 
 
     @Override
     public boolean shouldRetry(Throwable t, String node, String label, TaskListener listener) {
-        if (!ExecutorStepRetryEligibility.isRemovedNode(t) && !ExecutorStepRetryEligibility.isClosedChannel(t)) {
+        if (!ExecutorStepRetryEligibility.isGenerallyEligible(t)) {
             LOGGER.log(Level.FINE, "Not a recognized failure", t);
             return false;
         }
