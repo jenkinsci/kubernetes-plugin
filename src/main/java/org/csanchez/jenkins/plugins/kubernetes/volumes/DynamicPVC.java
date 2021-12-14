@@ -37,7 +37,7 @@ public interface DynamicPVC {
     default PersistentVolumeClaim createPVC(KubernetesClient client, ObjectMeta podMetaData){
         String namespace = podMetaData.getNamespace();
         String podName = podMetaData.getName();
-        LOGGER.log(Level.FINE, "Adding volume from pod: {0}/{1}", new Object[] { namespace, podName });
+        LOGGER.log(Level.FINE, "Adding volume for pod: {0}/{1}", new Object[] { namespace, podName });
         OwnerReference ownerReference = new OwnerReferenceBuilder().
                 withApiVersion("v1").
                 withKind("Pod").

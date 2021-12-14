@@ -44,12 +44,20 @@ public abstract class PodVolume extends AbstractDescribableImpl<PodVolume> imple
     // Where to mount this volume in the pod.
     public abstract String getMountPath();
 
-    // Builds a Volume model with the given name.require podName to generate pvc name
+    /**
+     * It's expected to override at least one of {@link PodVolume#buildVolume(String, String)} or {@link PodVolume#buildVolume(String)}.
+     * @param volumeName The name of the volume to build.
+     * @return The built volume.
+     */
     public Volume buildVolume(String volumeName, String podName) {
         return buildVolume(volumeName);
     }
 
-    // Builds a Volume model with the given name.
+    /**
+     * It's expected to override at least one of {@link PodVolume#buildVolume(String, String)} or {@link PodVolume#buildVolume(String)}.
+     * @param volumeName The name of the volume to build.
+     * @return The built volume.
+     */
     @Deprecated
     public Volume buildVolume(String volumeName) {
         throw new UnsupportedOperationException("could not build volume without podName");
