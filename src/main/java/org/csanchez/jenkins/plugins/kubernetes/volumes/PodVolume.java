@@ -45,13 +45,13 @@ public abstract class PodVolume extends AbstractDescribableImpl<PodVolume> imple
     public abstract String getMountPath();
 
     // Builds a Volume model with the given name.require podName to generate pvc name
-    public Volume buildVolume(String volumeName, String podName){
+    public Volume buildVolume(String volumeName, String podName) {
         return buildVolume(volumeName);
-    };
+    }
 
     // Builds a Volume model with the given name.
     @Deprecated
-    public Volume buildVolume(String volumeName){
+    public Volume buildVolume(String volumeName) {
         throw new UnsupportedOperationException("could not build volume without podName");
     }
 
