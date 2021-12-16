@@ -664,15 +664,13 @@ public class PodTemplateUtils {
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
-        Map<String,EnvVar> combinedEnvVars = mergeMaps(envVarstoMap(parent.getEnv()),envVarstoMap(template.getEnv()));
-        return combinedEnvVars.entrySet().stream()
-                .filter(envVar -> !isNullOrEmpty(envVar.getKey()))
-                .map(Map.Entry::getValue)
-                .collect(toList());
-    }
-
-    static Map<String, EnvVar> envVarstoMap(List<EnvVar> envVarList) {
-        return envVarList.stream().collect(toMap(EnvVar::getName, Function.identity()));
+        Map<String, EnvVar> combinedEnvVars = new HashMap<>();
+        Stream.of(parent.getEnv(), template.getEnv())
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .filter(var -> !isNullOrEmpty(var.getName()))
+                .forEachOrdered(var -> combinedEnvVars.put(var.getName(), var));
+        return new ArrayList<>(combinedEnvVars.values());
     }
 
     private static List<TemplateEnvVar> combineEnvVars(ContainerTemplate parent, ContainerTemplate template) {

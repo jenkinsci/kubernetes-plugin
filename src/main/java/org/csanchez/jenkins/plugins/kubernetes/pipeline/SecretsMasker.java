@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -126,12 +127,15 @@ public final class SecretsMasker extends TaskListenerDecorator {
             LOGGER.finer(() -> "inspecting " + Serialization.asYaml(pod));
             for (Container container : pod.getSpec().getContainers()) {
                 Set<String> secretContainerKeys = new TreeSet<>();
-                for (EnvVar envVar : container.getEnv()) {
-                    EnvVarSource envVarSource = envVar.getValueFrom();
-                    if (envVarSource != null) {
-                        SecretKeySelector secretKeySelector = envVarSource.getSecretKeyRef();
-                        if (secretKeySelector != null) {
-                            secretContainerKeys.add(envVar.getName());
+                List<EnvVar> env = container.getEnv();
+                if (env != null) {
+                    for (EnvVar envVar : env) {
+                        EnvVarSource envVarSource = envVar.getValueFrom();
+                        if (envVarSource != null) {
+                            SecretKeySelector secretKeySelector = envVarSource.getSecretKeyRef();
+                            if (secretKeySelector != null) {
+                                secretContainerKeys.add(envVar.getName());
+                            }
                         }
                     }
                 }
