@@ -120,7 +120,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             String namespace = Arrays.asList( //
                     pod.getMetadata().getNamespace(),
                     template.getNamespace(), client.getNamespace()) //
-                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
+                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse("default");
             node.setNamespace(namespace);
 
 
