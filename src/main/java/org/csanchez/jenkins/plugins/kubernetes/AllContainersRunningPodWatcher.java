@@ -111,7 +111,7 @@ public class AllContainersRunningPodWatcher implements Watcher<Pod> {
      * @throws KubernetesClientTimeoutException
      *             if time ran out
      */
-    private Pod periodicAwait(int i, long started, long interval, long amount) throws PodNotRunningException {
+    private Pod periodicAwait(long i, long started, long interval, long amount) throws PodNotRunningException {
         Pod pod = client.pods().inNamespace(this.pod.getMetadata().getNamespace())
                 .withName(this.pod.getMetadata().getName()).get();
         if (pod == null) {
