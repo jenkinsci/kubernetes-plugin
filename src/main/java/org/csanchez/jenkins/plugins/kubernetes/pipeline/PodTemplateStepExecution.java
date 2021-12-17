@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -273,7 +272,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                             try {
                                 node.terminate();
                             } catch (InterruptedException | IOException e) {
-                                LOGGER.log(WARNING, "Failed to terminate " + node.getNodeName(), e);
+                                LOGGER.log(Level.WARNING, "Failed to terminate " + node.getNodeName(), e);
                             }
                         });
                 LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
