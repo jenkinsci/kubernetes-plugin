@@ -1,0 +1,30 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <f:description>
+        Allocates a PVC dynamically using the specified parameters, then deletes it when the pod is deleted.
+        Note that this requires the Jenkins controller to have additional RBAC permissions than are typically needed for agent provisioning.
+    </f:description>
+
+    <f:entry title="${%Mount path}" field="mountPath">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Mount subPath}" field="subPath">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Storage Class Name}" field="storageClassName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Requests Size}" field="requestsSize">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Access Modes}" field="accessModes">
+        <f:select default="ReadWriteOnce"/>
+    </f:entry>
+
+</j:jelly>
+

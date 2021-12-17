@@ -208,8 +208,7 @@ public class PodTemplateBuilderTest {
     @Test
     public void testBuildWithDynamicPVCWorkspaceVolume() {
         PodTemplate template = new PodTemplate();
-        template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume(
-                null, null,null));
+        template.setWorkspaceVolume(new DynamicPVCWorkspaceVolume());
         ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
         containerTemplate.setWorkingDir("");
         template.getContainers().add(containerTemplate);
