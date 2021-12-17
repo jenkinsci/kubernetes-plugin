@@ -122,6 +122,14 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("BUSYBOX_CONTAINER_ENV_VAR = busybox\n", b);
     }
 
+    @Test
+    public void declarativeFromYamlWithNullEnv() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("\njnlp container: OK\n", b);
+        r.assertLogContains("\ndefault container: OK\n", b);
+    }
+
     @Issue("JENKINS-52623")
     @Test
     public void declarativeSCMVars() throws Exception {
