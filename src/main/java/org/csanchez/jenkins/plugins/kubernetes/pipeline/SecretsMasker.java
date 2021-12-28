@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 import okhttp3.Response;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
@@ -121,7 +122,11 @@ public final class SecretsMasker extends TaskListenerDecorator {
             if (slave == null) {
                 return null;
             }
-            Pod pod = slave.getTemplate().build(slave);
+            PodTemplate template = slave.getTemplateOrNull();
+            if (template == null) {
+                return null;
+            }
+            Pod pod = template.build(slave);
             Set<String> values = new HashSet<>();
             values.add(c.getJnlpMac());
             LOGGER.finer(() -> "inspecting " + Serialization.asYaml(pod));
