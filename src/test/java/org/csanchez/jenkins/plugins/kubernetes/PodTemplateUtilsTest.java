@@ -44,6 +44,9 @@ import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.theories.Theories;
+import org.junit.experimental.theories.Theory;
+import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
 
 import hudson.model.Node;
@@ -65,6 +68,7 @@ import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import org.jvnet.hudson.test.JenkinsRule;
 
+@RunWith(Theories.class)
 public class PodTemplateUtilsTest {
 
     @Rule
@@ -501,6 +505,23 @@ public class PodTemplateUtilsTest {
         Container result = combine(container, new Container());
 
         assertEquals(0, result.getEnvFrom().size());
+    }
+
+    @Theory
+    public void shouldTreatNullEnvFromSouresAsEmpty(boolean parentEnvNull, boolean templateEnvNull) {
+        Container parent = new Container();
+        if (parentEnvNull) {
+            parent.setEnv(null);
+        }
+
+        Container template = new Container();
+        if (templateEnvNull) {
+            template.setEnv(null);
+        }
+
+        Container result = combine(parent, template);
+
+        assertThat(result.getEnv(), is(empty()));
     }
 
     @Test
