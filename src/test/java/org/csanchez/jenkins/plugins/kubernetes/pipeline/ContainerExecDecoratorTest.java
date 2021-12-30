@@ -50,7 +50,6 @@ import java.util.regex.Pattern;
 
 import hudson.EnvVars;
 import hudson.model.Computer;
-import hudson.model.TaskListener;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import org.apache.commons.io.output.TeeOutputStream;
@@ -84,7 +83,6 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import okhttp3.OkHttpClient;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -353,19 +351,12 @@ public class ContainerExecDecoratorTest {
     @Issue("JENKINS-55392")
     public void testRejectedExecutionException() throws Exception {
         assertTrue(client instanceof HttpClientAware);
-        OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
-        System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
-                + httpClient.dispatcher().getMaxRequestsPerHost());
-        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
-                + httpClient.connectionPool().idleConnectionCount());
         List<Thread> threads = new ArrayList<>();
         final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
             final String name = "Thread " + i;
             Thread t = new Thread(() -> {
                 try {
-                    System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
-                            + " - " + httpClient.connectionPool().idleConnectionCount());
                     ProcReturn r = execCommand(false, false, "echo", "test");
                 } catch (Exception e) {
                     errors.incrementAndGet();
@@ -387,8 +378,6 @@ public class ContainerExecDecoratorTest {
                 throw new RuntimeException(e);
             }
         });
-        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
-                + httpClient.connectionPool().idleConnectionCount());
         assertEquals("Errors in threads", 0, errors.get());
     }
 
