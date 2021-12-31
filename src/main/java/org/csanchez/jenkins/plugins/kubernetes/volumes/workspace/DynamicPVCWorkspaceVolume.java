@@ -10,7 +10,7 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.DynamicPVC;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PVCVolumeUtils;
 import org.jenkinsci.Symbol;
@@ -71,7 +71,7 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
         return createPVC(client, podMetaData);
     }
 
-    @Nonnull
+    @NonNull
     public String getPvcName(String podName) {
         return "pvc-workspace-" + podName;
     }
