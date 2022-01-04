@@ -27,7 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -35,6 +35,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,7 +51,6 @@ import java.util.regex.Pattern;
 
 import hudson.EnvVars;
 import hudson.model.Computer;
-import hudson.model.TaskListener;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import org.apache.commons.io.output.TeeOutputStream;
@@ -84,7 +84,6 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import okhttp3.OkHttpClient;
 import org.junit.Ignore;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -336,7 +335,7 @@ public class ContainerExecDecoratorTest {
     public void testContainerDoesNotExist() throws Exception {
         decorator.setContainerName("doesNotExist");
         exception.expect(KubernetesClientException.class);
-        exception.expectMessage(containsString("container doesNotExist is not valid for pod"));
+        exception.expectCause(isA(WebSocketHandshakeException.class));
         execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 
@@ -353,19 +352,12 @@ public class ContainerExecDecoratorTest {
     @Issue("JENKINS-55392")
     public void testRejectedExecutionException() throws Exception {
         assertTrue(client instanceof HttpClientAware);
-        OkHttpClient httpClient = ((HttpClientAware) client).getHttpClient();
-        System.out.println("Max requests: " + httpClient.dispatcher().getMaxRequests() + "/"
-                + httpClient.dispatcher().getMaxRequestsPerHost());
-        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
-                + httpClient.connectionPool().idleConnectionCount());
         List<Thread> threads = new ArrayList<>();
         final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
             final String name = "Thread " + i;
             Thread t = new Thread(() -> {
                 try {
-                    System.out.println(name + " Connection count: " + httpClient.connectionPool().connectionCount()
-                            + " - " + httpClient.connectionPool().idleConnectionCount());
                     ProcReturn r = execCommand(false, false, "echo", "test");
                 } catch (Exception e) {
                     errors.incrementAndGet();
@@ -387,8 +379,6 @@ public class ContainerExecDecoratorTest {
                 throw new RuntimeException(e);
             }
         });
-        System.out.println("Connection count: " + httpClient.connectionPool().connectionCount() + " - "
-                + httpClient.connectionPool().idleConnectionCount());
         assertEquals("Errors in threads", 0, errors.get());
     }
 

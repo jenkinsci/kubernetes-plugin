@@ -158,9 +158,6 @@ public final class SecretsMasker extends TaskListenerDecorator {
                             .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
                             .usingListener(new ExecListener() {
                                 @Override
-                                public void onOpen(Response response) {
-                                }
-                                @Override
                                 public void onFailure(Throwable t, Response response) {
                                     semaphore.release();
                                 }
