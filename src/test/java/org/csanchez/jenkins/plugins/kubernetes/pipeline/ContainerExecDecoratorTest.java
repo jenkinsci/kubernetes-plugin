@@ -27,7 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -35,6 +35,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -334,7 +335,7 @@ public class ContainerExecDecoratorTest {
     public void testContainerDoesNotExist() throws Exception {
         decorator.setContainerName("doesNotExist");
         exception.expect(KubernetesClientException.class);
-        exception.expectMessage(containsString("container doesNotExist is not valid for pod"));
+        exception.expectCause(isA(WebSocketHandshakeException.class));
         execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 
