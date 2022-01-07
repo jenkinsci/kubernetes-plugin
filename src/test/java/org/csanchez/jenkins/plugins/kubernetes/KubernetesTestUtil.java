@@ -117,7 +117,7 @@ public class KubernetesTestUtil {
         return cloud;
     }
 
-    public static void setupHost() throws Exception {
+    public static void setupHost(KubernetesCloud cloud) throws Exception {
         // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = new URL(JenkinsLocationConfiguration.get().getUrl());
         String hostAddress = System.getProperty("jenkins.host.address");
@@ -127,8 +127,7 @@ public class KubernetesTestUtil {
         System.err.println("Calling home to address: " + hostAddress);
         URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
                 url.getFile());
-        // TODO better to set KUBERNETES_JENKINS_URL
-        JenkinsLocationConfiguration.get().setUrl(nonLocalhostUrl.toString());
+        cloud.setJenkinsUrl(nonLocalhostUrl.toString());
 
         Integer slaveAgentPort = Integer.getInteger("slaveAgentPort");
         if (slaveAgentPort != null) {

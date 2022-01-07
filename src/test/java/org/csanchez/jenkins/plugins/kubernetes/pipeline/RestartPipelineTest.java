@@ -128,7 +128,7 @@ public class RestartPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        setupHost();
+        setupHost(cloud);
 
         story.j.jenkins.clouds.add(cloud);
     }
