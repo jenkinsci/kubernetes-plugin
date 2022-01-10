@@ -17,7 +17,6 @@ import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
-import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -77,7 +76,6 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setNodeContext(nodeContext);
         decorator.setContainerName(containerName);
         decorator.setEnvironmentExpander(env);
-        decorator.setWs(getContext().get(FilePath.class));
         decorator.setGlobalVars(globalVars);
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
