@@ -130,7 +130,7 @@ public class RestartPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        setupHost();
+        setupHost(cloud);
 
         story.j.jenkins.clouds.add(cloud);
     }
@@ -249,7 +249,6 @@ public class RestartPipelineTest {
         });
         logs.record(DurableTaskStep.class, Level.FINE).record(Reaper.class, Level.FINE).record(ExecutorStepDynamicContext.class, Level.FINE);
         story.then(r -> {
-            setupHost(); // otherwise JenkinsLocationConfiguration will be clobbered
             WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             deletePods(cloud.connect(), getLabels(this, name), false);

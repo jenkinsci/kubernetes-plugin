@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -314,7 +313,9 @@ public class PodTemplateBuilder {
         Map<String, EnvVar> envVars = new HashMap<>();
         envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
         envVars.putAll(defaultEnvVars(template.getEnvVars()));
-        envVars.putAll(jnlp.getEnv().stream().collect(Collectors.toMap(EnvVar::getName, Function.identity())));
+        Optional.ofNullable(jnlp.getEnv()).ifPresent(jnlpEnv -> {
+            jnlpEnv.forEach(var -> envVars.put(var.getName(), var));
+        });
         jnlp.setEnv(new ArrayList<>(envVars.values()));
         if (jnlp.getResources() == null) {
 

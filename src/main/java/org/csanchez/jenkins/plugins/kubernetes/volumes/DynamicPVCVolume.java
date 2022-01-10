@@ -11,7 +11,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -84,7 +84,7 @@ public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
         this.mountPath = mountPath;
     }
 
-    @Nonnull
+    @NonNull
     public String getPvcName(String podName) {
         return "pvc-" + podName + "-" + id;
     }

@@ -149,7 +149,7 @@ public abstract class AbstractKubernetesPipelineTest {
         cloud.getTemplates().clear();
         cloud.addTemplate(buildBusyboxTemplate("busybox"));
 
-        setupHost();
+        setupHost(cloud);
 
         r.jenkins.clouds.add(cloud);
 

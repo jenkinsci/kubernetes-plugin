@@ -375,7 +375,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         .writingOutput(stream).writingError(stream).writingErrorChannel(error)
                         .usingListener(new ExecListener() {
                             @Override
-                            public void onOpen(Response response) {
+                            public void onOpen() {
                                 alive.set(true);
                                 started.countDown();
                                 startAlive.set(System.nanoTime());

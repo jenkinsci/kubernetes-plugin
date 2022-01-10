@@ -145,6 +145,20 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void testBuildJnlpFromYamlWithNullEnv() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-jnlp-nullenv.yaml"));
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        Optional<Container> jnlp = pod.getSpec()
+                .getContainers()
+                .stream()
+                .filter(c -> KubernetesCloud.JNLP_NAME.equals(c.getName()))
+                .findFirst();
+        assertThat("jnlp container is present", jnlp.isPresent(), is(true));
+        assertThat(jnlp.get().getEnv(), hasSize(greaterThan(0)));
+    }
+
+    @Test
     @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })
     public void testValidateDockerRegistryPrefixOverride(boolean directConnection) throws Exception {
@@ -548,9 +562,10 @@ public class PodTemplateBuilderTest {
         Pod pod = new PodTemplateBuilder(result, slave).build();
         Map<String, Container> containers = toContainerMap(pod);
         Container jnlp = containers.get("jnlp");
-        Map<String, EnvVar> env = PodTemplateUtils.envVarstoMap(jnlp.getEnv());
-        assertEquals("2", env.get("VAR1").getValue()); // value from child
-        assertEquals("1", env.get("VAR2").getValue()); // value from parent
+        assertThat(jnlp.getEnv(), hasItems(
+                new EnvVar("VAR1", "2", null), // value from child
+                new EnvVar("VAR2", "1", null)  // value from parent
+        ));
     }
 
     @Test

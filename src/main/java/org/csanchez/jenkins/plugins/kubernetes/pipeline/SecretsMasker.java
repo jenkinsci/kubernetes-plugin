@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -44,6 +45,7 @@ import java.util.logging.Logger;
 import okhttp3.Response;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.credentialsbinding.masking.SecretPatterns;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
@@ -120,18 +122,25 @@ public final class SecretsMasker extends TaskListenerDecorator {
             if (slave == null) {
                 return null;
             }
-            Pod pod = slave.getTemplate().build(slave);
+            PodTemplate template = slave.getTemplateOrNull();
+            if (template == null) {
+                return null;
+            }
+            Pod pod = template.build(slave);
             Set<String> values = new HashSet<>();
             values.add(c.getJnlpMac());
             LOGGER.finer(() -> "inspecting " + Serialization.asYaml(pod));
             for (Container container : pod.getSpec().getContainers()) {
                 Set<String> secretContainerKeys = new TreeSet<>();
-                for (EnvVar envVar : container.getEnv()) {
-                    EnvVarSource envVarSource = envVar.getValueFrom();
-                    if (envVarSource != null) {
-                        SecretKeySelector secretKeySelector = envVarSource.getSecretKeyRef();
-                        if (secretKeySelector != null) {
-                            secretContainerKeys.add(envVar.getName());
+                List<EnvVar> env = container.getEnv();
+                if (env != null) {
+                    for (EnvVar envVar : env) {
+                        EnvVarSource envVarSource = envVar.getValueFrom();
+                        if (envVarSource != null) {
+                            SecretKeySelector secretKeySelector = envVarSource.getSecretKeyRef();
+                            if (secretKeySelector != null) {
+                                secretContainerKeys.add(envVar.getName());
+                            }
                         }
                     }
                 }
@@ -148,9 +157,6 @@ public final class SecretsMasker extends TaskListenerDecorator {
                          ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
                             .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
                             .usingListener(new ExecListener() {
-                                @Override
-                                public void onOpen(Response response) {
-                                }
                                 @Override
                                 public void onFailure(Throwable t, Response response) {
                                     semaphore.release();
