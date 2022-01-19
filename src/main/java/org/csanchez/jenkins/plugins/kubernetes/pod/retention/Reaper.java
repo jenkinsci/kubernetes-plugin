@@ -298,4 +298,27 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
             node.terminate();
         }
     }
+
+    @Extension
+    public static class TerminateAgentOnCreateContainerError implements Listener {
+
+        @Override
+        public void onEvent(@NonNull Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
+            List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
+                ContainerStateWaiting waiting = cs.getState().getWaiting();
+                return waiting != null && waiting.getMessage() != null && waiting.getMessage().contains("container create failed");
+            });
+            if (backOffContainers.isEmpty()) {
+                return;
+            }
+            backOffContainers.forEach(cs -> {
+                TaskListener runListener = node.getTemplate().getListener();
+                runListener.error("Container creation error \""+cs.getName()+"\". Please check container's logs.");
+            });
+            try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
+                PodUtils.cancelQueueItemFor(pod, "CreateContainerError");
+            }
+            node.terminate();
+        }
+    }
 }
