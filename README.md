@@ -25,6 +25,26 @@ see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-a
 
 It is not required to run the Jenkins controller inside Kubernetes.
 
+# 📜 Table of Contents
+
+- [Generic setup](#-generic-setup)
+- [Usage](#-usage)
+- [Configuration reference](#-configuration-reference)
+- [Inheritance](#-inheritance)
+- [Declarative Pipeline](#-declarative-pipeline)
+- [Misc.](#-misc.)
+- [Running on OpenShift](#-running-on-openshift)
+- [Features controlled using system properties](#-features-controlled-using-system-properties)
+- [Windows support](#-windows-support)
+- [Constraints](#-constraints)
+- [Configuration on minikube](#-configuration-on-minikube)
+- [Configuration on Google Container Engine](#-configuration-on-google-container-engine)
+- [Troubleshooting 🔨](#-troubleshooting)
+- [Building and Testing](#-building-and-testing)
+- [Docker image](#-docker-image)
+- [Running in Kubernetes](#-running-in-kubernetes)
+- [Related Projects](#-related-projects)
+
 # Generic Setup
 ## Prerequisites
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
@@ -922,6 +942,32 @@ Then, use it as the `jnlp` container for the pod template as usual. No command o
 > * Support for using WebSockets with JDK 11 was added in the Remoting v4.11, so make sure your base image is new enough. See [here](https://issues.jenkins.io/browse/JENKINS-61212) for more information.
 >
 > * When using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
+
+## [WARNING] label option is deprecated
+
+[WARNING] label option is deprecated. To use a static pod template, use the 'inheritFrom' option.
+
+```
+You need to change from something like:
+
+```
+agent {
+    kubernetes {
+		label 'somelabel'
+	}
+}
+```
+
+To something like:
+
+```
+agent {
+    kubernetes {
+		inheritFrom 'somelabel'
+	}
+}
+```
+
 
 # Building and Testing
 
