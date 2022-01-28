@@ -945,9 +945,10 @@ Then, use it as the `jnlp` container for the pod template as usual. No command o
 
 ## [WARNING] label option is deprecated
 
-[WARNING] label option is deprecated. To use a static pod template, use the 'inheritFrom' option.
-
 ```
+[WARNING] label option is deprecated. To use a static pod template, use the 'inheritFrom' option.
+```
+
 You need to change from something like:
 
 ```
