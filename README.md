@@ -952,7 +952,7 @@ You need to change from something like:
 
 ```
 agent {
-    kubernetes {
+	kubernetes {
 		label 'somelabel'
 	}
 }
@@ -962,7 +962,7 @@ To something like:
 
 ```
 agent {
-    kubernetes {
+	kubernetes {
 		inheritFrom 'somelabel'
 	}
 }
