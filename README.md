@@ -276,11 +276,13 @@ Either way it provides access to the following fields:
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either `NORMAL` or `EXCLUSIVE`, this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
+  * `configMapVolume` : a read only volume that is mounted from a ConfigMap.
   * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
   * `emptyDirVolume` (default): an empty dir allocated on the host machine
   * `hostPathVolume()` : a host path volume
   * `nfsVolume()` : a nfs volume
   * `persistentVolumeClaim()` : an existing persistent volume claim by name.
+  * `secretVolume` : a read only volume that is mounted from a Kubernetes secret.
 * **envVars** Environment variables that are applied to **ALL** containers.
     * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
@@ -296,11 +298,13 @@ Either way it provides access to the following fields:
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
 * **workspaceVolume** The type of volume to use for the workspace.
+  * `configMapWorkspaceVolume` : a read only volume that is mounted from a ConfigMap.
   * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
   * `emptyDirWorkspaceVolume` (default): an empty dir allocated on the host machine
   * `hostPathWorkspaceVolume()` : a host path volume
   * `nfsWorkspaceVolume()` : a nfs volume
   * `persistentVolumeClaimWorkspaceVolume()` : an existing persistent volume claim by name.
+  * `secretWorkspaceVolume` : a read only volume that is mounted from a Kubernetes secret.
 
 ## Container template
 
