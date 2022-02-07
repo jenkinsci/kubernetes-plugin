@@ -298,13 +298,11 @@ Either way it provides access to the following fields:
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
 * **workspaceVolume** The type of volume to use for the workspace.
-  * `configMapWorkspaceVolume` : a read only volume that is mounted from a ConfigMap.
   * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
   * `emptyDirWorkspaceVolume` (default): an empty dir allocated on the host machine
   * `hostPathWorkspaceVolume()` : a host path volume
   * `nfsWorkspaceVolume()` : a nfs volume
   * `persistentVolumeClaimWorkspaceVolume()` : an existing persistent volume claim by name.
-  * `secretWorkspaceVolume` : a read only volume that is mounted from a Kubernetes secret.
 
 ## Container template
 
