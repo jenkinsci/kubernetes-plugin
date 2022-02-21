@@ -64,6 +64,12 @@ Supported credentials include:
 * Google Service Account from private key (GKE authentication)
 * X.509 Client Certificate
 
+If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
+This is unnecessary when the Jenkins controller runs in the same Kubernetes cluster,
+but can greatly simplify setup when agents are in an external cluster
+and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy or a ingress resource).
+See [JEP-222](https://jenkins.io/jep/222) for more.
+
 To test this connection is successful you can use the **Test Connection** button to ensure there is
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
@@ -79,11 +85,7 @@ Docker image - the docker image name that will be used as a reference to spin up
 
 ![image](images/pod-template-configuration.png)
 
-If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
-This is unnecessary when the Jenkins controller runs in the same Kubernetes cluster,
-but can greatly simplify setup when agents are in an external cluster
-and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
-See [JEP-222](https://jenkins.io/jep/222) for more.
+
 
 > **Notes:**
 > 
