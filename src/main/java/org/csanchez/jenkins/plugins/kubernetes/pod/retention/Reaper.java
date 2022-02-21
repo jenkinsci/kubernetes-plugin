@@ -113,6 +113,10 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 continue;
             }
             KubernetesSlave ks = (KubernetesSlave) n;
+            if (ks.getLauncher().isLaunchSupported()) {
+                // Being launched, don't touch it.
+                continue;
+            }
             String ns = ks.getNamespace();
             String name = ks.getPodName();
             try {
