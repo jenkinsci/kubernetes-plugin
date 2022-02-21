@@ -92,12 +92,18 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     @Override
     public void onOnline(Computer c, TaskListener listener) throws IOException, InterruptedException {
-        if (c instanceof KubernetesComputer && activated.compareAndSet(false, true)) {
+        if (c instanceof KubernetesComputer) {
+            maybeActivate();
+        }
+    }
+
+    public void maybeActivate() {
+        if (activated.compareAndSet(false, true)) {
             activate();
         }
     }
 
-    private void activate() {
+    private synchronized void activate() {
         LOGGER.fine("Activating reaper");
         // First check all existing nodes to see if they still have active pods.
         // (We may have missed deletion events while Jenkins was shut off,

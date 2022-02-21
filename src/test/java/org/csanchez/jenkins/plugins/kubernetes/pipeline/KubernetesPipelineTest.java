@@ -701,6 +701,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("Queue task was cancelled", b);
     }
 
+    @Test
+    public void invalidImageGetsCancelled() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("Queue task was cancelled", b);
+    }
+
     @Issue("SECURITY-1646")
     @Test
     public void substituteEnv() throws Exception {
