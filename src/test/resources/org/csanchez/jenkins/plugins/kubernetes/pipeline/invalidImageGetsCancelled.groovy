@@ -5,6 +5,6 @@ spec:
     image: some/invalid
 ''') {
   node(POD_LABEL) {
-    sh 'false "This will never run"'
+    sh 'false'
   }
 }
