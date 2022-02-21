@@ -314,7 +314,7 @@ Either way it provides access to the following fields:
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
 * **podRetention** Controls the behavior of keeping agent pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to `never()` or `onFailure()`, the pod is deleted after this deadline is passed.
-* **idleMinutes** Allows the pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it. Use this only when defining a pod template in the user interface.
+* **idleMinutes** Allows the pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw pod manifest. Defaults to `true`
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
