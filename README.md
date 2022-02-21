@@ -174,8 +174,8 @@ be accessed as in any Kubernetes pod, by using `localhost`.
 
 The `container` step allows executing commands into each container.
 
----
 **Note**
+---
 Due to implementation constraints, there can be issues when executing commands in different containers if they run using different uids.
 It is recommended to use the same uid across the different containers part of the same pod to avoid any issue.
 ---
