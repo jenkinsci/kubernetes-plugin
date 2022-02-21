@@ -103,7 +103,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         }
     }
 
-    private synchronized void activate() {
+    private void activate() {
         LOGGER.fine("Activating reaper");
         // First check all existing nodes to see if they still have active pods.
         // (We may have missed deletion events while Jenkins was shut off,
