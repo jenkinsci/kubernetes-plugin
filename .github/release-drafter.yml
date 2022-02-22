@@ -1,4 +1,1 @@
 _extends: .github
-name-template: $NEXT_PATCH_VERSION
-tag-template: kubernetes-$NEXT_PATCH_VERSION
-version-template: $MAJOR.$MINOR.$PATCH
