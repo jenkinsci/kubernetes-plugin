@@ -92,7 +92,13 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     @Override
     public void onOnline(Computer c, TaskListener listener) throws IOException, InterruptedException {
-        if (c instanceof KubernetesComputer && activated.compareAndSet(false, true)) {
+        if (c instanceof KubernetesComputer) {
+            maybeActivate();
+        }
+    }
+
+    public void maybeActivate() {
+        if (activated.compareAndSet(false, true)) {
             activate();
         }
     }
@@ -107,6 +113,10 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 continue;
             }
             KubernetesSlave ks = (KubernetesSlave) n;
+            if (ks.getLauncher().isLaunchSupported()) {
+                // Being launched, don't touch it.
+                continue;
+            }
             String ns = ks.getNamespace();
             String name = ks.getPodName();
             try {
@@ -230,7 +240,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                     LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
                     runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
                 });
-                node.terminate();
+                logLastLinesThenTerminateNode(node, pod, runListener);
             }
         }
     }
@@ -248,17 +258,21 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 TaskListener runListener = node.getTemplate().getListener();
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
                 runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
-                try {
-                    String lines = PodUtils.logLastLines(pod, node.getKubernetesCloud().connect());
-                    if (lines != null) {
-                        runListener.getLogger().print(lines);
-                    }
-                } catch (KubernetesAuthException e) {
-                    LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
-                } finally {
-                    node.terminate();
-                }
+                logLastLinesThenTerminateNode(node, pod, runListener);
             }
+        }
+    }
+
+    private static void logLastLinesThenTerminateNode(KubernetesSlave node, Pod pod, TaskListener runListener) throws IOException, InterruptedException {
+        try {
+            String lines = PodUtils.logLastLines(pod, node.getKubernetesCloud().connect());
+            if (lines != null) {
+                runListener.getLogger().print(lines);
+            }
+        } catch (KubernetesAuthException e) {
+            LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
+        } finally {
+            node.terminate();
         }
     }
 

@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import static java.util.logging.Level.FINE;
@@ -94,6 +95,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (!(computer instanceof KubernetesComputer)) {
             throw new IllegalArgumentException("This Launcher can be used only with KubernetesComputer");
         }
+        // Activate reaper if it never got activated.
+        Reaper.getInstance().maybeActivate();
         KubernetesComputer kubernetesComputer = (KubernetesComputer) computer;
         computer.setAcceptingTasks(false);
         KubernetesSlave node = kubernetesComputer.getNode();
