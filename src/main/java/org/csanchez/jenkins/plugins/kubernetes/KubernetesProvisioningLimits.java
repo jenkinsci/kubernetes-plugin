@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,21 +37,22 @@ public final class KubernetesProvisioningLimits {
      */
     private final Map<String, Integer> cloudCounts = new HashMap<>();
 
+    private final CountDownLatch initSignal = new CountDownLatch(1);
+
     @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
     public static void init() {
         // We don't want anything to be provisioned while we do the initial count.
         Queue.withLock(() -> {
             final KubernetesProvisioningLimits instance = get();
-            synchronized(instance) {
-                Jenkins.get().getNodes()
-                        .stream()
-                        .filter(KubernetesSlave.class::isInstance)
-                        .map(KubernetesSlave.class::cast)
-                        .forEach(node -> {
-                    instance.cloudCounts.put(node.getCloudName(), instance.getGlobalCount(node.getCloudName()) + node.getNumExecutors());
-                    instance.podTemplateCounts.put(node.getTemplateId(), instance.getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
-                });
-            }
+            Jenkins.get().getNodes()
+                    .stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .map(KubernetesSlave.class::cast)
+                    .forEach(node -> {
+                instance.cloudCounts.put(node.getCloudName(), instance.getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                instance.podTemplateCounts.put(node.getTemplateId(), instance.getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+            });
+            instance.initSignal.countDown();
         });
     }
 
@@ -68,6 +70,14 @@ public final class KubernetesProvisioningLimits {
      * @param numExecutors the number of executors (pretty much always 1)
      */
     public synchronized boolean register(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+        try {
+            initSignal.await(); // wait initSignal to reach 0
+        } catch (InterruptedException e) {
+            // restore interrupted status
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
         int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
         if (newGlobalCount <= cloud.getContainerCap()) {
             int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) + numExecutors;
@@ -96,6 +106,14 @@ public final class KubernetesProvisioningLimits {
      * @param numExecutors the number of executors (pretty much always 1)
      */
     public synchronized void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+        try {
+            initSignal.await();
+        } catch (InterruptedException e) {
+            // restore interrupted status
+            Thread.currentThread().interrupt();
+            return;
+        }
+
         int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
         if (newGlobalCount < 0) {
             LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
