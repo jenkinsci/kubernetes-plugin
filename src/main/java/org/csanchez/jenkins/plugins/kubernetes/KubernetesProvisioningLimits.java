@@ -26,7 +26,7 @@ import jenkins.model.NodeListener;
 public final class KubernetesProvisioningLimits {
     private static final Logger LOGGER = Logger.getLogger(KubernetesProvisioningLimits.class.getName());
 
-    private static boolean init;
+    private boolean init;
 
     /**
      * Tracks current number of kubernetes agents per pod template
@@ -38,25 +38,30 @@ public final class KubernetesProvisioningLimits {
      */
     private final Map<String, Integer> cloudCounts = new HashMap<>();
 
-    @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
     public static void init() {
-        // We don't want anything to be provisioned while we do the initial count.
+        get().initInstance();
+    }
+
+    /**
+     * Initialize limits counter
+     * @return whether the instance was already initialized
+     */
+    private synchronized boolean initInstance() {
+        if (init) {
+            return true;
+        }
         Queue.withLock(() -> {
-            if (!init) {
-                final KubernetesProvisioningLimits instance = get();
-                synchronized (instance) {
-                    Jenkins.get().getNodes()
-                            .stream()
-                            .filter(KubernetesSlave.class::isInstance)
-                            .map(KubernetesSlave.class::cast)
-                            .forEach(node -> {
-                                instance.cloudCounts.put(node.getCloudName(), instance.getGlobalCount(node.getCloudName()) + node.getNumExecutors());
-                                instance.podTemplateCounts.put(node.getTemplateId(), instance.getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
-                            });
-                    init = true;
-                }
-            }
+            Jenkins.get().getNodes()
+                    .stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .map(KubernetesSlave.class::cast)
+                    .forEach(node -> {
+                        cloudCounts.put(node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                        podTemplateCounts.put(node.getTemplateId(), getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+                    });
+            init = true;
         });
+        return false;
     }
 
     /**
@@ -73,6 +78,7 @@ public final class KubernetesProvisioningLimits {
      * @param numExecutors the number of executors (pretty much always 1)
      */
     public synchronized boolean register(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+        initInstance();
         int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
         if (newGlobalCount <= cloud.getContainerCap()) {
             int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) + numExecutors;
@@ -101,19 +107,21 @@ public final class KubernetesProvisioningLimits {
      * @param numExecutors the number of executors (pretty much always 1)
      */
     public synchronized void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
-        int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
-        if (newGlobalCount < 0) {
-            LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
-        }
-        cloudCounts.put(cloud.name, Math.max(0, newGlobalCount));
-        LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/" + cloud.getContainerCap());
+        if (initInstance()) {
+            int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
+            if (newGlobalCount < 0) {
+                LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
+            }
+            cloudCounts.put(cloud.name, Math.max(0, newGlobalCount));
+            LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/" + cloud.getContainerCap());
 
-        int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) - numExecutors;
-        if (newPodTemplateCount < 0) {
-            LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getName() + " went below zero. There is likely a bug in kubernetes-plugin");
+            int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) - numExecutors;
+            if (newPodTemplateCount < 0) {
+                LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getName() + " went below zero. There is likely a bug in kubernetes-plugin");
+            }
+            podTemplateCounts.put(podTemplate.getId(), Math.max(0, newPodTemplateCount));
+            LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/" + podTemplate.getInstanceCap());
         }
-        podTemplateCounts.put(podTemplate.getId(), Math.max(0, newPodTemplateCount));
-        LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/" + podTemplate.getInstanceCap());
     }
 
     @NonNull
@@ -133,14 +141,11 @@ public final class KubernetesProvisioningLimits {
         @Override
         protected void onDeleted(@NonNull Node node) {
             if (node instanceof KubernetesSlave) {
-                if (KubernetesProvisioningLimits.init) {
-                    KubernetesSlave kubernetesNode = (KubernetesSlave) node;
-                    PodTemplate template = kubernetesNode.getTemplateOrNull();
-                    if (template != null) {
-                        KubernetesProvisioningLimits.get().unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
-                    }
-                } else {
-                    KubernetesProvisioningLimits.init();
+                KubernetesProvisioningLimits instance = KubernetesProvisioningLimits.get();
+                KubernetesSlave kubernetesNode = (KubernetesSlave) node;
+                PodTemplate template = kubernetesNode.getTemplateOrNull();
+                if (template != null) {
+                    instance.unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
                 }
             }
         }
