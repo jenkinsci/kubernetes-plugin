@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import net.jcip.annotations.GuardedBy;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -26,6 +27,7 @@ import jenkins.model.NodeListener;
 public final class KubernetesProvisioningLimits {
     private static final Logger LOGGER = Logger.getLogger(KubernetesProvisioningLimits.class.getName());
 
+    @GuardedBy("this")
     private boolean init;
 
     /**
@@ -59,8 +61,8 @@ public final class KubernetesProvisioningLimits {
                         cloudCounts.put(node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
                         podTemplateCounts.put(node.getTemplateId(), getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
                     });
-            init = true;
         });
+        init = true;
         return false;
     }
 
