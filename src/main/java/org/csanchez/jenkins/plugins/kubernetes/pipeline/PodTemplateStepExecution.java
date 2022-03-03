@@ -15,6 +15,7 @@ import hudson.model.TaskListener;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -262,6 +263,18 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         protected void finished(StepContext context) throws Exception {
             try {
                 KubernetesCloud cloud = resolveCloud();
+                LOGGER.log(Level.FINE, () -> "Terminating nodes of pod template " + podTemplate.getName());
+                Jenkins.get().getNodes()
+                        .stream()
+                        .filter(KubernetesSlave.class::isInstance)
+                        .map(KubernetesSlave.class::cast)
+                        .forEach(node -> {
+                            try {
+                                node.terminate();
+                            } catch (InterruptedException | IOException e) {
+                                LOGGER.log(Level.WARNING, "Failed to terminate " + node.getNodeName(), e);
+                            }
+                        });
                 LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
                         + " from cloud " + cloud.name);
                 cloud.removeDynamicTemplate(podTemplate);
