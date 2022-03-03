@@ -40,30 +40,26 @@ public final class KubernetesProvisioningLimits {
      */
     private final Map<String, Integer> cloudCounts = new HashMap<>();
 
-    public static void init() {
-        get().initInstance();
-    }
-
     /**
      * Initialize limits counter
-     * @return whether the instance was already initialized
+     * @return whether the instance was already initialized before this call.
      */
     private synchronized boolean initInstance() {
-        if (init) {
-            return true;
+        boolean previousInit = init;
+        if (!init) {
+            Queue.withLock(() -> {
+                Jenkins.get().getNodes()
+                        .stream()
+                        .filter(KubernetesSlave.class::isInstance)
+                        .map(KubernetesSlave.class::cast)
+                        .forEach(node -> {
+                            cloudCounts.put(node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                            podTemplateCounts.put(node.getTemplateId(), getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+                        });
+            });
+            init = true;
         }
-        Queue.withLock(() -> {
-            Jenkins.get().getNodes()
-                    .stream()
-                    .filter(KubernetesSlave.class::isInstance)
-                    .map(KubernetesSlave.class::cast)
-                    .forEach(node -> {
-                        cloudCounts.put(node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
-                        podTemplateCounts.put(node.getTemplateId(), getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
-                    });
-        });
-        init = true;
-        return false;
+        return previousInit;
     }
 
     /**
