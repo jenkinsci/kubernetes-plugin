@@ -55,7 +55,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>5.11.2-182.v0f1cf4c5904e</version>
+      <version>5.12.1-183.v8a_804871a_4b_d</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
