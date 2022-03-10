@@ -179,6 +179,13 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         r.assertLogContains("ERROR: Unable to pull Docker image", b);
     }
 
+    @Test
+    public void declarativeWithCreateContainerError() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("ERROR: Container creation error", b);
+    }
+
     @Issue("JENKINS-61360")
     @Test
     public void declarativeShowRawYamlFalse() throws Exception {
