@@ -625,10 +625,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // Mask sensitive output
         MaskOutputStream maskedOutput = new MaskOutputStream(teeOutput, masks);
         // Tee everything together
-        PrintStream tee = null;
+        PrintStream tee;
         try {
             String encoding = StandardCharsets.UTF_8.name();
             tee = new PrintStream(new TeeOutputStream(in, maskedOutput), false, encoding);
+            if (windows) {
+                tee.print("@echo off");
+                tee.print(newLine(true));
+            }
             // To output things that shouldn't be considered for masking
             PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
             unmasked.print("Executing command: ");
