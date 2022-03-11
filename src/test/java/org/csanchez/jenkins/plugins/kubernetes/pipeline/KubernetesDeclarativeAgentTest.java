@@ -183,7 +183,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     public void declarativeWithCreateContainerError() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.assertLogContains("ERROR: Container creation error", b);
+        r.assertLogContains("was terminated", b);
     }
 
     @Issue("JENKINS-61360")
