@@ -453,6 +453,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                    if (!launcher.isUnix()) {
+                        in.print("@echo off");
+                        in.print(newLine(true));
+                    }
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -629,10 +633,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         try {
             String encoding = StandardCharsets.UTF_8.name();
             tee = new PrintStream(new TeeOutputStream(in, maskedOutput), false, encoding);
-            if (windows) {
-                tee.print("@echo off");
-                tee.print(newLine(true));
-            }
             // To output things that shouldn't be considered for masking
             PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
             unmasked.print("Executing command: ");
@@ -648,7 +648,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             tee.print(newLine(windows));
             tee.flush();
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to execute command because of unsupported encoding", e);
         }
     }
 
