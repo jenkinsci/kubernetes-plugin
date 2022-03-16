@@ -72,6 +72,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabe
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -167,6 +168,14 @@ public class ContainerExecDecoratorWindowsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, false, output, "where", "cmd.exe");
         assertEquals("C:\\Windows\\System32\\cmd.exe\r\n", output.toString(StandardCharsets.UTF_8.name()));
+        assertEquals(0, r.exitCode);
+        assertFalse(r.proc.isAlive());
+    }
+
+    @Test
+    @WithTimeout(value = 0)
+    public void testCommandExecutionNoOutput() throws Exception {
+        ProcReturn r = execCommandInContainer("container", null, false, null, "where", "cmd.exe");
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
