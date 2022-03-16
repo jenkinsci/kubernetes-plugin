@@ -359,7 +359,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 ByteArrayOutputStream dryRunCaller = new ByteArrayOutputStream();
                 ToggleOutputStream toggleDryRunCaller = new ToggleOutputStream(dryRunCaller);
-                ToggleOutputStream toggleOutputForCaller = new ToggleOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
+                ToggleOutputStream toggleOutputForCaller = null;
                 // Send to proc caller as well if they sent one
                 if (outputForCaller != null && !outputForCaller.equals(printStream)) {
                     // Initially disable the output for the caller, to prevent it from getting unwanted output such as prompt
@@ -513,7 +513,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         toggleDryRunCaller.disable();
                         dryRunCaller.reset();
                     }
-                    toggleOutputForCaller.enable();
+                    if (toggleOutputForCaller != null) {
+                        toggleOutputForCaller.enable();
+                    }
                     doExec(in, !launcher.isUnix(), printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
