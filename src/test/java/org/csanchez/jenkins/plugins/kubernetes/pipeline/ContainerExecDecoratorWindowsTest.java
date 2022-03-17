@@ -161,7 +161,7 @@ public class ContainerExecDecoratorWindowsTest {
     }
 
     @Test
-    @WithTimeout(value = 0)
+    @WithTimeout(value = 900) // in case we need to pull windows docker image
     public void testCommandExecution() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, false, output, "where", "cmd.exe");
@@ -171,7 +171,7 @@ public class ContainerExecDecoratorWindowsTest {
     }
 
     @Test
-    @WithTimeout(value = 0)
+    @WithTimeout(value = 900) // in case we need to pull windows docker image
     public void testCommandExecutionNoOutput() throws Exception {
         ProcReturn r = execCommandInContainer("container", null, false, null, "where", "cmd.exe");
         assertEquals(0, r.exitCode);
@@ -179,7 +179,7 @@ public class ContainerExecDecoratorWindowsTest {
     }
 
     @Test
-    @WithTimeout(value = 0)
+    @WithTimeout(value = 900) // in case we need to pull windows docker image
     public void testQuietCommandExecution() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, true, output, "echo", "pid is 9999");
