@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, Carlos Sanchez
+ * Copyright (c) 2022, CloudBees Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,9 +74,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Carlos Sanchez
- */
 public class ContainerExecDecoratorWindowsTest {
     public static final String WINDOWS_BUILD = "10.0.17763";
     @Rule
@@ -184,7 +181,6 @@ public class ContainerExecDecoratorWindowsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, true, output, "echo", "pid is 9999");
         String out = output.toString(StandardCharsets.UTF_8.name());
-        System.out.println(out);
         assertFalse("Output should not contain command: " + out, PID_PATTERN.matcher(out).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
