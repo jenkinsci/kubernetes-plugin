@@ -128,7 +128,7 @@ public class ContainerExecDecoratorWindowsTest {
                                 .withCommand("powershell")
                                 .withArgs("Start-Sleep", "2147483")
                             .build())
-                    .withNodeSelector(Collections.singletonMap("node.kubernetes.io/os", "windows"))
+                    .withNodeSelector(Collections.singletonMap("kubernetes.io/os", "windows"))
                     .withTerminationGracePeriodSeconds(0L)
                 .endSpec().build());
 
