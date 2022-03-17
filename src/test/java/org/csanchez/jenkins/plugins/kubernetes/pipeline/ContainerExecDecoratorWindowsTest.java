@@ -37,7 +37,6 @@ import io.fabric8.kubernetes.client.Watch;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -79,6 +78,7 @@ import static org.mockito.Mockito.when;
  * @author Carlos Sanchez
  */
 public class ContainerExecDecoratorWindowsTest {
+    public static final String WINDOWS_BUILD = "10.0.17763";
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
@@ -104,7 +104,7 @@ public class ContainerExecDecoratorWindowsTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         assumeKubernetes();
-        assumeWindows();
+        assumeWindows(WINDOWS_BUILD);
     }
 
     @Before
@@ -113,7 +113,7 @@ public class ContainerExecDecoratorWindowsTest {
         client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
 
-        String image = "mcr.microsoft.com/windows:10.0.17763.2686";
+        String image = "mcr.microsoft.com/windows:" + WINDOWS_BUILD + ".2686";
         String containerName = "container";
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         pod = client.pods().create(new PodBuilder()
@@ -129,7 +129,7 @@ public class ContainerExecDecoratorWindowsTest {
                                 .withArgs("Start-Sleep", "2147483")
                             .build())
                     .addToNodeSelector("kubernetes.io/os", "windows")
-                    .addToNodeSelector("node.kubernetes.io/windows-build", "10.0.17763")
+                    .addToNodeSelector("node.kubernetes.io/windows-build", WINDOWS_BUILD)
                     .withTerminationGracePeriodSeconds(0L)
                 .endSpec().build());
 

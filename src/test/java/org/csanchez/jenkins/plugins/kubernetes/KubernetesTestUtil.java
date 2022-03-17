@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.logging.Level.*;
 import static org.junit.Assume.*;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +81,8 @@ public class KubernetesTestUtil {
     public static final String SECRET_KEY = "password";
     public static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
     public static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
+
+    public static final String WINDOWS_1809_BUILD = "10.0.17763";
 
     public static KubernetesCloud setupCloud(Object test, TestName name) throws KubernetesAuthException, IOException {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
@@ -150,17 +153,21 @@ public class KubernetesTestUtil {
      * This means that we can run tests involving Windows agent pods.
      * Note that running the <em>controller</em> on Windows is untested.
      */
-    public static void assumeWindows() {
-        assumeTrue("Cluster seems to contain no Windows nodes", isWindows());
+    public static void assumeWindows(String buildNumber) {
+        assumeTrue("Cluster seems to contain no Windows nodes with build " + buildNumber, isWindows(buildNumber));
     }
 
-    public static boolean isWindows() {
+    public static boolean isWindows(@CheckForNull String buildNumber) {
         try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
             for (Node n : client.nodes().list().getItems()) {
-                String os = n.getMetadata().getLabels().get("kubernetes.io/os");
-                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os);
+                Map<String, String> labels = n.getMetadata().getLabels();
+                String os = labels.get("kubernetes.io/os");
+                String windowsBuild = labels.get("node.kubernetes.io/windows-build");
+                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os + " with Windows build " + windowsBuild);
                 if ("windows".equals(os)) {
-                    return true;
+                    if (buildNumber == null || buildNumber.equals(windowsBuild)) {
+                        return true;
+                    }
                 }
             }
         }
