@@ -96,7 +96,7 @@ public class ContainerExecDecoratorWindowsTest {
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
-            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
+            .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL)
             .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
     @Rule
@@ -166,7 +166,7 @@ public class ContainerExecDecoratorWindowsTest {
     public void testCommandExecution() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, false, output, "where", "cmd.exe");
-        assertEquals(   "C:\\Windows\\System32\\cmd.exe\r\n", output.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("C:\\Windows\\System32\\cmd.exe\r\n", output.toString(StandardCharsets.UTF_8.name()));
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
