@@ -124,7 +124,6 @@ public class ContainerExecDecoratorWindowsTest {
                 .withNewSpec()
                     .withContainers(new ContainerBuilder()
                                 .withName(containerName)
-                                .withImagePullPolicy("IfNotPresent")
                                 .withImage(image)
                                 .withCommand("powershell")
                                 .withArgs("Start-Sleep", "2147483")
