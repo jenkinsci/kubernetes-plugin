@@ -56,7 +56,6 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -72,7 +71,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabe
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -131,7 +129,7 @@ public class ContainerExecDecoratorWindowsTest {
                                 .withCommand("powershell")
                                 .withArgs("Start-Sleep", "2147483")
                             .build())
-                    .withNodeSelector(Collections.singletonMap("kubernetes.io/os", "windows"))
+                    .withNodeSelector(Collections.singletonMap("node.kubernetes.io/windows-build", "10.0.17763"))
                     .withTerminationGracePeriodSeconds(0L)
                 .endSpec().build());
 
