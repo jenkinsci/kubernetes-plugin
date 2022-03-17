@@ -63,6 +63,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
@@ -75,7 +76,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ContainerExecDecoratorWindowsTest {
-    public static final String WINDOWS_BUILD = "10.0.17763";
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
@@ -101,7 +101,7 @@ public class ContainerExecDecoratorWindowsTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         assumeKubernetes();
-        assumeWindows(WINDOWS_BUILD);
+        assumeWindows(WINDOWS_1809_BUILD);
     }
 
     @Before
@@ -110,7 +110,7 @@ public class ContainerExecDecoratorWindowsTest {
         client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
 
-        String image = "mcr.microsoft.com/windows:" + WINDOWS_BUILD + ".2686";
+        String image = "mcr.microsoft.com/windows:" + WINDOWS_1809_BUILD + ".2686";
         String containerName = "container";
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         pod = client.pods().create(new PodBuilder()
@@ -126,7 +126,7 @@ public class ContainerExecDecoratorWindowsTest {
                                 .withArgs("Start-Sleep", "2147483")
                             .build())
                     .addToNodeSelector("kubernetes.io/os", "windows")
-                    .addToNodeSelector("node.kubernetes.io/windows-build", WINDOWS_BUILD)
+                    .addToNodeSelector("node.kubernetes.io/windows-build", WINDOWS_1809_BUILD)
                     .withTerminationGracePeriodSeconds(0L)
                 .endSpec().build());
 
