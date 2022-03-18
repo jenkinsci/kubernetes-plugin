@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
+import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -344,6 +345,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 // Only output to stdout at the beginning for diagnostics.
                 ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+                // Wrap stdout so that we can toggle it off.
                 ToggleOutputStream toggleStdout = new ToggleOutputStream(stdout);
 
                 // Do not send this command to the output when in quiet mode
@@ -355,14 +357,27 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     stream = new TeeOutputStream(toggleStdout, printStream);
                 }
 
+                ByteArrayOutputStream dryRunCaller = null;;
+                ToggleOutputStream toggleDryRunCaller = null;
+                ToggleOutputStream toggleOutputForCaller = null;
                 // Send to proc caller as well if they sent one
                 if (outputForCaller != null && !outputForCaller.equals(printStream)) {
-                    stream = new TeeOutputStream(outputForCaller, stream);
+                    if (launcher.isUnix()) {
+                        stream = new TeeOutputStream(outputForCaller, stream);
+                    } else {
+                        // Prepare to capture output for later.
+                        dryRunCaller = new ByteArrayOutputStream();
+                        toggleDryRunCaller = new ToggleOutputStream(dryRunCaller);
+                        // Initially disable the output for the caller, to prevent it from getting unwanted output such as prompt
+                        toggleOutputForCaller = new ToggleOutputStream(outputForCaller, true);
+                        stream = new TeeOutputStream(toggleOutputForCaller, stream);
+                        stream = new TeeOutputStream(toggleDryRunCaller, stream);
+                    }
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
-                String sh = shell != null ? shell : launcher.isUnix() ? "sh" : "cmd";
-                String msg = "Executing " + sh + " script inside container " + containerName + " of pod " + getPodName();
+                String[] sh = shell != null ? new String[]{shell} : launcher.isUnix() ? new String[] {"sh"} : new String[] {"cmd", "/Q"};
+                String msg = "Executing " + String.join(" ", sh) + " script inside container " + containerName + " of pod " + getPodName();
                 LOGGER.log(Level.FINEST, msg);
                 printStream.println(msg);
 
@@ -453,6 +468,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
                     PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                    if (!launcher.isUnix()) {
+                        in.print("@echo off");
+                        in.print(newLine(true));
+                    }
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
@@ -485,7 +504,31 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     LOGGER.log(Level.FINEST, "Launching with env vars: {0}", envVars.toString());
 
                     setupEnvironmentVariable(envVars, in, !launcher.isUnix());
-
+                    if (!launcher.isUnix() && toggleOutputForCaller!= null) {
+                        // Windows welcome message should not be sent to the caller as it is a side-effect of calling the wrapping cmd.exe
+                        // Microsoft Windows [Version 10.0.17763.2686]
+                        // (c) 2018 Microsoft Corporation. All rights reserved.
+                        //
+                        // C:\>
+                        stream.flush();
+                        long beginning = System.currentTimeMillis();
+                        // watch for the prompt character
+                        while(!dryRunCaller.toString(StandardCharsets.UTF_8.name()).contains(">")) {
+                            Thread.sleep(100);
+                        }
+                        LOGGER.log(Level.FINEST, "Windows prompt printed after " + (System.currentTimeMillis() - beginning) + " ms");
+                    }
+                    // We don't need to capture output anymore
+                    if (toggleDryRunCaller != null) {
+                        toggleDryRunCaller.disable();
+                    }
+                    // Clear any captured bytes
+                    if (dryRunCaller != null) {
+                        dryRunCaller.reset();
+                    }
+                    if (toggleOutputForCaller != null) {
+                        toggleOutputForCaller.enable();
+                    }
                     doExec(in, !launcher.isUnix(), printStream, masks, commands);
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
@@ -554,7 +597,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private static class ToggleOutputStream extends FilterOutputStream {
         private boolean disabled;
         public ToggleOutputStream(OutputStream out) {
+            this(out, false);
+        }
+
+        public ToggleOutputStream(OutputStream out, boolean disabled) {
             super(out);
+            this.disabled = disabled;
         }
 
         public void disable() {
@@ -569,6 +617,20 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         public void write(int b) throws IOException {
             if (!disabled) {
                 out.write(b);
+            }
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            if (!disabled) {
+                out.write(b);
+            }
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (!disabled) {
+                out.write(b, off, len);
             }
         }
     }
@@ -625,7 +687,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         // Mask sensitive output
         MaskOutputStream maskedOutput = new MaskOutputStream(teeOutput, masks);
         // Tee everything together
-        PrintStream tee = null;
+        PrintStream tee;
         try {
             String encoding = StandardCharsets.UTF_8.name();
             tee = new PrintStream(new TeeOutputStream(in, maskedOutput), false, encoding);
@@ -633,9 +695,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             PrintStream unmasked = new PrintStream(teeOutput, false, encoding);
             unmasked.print("Executing command: ");
             for (String statement : statements) {
-                tee.append("\"")
-                        .append(statement)
-                        .append("\" ");
+                if (windows) {
+                    tee.append(statement).append(" ");
+                } else {
+                    tee.append("\"").append(statement).append("\" ");
+                }
             }
             tee.print(newLine(windows));
             LOGGER.log(Level.FINEST, loggingOutput.toString(encoding) + "[" + TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start) + " μs." + "]");
@@ -644,7 +708,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             tee.print(newLine(windows));
             tee.flush();
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to execute command because of unsupported encoding", e);
         }
     }
 

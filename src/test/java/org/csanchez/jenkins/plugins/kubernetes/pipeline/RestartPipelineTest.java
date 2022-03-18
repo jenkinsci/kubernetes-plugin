@@ -217,7 +217,7 @@ public class RestartPipelineTest {
 
     @Test
     public void windowsRestart() throws Exception {
-        assumeWindows();
+        assumeWindows(WINDOWS_1809_BUILD);
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();

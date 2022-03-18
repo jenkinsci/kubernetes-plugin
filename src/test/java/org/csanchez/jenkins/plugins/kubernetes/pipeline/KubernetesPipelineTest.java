@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
@@ -632,7 +633,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57256")
     @Test
     public void basicWindows() throws Exception {
-        assumeWindows();
+        assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false); // not yet supported by https://github.com/jenkinsci/docker-inbound-agent/blob/517ccd68fd1ce420e7526ca6a40320c9a47a2c18/jenkins-agent.ps1
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\basic Windows", b); // bat
@@ -642,7 +643,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-53500")
     @Test
     public void windowsContainer() throws Exception {
-        assumeWindows();
+        assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Directory of C:\\home\\jenkins\\agent\\workspace\\windows Container\\subdir", b);
@@ -653,7 +654,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Ignore("TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
     @Test
     public void interruptedPodWindows() throws Exception {
-        assumeWindows();
+        assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
         r.waitForMessage("starting to sleep", b);
         b.getExecutor().interrupt();
@@ -663,7 +664,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void secretMaskingWindows() throws Exception {
-        assumeWindows();
+        assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("INSIDE_POD_ENV_VAR_FROM_SECRET = **** or " + POD_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT), b);
