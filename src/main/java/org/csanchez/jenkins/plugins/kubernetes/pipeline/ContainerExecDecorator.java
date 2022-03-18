@@ -357,15 +357,22 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     stream = new TeeOutputStream(toggleStdout, printStream);
                 }
 
-                ByteArrayOutputStream dryRunCaller = new ByteArrayOutputStream();
-                ToggleOutputStream toggleDryRunCaller = new ToggleOutputStream(dryRunCaller);
+                ByteArrayOutputStream dryRunCaller = null;;
+                ToggleOutputStream toggleDryRunCaller = null;
                 ToggleOutputStream toggleOutputForCaller = null;
                 // Send to proc caller as well if they sent one
                 if (outputForCaller != null && !outputForCaller.equals(printStream)) {
-                    // Initially disable the output for the caller, to prevent it from getting unwanted output such as prompt
-                    toggleOutputForCaller = new ToggleOutputStream(outputForCaller, true);
-                    stream = new TeeOutputStream(toggleOutputForCaller, stream);
-                    stream = new TeeOutputStream(toggleDryRunCaller, stream);
+                    if (launcher.isUnix()) {
+                        stream = new TeeOutputStream(outputForCaller, stream);
+                    } else {
+                        // Prepare to capture output for later.
+                        dryRunCaller = new ByteArrayOutputStream();
+                        toggleDryRunCaller = new ToggleOutputStream(dryRunCaller);
+                        // Initially disable the output for the caller, to prevent it from getting unwanted output such as prompt
+                        toggleOutputForCaller = new ToggleOutputStream(outputForCaller, true);
+                        stream = new TeeOutputStream(toggleOutputForCaller, stream);
+                        stream = new TeeOutputStream(toggleDryRunCaller, stream);
+                    }
                 }
                 ByteArrayOutputStream error = new ByteArrayOutputStream();
 
@@ -510,7 +517,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             Thread.sleep(100);
                         }
                         LOGGER.log(Level.FINEST, "Windows prompt printed after " + (System.currentTimeMillis() - beginning) + " ms");
+                    }
+                    // We don't need to capture output anymore
+                    if (toggleDryRunCaller != null) {
                         toggleDryRunCaller.disable();
+                    }
+                    // Clear any captured bytes
+                    if (dryRunCaller != null) {
                         dryRunCaller.reset();
                     }
                     if (toggleOutputForCaller != null) {
