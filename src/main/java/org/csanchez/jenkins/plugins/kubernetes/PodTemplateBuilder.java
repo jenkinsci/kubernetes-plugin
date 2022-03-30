@@ -221,6 +221,12 @@ public class PodTemplateBuilder {
         if (agent != null) {
             metadataBuilder.withName(agent.getPodName());
         }
+        if (template.getNamespace() != null) {
+            metadataBuilder.withNamespace(template.getNamespace());
+        } else if (cloud != null && cloud.getNamespace() != null) {
+            metadataBuilder.withNamespace(cloud.getNamespace());
+        }
+
 
         Map<String, String> labels = new HashMap<>();
         if (agent != null) {
