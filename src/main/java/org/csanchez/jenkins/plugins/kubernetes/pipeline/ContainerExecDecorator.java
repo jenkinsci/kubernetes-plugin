@@ -76,15 +76,12 @@ import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 public class ContainerExecDecorator extends LauncherDecorator implements Serializable, Closeable {
 
     private static final long serialVersionUID = 4419929753433397655L;
-    private static final long DEFAULT_CONTAINER_READY_TIMEOUT = 5;
-    private static final String CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName() + ".containerReadyTimeout";
 
     private static final String WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
             + ".websocketConnectionTimeout";
     /** time to wait in seconds for websocket to connect */
     private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
             .getInteger(WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY, 30);
-    private static final long CONTAINER_READY_TIMEOUT = containerReadyTimeout();
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
@@ -736,15 +733,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             allCommands.add(fixedCommand);
         }
         return allCommands.toArray(new String[allCommands.size()]);
-    }
-
-    private static Long containerReadyTimeout() {
-        String timeout = System.getProperty(CONTAINER_READY_TIMEOUT_SYSTEM_PROPERTY, String.valueOf(DEFAULT_CONTAINER_READY_TIMEOUT));
-        try {
-            return Long.parseLong(timeout);
-        } catch (NumberFormatException e) {
-            return DEFAULT_CONTAINER_READY_TIMEOUT;
-        }
     }
 
     private static void closeWatch(ExecWatch watch) {
