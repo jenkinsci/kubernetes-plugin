@@ -1,3 +1,5 @@
+metadata:
+  namespace: yaml-namespace
 spec:
   containers:
   - name: jnlp
