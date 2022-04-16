@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.Job;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -97,6 +98,19 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         }
 
         return ps;
+    }
+
+    @SuppressWarnings({"rawtypes"})
+    public static boolean isAllowed(KubernetesSlave agent, Job job) {
+        ItemGroup parent = job.getParent();
+        Set<String> allowedClouds = new HashSet<>();
+
+        KubernetesCloud targetCloud = agent.getKubernetesCloud();
+        if (targetCloud.isUsageRestricted()) {
+            KubernetesFolderProperty.collectAllowedClouds(allowedClouds, parent);
+            return allowedClouds.contains(targetCloud.name);
+        }
+        return true;
     }
 
     private static String PREFIX_USAGE_PERMISSION = "usage-permission-";

@@ -2,6 +2,10 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.model.FreeStyleProject;
+import hudson.model.Project;
+import hudson.model.Queue;
+import hudson.model.Slave;
+import hudson.model.queue.CauseOfBlockage;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.RetentionStrategy;
 import net.sf.json.JSONObject;
@@ -14,8 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import java.util.ArrayList;
+import java.util.Calendar;
+
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 public class KubernetesQueueTaskDispatcherTest {
@@ -31,8 +37,6 @@ public class KubernetesQueueTaskDispatcherTest {
 
     private Folder folderA;
     private Folder folderB;
-    private KubernetesCloud cloudA;
-    private KubernetesCloud cloudB;
     private KubernetesSlave slaveA;
     private KubernetesSlave slaveB;
 
@@ -42,10 +46,10 @@ public class KubernetesQueueTaskDispatcherTest {
         jenkins.jenkins.add(folderA, "Folder A");
         jenkins.jenkins.add(folderB, "Folder B");
 
-        cloudA = new KubernetesCloud("A");
+        KubernetesCloud cloudA = new KubernetesCloud("A");
         cloudA.setUsageRestricted(true);
 
-        cloudB = new KubernetesCloud("B");
+        KubernetesCloud cloudB = new KubernetesCloud("B");
         cloudB.setUsageRestricted(true);
 
         jenkins.jenkins.clouds.add(cloudA);
@@ -78,10 +82,11 @@ public class KubernetesQueueTaskDispatcherTest {
         FreeStyleProject projectB = folderB.createProject(FreeStyleProject.class, "buildJob");
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
-        assertNull(dispatcher.canTake(slaveA, projectA));
-        assertNotNull(dispatcher.canTake(slaveB, projectA));
-        assertNotNull(dispatcher.canTake(slaveA, projectB));
-        assertNull(dispatcher.canTake(slaveB, projectB));
+        assertNull(dispatcher.canTake(slaveA, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(),
+                projectA, new ArrayList<>()))));
+        assertTrue(canTake(dispatcher, slaveB, projectA) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
+        assertTrue(canTake(dispatcher, slaveA, projectB) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
+        assertNull(canTake(dispatcher, slaveB, projectB));
     }
 
     @Test
@@ -95,7 +100,7 @@ public class KubernetesQueueTaskDispatcherTest {
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
         KubernetesSlave slave = new KubernetesSlave("C", new PodTemplate(), "testC", "C", "dockerC", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
 
-        assertNull(dispatcher.canTake(slave, project));
+        assertNull(canTake(dispatcher, slave, project));
     }
 
 
@@ -105,7 +110,7 @@ public class KubernetesQueueTaskDispatcherTest {
         FreeStyleProject project = jenkins.createProject(FreeStyleProject.class);
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
-        assertNull(dispatcher.canTake(slave, project));
+        assertNull(canTake(dispatcher, slave, project));
     }
 
     @Test
@@ -116,9 +121,18 @@ public class KubernetesQueueTaskDispatcherTest {
         when(task.getOwnerTask()).thenReturn(job);
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
-        assertNull(dispatcher.canTake(slaveA, task));
-        assertNotNull(dispatcher.canTake(slaveB, task));
+        assertNull(canTake(dispatcher, slaveA, task));
+        assertTrue(canTake(dispatcher, slaveB, task) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
     }
 
+    private CauseOfBlockage canTake(KubernetesQueueTaskDispatcher dispatcher, Slave slave, Project project) {
+        return dispatcher.canTake(slave, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(),
+                project, new ArrayList<>())));
+    }
+
+    private CauseOfBlockage canTake(KubernetesQueueTaskDispatcher dispatcher, Slave slave, Queue.Task task) {
+        return dispatcher.canTake(slave, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(),
+                task, new ArrayList<>())));
+    }
 
 }
