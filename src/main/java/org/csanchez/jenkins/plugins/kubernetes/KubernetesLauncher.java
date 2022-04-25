@@ -31,15 +31,11 @@ import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.Event;
-import io.fabric8.kubernetes.api.model.EventList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
-import io.fabric8.kubernetes.client.Watch;
-import io.fabric8.kubernetes.client.dsl.FilterWatchListDeletable;
 import io.fabric8.kubernetes.client.internal.readiness.Readiness;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
@@ -67,9 +63,6 @@ import static java.util.logging.Level.WARNING;
 public class KubernetesLauncher extends JNLPLauncher {
     // Report progress every 30 seconds
     private static final long REPORT_INTERVAL = TimeUnit.SECONDS.toMillis(30L);
-
-    @CheckForNull
-    private transient AllContainersRunningPodWatcher watcher;
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
@@ -172,59 +165,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             ObjectMeta podMetadata = pod.getMetadata();
             template.getWorkspaceVolume().createVolume(client, podMetadata);
             template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
-/*            watcher = new AllContainersRunningPodWatcher(client, pod);
-            LOGGER.log(INFO, () -> "watcher set");
-            PodResource mypodtemp = client.pods().inNamespace(namespace).withName(podName);
-            LOGGER.log(INFO, () -> "mypodtemp: " + mypodtemp);
-            Watch w1 = mypodtemp.watch(watcher);
-            LOGGER.log(INFO, () -> "w1: done" + mypodtemp);
-            Watch w2 = eventWatch(client, podName, namespace, runListener);
-            LOGGER.log(INFO, () -> "w2: done" + mypodtemp);
-*//*            try (Watch w1 = mypodtemp.watch(watcher);
-                 Watch w2 = eventWatch(client, podName, namespace, runListener)) {*//*
-                assert watcher != null; // assigned 3 lines above
-                watcher.updateState(pod);
-                watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-//            }
-            w1.close();
-            w2.close();*/
 
-/*            boolean done = false;
-            watcher = new AllContainersRunningPodWatcher(client, pod);
-            for (int i = 0; i < template.getSlaveConnectTimeout(); i++) {
-                watcher.updateState(pod);
-                if (watcher.areAllContainersRunning(pod)) {
-                    LOGGER.log(INFO, "areAllContainersRunning: true " + podName);
-                    done = true;
-                    break;
-                } else {
-                    LOGGER.log(INFO, "areAllContainersRunning: false " + podName);
-                }
-                Thread.sleep(1000);
-            }
-            if (!done) {
-                throw new KubernetesClientTimeoutException(pod, template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            }*/
-
+            // Removed watcher because of load issues making the fabric8 library wait indefinitely https://issues.jenkins.io/browse/JENKINS-68126
             Pod checkPod = client.pods().inNamespace(namespace).withName(podName).waitUntilReady(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             if (!Readiness.isPodReady(checkPod)) {
                 throw new KubernetesClientTimeoutException(pod, template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             }
-
-/*            boolean done = false;
-            for (int minutes = 0; minutes < TimeUnit.SECONDS.toMinutes(template.getSlaveConnectTimeout()); minutes++) {
-                Pod checkPod = client.pods().inNamespace(namespace).withName(podName).waitUntilReady(1, TimeUnit.MINUTES);
-                if (Readiness.isPodReady(checkPod)) {
-                    LOGGER.log(INFO, "Pod ready: true " + podName);
-                    done = true;
-                    break;
-                } else {
-                    LOGGER.log(INFO, "Pod ready: false " + minutes + " minutes and timeout:" + template.getSlaveConnectTimeout() + " pod: " + podName);
-                }
-            }
-            if (!done) {
-                throw new KubernetesClientTimeoutException(pod, template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            }*/
 
             LOGGER.log(INFO, () -> "Pod is running: " + cloudName + " " + namespace + "/" + podName);
 
@@ -310,17 +256,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
             setProblem(ex);
-            if (ex instanceof AllContainersRunningPodWatcher.PodNotRunningException) {
-                Throwable[] suppressed = ex.getSuppressed();
-                if (suppressed.length > 0 && suppressed[0] instanceof ContainerLogs) {
-                    runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
-                    runListener.getLogger().print(suppressed[0].getMessage());
-                }
-                LOGGER.log(Level.WARNING, String.format("Error in provisioning: %s; agent=%s, template=%s", ex.getMessage(), node, template));
-                LOGGER.log(Level.FINE, null, ex);
-            } else {
-                LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
-            }
+            LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {
                 node.terminate();
@@ -329,20 +265,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw new RuntimeException(ex);
         }
-    }
-
-    private Watch eventWatch(KubernetesClient client, String podName, String namespace, TaskListener runListener) {
-        try {
-            LOGGER.log(Level.INFO, "in eventWatch");
-            FilterWatchListDeletable<Event, EventList> yo = client.v1().events().inNamespace(namespace).withField("involvedObject.name", podName);
-            LOGGER.log(Level.INFO, "FilterWatchListDeletable done");
-            Watch toreturn = yo.watch(new TaskListenerEventWatcher(podName, runListener));
-            LOGGER.log(Level.INFO, "toreturn done");
-            return toreturn;
-        } catch (KubernetesClientException e) {
-            LOGGER.log(Level.INFO, e, () -> "Cannot watch events on " + namespace + "/" +podName);
-        }
-        return () -> {};
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
@@ -387,10 +309,6 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     public void setProblem(@CheckForNull Throwable problem) {
         this.problem = problem;
-    }
-
-    public AllContainersRunningPodWatcher getWatcher() {
-        return watcher;
     }
 
 }
