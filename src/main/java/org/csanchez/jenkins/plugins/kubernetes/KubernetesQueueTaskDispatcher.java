@@ -19,16 +19,25 @@ public class KubernetesQueueTaskDispatcher extends QueueTaskDispatcher {
             KubernetesSlave slave = (KubernetesSlave) node;
             Task ownerTask = item.task.getOwnerTask();
             if (!KubernetesFolderProperty.isAllowed(slave, (Job) ownerTask)) {
-                return new KubernetesCloudNotAllowed();
+                return new KubernetesCloudNotAllowed(slave.getKubernetesCloud(), (Job) ownerTask);
             }
         }
         return null;
     }
 
     public static final class KubernetesCloudNotAllowed extends CauseOfBlockage {
+
+        private final KubernetesCloud cloud;
+        private final Job job;
+
+        public KubernetesCloudNotAllowed(KubernetesCloud cloud, Job job) {
+            this.cloud = cloud;
+            this.job = job;
+        }
+
         @Override
         public String getShortDescription() {
-            return Messages.KubernetesCloudNotAllowed_Description();
+            return Messages.KubernetesCloudNotAllowed_Description(cloud.name, job.getFullName());
         }
     }
 }
