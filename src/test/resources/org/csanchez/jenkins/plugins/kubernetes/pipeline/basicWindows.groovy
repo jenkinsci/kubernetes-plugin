@@ -7,6 +7,7 @@ spec:
     image: jenkins/inbound-agent:windowsservercore-1809
   nodeSelector:
     kubernetes.io/os: windows
+    node.kubernetes.io/windows-build: 10.0.17763
 '''
 ) {
     node(POD_LABEL) {

@@ -13,3 +13,7 @@ updates:
   directory: '/src/main/resources/org/csanchez/jenkins/plugins/kubernetes'
   schedule:
     interval: 'daily'
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: weekly

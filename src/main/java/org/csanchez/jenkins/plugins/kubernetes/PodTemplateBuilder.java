@@ -293,6 +293,13 @@ public class PodTemplateBuilder {
         Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
         // Apply defaults
+        if (pod.getMetadata().getNamespace() == null) {
+            if (template.getNamespace() != null) {
+                pod.getMetadata().setNamespace(template.getNamespace());
+            } else if (cloud != null && cloud.getNamespace() != null) {
+                pod.getMetadata().setNamespace(cloud.getNamespace());
+            }
+        }
 
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))

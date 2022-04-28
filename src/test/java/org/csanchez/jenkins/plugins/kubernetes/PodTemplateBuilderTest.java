@@ -381,6 +381,23 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void namespaceFromCloud() {
+        when(cloud.getNamespace()).thenReturn("cloud-namespace");
+        PodTemplate template = new PodTemplate();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        assertEquals("cloud-namespace", pod.getMetadata().getNamespace());
+    }
+
+    @Test
+    public void namespaceFromTemplate() {
+        when(cloud.getNamespace()).thenReturn("cloud-namespace");
+        PodTemplate template = new PodTemplate();
+        template.setNamespace("template-namespace");
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        assertEquals("template-namespace", pod.getMetadata().getNamespace());
+    }
+
+    @Test
     public void defaultRequests() throws Exception {
         PodTemplate template = new PodTemplate();
         Pod pod = new PodTemplateBuilder(template, slave).build();
@@ -398,10 +415,12 @@ public class PodTemplateBuilderTest {
     public void testOverridesFromYaml(boolean directConnection) throws Exception {
         cloud.setDirectConnection(directConnection);
         PodTemplate template = new PodTemplate();
+        template.setNamespace("template-namespace");
         template.setYaml(loadYamlFile("pod-overrides.yaml"));
         setupStubs();
         Pod pod = new PodTemplateBuilder(template, slave).build();
 
+        assertEquals("yaml-namespace", pod.getMetadata().getNamespace());
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");

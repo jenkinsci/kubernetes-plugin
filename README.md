@@ -25,6 +25,26 @@ see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-a
 
 It is not required to run the Jenkins controller inside Kubernetes.
 
+# 📜 Table of Contents
+
+- [Generic setup](#generic-setup)
+- [Usage](#usage)
+- [Configuration reference](#configuration-reference)
+- [Inheritance](#inheritance)
+- [Declarative Pipeline](#declarative-pipeline)
+- [Misc.](#misc.)
+- [Running on OpenShift](#running-on-openshift)
+- [Features controlled using system properties](#features-controlled-using-system-properties)
+- [Windows support](#windows-support)
+- [Constraints](#constraints)
+- [Configuration on minikube](#configuration-on-minikube)
+- [Configuration on Google Container Engine](#configuration-on-google-container-engine)
+- [Troubleshooting 🔨](#troubleshooting)
+- [Building and Testing](#building-and-testing)
+- [Docker image](#docker-image)
+- [Running in Kubernetes](#running-in-kubernetes)
+- [Related Projects](#related-projects)
+
 # Generic Setup
 ## Prerequisites
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
@@ -44,6 +64,12 @@ Supported credentials include:
 * Google Service Account from private key (GKE authentication)
 * X.509 Client Certificate
 
+If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
+This is unnecessary when the Jenkins controller runs in the same Kubernetes cluster,
+but can greatly simplify setup when agents are in an external cluster
+and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy or a ingress resource).
+See [JEP-222](https://jenkins.io/jep/222) for more.
+
 To test this connection is successful you can use the **Test Connection** button to ensure there is
 adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
@@ -59,11 +85,7 @@ Docker image - the docker image name that will be used as a reference to spin up
 
 ![image](images/pod-template-configuration.png)
 
-If you check **WebSocket** then agents will connect over HTTP(S) rather than the Jenkins service TCP port.
-This is unnecessary when the Jenkins controller runs in the same Kubernetes cluster,
-but can greatly simplify setup when agents are in an external cluster
-and the Jenkins controller is not directly accessible (for example, it is behind a reverse proxy).
-See [JEP-222](https://jenkins.io/jep/222) for more.
+
 
 > **Notes:**
 > 
@@ -154,8 +176,8 @@ be accessed as in any Kubernetes pod, by using `localhost`.
 
 The `container` step allows executing commands into each container.
 
----
 **Note**
+---
 Due to implementation constraints, there can be issues when executing commands in different containers if they run using different uids.
 It is recommended to use the same uid across the different containers part of the same pod to avoid any issue.
 ---
@@ -276,6 +298,13 @@ Either way it provides access to the following fields:
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either `NORMAL` or `EXCLUSIVE`, this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
 * **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
+  * `configMapVolume` : a read only volume that is mounted from a ConfigMap.
+  * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
+  * `emptyDirVolume` (default): an empty dir allocated on the host machine
+  * `hostPathVolume()` : a host path volume
+  * `nfsVolume()` : a nfs volume
+  * `persistentVolumeClaim()` : an existing persistent volume claim by name.
+  * `secretVolume` : a read only volume that is mounted from a Kubernetes secret.
 * **envVars** Environment variables that are applied to **ALL** containers.
     * **envVar** An environment variable whose value is defined inline.
     * **secretEnvVar** An environment variable whose value is derived from a Kubernetes secret.
@@ -285,14 +314,14 @@ Either way it provides access to the following fields:
 * **slaveConnectTimeout** Timeout in seconds for an agent to be online *(more details below)*.
 * **podRetention** Controls the behavior of keeping agent pods. Can be 'never()', 'onFailure()', 'always()', or 'default()' - if empty will default to deleting the pod after `activeDeadlineSeconds` has passed.
 * **activeDeadlineSeconds** If `podRetention` is set to `never()` or `onFailure()`, the pod is deleted after this deadline is passed.
-* **idleMinutes** Allows the pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it. Use this only when defining a pod template in the user interface.
+* **idleMinutes** Allows the pod to remain active for reuse until the configured number of minutes has passed since the last step was executed on it.
 * **showRawYaml** Enable or disable the output of the raw pod manifest. Defaults to `true`
 * **runAsUser** The user ID to run all containers in the pod as.
 * **runAsGroup** The group ID to run all containers in the pod as. 
 * **hostNetwork** Use the hosts network.
 * **workspaceVolume** The type of volume to use for the workspace.
-  * `emptyDirWorkspaceVolume` (default): an empty dir allocated on the host machine
   * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
+  * `emptyDirWorkspaceVolume` (default): an empty dir allocated on the host machine
   * `hostPathWorkspaceVolume()` : a host path volume
   * `nfsWorkspaceVolume()` : a nfs volume
   * `persistentVolumeClaimWorkspaceVolume()` : an existing persistent volume claim by name.
@@ -922,6 +951,33 @@ Then, use it as the `jnlp` container for the pod template as usual. No command o
 > * Support for using WebSockets with JDK 11 was added in the Remoting v4.11, so make sure your base image is new enough. See [here](https://issues.jenkins.io/browse/JENKINS-61212) for more information.
 >
 > * When using the WebSocket mode, the `-disableHttpsCertValidation` on the `jenkins/inbound-agent` becomes unavailable, as well as `-cert`, and that's why you have to extend the docker image.
+
+## [WARNING] label option is deprecated
+
+```
+[WARNING] label option is deprecated. To use a static pod template, use the 'inheritFrom' option.
+```
+
+You need to change from something like:
+
+```
+agent {
+	kubernetes {
+		label 'somelabel'
+	}
+}
+```
+
+To something like:
+
+```
+agent {
+	kubernetes {
+		inheritFrom 'somelabel'
+	}
+}
+```
+
 
 # Building and Testing
 
