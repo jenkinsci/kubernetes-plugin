@@ -45,7 +45,6 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <java.level>8</java.level>
     <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
