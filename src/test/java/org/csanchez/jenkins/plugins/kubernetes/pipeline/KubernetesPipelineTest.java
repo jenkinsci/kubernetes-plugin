@@ -471,12 +471,13 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-49707")
     @Test
     public void terminatedPod() throws Exception {
+        logs.record(KubernetesAgentErrorCondition.class, Level.FINE);
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
         r.waitForMessage("busybox --", b);
         r.waitForMessage("jnlp --", b);
         r.waitForMessage("was deleted; cancelling node body", b);
-        r.waitForMessage("Will retry failed node block from deleted pod", b);
+        r.waitForMessage("Retrying", b);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 

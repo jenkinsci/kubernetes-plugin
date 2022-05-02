@@ -82,7 +82,7 @@ public abstract class AbstractKubernetesPipelineTest {
             .recordPackage(KubernetesCloud.class, Level.FINE)
             .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
             .record(NodeProvisioner.class, Level.FINE)
-            .record(KubernetesRetryEligibility.class, Level.FINE);
+            .record(KubernetesAgentErrorCondition.class, Level.FINE);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {

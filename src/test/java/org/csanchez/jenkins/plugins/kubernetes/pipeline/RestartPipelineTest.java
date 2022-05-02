@@ -253,7 +253,7 @@ public class RestartPipelineTest {
             r.waitForMessage("Ready to run", b);
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.waitForMessage("assuming it is not coming back", b);
-            r.waitForMessage("Will retry failed node block from deleted pod", b);
+            r.waitForMessage("Retrying", b);
             r.assertBuildStatusSuccess(r.waitForCompletion(b));
         });
     }
