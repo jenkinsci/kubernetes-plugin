@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -129,6 +130,7 @@ public class ContainerExecDecoratorWindowsTest {
                 .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
+        Pod checkPod = client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
         agent = mock(KubernetesSlave.class);
