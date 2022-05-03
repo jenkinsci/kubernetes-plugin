@@ -138,7 +138,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>999999-SNAPSHOT</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+      <version>1189.v39b_0b_d397ccf</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
     </dependency>
 
     <!-- for testing -->
@@ -150,7 +150,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>999999-SNAPSHOT</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
+      <version>956.v357f20c65eb_f</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -237,6 +237,12 @@
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion> <!-- TODO bom bug? -->
+          <groupId>org.jenkins-ci.main</groupId>
+          <artifactId>jenkins-test-harness</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -258,7 +264,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.332.x</artifactId>
-        <version>1289.v5c4b_1c43511b_</version>
+        <version>1342.v729ca_3818e88</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
