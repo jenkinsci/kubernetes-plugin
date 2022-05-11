@@ -194,7 +194,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>ssh-agent</artifactId>
-      <version>1.23</version>
+      <version>295.v9ca_a_1c7cc3a_a_</version>
       <scope>test</scope>
       <exclusions>
         <!-- conflict with sshd module -->
