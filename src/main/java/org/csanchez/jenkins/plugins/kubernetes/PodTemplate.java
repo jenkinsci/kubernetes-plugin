@@ -85,6 +85,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String id;
 
+    private boolean unwrapped;
+
     private String inheritFrom;
 
     private String name;
@@ -924,6 +926,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
+    public void setUnwrapped(boolean unwrapped) {
+        this.unwrapped = unwrapped;
+    }
+
+    public boolean isUnwrapped() {
+        return unwrapped;
+    }
+
     private String getContainersDescriptionForLogging() {
         List<ContainerTemplate> containers = getContainers();
         StringBuilder sb = new StringBuilder();
@@ -1052,6 +1062,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (imagePullSecrets == null || imagePullSecrets.isEmpty() ? "" : ", imagePullSecrets=" + imagePullSecrets) +
                 (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties) +
                 (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls) +
+                (!unwrapped ? "" : ", unwrapped=" + unwrapped) +
                 '}';
     }
 }

@@ -532,8 +532,9 @@ public class KubernetesCloud extends Cloud {
                 LOGGER.log(Level.FINE, "Template for label \"{0}\": {1}", new Object[]{label, podTemplate.getName()});
                 // check overall concurrency limit using the default label(s) on all templates
                 int numExecutors = 1;
+                PodTemplate unwrappedTemplate = getUnwrappedTemplate(podTemplate);
                 while (toBeProvisioned > 0 && KubernetesProvisioningLimits.get().register(this, podTemplate, numExecutors)) {
-                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(podTemplate).label(label).numExecutors(1).build());
+                    plannedNodes.add(PlannedNodeBuilderFactory.createInstance().cloud(this).template(unwrappedTemplate).label(label).numExecutors(1).build());
                     toBeProvisioned--;
                 }
                 if (!plannedNodes.isEmpty()) {
