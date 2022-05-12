@@ -16,6 +16,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -52,6 +55,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import jenkins.model.Jenkins;
 import jenkins.util.Timer;
@@ -98,7 +102,9 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
 
     private Watch watch;
 
-    private final Map<String, Set<String>> terminationReasons = new HashMap<>();
+    private final LoadingCache<String, Set<String>> terminationReasons = Caffeine.newBuilder().
+        expireAfterAccess(1, TimeUnit.DAYS).
+        build(k -> new ConcurrentSkipListSet<>());
 
     @Override
     public void preLaunch(Computer c, TaskListener taskListener) throws IOException, InterruptedException {
@@ -174,7 +180,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
         }
         ExtensionList.lookup(Listener.class).forEach(listener -> {
             try {
-                listener.onEvent(action, optionalNode.get(), pod, terminationReasons.computeIfAbsent(optionalNode.get().getNodeName(), k -> new HashSet<>()));
+                listener.onEvent(action, optionalNode.get(), pod, terminationReasons.get(optionalNode.get().getNodeName()));
             } catch (Exception x) {
                 LOGGER.log(Level.WARNING, "Listener " + listener + " failed for " + ns + "/" + name, x);
             }
@@ -212,8 +218,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
     @NonNull
     public Set<String> terminationReasons(@NonNull String node) {
         synchronized (terminationReasons) {
-            Set<String> reasons = terminationReasons.get(node);
-            return reasons == null ? Collections.emptySet() : new HashSet<>(reasons);
+            return new HashSet<>(terminationReasons.get(node));
         }
     }
 
@@ -262,8 +267,11 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 terminatedContainers.forEach(c -> {
                     ContainerStateTerminated t = c.getState().getTerminated();
                     LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
-                    runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
-                    terminationReasons.add(t.getReason());
+                    String reason = t.getReason();
+                    runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), reason);
+                    if (reason != null) {
+                        terminationReasons.add(reason);
+                    }
                 });
                 try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
                     PodUtils.cancelQueueItemFor(pod, "ContainerError");
@@ -284,9 +292,12 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                 String ns = pod.getMetadata().getNamespace();
                 String name = pod.getMetadata().getName();
                 TaskListener runListener = node.getTemplate().getListener();
-                LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + pod.getStatus().getReason() + ", Message: " + pod.getStatus().getMessage());
-                runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, pod.getStatus().getReason(), pod.getStatus().getMessage());
-                terminationReasons.add(pod.getStatus().getReason());
+                String reason = pod.getStatus().getReason();
+                LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + reason + ", Message: " + pod.getStatus().getMessage());
+                runListener.getLogger().printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, reason, pod.getStatus().getMessage());
+                if (reason != null) {
+                    terminationReasons.add(reason);
+                }
                 logLastLinesThenTerminateNode(node, pod, runListener);
             }
         }

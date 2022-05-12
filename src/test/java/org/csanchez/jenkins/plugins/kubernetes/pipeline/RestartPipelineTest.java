@@ -252,7 +252,7 @@ public class RestartPipelineTest {
             WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             deletePods(cloud.connect(), getLabels(this, name), false);
-            r.waitForMessage("assuming it is not coming back", b);
+            r.waitForMessage("Agent was removed", b);
             r.waitForMessage("Retrying", b);
             r.assertBuildStatusSuccess(r.waitForCompletion(b));
         });
