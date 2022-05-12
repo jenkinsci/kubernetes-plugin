@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
@@ -215,6 +216,7 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
      * @param node a {@link Node#getNodeName}
      * @return a possibly empty set of {@link ContainerStateTerminated#getReason} or {@link PodStatus#getReason}
      */
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "Confused by @org.checkerframework.checker.nullness.qual.Nullable on LoadingCache.get? Never null here.")
     @NonNull
     public Set<String> terminationReasons(@NonNull String node) {
         synchronized (terminationReasons) {
