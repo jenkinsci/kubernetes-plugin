@@ -13,12 +13,12 @@
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
-  <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
-    <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
 
@@ -49,6 +49,7 @@
     <jenkins.version>2.332.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
   <dependencies>
