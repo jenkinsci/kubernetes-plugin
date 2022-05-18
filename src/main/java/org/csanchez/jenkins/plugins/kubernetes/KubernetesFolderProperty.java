@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -44,8 +45,8 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     public KubernetesFolderProperty() {}
 
     @DataBoundSetter
-    public void setPermittedClouds(Set<String> permittedClouds){
-        this.permittedClouds = new HashSet<>(permittedClouds);
+    public void setPermittedClouds(Collection<String> permittedClouds){
+        this.permittedClouds = permittedClouds == null ? Collections.emptySet() : new HashSet<>(permittedClouds);
     }
 
     public Set<String> getPermittedClouds() {
@@ -63,8 +64,6 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
      * 
      * @return
      */
-    @SuppressWarnings("unused") // Used by jelly
-    @Restricted(DoNotUse.class) // Used by jelly
     public List<UsagePermission> getEffectivePermissions() {
         Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(Folder.class));
         List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
@@ -107,7 +106,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         // Backwards compatibility: this method was expecting a set of entries PREFIX_USAGE_PERMISSION+cloudName --> true | false
         // Now we're getting a set of permitted cloud names inside permittedClouds entry
         Set<String> formCloudnames = new HashSet<>();
-        if (form.has("permittedClouds")) {
+        if (!form.has("permittedClouds")) {
             form.names().stream().filter(x -> form.getBoolean(x.toString())).forEach(x -> formCloudnames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
         } else {
             formCloudnames.addAll(form.getJSONArray("permittedClouds").stream().map(x -> x.toString()).collect(Collectors.toSet()));
