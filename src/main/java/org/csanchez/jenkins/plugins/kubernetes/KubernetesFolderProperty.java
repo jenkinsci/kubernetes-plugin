@@ -222,7 +222,9 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             return Messages.KubernetesFolderProperty_displayName();
         }
 
-        public static List<UsagePermission> getEffectivePermissions() {
+        @SuppressWarnings("unused") // Used by jelly
+        @Restricted(DoNotUse.class) // Used by jelly
+        public List<UsagePermission> getEffectivePermissions() {
             Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(Folder.class).getParent());
             List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
                                                                            .map(cloud -> new UsagePermission(cloud.name, inheritedClouds.contains(cloud.name), inheritedClouds.contains(cloud.name)))
