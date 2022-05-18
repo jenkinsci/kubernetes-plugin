@@ -49,7 +49,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     }
 
     public Set<String> getPermittedClouds() {
-        return permittedClouds == null ? Collections.EMPTY_SET : new HashSet<>(permittedClouds);
+        return permittedClouds == null ? Collections.emptySet() : Collections.unmodifiableSet(permittedClouds);
     }
 
     private static Set<String> getInheritedClouds(ItemGroup parent) {
