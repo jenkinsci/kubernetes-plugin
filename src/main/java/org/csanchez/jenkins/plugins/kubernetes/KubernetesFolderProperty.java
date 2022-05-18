@@ -105,13 +105,13 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         }
         // Backwards compatibility: this method was expecting a set of entries PREFIX_USAGE_PERMISSION+cloudName --> true | false
         // Now we're getting a set of permitted cloud names inside permittedClouds entry
-        Set<String> formCloudnames = new HashSet<>();
+        Set<String> formCloudNames = new HashSet<>();
         if (!form.has("permittedClouds")) {
-            form.names().stream().filter(x -> form.getBoolean(x.toString())).forEach(x -> formCloudnames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
+            form.names().stream().filter(x -> form.getBoolean(x.toString())).forEach(x -> formCloudNames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
         } else {
-            formCloudnames.addAll(form.getJSONArray("permittedClouds").stream().map(x -> x.toString()).collect(Collectors.toSet()));
+            formCloudNames.addAll(form.getJSONArray("permittedClouds").stream().map(x -> x.toString()).collect(Collectors.toSet()));
         }
-        setPermittedClouds(formCloudnames);
+        setPermittedClouds(formCloudNames);
         return this;
     }
 
