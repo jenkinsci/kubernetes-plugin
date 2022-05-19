@@ -105,7 +105,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>1159.v27cb_4545c3ff</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
+      <version>1166.v459a_d69b_3271</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -153,7 +153,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>960.v0004499239c3</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
+      <version>965.v145f716def48</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
