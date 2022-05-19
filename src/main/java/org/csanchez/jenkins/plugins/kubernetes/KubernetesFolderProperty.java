@@ -27,6 +27,8 @@ import hudson.model.ItemGroup;
 import hudson.model.Descriptor.FormException;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
+
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 /**
@@ -109,7 +111,12 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         if (!form.has("permittedClouds")) {
             form.names().stream().filter(x -> form.getBoolean(x.toString())).forEach(x -> formCloudNames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
         } else {
-            formCloudNames.addAll(form.getJSONArray("permittedClouds").stream().map(x -> x.toString()).collect(Collectors.toSet()));
+            JSONArray clouds = form.optJSONArray("permittedClouds");
+            if (clouds != null) {
+                formCloudNames.addAll(clouds.stream().map(x -> x.toString()).collect(Collectors.toSet()));
+            } else {
+                formCloudNames.add(form.getString("permittedClouds")); // arrays with 1 element are considered objects
+            }
         }
         setPermittedClouds(formCloudNames);
         return this;
