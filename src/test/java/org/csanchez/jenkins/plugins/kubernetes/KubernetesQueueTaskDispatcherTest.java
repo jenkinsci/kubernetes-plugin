@@ -20,7 +20,6 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
@@ -74,55 +73,9 @@ public class KubernetesQueueTaskDispatcherTest {
         slaveB = new KubernetesSlave("B", new PodTemplate(), "testB", "B", "dockerB", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
     }
 
-    public void setUpTwoCloudsPermittedCloudsForm() throws Exception {
-        folderA = new Folder(jenkins.jenkins, "A");
-        folderB = new Folder(jenkins.jenkins, "B");
-        jenkins.jenkins.add(folderA, "Folder A");
-        jenkins.jenkins.add(folderB, "Folder B");
-
-        KubernetesCloud cloudA = new KubernetesCloud("A");
-        cloudA.setUsageRestricted(true);
-
-        KubernetesCloud cloudB = new KubernetesCloud("B");
-        cloudB.setUsageRestricted(true);
-
-        jenkins.jenkins.clouds.add(cloudA);
-        jenkins.jenkins.clouds.add(cloudB);
-
-        KubernetesFolderProperty property1 = new KubernetesFolderProperty();
-        folderA.addProperty(property1);
-        JSONObject json1 = new JSONObject();
-        json1.element("permittedClouds", Collections.singletonList("A"));
-        folderA.addProperty(property1.reconfigure(null, json1));
-
-        KubernetesFolderProperty property2 = new KubernetesFolderProperty();
-        folderB.addProperty(property2);
-        JSONObject json2 = new JSONObject();
-        json2.element("permittedClouds", Collections.singletonList("B"));
-        folderB.addProperty(property2.reconfigure(null, json2));
-
-        slaveA = new KubernetesSlave("A", new PodTemplate(), "testA", "A", "dockerA", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
-        slaveB = new KubernetesSlave("B", new PodTemplate(), "testB", "B", "dockerB", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
-    }
-
     @Test
     public void checkRestrictedTwoClouds() throws Exception {
         setUpTwoClouds();
-
-        FreeStyleProject projectA = folderA.createProject(FreeStyleProject.class, "buildJob");
-        FreeStyleProject projectB = folderB.createProject(FreeStyleProject.class, "buildJob");
-        KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
-
-        assertNull(dispatcher.canTake(slaveA, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(), projectA, new ArrayList<>()))));
-        assertTrue(canTake(dispatcher, slaveB, projectA) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
-        assertTrue(canTake(dispatcher, slaveA, projectB) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
-        assertNull(canTake(dispatcher, slaveB, projectB));
-    }
-
-    @Test
-    public void checkRestrictedTwoCloudsPermittedCloudsForm() throws Exception {
-        // New permittedClouds form for permittedClouds
-        setUpTwoCloudsPermittedCloudsForm();
 
         FreeStyleProject projectA = folderA.createProject(FreeStyleProject.class, "buildJob");
         FreeStyleProject projectB = folderB.createProject(FreeStyleProject.class, "buildJob");
