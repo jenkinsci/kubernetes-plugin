@@ -820,6 +820,35 @@ just runs something and exit then it should be overridden with something like `c
 **WARNING**
 If you want to provide your own Docker image for the inbound agent, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two agents trying to concurrently connect to the controller.
 
+# Running with custom ServiceAccount
+
+If you need to run Jenkins under a custom service account, it must have these Role rules to make the kubernetes-plugin work:
+
+```yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: jenkins
+rules:
+  - verbs:
+      - create
+      - list
+      - get
+      - watch
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - pods
+  - verbs:
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - events
+```
+
+
 # Configuration on minikube
 
 Create and start [minikube](https://github.com/kubernetes/minikube)
