@@ -50,6 +50,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <pipeline-model-definition-plugin.version>999999-SNAPSHOT</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
   </properties>
 
   <dependencies>
@@ -121,7 +122,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>2691.va_688a_c3d8fd0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
+      <version>2713.v8b_f3c8cb_97a_0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -140,20 +141,20 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1200.v7231de192754</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+      <version>1204.v2a_40b_1127a_a_8</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
     </dependency>
 
     <!-- for testing -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>1181.vcea_0362753c3</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/260 -->
+      <version>1183.vf1b_f64585092</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/260 -->
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>965.v145f716def48</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
+      <version>967.v241f45274471</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -171,7 +172,7 @@
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
       <classifier>tests</classifier>
-      <version>2691.va_688a_c3d8fd0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
+      <version>2713.v8b_f3c8cb_97a_0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -271,6 +272,37 @@
         <version>1370.vfa_e23fe119c3</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>script-security</artifactId>
+        <version>1172.v35f6a_0b_8207e</version> <!-- TODO until in BOM -->
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-api</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-definition</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-definition</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-extensions</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-stage-tags-metadata</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
       </dependency>
       <!-- Fix InjectedTest -->
       <dependency>
