@@ -50,7 +50,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <pipeline-model-definition-plugin.version>999999-SNAPSHOT</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
+    <pipeline-model-definition-plugin.version>2.2093.v2fb_2b_ea_cfc23</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
   </properties>
 
   <dependencies>
