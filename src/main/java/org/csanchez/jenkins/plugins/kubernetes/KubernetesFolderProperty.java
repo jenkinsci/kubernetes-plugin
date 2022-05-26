@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,7 +39,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
 
     private static final String PREFIX_USAGE_PERMISSION = "usage-permission-";
 
-    private Set<String> permittedClouds = new HashSet<>();
+    private List<String> permittedClouds = new ArrayList<>();
 
     /**
      * Constructor.
@@ -48,11 +49,11 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
 
     @DataBoundSetter
     public void setPermittedClouds(Collection<String> permittedClouds){
-        this.permittedClouds = permittedClouds == null ? Collections.emptySet() : new HashSet<>(permittedClouds);
+        this.permittedClouds = permittedClouds == null ? Collections.emptyList() : new ArrayList<>(permittedClouds);
     }
 
-    public Set<String> getPermittedClouds() {
-        return permittedClouds == null ? Collections.emptySet() : Collections.unmodifiableSet(permittedClouds);
+    public Collection<String> getPermittedClouds() {
+        return permittedClouds == null ? Collections.emptyList() : Collections.unmodifiableList(permittedClouds);
     }
 
     private static Set<String> getInheritedClouds(ItemGroup parent) {
