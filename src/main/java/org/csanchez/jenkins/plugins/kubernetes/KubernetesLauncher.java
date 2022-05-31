@@ -166,7 +166,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             template.getWorkspaceVolume().createVolume(client, podMetadata);
             template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
 
-            // Removed watcher because of load issues making the fabric8 library wait indefinitely https://issues.jenkins.io/browse/JENKINS-68126
             Pod checkPod = client.pods().inNamespace(namespace).withName(podName).waitUntilReady(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
             if (!Readiness.isPodReady(checkPod)) {
                 throw new KubernetesClientTimeoutException(pod, template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
