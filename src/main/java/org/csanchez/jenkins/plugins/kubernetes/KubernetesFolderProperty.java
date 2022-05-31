@@ -64,26 +64,6 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         return inheritedPermissions;
     }
 
-    /**
-     * Called from Jelly.
-     * 
-     * @return
-     */
-    public List<UsagePermission> getEffectivePermissions() {
-        Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(Folder.class));
-        List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
-                                                                       .map(cloud -> new UsagePermission(cloud.name,
-                                                                                                         inheritedClouds.contains(cloud.name) || getEffectivePermissions().contains(cloud.name),
-                                                                                                         inheritedClouds.contains(cloud.name)))
-                                                                       .collect(Collectors.toList());
-        // a non-admin User is only allowed to see granted clouds
-        if (!userHasAdministerPermission()) {
-            ps = ps.stream().filter(UsagePermission::isGranted).collect(Collectors.toList());
-        }
-
-        return ps;
-    }
-
     @SuppressWarnings({"rawtypes"})
     public static boolean isAllowed(KubernetesSlave agent, Job job) {
         ItemGroup parent = job.getParent();
@@ -233,7 +213,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         }
 
         @SuppressWarnings("unused") // Used by jelly
-        @Restricted(DoNotUse.class) // Used by jelly
+        @Restricted(DoNotUse.class)
         public List<UsagePermission> getEffectivePermissions() {
             Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(Folder.class).getParent());
             List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
