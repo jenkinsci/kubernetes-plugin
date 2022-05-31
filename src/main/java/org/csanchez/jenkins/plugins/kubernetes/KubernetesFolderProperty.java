@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Job;
+
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -221,6 +223,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
      * Descriptor class.
      */
     @Extension
+    @Symbol("kubernetes")
     public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
         @NonNull
