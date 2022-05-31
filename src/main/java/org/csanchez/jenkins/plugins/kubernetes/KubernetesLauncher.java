@@ -176,7 +176,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
-            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Running"));
+            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Pending", "Running", "Unknown"));
 
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
