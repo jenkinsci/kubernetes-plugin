@@ -201,7 +201,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("container=busybox", b);
         r.assertLogContains("script file contents: ", b);
-        r.assertLogContains("Created container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
         assertThat("routine build should not issue warnings",
