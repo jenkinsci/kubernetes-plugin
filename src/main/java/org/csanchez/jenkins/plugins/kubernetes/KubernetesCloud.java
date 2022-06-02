@@ -110,6 +110,7 @@ public class KubernetesCloud extends Cloud {
     private boolean capOnlyOnAlivePods;
 
     private String namespace;
+    private String jnlpregistry;
     private boolean webSocket;
     private boolean directConnection = false;
     private String jenkinsUrl;
@@ -159,12 +160,13 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Deprecated
-    public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
+    public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace, String jnlpregistry,
             String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         this(name);
 
         setServerUrl(serverUrl);
         setNamespace(namespace);
+        setJnlpregistry(jnlpregistry);
         setJenkinsUrl(jenkinsUrl);
         if (templates != null) {
             this.templates.addAll(templates);
@@ -269,6 +271,16 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setNamespace(String namespace) {
         this.namespace = Util.fixEmpty(namespace);
+    }
+
+    public String getJnlpregistry() {
+        return jnlpregistry;
+    }
+
+    @DataBoundSetter
+    public void setJnlpregistry(String jnlpregistry) {
+        this.jnlpregistry = Util.fixEmpty(jnlpregistry);
+        PodTemplateBuilder.DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = jnlpregistry;
     }
 
     @CheckForNull
@@ -663,6 +675,7 @@ public class KubernetesCloud extends Cloud {
                 Objects.equals(serverUrl, that.serverUrl) &&
                 Objects.equals(serverCertificate, that.serverCertificate) &&
                 Objects.equals(namespace, that.namespace) &&
+                Objects.equals(jnlpregistry, that.jnlpregistry)&&
                 Objects.equals(jenkinsUrl, that.jenkinsUrl) &&
                 Objects.equals(jenkinsTunnel, that.jenkinsTunnel) &&
                 Objects.equals(credentialsId, that.credentialsId) &&
@@ -675,7 +688,7 @@ public class KubernetesCloud extends Cloud {
     @Override
     public int hashCode() {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
-                addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jenkinsUrl, jenkinsTunnel, credentialsId,
+                addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jnlpregistry, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
                 maxRequestsPerHost, podRetention, useJenkinsProxy);
     }
@@ -884,6 +897,7 @@ public class KubernetesCloud extends Cloud {
                 ", addMasterProxyEnvVars=" + addMasterProxyEnvVars +
                 ", capOnlyOnAlivePods=" + capOnlyOnAlivePods +
                 ", namespace='" + namespace + '\'' +
+                ", jnlpregistry='" + jnlpregistry + '\'' +
                 ", jenkinsUrl='" + jenkinsUrl + '\'' +
                 ", jenkinsTunnel='" + jenkinsTunnel + '\'' +
                 ", credentialsId='" + credentialsId + '\'' +
