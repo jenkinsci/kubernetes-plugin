@@ -85,7 +85,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String id;
 
-    private boolean unwrapped;
+    private transient boolean unwrapped;
 
     private String inheritFrom;
 
@@ -926,11 +926,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.showRawYaml = Boolean.valueOf(showRawYaml);
     }
 
-    public void setUnwrapped(boolean unwrapped) {
+    void setUnwrapped(boolean unwrapped) {
         this.unwrapped = unwrapped;
     }
 
-    public boolean isUnwrapped() {
+    boolean isUnwrapped() {
         return unwrapped;
     }
 
