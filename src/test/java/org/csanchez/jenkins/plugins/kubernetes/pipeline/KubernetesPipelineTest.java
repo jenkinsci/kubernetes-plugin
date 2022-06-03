@@ -73,7 +73,6 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
 import org.junit.Before;
@@ -472,12 +471,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-49707")
     @Test
     public void terminatedPod() throws Exception {
+        logs.record(KubernetesAgentErrorCondition.class, Level.FINE);
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);
-        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage(new ExecutorStepExecution.RemovedNodeCause().getShortDescription(), b);
         r.waitForMessage("busybox --", b);
         r.waitForMessage("jnlp --", b);
+        r.waitForMessage("was deleted; cancelling node body", b);
+        r.waitForMessage("Retrying", b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
     @Issue("JENKINS-59340")

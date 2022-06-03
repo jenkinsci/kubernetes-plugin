@@ -1,10 +1,19 @@
-podTemplate(label: '$NAME', containers: [
-        containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat'),
-    ]) {
-    node ('$NAME') {
+podTemplate(yaml: '''
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - sleep
+    - 99d
+  terminationGracePeriodSeconds: 3
+''') {
+  retry(count: 2, conditions: [kubernetesAgent()]) {
+    node(POD_LABEL) {
         container('busybox') {
             sh 'echo hello world'
-            sh 'sleep 9999999'
+            sh 'sleep 15'
         }
     }
+  }
 }

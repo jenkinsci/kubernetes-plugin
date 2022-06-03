@@ -45,7 +45,7 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.303.3</jenkins.version>
+    <jenkins.version>2.332.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -104,6 +104,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
+      <version>1171.vc28585a_716e7</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -134,6 +135,11 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials-binding</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-durable-task-step</artifactId>
+      <version>1145.ve842533f4d9a_</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/231 -->
+    </dependency>
 
     <!-- for testing -->
     <dependency>
@@ -144,11 +150,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-durable-task-step</artifactId>
+      <version>958.vde579c5541ed</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/203 -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -249,8 +251,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.303.x</artifactId>
-        <version>1090.v0a_33df40457a_</version>
+        <artifactId>bom-2.332.x</artifactId>
+        <version>1370.vfa_e23fe119c3</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -269,7 +271,7 @@
       <dependency><!-- pipeline-model-extensions vs. io.jenkins.configuration-as-code:test-harness -->
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
-        <version>2.10.2</version>
+        <version>2.10.5</version>
       </dependency>
       <dependency><!-- io.jenkins:configuration-as-code vs. org.jenkins-ci.plugins:junit -->
         <groupId>org.apache.commons</groupId>
