@@ -73,7 +73,6 @@ public class KubernetesQueueTaskDispatcherTest {
         slaveB = new KubernetesSlave("B", new PodTemplate(), "testB", "B", "dockerB", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
     }
 
-
     @Test
     public void checkRestrictedTwoClouds() throws Exception {
         setUpTwoClouds();
@@ -82,8 +81,7 @@ public class KubernetesQueueTaskDispatcherTest {
         FreeStyleProject projectB = folderB.createProject(FreeStyleProject.class, "buildJob");
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
-        assertNull(dispatcher.canTake(slaveA, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(),
-                projectA, new ArrayList<>()))));
+        assertNull(dispatcher.canTake(slaveA, new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(), projectA, new ArrayList<>()))));
         assertTrue(canTake(dispatcher, slaveB, projectA) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
         assertTrue(canTake(dispatcher, slaveA, projectB) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
         assertNull(canTake(dispatcher, slaveB, projectB));
