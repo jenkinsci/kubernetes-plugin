@@ -49,7 +49,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <pipeline-model-definition-plugin.version>2.2093.v2fb_2b_ea_cfc23</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
+    <pipeline-model-definition-plugin.version>2.2106.vb_c8831117a_ec</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
   </properties>
 
   <dependencies>
@@ -105,7 +105,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>1166.v459a_d69b_3271</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
+      <version>1174.va_3d1b_702a_07b_</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -121,7 +121,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>2713.v8b_f3c8cb_97a_0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
+      <version>2725.v7b_c717eb_12ce</version> <!-- TODO until in BOM -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -140,20 +140,20 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1204.v2a_40b_1127a_a_8</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+      <version>1217.v0a_5c299d0a_59</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
     </dependency>
 
     <!-- for testing -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>1183.vf1b_f64585092</version> <!-- TODO https://github.com/jenkinsci/workflow-job-plugin/pull/260 -->
+      <version>1186.v8def1a_5f3944</version> <!-- TODO until in BOM -->
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>967.v241f45274471</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
+      <version>958.vde579c5541ed</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/195 -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
@@ -171,7 +171,7 @@
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
       <classifier>tests</classifier>
-      <version>2713.v8b_f3c8cb_97a_0</version> <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/534 -->
+      <version>2725.v7b_c717eb_12ce</version> <!-- TODO until in BOM -->
       <scope>test</scope>
     </dependency>
     <dependency>
