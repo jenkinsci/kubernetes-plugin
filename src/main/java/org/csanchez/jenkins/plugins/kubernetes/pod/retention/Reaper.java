@@ -240,10 +240,10 @@ public class Reaper extends ComputerListener implements Watcher<Pod> {
                     LOGGER.info(() -> ns + "/" + name + " Container " + c.getName() + " was just terminated, so removing the corresponding Jenkins agent");
                     runListener.getLogger().printf("%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n", ns, name, c.getName(), t.getExitCode(), t.getReason());
                 });
+                logLastLinesThenTerminateNode(node, pod, runListener);
                 try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
                     PodUtils.cancelQueueItemFor(pod, "ContainerError");
                 }
-                logLastLinesThenTerminateNode(node, pod, runListener);
             }
         }
     }
