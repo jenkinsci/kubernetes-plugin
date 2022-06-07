@@ -486,31 +486,36 @@ public class PodTemplateUtils {
             return null;
         }
 
-        StringBuilder sb = new StringBuilder();
-        if (!isNullOrEmpty(defaultProviderTemplate)) {
-            sb.append(defaultProviderTemplate).append(" ");
-
-        }
-        if (!isNullOrEmpty(template.getInheritFrom())) {
-            sb.append(template.getInheritFrom()).append(" ");
-        }
-        String inheritFrom = sb.toString();
-
-        if (isNullOrEmpty(inheritFrom)) {
+        List<String> inheritFrom = computedInheritFrom(template, defaultProviderTemplate);
+        if (inheritFrom.isEmpty()) {
             return template;
         } else {
-            String[] parentNames = inheritFrom.split("[ ]+");
             PodTemplate parent = null;
-            for (String name : parentNames) {
+            for (String name : inheritFrom) {
                 PodTemplate next = getTemplateByName(name, allTemplates);
                 if (next != null) {
                     parent = combine(parent, unwrap(next, allTemplates));
                 }
             }
             PodTemplate combined = combine(parent, template);
+            combined.setUnwrapped(true);
             LOGGER.log(Level.FINEST, "Combined parent + template is {0}", combined);
             return combined;
         }
+    }
+
+    private static List<String> computedInheritFrom(PodTemplate template, String defaultProviderTemplate) {
+        List<String> hierarchy = new ArrayList<>();
+        if (!isNullOrEmpty(defaultProviderTemplate)) {
+            hierarchy.add(defaultProviderTemplate);
+        }
+        if (!isNullOrEmpty(template.getInheritFrom())) {
+            String[] split = template.getInheritFrom().split(" +");
+            for (String name : split) {
+                hierarchy.add(name);
+            }
+        }
+        return Collections.unmodifiableList(hierarchy);
     }
 
     /**

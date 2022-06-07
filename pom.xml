@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.36</version>
+    <version>4.40</version>
     <relativePath />
   </parent>
 
@@ -13,12 +13,12 @@
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
-  <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
-    <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
 
@@ -45,17 +45,17 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <java.level>8</java.level>
     <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>5.11.2-182.v0f1cf4c5904e</version>
+      <version>5.12.1-187.v577c3e368fb_6</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -213,12 +213,6 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>instance-identity</artifactId>
-      <version>2.2</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>pl.pragmatists</groupId>

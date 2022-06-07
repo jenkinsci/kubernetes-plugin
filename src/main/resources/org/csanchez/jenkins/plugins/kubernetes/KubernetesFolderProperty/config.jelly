@@ -4,30 +4,20 @@
 		<f:description>
 			${%Allow pipeline support for the following restricted Kubernetes Clouds}
 		</f:description>
-		<j:choose>
-			<j:when test="${instance != null}">
-				<j:set var="effectivePermissions" value="${instance.effectivePermissions}"/>
+		<f:entry field="permittedClouds">
+				<j:set var="effectivePermissions" value="${descriptor.effectivePermissions}"/>
 				<j:choose>
 					<j:when test="${empty effectivePermissions}">
 						<f:entry title="-- none --" />
 					</j:when>
 					<j:otherwise>
 						<j:forEach var="permission" items="${effectivePermissions}">
-							<f:entry field="${permission.formName}">
 								<j:set var="readOnlyMode" value="${permission.readonly}"/>
-								<f:checkbox title="${permission.name}" checked="${permission.granted}" />
-							</f:entry>
+								<f:checkbox title="${permission.name} ${permission.inherited ? '(inherited)' : ''}" json="${permission.name}"
+											checked="${permission.granted or instance.permittedClouds.contains(permission.name)}" /><br/>
 						</j:forEach>
 					</j:otherwise>
 				</j:choose>
-			</j:when>
-			<j:otherwise>
-				<f:entry title="${%You have to save this folder first before you can manage Kubernetes Clouds.}" />
-				<f:invisibleEntry>
-					<!-- Needed to create the property on save -->
-					<input type="checkbox"/>
-				</f:invisibleEntry>
-			</j:otherwise>
-		</j:choose>
+		</f:entry>
 	</f:section>
 </j:jelly>

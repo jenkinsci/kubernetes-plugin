@@ -150,7 +150,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         Map<String, String> labels = getLabels(cloud, this, name);
         SemaphoreStep.waitForStart("pod/1", b);
-        for (Computer c : Arrays.stream(r.jenkins.getComputers()).filter(c -> c instanceof SlaveComputer).collect(Collectors.toList())) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
+        for (Computer c : getKubernetesComputers()) { // TODO perhaps this should be built into JenkinsRule via ComputerListener.preLaunch?
             new Thread(() -> {
                 long pos = 0;
                 try {
@@ -246,10 +246,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("Started container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
-    }
-
-    private List<PodTemplate> podTemplatesWithLabel(String label, List<PodTemplate> templates) {
-        return templates.stream().filter(t -> label.equals(t.getLabel())).collect(Collectors.toList());
     }
 
     @Issue("JENKINS-57893")
