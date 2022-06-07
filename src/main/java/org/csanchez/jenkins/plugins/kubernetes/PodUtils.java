@@ -145,7 +145,7 @@ public final class PodUtils {
                     sb.append(log);
                     sb.append("\n");
                 } catch (KubernetesClientException e) {
-                    LOGGER.log(Level.FINE, "Unable to retrieve container logs as it is already gone", e);
+                    LOGGER.log(Level.FINE, e, () -> namespace + "/" + podName + " Unable to retrieve container logs as the pod is already gone");
                 }
             }
         }

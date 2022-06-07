@@ -20,7 +20,7 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
         try {
             KubernetesSlave agent = KubernetesSlave
                     .builder()
-                    .podTemplate(cloud.getUnwrappedTemplate(t))
+                    .podTemplate(t.isUnwrapped() ? t : cloud.getUnwrappedTemplate(t))
                     .cloud(cloud)
                     .build();
             displayName = agent.getDisplayName();
