@@ -243,7 +243,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         SemaphoreStep.success("pod2/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
-        r.assertLogContains("Started container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
@@ -287,7 +286,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         standard.setName("standard");
         cloud.addTemplate(standard);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("Created container jnlp", b);
     }
 
     @Test
