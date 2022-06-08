@@ -130,7 +130,7 @@ public class ContainerExecDecoratorWindowsTest {
                 .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
-        Pod checkPod = client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
+        client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
         agent = mock(KubernetesSlave.class);
