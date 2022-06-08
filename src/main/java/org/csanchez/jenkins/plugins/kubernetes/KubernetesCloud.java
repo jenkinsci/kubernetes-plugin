@@ -160,13 +160,12 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Deprecated
-    public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace, String jnlpregistry,
+    public KubernetesCloud(String name, List<? extends PodTemplate> templates, String serverUrl, String namespace,
             String jenkinsUrl, String containerCapStr, int connectTimeout, int readTimeout, int retentionTimeout) {
         this(name);
 
         setServerUrl(serverUrl);
         setNamespace(namespace);
-        setJnlpregistry(jnlpregistry);
         setJenkinsUrl(jenkinsUrl);
         if (templates != null) {
             this.templates.addAll(templates);
