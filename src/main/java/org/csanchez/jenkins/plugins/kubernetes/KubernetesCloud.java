@@ -280,7 +280,6 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setJnlpregistry(String jnlpregistry) {
         this.jnlpregistry = Util.fixEmpty(jnlpregistry);
-        PodTemplateBuilder.DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = jnlpregistry;
     }
 
     @CheckForNull
