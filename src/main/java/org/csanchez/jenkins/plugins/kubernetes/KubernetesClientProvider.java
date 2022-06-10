@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -63,8 +64,15 @@ public class KubernetesClientProvider {
         return c.getClient();
     }
 
-    private static int getValidity(KubernetesCloud cloud) {
-        Object cloudObjects[] = { cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
+    /**
+     * Compute the hash of connection properties of the given cloud. This hash can be used to determine if a cloud
+     * was updated and a new connection is needed.
+     * @param cloud cloud to compute validity hash for
+     * @return client validity hash code
+     */
+    @Restricted(NoExternalUse.class)
+    public static int getValidity(@NonNull KubernetesCloud cloud) {
+        Object[] cloudObjects = { cloud.getServerUrl(), cloud.getNamespace(), cloud.getServerCertificate(),
                 cloud.getCredentialsId(), cloud.isSkipTlsVerify(), cloud.getConnectTimeout(), cloud.getReadTimeout(),
                 cloud.getMaxRequestsPerHostStr(), cloud.isUseJenkinsProxy() };
         return Arrays.hashCode(cloudObjects);
@@ -93,7 +101,13 @@ public class KubernetesClientProvider {
         clients.invalidate(displayName);
     }
 
-    @Extension
+    @Restricted(NoExternalUse.class) // testing only
+    public static void invalidateAll() {
+        clients.invalidateAll();
+    }
+
+    // set ordinal to 1 so it runs ahead of Reaper
+    @Extension(ordinal = 1)
     public static class SaveableListenerImpl extends SaveableListener {
         @Override
         public void onChange(Saveable o, XmlFile file) {

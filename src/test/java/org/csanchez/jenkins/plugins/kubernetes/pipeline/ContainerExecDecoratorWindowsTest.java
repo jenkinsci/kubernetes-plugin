@@ -33,20 +33,8 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.Watch;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.AllContainersRunningPodWatcher;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -62,6 +50,17 @@ import org.junit.rules.TestName;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.WithTimeout;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
@@ -131,11 +130,7 @@ public class ContainerExecDecoratorWindowsTest {
                 .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
-        AllContainersRunningPodWatcher watcher = new AllContainersRunningPodWatcher(client, pod);
-        try (Watch w1 = client.pods().withName(podName).watch(watcher);) {
-            assert watcher != null; // assigned 3 lines above
-            watcher.await(10, TimeUnit.MINUTES);
-        }
+        client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
         agent = mock(KubernetesSlave.class);
