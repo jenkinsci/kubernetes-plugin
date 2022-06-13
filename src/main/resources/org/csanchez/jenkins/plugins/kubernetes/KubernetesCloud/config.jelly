@@ -27,6 +27,10 @@
         <f:textbox/>
       </f:entry>
 
+      <f:entry title="${%JNLP Docker Registry}" field="jnlpregistry">
+        <f:textbox/>
+      </f:entry>
+
       <f:entry title="${%Credentials}" field="credentialsId">
         <c:select/>
       </f:entry>
