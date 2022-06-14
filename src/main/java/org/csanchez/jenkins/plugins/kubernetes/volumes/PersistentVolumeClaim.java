@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
@@ -36,6 +37,7 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 public class PersistentVolumeClaim extends PodVolume {
     private String mountPath;
+    private String subPath;    
     private String claimName;
     @CheckForNull
     private Boolean readOnly;
@@ -61,6 +63,14 @@ public class PersistentVolumeClaim extends PodVolume {
         return readOnly != null && readOnly;
     }
 
+    public String getSubPath() {
+        return subPath;
+    }
+    
+    @DataBoundSetter
+    public void setSubPath(String subPath) {
+        this.subPath = subPath;
+    }
     @Override
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder()

@@ -53,6 +53,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.PersistentVolumeClaim;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -189,7 +190,11 @@ public class PodTemplateBuilder {
         String podName = agent.getPodName();
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
-            final String volumeName = "volume-" + i;
+            String volumeNameTmp = "volume-" + i;
+            if (volume instanceof PersistentVolumeClaim) {
+        	volumeNameTmp = "volume-" + ((PersistentVolumeClaim)volume).getClaimName();
+            }
+            final String volumeName = volumeNameTmp;
             final String mountPath = normalizePath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
                 VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
@@ -202,8 +207,17 @@ public class PodTemplateBuilder {
                         volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
                     }
                 }
+                if (volume instanceof PersistentVolumeClaim) {
+                    final PersistentVolumeClaim pvcVolume = (PersistentVolumeClaim) volume;
+                    String subPath = pvcVolume.getSubPath();
+                    if (subPath != null && subPath.length()>0) {
+                        volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
+                    }
+                }
                 volumeMounts.put(mountPath, volumeMountBuilder.build());
-                volumes.put(volumeName, volume.buildVolume(volumeName, podName));
+                if (!volumes.containsKey(volumeName)) {
+                    volumes.put(volumeName, volume.buildVolume(volumeName, podName));
+                }
                 i++;
             }
         }

@@ -13,5 +13,9 @@
   <f:entry title="${%Mount path}" field="mountPath">
     <f:textbox />
   </f:entry>
+  
+  <f:entry title="${%Mount subPath}" field="subPath">
+    <f:textbox />
+  </f:entry>
 
 </j:jelly>
