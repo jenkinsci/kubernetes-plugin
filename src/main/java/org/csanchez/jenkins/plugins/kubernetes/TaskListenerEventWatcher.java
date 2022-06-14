@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Functions;
 import hudson.model.TaskListener;
 import io.fabric8.kubernetes.api.model.Event;
@@ -19,18 +20,22 @@ class TaskListenerEventWatcher implements Watcher<Event> {
     private final String name;
     private final TaskListener listener;
 
-    public TaskListenerEventWatcher(String name, TaskListener listener) {
+    public TaskListenerEventWatcher(@NonNull String name, @NonNull TaskListener listener) {
         this.name = name;
         this.listener = listener;
     }
 
     @Override
     public void eventReceived(Action action, Event event) {
-        PrintStream logger = listener.getLogger();
-        // Messages can have multiple lines
-        String[] lines = event.getMessage().split("\n");
-        for (String line : lines) {
-            logger.printf("[%s][%s/%s][%s] %s%n", event.getType(), event.getInvolvedObject().getNamespace(), event.getInvolvedObject().getName(), event.getReason(), line);
+        // ignore bookmark actions
+        // event may be null if Error action
+        if (action != Action.BOOKMARK && event != null) {
+            PrintStream logger = listener.getLogger();
+            // Messages can have multiple lines
+            String[] lines = event.getMessage().split("\n");
+            for (String line : lines) {
+                logger.printf("[%s][%s/%s][%s] %s%n", event.getType(), event.getInvolvedObject().getNamespace(), event.getInvolvedObject().getName(), event.getReason(), line);
+            }
         }
     }
 
