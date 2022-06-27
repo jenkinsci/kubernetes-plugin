@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -123,6 +124,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             if(url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
                 newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
+                newTemplate.getAnnotations().add(new PodAnnotation("runScheduledTimestamp", String.valueOf(TimeUnit.MILLISECONDS.toSeconds(run.getTimeInMillis()))));
             }
         }
         newTemplate.setImagePullSecrets(
