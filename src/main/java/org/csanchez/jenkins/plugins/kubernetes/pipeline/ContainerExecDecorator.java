@@ -19,13 +19,20 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
@@ -45,6 +52,7 @@ import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
+import jenkins.model.Jenkins;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -97,6 +105,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
      * time in milliseconds to wait for checking whether the process immediately returned
      */
     public static final int COMMAND_FINISHED_TIMEOUT_MS = 200;
+
+    static /*final*/ Boolean JENKINS_67664_ENABLED = Boolean.valueOf((System.getProperty(ContainerExecDecorator.class.getName() + ".JENKINS_67664_ENABLED","false")));
+    static /*final*/ String JENKINS_67664_THREADDUMP_PATH = System.getProperty(ContainerExecDecorator.class.getName() + ".JENKINS_67664_THREADDUMP_PATH", Jenkins.get().getRootDir().getAbsolutePath() + "/jenkins-67664");
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private transient List<Closeable> closables;
@@ -431,6 +442,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
                                 e);
                     } else {
+                        if(JENKINS_67664_ENABLED) {
+                            generateThreadDump(node);
+                        }
                         throw e;
                     }
                 } catch (RejectedExecutionException e) {
@@ -512,6 +526,37 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 } catch (Exception e) {
                     closeWatch(watch);
                     throw e;
+                }
+            }
+
+            private void generateThreadDump(Node node) {
+                File parent = new File(JENKINS_67664_THREADDUMP_PATH);
+                if(parent.exists() || parent.mkdirs()) {
+                    // generate a thread dump
+                    try (
+                        FileOutputStream fos = new FileOutputStream(parent.getAbsolutePath() + "/" + (node == null ? "unknown" : node.getNodeName()) + ".txt");
+                        OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+                        PrintWriter printWriter = new PrintWriter(osw)) {
+                        final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+                        final ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported());
+                        for (ThreadInfo threadInfo : threadInfos) {
+                            printWriter.print('"');
+                            printWriter.print(threadInfo.getThreadName());
+                            printWriter.println("\" ");
+                            final Thread.State state = threadInfo.getThreadState();
+                            printWriter.print("   java.lang.Thread.State: ");
+                            printWriter.println(state);
+                            final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
+                            for (final StackTraceElement stackTraceElement : stackTraceElements) {
+                                printWriter.print("        at ");
+                                printWriter.println(stackTraceElement);
+                            }
+                            printWriter.println();
+                        }
+                        printWriter.flush();
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
+                    }
                 }
             }
 
