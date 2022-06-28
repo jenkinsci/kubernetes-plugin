@@ -1,9 +1,10 @@
 Kubernetes plugin for Jenkins
 =========================
 
-[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/kubernetes.svg)](https://plugins.jenkins.io/kubernetes)
-[![GitHub release](https://img.shields.io/github/release/jenkinsci/kubernetes-plugin.svg?label=release)](https://github.com/jenkinsci/kubernetes-plugin/releases/latest)
-[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/kubernetes.svg?color=blue)](https://plugins.jenkins.io/kubernetes)
+[![kubernetes version](https://img.shields.io/jenkins/plugin/v/kubernetes.svg?label=kubernetes)](https://plugins.jenkins.io/kubernetes)
+[![kubernetes installs](https://img.shields.io/jenkins/plugin/i/kubernetes.svg)](https://plugins.jenkins.io/kubernetes)
+[![kubernetes license](https://img.shields.io/github/license/jenkinsci/kubernetes-plugin)](https://github.com/jenkinsci/kubernetes-plugin/blob/master/LICENSE)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/jenkinsci/kubernetes-plugin.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jenkinsci/kubernetes-plugin/context:java)
 
 Jenkins plugin to run dynamic agents in a Kubernetes cluster.
 

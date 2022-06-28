@@ -293,6 +293,13 @@ public class PodTemplateBuilder {
         Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
 
         // Apply defaults
+        if (pod.getMetadata().getNamespace() == null) {
+            if (template.getNamespace() != null) {
+                pod.getMetadata().setNamespace(template.getNamespace());
+            } else if (cloud != null && cloud.getNamespace() != null) {
+                pod.getMetadata().setNamespace(cloud.getNamespace());
+            }
+        }
 
         // default jnlp container
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
@@ -305,7 +312,9 @@ public class PodTemplateBuilder {
         pod.getSpec().getContainers().stream().filter(c -> c.getWorkingDir() == null).forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
         if (StringUtils.isBlank(jnlp.getImage())) {
             String jnlpImage = DEFAULT_JNLP_IMAGE;
-            if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+            if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
+                jnlpImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + jnlpImage;
+            } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
                 jnlpImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + jnlpImage;
             }
             jnlp.setImage(jnlpImage);

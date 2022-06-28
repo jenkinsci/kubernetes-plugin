@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.36</version>
+    <version>4.40</version>
     <relativePath />
   </parent>
 
@@ -13,12 +13,12 @@
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
   <packaging>hpi</packaging>
-  <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</connection>
-    <developerConnection>scm:git:https://github.com/jenkinsci/kubernetes-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/kubernetes-plugin</url>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
     <tag>${scmTag}</tag>
   </scm>
 
@@ -45,10 +45,10 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <java.level>8</java.level>
     <jenkins.version>2.303.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
   </properties>
 
   <dependencies>
@@ -124,7 +124,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>metrics</artifactId>
-      <version>4.0.2.8</version>
+      <version>4.0.2.8.1</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
@@ -215,12 +215,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>instance-identity</artifactId>
-      <version>2.2</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>pl.pragmatists</groupId>
       <artifactId>JUnitParams</artifactId>
       <version>1.1.1</version>
@@ -248,6 +242,18 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.fabric8</groupId>
+      <artifactId>kubernetes-server-mock</artifactId>
+      <version>5.12.1</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
 
@@ -264,7 +270,7 @@
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>docker-commons</artifactId>
-        <version>1.17</version>
+        <version>1.18</version>
       </dependency>
       <!-- fix requireUpperBoundDeps -->
       <dependency><!-- jenkins-core vs. junit plugin -->

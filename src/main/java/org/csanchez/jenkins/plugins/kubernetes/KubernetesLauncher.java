@@ -35,10 +35,17 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
+import io.fabric8.kubernetes.client.internal.readiness.Readiness;
+import jenkins.metrics.api.Metrics;
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import jenkins.metrics.api.Metrics;
-import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
@@ -62,8 +65,8 @@ public class KubernetesLauncher extends JNLPLauncher {
     // Report progress every 30 seconds
     private static final long REPORT_INTERVAL = TimeUnit.SECONDS.toMillis(30L);
 
-    @CheckForNull
-    private transient AllContainersRunningPodWatcher watcher;
+    private static final Collection<String> POD_TERMINATED_STATES =
+            Collections.unmodifiableCollection(Arrays.asList("Succeeded", "Failed"));
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
@@ -166,22 +169,17 @@ public class KubernetesLauncher extends JNLPLauncher {
             ObjectMeta podMetadata = pod.getMetadata();
             template.getWorkspaceVolume().createVolume(client, podMetadata);
             template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
-            watcher = new AllContainersRunningPodWatcher(client, pod);
-            try (Watch w1 = client.pods().inNamespace(namespace).withName(podName).watch(watcher);
-                 Watch w2 = eventWatch(client, podName, namespace, runListener)) {
-                assert watcher != null; // assigned 3 lines above
-                watcher.await(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
-            }
+
+            client.pods().inNamespace(namespace).withName(podName).waitUntilReady(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+
             LOGGER.log(INFO, () -> "Pod is running: " + cloudName + " " + namespace + "/" + podName);
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
-            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Running"));
-
+            // so wait for agent to be online
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
-
-            // now wait for agent to be online
+            
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
@@ -203,10 +201,11 @@ public class KubernetesLauncher extends JNLPLauncher {
                     throw new IllegalStateException("Pod no longer exists: " + podName);
                 }
                 status = pod.getStatus().getPhase();
-                if (!validStates.contains(status)) {
+                if (POD_TERMINATED_STATES.contains(status)) {
                     Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
                     Metrics.metricRegistry().counter(MetricNames.metricNameForPodStatus(status)).inc();
-                    break;
+                    logLastLines(containerStatuses, podName, namespace, node, null, client);
+                    throw new IllegalStateException("Pod '" + podName + "' is terminated. Status: " + status);
                 }
 
                 containerStatuses = pod.getStatus().getContainerStatuses();
@@ -256,17 +255,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
             setProblem(ex);
-            if (ex instanceof AllContainersRunningPodWatcher.PodNotRunningException) {
-                Throwable[] suppressed = ex.getSuppressed();
-                if (suppressed.length > 0 && suppressed[0] instanceof ContainerLogs) {
-                    runListener.getLogger().println("Unable to provision agent " + node.getNodeName() + " :");
-                    runListener.getLogger().print(suppressed[0].getMessage());
-                }
-                LOGGER.log(Level.WARNING, String.format("Error in provisioning: %s; agent=%s, template=%s", ex.getMessage(), node, template));
-                LOGGER.log(Level.FINE, null, ex);
-            } else {
-                LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
-            }
+            LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {
                 node.terminate();
@@ -275,15 +264,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
             throw new RuntimeException(ex);
         }
-    }
-
-    private Watch eventWatch(KubernetesClient client, String podName, String namespace, TaskListener runListener) {
-        try {
-            return client.v1().events().inNamespace(namespace).withField("involvedObject.name", podName).watch(new TaskListenerEventWatcher(podName, runListener));
-        } catch (KubernetesClientException e) {
-            LOGGER.log(Level.INFO, e, () -> "Cannot watch events on " + namespace + "/" +podName);
-        }
-        return () -> {};
     }
 
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
@@ -328,10 +308,6 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     public void setProblem(@CheckForNull Throwable problem) {
         this.problem = problem;
-    }
-
-    public AllContainersRunningPodWatcher getWatcher() {
-        return watcher;
     }
 
 }
