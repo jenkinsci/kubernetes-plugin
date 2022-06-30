@@ -34,6 +34,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,10 +51,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.client.okhttp.OkHttpClientImpl;
 import jenkins.model.Jenkins;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import org.apache.commons.io.comparator.LastModifiedFileComparator;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -71,7 +79,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
-import okhttp3.Response;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 
@@ -360,6 +367,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     boolean[] masks, String... commands) throws IOException {
                 final CountDownLatch started = new CountDownLatch(1);
                 final CountDownLatch finished = new CountDownLatch(1);
+                final AtomicBoolean diag = new AtomicBoolean(JENKINS_67664_ENABLED);
+                final AtomicBoolean jenkins67664 = new AtomicBoolean(false);
                 final AtomicBoolean alive = new AtomicBoolean(false);
                 final AtomicLong startAlive = new AtomicLong();
                 long startMethod = System.nanoTime();
@@ -404,7 +413,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 alive.set(true);
                                 started.countDown();
                                 startAlive.set(System.nanoTime());
-                                LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
+                                LOGGER.log(Level.FINEST, "onOpen : {0} ({1})", new Object[]{node == null ? "unknown" : node.getNodeName(), finished});
                             }
 
                             @Override
@@ -412,7 +421,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 alive.set(false);
                                 t.printStackTrace(launcher.getListener().getLogger());
                                 started.countDown();
-                                LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
+                                LOGGER.log(Level.FINEST, "onFailure : {0} ({1})", new Object[]{node == null ? "unknown" : node.getNodeName(), finished});
                                 if (finished.getCount() == 0) {
                                     LOGGER.log(Level.WARNING,
                                             "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
@@ -424,7 +433,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             public void onClose(int i, String s) {
                                 alive.set(false);
                                 started.countDown();
-                                LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
+                                LOGGER.log(Level.FINEST, "onClose : {0} ({1} [{2} ms])", new Object[]{node == null ? "unknown" : node.getNodeName(), finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
                                 if (finished.getCount() == 0) {
                                     LOGGER.log(Level.WARNING,
                                             "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
@@ -434,20 +443,41 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         });
 
                 ExecWatch watch;
+                CompletableFuture<Void> diagFuture = CompletableFuture.runAsync(() -> {
+                    try {
+                        while(diag.get()) {
+                            dumpClientDetails(node);
+                            generateThreadDump(node);
+                            Thread.sleep(1000);
+                        }
+                        if(!jenkins67664.get()) {
+                            cleanupDumps(node);
+                        }
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
                 try {
                     watch = execable.exec(sh);
+                    jenkins67664.set(false);
+                    diag.set(false);
+                    diagFuture.cancel(true);
                 } catch (KubernetesClientException e) {
+                    jenkins67664.set(true);
+                    diag.set(false);
+                    diagFuture.cancel(true);
                     if (e.getCause() instanceof InterruptedException) {
+                        cleanupDumps(node);
                         throw new IOException(
                                 "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
                                 e);
                     } else {
-                        if(JENKINS_67664_ENABLED) {
-                            generateThreadDump(node);
-                        }
                         throw e;
                     }
                 } catch (RejectedExecutionException e) {
+                    jenkins67664.set(false);
+                    diag.set(false);
+                    diagFuture.cancel(true);
                     throw new IOException(
                             "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
                 }
@@ -528,34 +558,86 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     throw e;
                 }
             }
+            
+            private void cleanupDumps(Node node) {
+                File diagDir = new File(JENKINS_67664_THREADDUMP_PATH);
+                File[] files = diagDir.listFiles((dir, name) -> name.startsWith(node == null ? "unknown" : node.getNodeName()));
+                if (files != null) {
+                    Stream.of(files).forEach(File::delete);
+                }
+            }
+
+            private void rotateDumps() {
+                File diagDir = new File(JENKINS_67664_THREADDUMP_PATH);
+                File[] files = diagDir.listFiles();
+
+                if (files != null) {
+                    Stream.of(files)
+                        .sorted(LastModifiedFileComparator.LASTMODIFIED_COMPARATOR)
+                        .skip(100)
+                        .forEach(File::delete);
+                }
+            }
+            
+            private void dumpClientDetails(Node node) {
+                if (JENKINS_67664_ENABLED) {
+                    File parent = new File(JENKINS_67664_THREADDUMP_PATH);
+                    if (parent.exists() || parent.mkdirs()) {
+                        // generate a thread dump
+                        try (
+                            FileOutputStream fos = new FileOutputStream(parent.getAbsolutePath() + "/" + (node == null ? "unknown" : node.getNodeName()) + "-" + System.currentTimeMillis() + "-okhttp.txt");
+                            OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+                            PrintWriter printWriter = new PrintWriter(osw)) {
+
+                            OkHttpClient okHttpClient = ((OkHttpClientImpl) (getClient().getHttpClient())).getOkHttpClient();
+
+                            printWriter.print("dispatcher runningCalls:[");
+                            printWriter.print(okHttpClient.dispatcher().runningCalls().stream().map(Call::request).collect(Collectors.toList()));
+                            printWriter.println("]");
+                            printWriter.print("dispatcher queuedCalls:[");
+                            printWriter.print(okHttpClient.dispatcher().queuedCalls().stream().map(Call::request).collect(Collectors.toList()));
+                            printWriter.println("]");
+                            printWriter.print("connectionPool connectionCount:");
+                            printWriter.println(okHttpClient.connectionPool().connectionCount());
+                            printWriter.print("connectionPool connectionCount:");
+                            printWriter.println(okHttpClient.connectionPool().idleConnectionCount());
+                            printWriter.flush();
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
+                        }
+                    }
+                }
+            }
 
             private void generateThreadDump(Node node) {
-                File parent = new File(JENKINS_67664_THREADDUMP_PATH);
-                if(parent.exists() || parent.mkdirs()) {
-                    // generate a thread dump
-                    try (
-                        FileOutputStream fos = new FileOutputStream(parent.getAbsolutePath() + "/" + (node == null ? "unknown" : node.getNodeName()) + ".txt");
-                        OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-                        PrintWriter printWriter = new PrintWriter(osw)) {
-                        final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-                        final ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported());
-                        for (ThreadInfo threadInfo : threadInfos) {
-                            printWriter.print('"');
-                            printWriter.print(threadInfo.getThreadName());
-                            printWriter.println("\" ");
-                            final Thread.State state = threadInfo.getThreadState();
-                            printWriter.print("   java.lang.Thread.State: ");
-                            printWriter.println(state);
-                            final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
-                            for (final StackTraceElement stackTraceElement : stackTraceElements) {
-                                printWriter.print("        at ");
-                                printWriter.println(stackTraceElement);
+                if (JENKINS_67664_ENABLED) {
+                    File parent = new File(JENKINS_67664_THREADDUMP_PATH);
+                    if (parent.exists() || parent.mkdirs()) {
+                        // generate a thread dump
+                        try (
+                            FileOutputStream fos = new FileOutputStream(parent.getAbsolutePath() + "/" + (node == null ? "unknown" : node.getNodeName()) + "-" + System.currentTimeMillis() + ".txt");
+                            OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+                            PrintWriter printWriter = new PrintWriter(osw)) {
+                            final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+                            final ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported());
+                            for (ThreadInfo threadInfo : threadInfos) {
+                                printWriter.print('"');
+                                printWriter.print(threadInfo.getThreadName());
+                                printWriter.println("\" ");
+                                final Thread.State state = threadInfo.getThreadState();
+                                printWriter.print("   java.lang.Thread.State: ");
+                                printWriter.println(state);
+                                final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
+                                for (final StackTraceElement stackTraceElement : stackTraceElements) {
+                                    printWriter.print("        at ");
+                                    printWriter.println(stackTraceElement);
+                                }
+                                printWriter.println();
                             }
-                            printWriter.println();
+                            printWriter.flush();
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
                         }
-                        printWriter.flush();
-                    } catch (IOException ioException) {
-                        ioException.printStackTrace();
                     }
                 }
             }
