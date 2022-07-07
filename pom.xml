@@ -104,7 +104,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>1174.va_3d1b_702a_07b_</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/217 -->
+      <version>1182.v41475e53ea_43</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -138,7 +138,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1147.vf46a_1da_37680</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/231 -->
+      <version>1164.v2334ddcf48d0</version> <!-- TODO until in BOM -->
     </dependency>
 
     <!-- for testing -->
@@ -150,7 +150,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-basic-steps</artifactId>
-      <version>962.v44eb_d807841a_</version> <!-- TODO https://github.com/jenkinsci/workflow-basic-steps-plugin/pull/203 -->
+      <version>969.vc4ec3e4854b_f</version> <!-- TODO until in BOM -->
       <scope>test</scope>
     </dependency>
     <dependency> <!-- SemaphoreStep -->
