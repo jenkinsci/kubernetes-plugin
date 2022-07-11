@@ -66,14 +66,8 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
             return false;
         }
         if (!new AgentErrorCondition().test(t, context)) {
-            if (t instanceof FlowInterruptedException && ((FlowInterruptedException) t).getCauses().stream().anyMatch(ExecutorStepExecution.QueueTaskCancelled.class::isInstance)) {
-                LOGGER.fine(() -> "QueueTaskCancelled normally ignored by AgentErrorCondition but might be delivered here from Reaper.TerminateAgentOnContainerTerminated");
-                // TODO cleaner to somehow suppress that QueueTaskCancelled and let the underlying RemovedNodeCause be delivered
-                // (or just let AgentErrorCondition trigger on QueueTaskCancelled)
-            } else {
-                LOGGER.fine(() -> "Not a recognized failure: " + t);
-                return false;
-            }
+            LOGGER.fine(() -> "Not a recognized failure: " + t);
+            return false;
         }
         FlowNode _origin = ErrorAction.findOrigin(t, context.get(FlowExecution.class));
         if (_origin == null) {

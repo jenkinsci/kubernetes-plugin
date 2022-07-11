@@ -136,6 +136,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
+      <version>1174.v73a_9a_17edce0</version> <!-- TODO until in BOM -->
     </dependency>
 
     <!-- for testing -->
