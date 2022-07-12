@@ -41,6 +41,7 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.steps.AgentErrorCondition;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Qualifies {@code node} blocks associated with {@link KubernetesSlave} to be retried if the node was deleted.
@@ -57,13 +58,23 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
         IGNORED_CONTAINER_TERMINATION_REASONS.add("DeadlineExceeded");
     }
 
+    private boolean handleNonKubernetes;
+
     @DataBoundConstructor public KubernetesAgentErrorCondition() {}
+
+    public boolean isHandleNonKubernetes() {
+        return handleNonKubernetes;
+    }
+
+    @DataBoundSetter public void setHandleNonKubernetes(boolean handleNonKubernetes) {
+        this.handleNonKubernetes = handleNonKubernetes;
+    }
 
     @Override
     public boolean test(Throwable t, StepContext context) throws IOException, InterruptedException {
         if (context == null) {
             LOGGER.fine("Cannot check error without context");
-            return false;
+            return handleNonKubernetes;
         }
         if (!new AgentErrorCondition().test(t, context)) {
             LOGGER.fine(() -> "Not a recognized failure: " + t);
@@ -72,7 +83,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
         FlowNode _origin = ErrorAction.findOrigin(t, context.get(FlowExecution.class));
         if (_origin == null) {
             LOGGER.fine(() -> "No recognized origin of error: " + t);
-            return false;
+            return handleNonKubernetes;
         }
         FlowNode origin = _origin instanceof BlockEndNode ? ((BlockEndNode) _origin).getStartNode() : _origin;
         LOGGER.fine(() -> "Found origin " + origin + " " + origin.getDisplayFunctionName());
@@ -86,14 +97,14 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 if (n != null) {
                     if (!(n instanceof KubernetesSlave)) {
                         LOGGER.fine(() -> node + " was not a K8s agent");
-                        return false;
+                        return handleNonKubernetes;
                     }
                 } else {
                     // May have been removed already, but we can look up the labels to see what it was.
                     Set<LabelAtom> labels = ws.getLabels();
                     if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
                         LOGGER.fine(() -> node + " was not a K8s agent judging by " + labels);
-                        return false;
+                        return handleNonKubernetes;
                     }
                 }
                 Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
@@ -106,7 +117,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
             }
         }
         LOGGER.fine(() -> "found no WorkspaceAction starting from " + origin);
-        return false;
+        return handleNonKubernetes;
     }
 
     @Symbol("kubernetesAgent")
