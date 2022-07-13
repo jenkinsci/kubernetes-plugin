@@ -272,7 +272,7 @@
       <dependency><!-- pipeline-model-extensions vs. io.jenkins.configuration-as-code:test-harness -->
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
-        <version>2.10.5</version>
+        <version>2.10.14</version>
       </dependency>
       <dependency><!-- io.jenkins:configuration-as-code vs. org.jenkins-ci.plugins:junit -->
         <groupId>org.apache.commons</groupId>
