@@ -1,0 +1,6 @@
+<div>
+    Similar to <code>agent()</code> (<b>Agent errors</b>) but tailored to agents provisioned from a Kubernetes cloud.
+    Unlike the generic agent error condition,
+    this will ignore certain pod termination reasons which are likely to be under the control of the Pipeline author (e.g., <code>OOMKilled</code>)
+    while still allowing <code>retry</code> to recover after common cases of pod deletion.
+</div>

@@ -81,7 +81,8 @@ public abstract class AbstractKubernetesPipelineTest {
     public LoggerRule logs = new LoggerRule()
             .recordPackage(KubernetesCloud.class, Level.FINE)
             .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
-            .record(NodeProvisioner.class, Level.FINE);
+            .record(NodeProvisioner.class, Level.FINE)
+            .record(KubernetesAgentErrorCondition.class, Level.FINE);
 
     @BeforeClass
     public static void isKubernetesConfigured() throws Exception {

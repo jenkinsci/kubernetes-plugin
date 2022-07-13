@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -142,10 +143,12 @@ public class ReaperTest {
         assertFalse("should not be watching cloud", r.isWatchingCloud(cloud.name));
 
         // fire compute on-line event
-        r.onOnline(kc, tl);
+        r.preLaunch(kc, tl);
 
         // expect new cloud registered
-        assertTrue("should be watching cloud", r.isWatchingCloud(cloud.name));
+        while (!r.isWatchingCloud(cloud.name)) {
+            Thread.sleep(100);
+        }
         kubeClientRequests()
                 .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 1);
     }
@@ -179,10 +182,12 @@ public class ReaperTest {
         KubernetesSlave n2 = addNode(cloud, "p1-123", "p1");
         TaskListener tl = mock(TaskListener.class);
         KubernetesComputer kc = new KubernetesComputer(n2);
-        r.onOnline(kc, tl);
+        r.preLaunch(kc, tl);
 
         // should have started new watch
-        assertTrue("watcher is restarted", r.isWatchingCloud(cloud.name));
+        while (!r.isWatchingCloud(cloud.name)) {
+            Thread.sleep(100);
+        }
     }
 
     @Test(timeout = 10_000)
@@ -637,7 +642,7 @@ public class ReaperTest {
         private static final List<ReaperListenerWatchEvent> CAPTURED_EVENTS = new LinkedList<>();
 
         @Override
-        public synchronized void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod) throws IOException, InterruptedException {
+        public synchronized void onEvent(@NonNull Watcher.Action action, @NonNull KubernetesSlave node, @NonNull Pod pod, @NonNull Set<String> terminationReaons) throws IOException, InterruptedException {
             CAPTURED_EVENTS.add(new ReaperListenerWatchEvent(action, node, pod));
             notifyAll();
         }
