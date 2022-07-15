@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
   <f:entry field="cloud" title="${%Cloud to use}">
     <f:select/>
   </f:entry>
@@ -49,5 +49,6 @@
     <f:entry title="${%Workspace Volume}" description="${%Volume to use for sharing the workspace}">
       <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
     </f:entry>
+    <st:include page="retries" class="${descriptor.clazz}"/>
   </f:advanced>
 </j:jelly>
