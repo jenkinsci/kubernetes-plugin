@@ -45,6 +45,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,9 @@ import static java.util.logging.Level.WARNING;
 public class KubernetesLauncher extends JNLPLauncher {
     // Report progress every 30 seconds
     private static final long REPORT_INTERVAL = TimeUnit.SECONDS.toMillis(30L);
+
+    private static final Collection<String> POD_TERMINATED_STATES =
+            Collections.unmodifiableCollection(Arrays.asList("Succeeded", "Failed"));
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
@@ -172,12 +176,10 @@ public class KubernetesLauncher extends JNLPLauncher {
 
             // We need the pod to be running and connected before returning
             // otherwise this method keeps being called multiple times
-            List<String> validStates = Collections.unmodifiableList(Arrays.asList("Running"));
-
+            // so wait for agent to be online
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
-
-            // now wait for agent to be online
+            
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
@@ -199,10 +201,11 @@ public class KubernetesLauncher extends JNLPLauncher {
                     throw new IllegalStateException("Pod no longer exists: " + podName);
                 }
                 status = pod.getStatus().getPhase();
-                if (!validStates.contains(status)) {
+                if (POD_TERMINATED_STATES.contains(status)) {
                     Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
                     Metrics.metricRegistry().counter(MetricNames.metricNameForPodStatus(status)).inc();
-                    break;
+                    logLastLines(containerStatuses, podName, namespace, node, null, client);
+                    throw new IllegalStateException("Pod '" + podName + "' is terminated. Status: " + status);
                 }
 
                 containerStatuses = pod.getStatus().getContainerStatuses();
