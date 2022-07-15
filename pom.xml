@@ -119,6 +119,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
+      <version>2725.v7b_c717eb_12ce</version> <!-- TODO until in BOM -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -136,13 +137,14 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1174.v73a_9a_17edce0</version> <!-- TODO until in BOM -->
+      <version>1217.v0a_5c299d0a_59</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
     </dependency>
 
     <!-- for testing -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
+      <version>1186.v8def1a_5f3944</version> <!-- TODO until in BOM -->
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -165,6 +167,7 @@
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
       <classifier>tests</classifier>
+      <version>2725.v7b_c717eb_12ce</version> <!-- TODO until in BOM -->
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -220,6 +223,12 @@
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion> <!-- TODO bom bug? -->
+          <groupId>org.jenkins-ci.main</groupId>
+          <artifactId>jenkins-test-harness</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
