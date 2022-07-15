@@ -258,11 +258,6 @@
         <scope>import</scope>
         <type>pom</type>
       </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>script-security</artifactId>
-        <version>1172.v35f6a_0b_8207e</version> <!-- TODO until in BOM -->
-      </dependency>
       <dependency> <!-- TODO as above -->
         <groupId>org.jenkinsci.plugins</groupId>
         <artifactId>pipeline-model-api</artifactId>
