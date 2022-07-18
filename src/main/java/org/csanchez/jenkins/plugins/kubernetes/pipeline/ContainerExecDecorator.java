@@ -45,7 +45,6 @@ import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
-import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -64,7 +63,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.Execable;
-import okhttp3.Response;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 
@@ -77,11 +75,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private static final long serialVersionUID = 4419929753433397655L;
 
+    private static final String WEBSOCKET_CONNECTION_RETRY_COUNT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+        + ".websocketConnectionRetryCount";
+    private static final String WEBSOCKET_CONNECTION_RETRY_WAIT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+        + ".websocketConnectionRetryWait";
     private static final String WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
             + ".websocketConnectionTimeout";
     /** time to wait in seconds for websocket to connect */
     private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
             .getInteger(WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY, 30);
+    /** number of times retry failed websocket connection */
+    private static final int WEBSOCKET_CONNECTION_RETRY_COUNT = Integer
+        .getInteger(WEBSOCKET_CONNECTION_RETRY_COUNT_SYSTEM_PROPERTY, 3);
+    /** time to wait between websocket connection retries */
+    private static final int WEBSOCKET_CONNECTION_RETRY_WAIT = Integer
+        .getInteger(WEBSOCKET_CONNECTION_RETRY_WAIT_SYSTEM_PROPERTY, 3);
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
@@ -331,10 +339,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private Proc doLaunch(boolean quiet, String[] cmdEnvs, OutputStream outputForCaller, FilePath pwd,
                     boolean[] masks, String... commands) throws IOException {
-                final CountDownLatch started = new CountDownLatch(1);
-                final CountDownLatch finished = new CountDownLatch(1);
-                final AtomicBoolean alive = new AtomicBoolean(false);
-                final AtomicLong startAlive = new AtomicLong();
                 long startMethod = System.nanoTime();
 
                 PrintStream printStream;
@@ -382,77 +386,38 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     closables = new ArrayList<>();
                 }
 
-                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName) //
-                        .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
-                        .writingOutput(stream).writingError(stream).writingErrorChannel(error)
-                        .usingListener(new ExecListener() {
-                            @Override
-                            public void onOpen() {
-                                alive.set(true);
-                                started.countDown();
-                                startAlive.set(System.nanoTime());
-                                LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
-                            }
-
-                            @Override
-                            public void onFailure(Throwable t, Response response) {
-                                alive.set(false);
-                                t.printStackTrace(launcher.getListener().getLogger());
-                                started.countDown();
-                                LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
-                                if (finished.getCount() == 0) {
-                                    LOGGER.log(Level.WARNING,
-                                            "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
-                                }
-                                finished.countDown();
-                            }
-
-                            @Override
-                            public void onClose(int i, String s) {
-                                alive.set(false);
-                                started.countDown();
-                                LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
-                                if (finished.getCount() == 0) {
-                                    LOGGER.log(Level.WARNING,
-                                            "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
-                                }
-                                finished.countDown();
-                            }
-                        });
-
-                ExecWatch watch;
-                try {
-                    watch = execable.exec(sh);
-                } catch (KubernetesClientException e) {
-                    if (e.getCause() instanceof InterruptedException) {
-                        throw new IOException(
-                                "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
-                                e);
-                    } else {
-                        throw e;
+                int attempts = 0;
+                ExecWatch watch = null;
+                AtomicBoolean alive = null;
+                CountDownLatch finished = null;
+                while (attempts < WEBSOCKET_CONNECTION_RETRY_COUNT) {
+                    try {
+                        alive = new AtomicBoolean(false);
+                        finished = new CountDownLatch(1);
+                        watch = openExecInContainer(sh, alive, finished, stream, stream, error);
+                        break;
+                    } catch (Exception e) {
+                        launcher.getListener().error("Failed to start websocket connection:");
+                        e.printStackTrace(launcher.getListener().getLogger());
+                    } finally {
+                        attempts++;
                     }
-                } catch (RejectedExecutionException e) {
-                    throw new IOException(
-                            "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
+
+                    if (attempts < WEBSOCKET_CONNECTION_RETRY_COUNT) {
+                        launcher.getListener().getLogger().println("Retrying in " + WEBSOCKET_CONNECTION_RETRY_WAIT + "s ...");
+                        try {
+                            Thread.sleep(Integer.toUnsignedLong(WEBSOCKET_CONNECTION_RETRY_WAIT * 1000));
+                        } catch (InterruptedException ex) {
+                            launcher.getListener().getLogger().println("Retry wait interrupted");
+                        } finally {
+                            launcher.getListener().getLogger().println("Retrying...");
+                        }
+                    }
                 }
 
-                boolean hasStarted = false;
-                try {
-                    // prevent a wait forever if the connection is closed as the listener would never be called
-                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    closeWatch(watch);
-                    throw new IOException(
-                            "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
-                            e);
-                }
-
-                if (!hasStarted) {
-                    closeWatch(watch);
-                    throw new IOException("Timed out waiting for websocket connection. "
-                            + "You should increase the value of system property "
-                            + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
-                            + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                if (watch == null) {
+                    throw new AbortException("Failed to start websocket connection after " 
+                        + WEBSOCKET_CONNECTION_RETRY_COUNT + " attempts. Check logs above for more details.");
                 }
 
                 try {
@@ -539,6 +504,105 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     closeWatch(watch);
                     throw e;
                 }
+            }
+
+            /**
+             * Launch exec command in container and return the ExecWatch.
+             * @param sh The command to launch as Sring []
+             * @param alive atomic boolean value for watch liveness
+             * @param finished atomic boolean value for watch exit
+             * @param outStream stream for stdout
+             * @param errStream stream for stderr
+             * @param errChannel stream for error
+             * @return the ExecWatch object
+             * @throws IOException if websocket connection cannot be made or is interrupted
+             */
+            private ExecWatch openExecInContainer(
+                String [] sh,
+                final AtomicBoolean alive,
+                final CountDownLatch finished,
+                OutputStream outStream, 
+                OutputStream errStream, 
+                OutputStream errChannel) throws IOException {
+                
+                final CountDownLatch started = new CountDownLatch(1);
+                final AtomicLong startAlive = new AtomicLong();
+                
+                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
+                    .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
+                    .writingOutput(outStream)
+                    .writingError(errStream)
+                    .writingErrorChannel(errChannel)
+                    .usingListener(new ExecListener() {
+                        @Override
+                        public void onOpen() {
+                            alive.set(true);
+                            started.countDown();
+                            startAlive.set(System.nanoTime());
+                            LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t, Response response) {
+                            alive.set(false);
+                            t.printStackTrace(launcher.getListener().getLogger());
+                            started.countDown();
+                            LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
+                            if (finished.getCount() == 0) {
+                                LOGGER.log(Level.WARNING,
+                                    "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
+                            }
+                            finished.countDown();
+                        }
+
+                        @Override
+                        public void onClose(int i, String s) {
+                            alive.set(false);
+                            started.countDown();
+                            LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
+                            if (finished.getCount() == 0) {
+                                LOGGER.log(Level.WARNING,
+                                    "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
+                            }
+                            finished.countDown();
+                        }
+                    });
+
+                ExecWatch watch;
+                try {
+                    watch = execable.exec(sh);
+                } catch (KubernetesClientException e) {
+                    if (e.getCause() instanceof InterruptedException) {
+                        throw new IOException(
+                            "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
+                            e);
+                    } else {
+                        throw e;
+                    }
+                } catch (RejectedExecutionException e) {
+                    throw new IOException(
+                        "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
+                }
+
+                boolean hasStarted;
+                try {
+                    // prevent a wait forever if the connection is closed as the listener would never be called
+                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    closeWatch(watch);
+                    throw new IOException(
+                        "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
+                        e);
+                }
+
+                if (!hasStarted) {
+                    closeWatch(watch);
+                    throw new IOException("Timed out waiting for websocket connection. "
+                        + "You should increase the value of system property "
+                        + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                        + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                }
+                return watch;
             }
 
             @Override
