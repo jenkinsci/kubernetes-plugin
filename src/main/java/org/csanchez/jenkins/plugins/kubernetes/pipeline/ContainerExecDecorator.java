@@ -75,21 +75,21 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     private static final long serialVersionUID = 4419929753433397655L;
 
-    private static final String WEBSOCKET_CONNECTION_RETRY_COUNT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
-        + ".websocketConnectionRetryCount";
-    private static final String WEBSOCKET_CONNECTION_RETRY_WAIT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
-        + ".websocketConnectionRetryWait";
+    private static final String WEBSOCKET_CONNECTION_MAX_RETRY_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+        + ".websocketConnectionMaxRetries";
+    private static final String WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
+        + ".websocketConnectionMaxRetryBackoff";
     private static final String WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY = ContainerExecDecorator.class.getName()
             + ".websocketConnectionTimeout";
     /** time to wait in seconds for websocket to connect */
     private static final int WEBSOCKET_CONNECTION_TIMEOUT = Integer
             .getInteger(WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY, 30);
-    /** number of times retry failed websocket connection */
-    private static final int WEBSOCKET_CONNECTION_RETRY_COUNT = Integer
-        .getInteger(WEBSOCKET_CONNECTION_RETRY_COUNT_SYSTEM_PROPERTY, 3);
-    /** time to wait between websocket connection retries */
-    private static final int WEBSOCKET_CONNECTION_RETRY_WAIT = Integer
-        .getInteger(WEBSOCKET_CONNECTION_RETRY_WAIT_SYSTEM_PROPERTY, 3);
+    /** maximum number of times to retry failed websocket connection */
+    private static final int WEBSOCKET_CONNECTION_MAX_RETRY = Integer
+        .getInteger(WEBSOCKET_CONNECTION_MAX_RETRY_SYSTEM_PROPERTY, 5);
+    /** maximum backoff time for retrying failed websocket connection  */
+    private static final int WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF = Integer
+        .getInteger(WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF_SYSTEM_PROPERTY, 30);
     private static final String COOKIE_VAR = "JENKINS_SERVER_COOKIE";
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecDecorator.class.getName());
@@ -390,7 +390,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 ExecWatch watch = null;
                 AtomicBoolean alive = null;
                 CountDownLatch finished = null;
-                while (attempts < WEBSOCKET_CONNECTION_RETRY_COUNT) {
+                while (attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
                     try {
                         alive = new AtomicBoolean(false);
                         finished = new CountDownLatch(1);
@@ -403,10 +403,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         attempts++;
                     }
 
-                    if (attempts < WEBSOCKET_CONNECTION_RETRY_COUNT) {
-                        launcher.getListener().getLogger().println("Retrying in " + WEBSOCKET_CONNECTION_RETRY_WAIT + "s ...");
+                    if (attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
+                        // Exponential backoff: Waits 2s, next attempt 4s, next attempts 8s, next attempts 16s, ...
+                        // with a maximum of wait of WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF
+                        long backoffInSeconds = Math.min(Integer.toUnsignedLong((int) Math.pow(2, attempts)),
+                            WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF);
+                        launcher.getListener().getLogger().println("Retrying in " + backoffInSeconds + "s ...");
                         try {
-                            Thread.sleep(Integer.toUnsignedLong(WEBSOCKET_CONNECTION_RETRY_WAIT * 1000));
+                            Thread.sleep(backoffInSeconds);
                         } catch (InterruptedException ex) {
                             launcher.getListener().getLogger().println("Retry wait interrupted");
                         } finally {
@@ -417,7 +421,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 if (watch == null) {
                     throw new AbortException("Failed to start websocket connection after " 
-                        + WEBSOCKET_CONNECTION_RETRY_COUNT + " attempts. Check logs above for more details.");
+                        + WEBSOCKET_CONNECTION_MAX_RETRY + " attempts. Check logs above for more details.");
                 }
 
                 try {
