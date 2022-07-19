@@ -49,6 +49,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <pipeline-model-definition-plugin.version>2.2114.v2654ca_721309</pipeline-model-definition-plugin.version> <!-- TODO until in BOM -->
   </properties>
 
   <dependencies>
@@ -256,6 +257,32 @@
         <version>1478.v81d3dc4f9a_43</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-api</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-definition</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-definition</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+        <classifier>tests</classifier>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-model-extensions</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
+      </dependency>
+      <dependency> <!-- TODO as above -->
+        <groupId>org.jenkinsci.plugins</groupId>
+        <artifactId>pipeline-stage-tags-metadata</artifactId>
+        <version>${pipeline-model-definition-plugin.version}</version>
       </dependency>
       <!-- Fix InjectedTest -->
       <dependency>

@@ -13,7 +13,6 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
 import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgent;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentDescriptor;
 import org.jenkinsci.plugins.variant.OptionalExtension;
 import org.kohsuke.accmod.Restricted;
@@ -30,8 +29,9 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.jenkinsci.plugins.pipeline.modeldefinition.agent.RetryableDeclarativeAgent;
 
-public class KubernetesDeclarativeAgent extends DeclarativeAgent<KubernetesDeclarativeAgent> {
+public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<KubernetesDeclarativeAgent> {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
 

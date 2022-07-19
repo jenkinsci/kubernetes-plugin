@@ -49,27 +49,36 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                 script.echo '[WARNING] containerTemplate option is deprecated, use yaml syntax to define containers.'
             }
             script.podTemplate(describable.asArgs) {
-                script.node(describable.labelExpression ?: script.POD_LABEL) {
-                    CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
-                        // what container to use for the main body
-                        def container = describable.defaultContainer ?: 'jnlp'
+                Closure run = {
+                    script.node(describable.labelExpression ?: script.POD_LABEL) {
+                        CheckoutScript.doCheckout(script, describable, describable.customWorkspace) {
+                            // what container to use for the main body
+                            def container = describable.defaultContainer ?: 'jnlp'
 
-                        if (describable.containerTemplate != null) {
-                            // run inside the container declared for backwards compatibility
-                            container = describable.containerTemplate.asArgs
-                        }
-
-                        // call the main body
-                        if (container == 'jnlp') {
-                            // If default container is not changed by the pipeline user,
-                            // do not enclose the body with a `container` statement.
-                            body.call()
-                        } else {
-                            script.container(container) {
-                                body.call()
+                            if (describable.containerTemplate != null) {
+                                // run inside the container declared for backwards compatibility
+                                container = describable.containerTemplate.asArgs
                             }
-                        }
-                    }.call()
+
+                            // call the main body
+                            if (container == 'jnlp') {
+                                // If default container is not changed by the pipeline user,
+                                // do not enclose the body with a `container` statement.
+                                body.call()
+                            } else {
+                                script.container(container) {
+                                    body.call()
+                                }
+                            }
+                        }.call()
+                    }
+                }
+                if (describable.retries > 1) {
+                    script.retry(count: describable.retries, conditions: [script.kubernetesAgent(), script.nonresumable()]) {
+                        run.call()
+                    }
+                } else {
+                    run.call()
                 }
             }
         }
