@@ -576,16 +576,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 try {
                     watch = execable.exec(sh);
                 } catch (KubernetesClientException e) {
-                    if (e.getCause() instanceof InterruptedException) {
-                        throw new IOException(
-                            "Interrupted while starting websocket connection, you should increase the Max connections to Kubernetes API",
-                            e);
-                    } else {
-                        throw e;
-                    }
-                } catch (RejectedExecutionException e) {
-                    throw new IOException(
-                        "Connection was rejected, you should increase the Max connections to Kubernetes API", e);
+                    throw new IOException("Unable to perform kubernetes execution, you should consider increasing the Max connections to Kubernetes API", e);
                 }
 
                 boolean hasStarted;
@@ -594,9 +585,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     closeWatch(watch);
-                    throw new IOException(
-                        "Interrupted while waiting for websocket connection, you should increase the Max connections to Kubernetes API",
-                        e);
+                    throw new IOException("Interrupted while waiting for websocket connection, you should consider increasing the Max connections to Kubernetes API", e);
                 }
 
                 if (!hasStarted) {
