@@ -410,7 +410,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF);
                         launcher.getListener().getLogger().println("Retrying in " + backoffInSeconds + "s ...");
                         try {
-                            Thread.sleep(backoffInSeconds);
+                            Thread.sleep(backoffInSeconds * 1000);
                         } catch (InterruptedException ex) {
                             launcher.getListener().getLogger().println("Retry wait interrupted");
                         } finally {
