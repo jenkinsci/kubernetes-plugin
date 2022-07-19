@@ -49,7 +49,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <pipeline-model-definition-plugin.version>2.2109.vb_27c2f52c324</pipeline-model-definition-plugin.version> <!-- TODO https://github.com/jenkinsci/pipeline-model-definition-plugin/pull/533 -->
+    <pipeline-model-definition-plugin.version>2.2114.v2654ca_721309</pipeline-model-definition-plugin.version> <!-- TODO until in BOM -->
   </properties>
 
   <dependencies>
