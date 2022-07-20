@@ -49,7 +49,6 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <pipeline-model-definition-plugin.version>2.2114.v2654ca_721309</pipeline-model-definition-plugin.version> <!-- TODO until in BOM -->
   </properties>
 
   <dependencies>
@@ -137,7 +136,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1174.v73a_9a_17edce0</version> <!-- TODO until in BOM -->
     </dependency>
 
     <!-- for testing -->
@@ -254,35 +252,9 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.332.x</artifactId>
-        <version>1478.v81d3dc4f9a_43</version>
+        <version>1494.v5d4d71876757</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <dependency> <!-- TODO as above -->
-        <groupId>org.jenkinsci.plugins</groupId>
-        <artifactId>pipeline-model-api</artifactId>
-        <version>${pipeline-model-definition-plugin.version}</version>
-      </dependency>
-      <dependency> <!-- TODO as above -->
-        <groupId>org.jenkinsci.plugins</groupId>
-        <artifactId>pipeline-model-definition</artifactId>
-        <version>${pipeline-model-definition-plugin.version}</version>
-      </dependency>
-      <dependency> <!-- TODO as above -->
-        <groupId>org.jenkinsci.plugins</groupId>
-        <artifactId>pipeline-model-definition</artifactId>
-        <version>${pipeline-model-definition-plugin.version}</version>
-        <classifier>tests</classifier>
-      </dependency>
-      <dependency> <!-- TODO as above -->
-        <groupId>org.jenkinsci.plugins</groupId>
-        <artifactId>pipeline-model-extensions</artifactId>
-        <version>${pipeline-model-definition-plugin.version}</version>
-      </dependency>
-      <dependency> <!-- TODO as above -->
-        <groupId>org.jenkinsci.plugins</groupId>
-        <artifactId>pipeline-stage-tags-metadata</artifactId>
-        <version>${pipeline-model-definition-plugin.version}</version>
       </dependency>
       <!-- Fix InjectedTest -->
       <dependency>
