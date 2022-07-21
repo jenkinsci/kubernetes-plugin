@@ -386,27 +386,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
 
                 int attempts = 0;
-                ExecWatch watch = null;
-                AtomicBoolean alive = null;
-                CountDownLatch finished = null;
+                ExecWatchWrapper watchWrapper = null;
                 while (attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
-                    try {
-                        alive = new AtomicBoolean(false);
-                        finished = new CountDownLatch(1);
-                        watch = openExecInContainer(sh, alive, finished, stream, stream, error);
-                        break;
-                    } catch (Exception e) {
-                        launcher.getListener().error("Failed to start websocket connection:");
-                        e.printStackTrace(launcher.getListener().getLogger());
-                    } finally {
-                        attempts++;
-                    }
 
-                    if (attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
+                    if (attempts > 0) {
                         // Exponential backoff: Waits 2s, next attempt 4s, next attempts 8s, next attempts 16s, ...
                         // with a maximum of wait of WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF
-                        long backoffInSeconds = Math.min(Integer.toUnsignedLong((int) Math.pow(2, attempts)),
-                            WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF);
+                        long backoffInSeconds = Math.min(Integer.toUnsignedLong((int) Math.pow(2, attempts)), WEBSOCKET_CONNECTION_MAX_RETRY_BACKOFF);
                         launcher.getListener().getLogger().println("Retrying in " + backoffInSeconds + "s ...");
                         try {
                             Thread.sleep(backoffInSeconds * 1000);
@@ -416,12 +402,95 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             launcher.getListener().getLogger().println("Retrying...");
                         }
                     }
+
+                    try {
+                        final AtomicBoolean alive = new AtomicBoolean(false);
+                        final CountDownLatch started = new CountDownLatch(1);
+                        final CountDownLatch finished = new CountDownLatch(1);
+                        final AtomicLong startAlive = new AtomicLong();
+
+                        Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
+                            .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
+                            .writingOutput(stream)
+                            .writingError(stream)
+                            .writingErrorChannel(error)
+                            .usingListener(new ExecListener() {
+                                @Override
+                                public void onOpen() {
+                                    alive.set(true);
+                                    started.countDown();
+                                    startAlive.set(System.nanoTime());
+                                    LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
+                                }
+
+                                @Override
+                                public void onFailure(Throwable t, Response response) {
+                                    alive.set(false);
+                                    t.printStackTrace(launcher.getListener().getLogger());
+                                    started.countDown();
+                                    LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
+                                    if (finished.getCount() == 0) {
+                                        LOGGER.log(Level.WARNING,
+                                            "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
+                                    }
+                                    finished.countDown();
+                                }
+
+                                @Override
+                                public void onClose(int i, String s) {
+                                    alive.set(false);
+                                    started.countDown();
+                                    LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
+                                    if (finished.getCount() == 0) {
+                                        LOGGER.log(Level.WARNING,
+                                            "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
+                                    }
+                                    finished.countDown();
+                                }
+                            });
+
+                        ExecWatch watch;
+                        try {
+                            watch = execable.exec(sh);
+                        } catch (KubernetesClientException e) {
+                            throw new IOException("Unable to perform kubernetes execution, you should consider increasing the Max connections to Kubernetes API", e);
+                        }
+
+                        boolean hasStarted;
+                        try {
+                            // prevent a wait forever if the connection is closed as the listener would never be called
+                            hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            closeWatch(watch);
+                            throw new IOException("Interrupted while waiting for websocket connection, you should consider increasing the Max connections to Kubernetes API", e);
+                        }
+
+                        if (!hasStarted) {
+                            closeWatch(watch);
+                            throw new IOException("Timed out waiting for websocket connection. "
+                                + "You should increase the value of system property "
+                                + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                                + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                        }
+
+                        watchWrapper = new ExecWatchWrapper(watch, alive, finished);
+                        break;
+                    } catch (IOException e) {
+                        launcher.getListener().error("Failed to start websocket connection: " + e.getMessage());
+                        e.printStackTrace(launcher.getListener().getLogger());
+                    } finally {
+                        attempts++;
+                    }
                 }
 
-                if (watch == null) {
-                    throw new AbortException("Failed to start websocket connection after " 
+                if (watchWrapper == null || watchWrapper.getExecWatch() == null) {
+                    throw new AbortException("Failed to start websocket connection after "
                         + WEBSOCKET_CONNECTION_MAX_RETRY + " attempts. Check logs above for more details.");
                 }
+
+                ExecWatch watch = watchWrapper.getExecWatch();
+                final AtomicBoolean alive = watchWrapper.getAlive();
+                final CountDownLatch finished = watchWrapper.getFinished();
 
                 try {
                     // Depends on the ping time with the Kubernetes API server
@@ -509,94 +578,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
             }
 
-            /**
-             * Launch exec command in container and return the ExecWatch.
-             * @param sh The command to launch as Sring []
-             * @param alive atomic boolean value for watch liveness
-             * @param finished atomic boolean value for watch exit
-             * @param outStream stream for stdout
-             * @param errStream stream for stderr
-             * @param errChannel stream for error
-             * @return the ExecWatch object
-             * @throws IOException if websocket connection cannot be made or is interrupted
-             */
-            private ExecWatch openExecInContainer(
-                String [] sh,
-                final AtomicBoolean alive,
-                final CountDownLatch finished,
-                OutputStream outStream, 
-                OutputStream errStream, 
-                OutputStream errChannel) throws IOException {
-                
-                final CountDownLatch started = new CountDownLatch(1);
-                final AtomicLong startAlive = new AtomicLong();
-                
-                Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
-                    .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
-                    .writingOutput(outStream)
-                    .writingError(errStream)
-                    .writingErrorChannel(errChannel)
-                    .usingListener(new ExecListener() {
-                        @Override
-                        public void onOpen() {
-                            alive.set(true);
-                            started.countDown();
-                            startAlive.set(System.nanoTime());
-                            LOGGER.log(Level.FINEST, "onOpen : {0}", finished);
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t, Response response) {
-                            alive.set(false);
-                            t.printStackTrace(launcher.getListener().getLogger());
-                            started.countDown();
-                            LOGGER.log(Level.FINEST, "onFailure : {0}", finished);
-                            if (finished.getCount() == 0) {
-                                LOGGER.log(Level.WARNING,
-                                    "onFailure called but latch already finished. This may be a bug in the kubernetes-plugin");
-                            }
-                            finished.countDown();
-                        }
-
-                        @Override
-                        public void onClose(int i, String s) {
-                            alive.set(false);
-                            started.countDown();
-                            LOGGER.log(Level.FINEST, "onClose : {0} [{1} ms]", new Object[]{finished, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startAlive.get())});
-                            if (finished.getCount() == 0) {
-                                LOGGER.log(Level.WARNING,
-                                    "onClose called but latch already finished. This indicates a bug in the kubernetes-plugin");
-                            }
-                            finished.countDown();
-                        }
-                    });
-
-                ExecWatch watch;
-                try {
-                    watch = execable.exec(sh);
-                } catch (KubernetesClientException e) {
-                    throw new IOException("Unable to perform kubernetes execution, you should consider increasing the Max connections to Kubernetes API", e);
-                }
-
-                boolean hasStarted;
-                try {
-                    // prevent a wait forever if the connection is closed as the listener would never be called
-                    hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    closeWatch(watch);
-                    throw new IOException("Interrupted while waiting for websocket connection, you should consider increasing the Max connections to Kubernetes API", e);
-                }
-
-                if (!hasStarted) {
-                    closeWatch(watch);
-                    throw new IOException("Timed out waiting for websocket connection. "
-                        + "You should increase the value of system property "
-                        + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
-                        + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
-                }
-                return watch;
-            }
-
             @Override
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
                 getListener().getLogger().println("Killing processes");
@@ -644,6 +625,37 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "failed to close", e);
             }
+        }
+    }
+
+    /**
+     * Wrapper of ExecWatch that also hold watch attributes for liveness and closure.
+     */
+    private static class ExecWatchWrapper {
+
+        /* the watch */
+        private final ExecWatch execWatch;
+        /* atomic boolean value for watch liveness */
+        private final AtomicBoolean alive;
+        /* count down latch value for watch exit */
+        private final CountDownLatch finished;
+
+        public ExecWatchWrapper(ExecWatch execWatch, AtomicBoolean alive, CountDownLatch finished) {
+            this.execWatch = execWatch;
+            this.alive = alive;
+            this.finished = finished;
+        }
+
+        public ExecWatch getExecWatch() {
+            return execWatch;
+        }
+
+        public AtomicBoolean getAlive() {
+            return alive;
+        }
+
+        public CountDownLatch getFinished() {
+            return finished;
         }
     }
 
