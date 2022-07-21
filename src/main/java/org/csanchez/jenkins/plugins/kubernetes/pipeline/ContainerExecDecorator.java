@@ -44,6 +44,7 @@ import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -387,7 +388,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 int attempts = 0;
                 ExecWatchWrapper watchWrapper = null;
-                while (attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
+                while (watchWrapper == null && attempts < WEBSOCKET_CONNECTION_MAX_RETRY) {
 
                     if (attempts > 0) {
                         // Exponential backoff: Waits 2s, next attempt 4s, next attempts 8s, next attempts 16s, ...
@@ -409,7 +410,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         final CountDownLatch finished = new CountDownLatch(1);
                         final AtomicLong startAlive = new AtomicLong();
 
-                        Execable<String, ExecWatch> execable = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
+                        ExecWatch watch = getClient().pods().inNamespace(getNamespace()).withName(getPodName()).inContainer(containerName)
                             .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
                             .writingOutput(stream)
                             .writingError(stream)
@@ -447,36 +448,39 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                     }
                                     finished.countDown();
                                 }
-                            });
-
-                        ExecWatch watch;
+                            }).exec(sh);
+                        
+                        // prevent a wait forever if the connection is closed as the listener would never be called
                         try {
-                            watch = execable.exec(sh);
-                        } catch (KubernetesClientException e) {
-                            throw new IOException("Unable to perform kubernetes execution, you should consider increasing the Max connections to Kubernetes API", e);
-                        }
-
-                        boolean hasStarted;
-                        try {
-                            // prevent a wait forever if the connection is closed as the listener would never be called
-                            hasStarted = started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+                            if(started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS)) {
+                                watchWrapper = new ExecWatchWrapper(watch, alive, finished);
+                            } else {
+                                closeWatch(watch);
+                                launcher.getListener().error("Timed out waiting for websocket connection. "
+                                    + "You should increase the value of system property "
+                                    + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
+                                    + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                            }
                         } catch (InterruptedException e) {
                             closeWatch(watch);
-                            throw new IOException("Interrupted while waiting for websocket connection, you should consider increasing the Max connections to Kubernetes API", e);
+                            throw e;
                         }
-
-                        if (!hasStarted) {
-                            closeWatch(watch);
-                            throw new IOException("Timed out waiting for websocket connection. "
-                                + "You should increase the value of system property "
-                                + WEBSOCKET_CONNECTION_TIMEOUT_SYSTEM_PROPERTY + " currently set at "
-                                + WEBSOCKET_CONNECTION_TIMEOUT + " seconds");
+                        
+                    } catch (KubernetesClientException e) {
+                        launcher.getListener().getLogger().print("Failed to start websocket connection: ");
+                        
+                        // In case of 400 / Bad Request, do not attempt a retry
+                        if(e.getCause() instanceof WebSocketHandshakeException) {
+                            WebSocketHandshakeException wsException = (WebSocketHandshakeException) e.getCause();
+                            if(wsException.getResponse() != null && wsException.getResponse().code() == 400) {
+                                throw e;
+                            }
                         }
-
-                        watchWrapper = new ExecWatchWrapper(watch, alive, finished);
-                        break;
-                    } catch (IOException e) {
-                        launcher.getListener().error("Failed to start websocket connection: " + e.getMessage());
+                        
+                        e.printStackTrace(launcher.getListener().getLogger());
+                    } catch (InterruptedException e) {
+                        launcher.getListener().getLogger().println("Failed to start websocket connection: " +
+                            "Interrupted while waiting for websocket connection, you should consider increasing the Max connections to Kubernetes API.");
                         e.printStackTrace(launcher.getListener().getLogger());
                     } finally {
                         attempts++;
@@ -485,7 +489,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 if (watchWrapper == null || watchWrapper.getExecWatch() == null) {
                     throw new AbortException("Failed to start websocket connection after "
-                        + WEBSOCKET_CONNECTION_MAX_RETRY + " attempts. Check logs above for more details.");
+                        + attempts + " attempts. Check logs above for more details.");
                 }
 
                 ExecWatch watch = watchWrapper.getExecWatch();
