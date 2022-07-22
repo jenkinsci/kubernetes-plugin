@@ -33,6 +33,8 @@ import static org.junit.Assert.*;
 import hudson.model.Result;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
@@ -194,4 +196,18 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         // check yaml metadata labels not logged
         r.assertLogNotContains("class: KubernetesDeclarativeAgentTest", b);
     }
+
+    @Issue("JENKINS-49707")
+    @Test
+    public void declarativeRetries() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.waitForMessage("+ sleep", b);
+        deletePods(cloud.connect(), getLabels(this, name), false);
+        r.waitForMessage("busybox --", b);
+        r.waitForMessage("jnlp --", b);
+        r.waitForMessage("was deleted; cancelling node body", b);
+        r.waitForMessage("Retrying", b);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
+
 }
