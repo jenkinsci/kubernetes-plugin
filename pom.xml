@@ -45,7 +45,7 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.332.1</jenkins.version>
+    <jenkins.version>2.346.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -100,6 +100,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
+      <version>639.v6eca_cd8c04a_a_</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -119,6 +120,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
+      <version>2759.v87459c4eea_ca_</version> <!-- TODO until in BOM -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -136,7 +138,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1253.v17476f78c9db_</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+      <version>1283.v2e95e3a_da_a_c0</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
     </dependency>
 
     <!-- for testing -->
@@ -252,7 +254,7 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.332.x</artifactId>
+        <artifactId>bom-2.346.x</artifactId>
         <version>1478.v81d3dc4f9a_43</version>
         <scope>import</scope>
         <type>pom</type>
