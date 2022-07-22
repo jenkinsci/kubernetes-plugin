@@ -84,13 +84,7 @@ public final class SecretsMasker extends TaskListenerDecorator {
 
         @Override
         protected TaskListenerDecorator get(DelegatedContext context) throws IOException, InterruptedException {
-            KubernetesComputer c;
-            try {
-                c = context.get(KubernetesComputer.class);
-            } catch (IOException | InterruptedException x) {
-                LOGGER.log(Level.FINE, "Unable to look up KubernetesComputer", x);
-                return null;
-            }
+            KubernetesComputer c = context.get(KubernetesComputer.class);
             if (c == null) {
                 return null;
             }
