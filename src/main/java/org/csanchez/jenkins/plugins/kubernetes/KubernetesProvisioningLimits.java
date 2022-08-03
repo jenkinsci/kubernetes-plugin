@@ -1,5 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -136,15 +138,13 @@ public final class KubernetesProvisioningLimits {
 
     @Extension
     public static class NodeListenerImpl extends NodeListener {
+        private static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+
         @Override
         protected void onDeleted(@NonNull Node node) {
             if (node instanceof KubernetesSlave) {
-                KubernetesProvisioningLimits instance = KubernetesProvisioningLimits.get();
-                KubernetesSlave kubernetesNode = (KubernetesSlave) node;
-                PodTemplate template = kubernetesNode.getTemplateOrNull();
-                if (template != null) {
-                    instance.unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
-                }
+                KubernetesNodeDeletedTask task = new KubernetesNodeDeletedTask((KubernetesSlave)node);
+                executor.execute(task);
             }
         }
     }
