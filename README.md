@@ -51,6 +51,7 @@ It is not required to run the Jenkins controller inside Kubernetes.
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
+* A ServiceAccount with sufficient privileges ([example](src/main/kubernetes/service-account.yml))
 
 ## Configuration
 
