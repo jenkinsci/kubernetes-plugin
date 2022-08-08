@@ -452,7 +452,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         
                         // prevent a wait forever if the connection is closed as the listener would never be called
                         try {
-                            if(started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS)) {
+                            if (started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS)) {
                                 watchWrapper = new ExecWatchWrapper(watch, alive, finished);
                             } else {
                                 closeWatch(watch);
@@ -470,9 +470,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         launcher.getListener().getLogger().print("Failed to start websocket connection: ");
                         
                         // In case of 400 / Bad Request, do not attempt a retry
-                        if(e.getCause() instanceof WebSocketHandshakeException) {
+                        if (e.getCause() instanceof WebSocketHandshakeException) {
                             WebSocketHandshakeException wsException = (WebSocketHandshakeException) e.getCause();
-                            if(wsException.getResponse() != null && wsException.getResponse().code() == 400) {
+                            if (wsException.getResponse() != null && wsException.getResponse().code() == 400) {
                                 throw e;
                             }
                         }
