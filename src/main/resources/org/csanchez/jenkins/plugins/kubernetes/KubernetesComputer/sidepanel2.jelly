@@ -24,8 +24,10 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
-  <l:task icon="icon-clipboard icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${app.ADMINISTER}"/>
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}podLog" title="${%Pod Log}" permission="${app.ADMINISTER}"/>
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}events" title="${%Events}" permission="${app.ADMINISTER}"/>
-  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}systemInfo" title="${%System Information}" permissions="${it.EXTENDED_READ_AND_CONNECT}"/>
+  <l:task icon="icon-clipboard icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${it.EXTENDED_READ_AND_CONNECT}"/>
+  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}podLog" title="${%Pod Log}" permission="${it.EXTENDED_READ_AND_CONNECT}"/>
+  <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}events" title="${%Events}" permission="${it.EXTENDED_READ_AND_CONNECT}"/>
+  <j:if test="${it.channel!=null}">
+    <l:task icon="icon-computer icon-md" href="${rootURL}/${it.url}systemInfo" title="${%System Information}" permissions="${it.EXTENDED_READ_AND_CONNECT}"/>
+  </j:if>
 </j:jelly>
