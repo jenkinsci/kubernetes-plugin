@@ -416,7 +416,7 @@ public class Reaper extends ComputerListener {
                     }
                 });
                 logLastLinesThenTerminateNode(node, pod, runListener);
-                try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
+                try (ACLContext context = ACL.as(ACL.SYSTEM)) {
                     PodUtils.cancelQueueItemFor(pod, "ContainerError");
                 }
             }
@@ -479,7 +479,7 @@ public class Reaper extends ComputerListener {
                 runListener.error("Unable to pull Docker image \""+cs.getImage()+"\". Check if image tag name is spelled correctly.");
             });
             terminationReasons.add("ImagePullBackOff");
-            try (ACLContext _ = ACL.as(ACL.SYSTEM)) {
+            try (ACLContext context = ACL.as(ACL.SYSTEM)) {
                 PodUtils.cancelQueueItemFor(pod, "ImagePullBackOff");
             }
             node.terminate();
