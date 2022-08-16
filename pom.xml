@@ -262,22 +262,6 @@
         <artifactId>docker-commons</artifactId>
         <version>1.18</version>
       </dependency>
-      <!-- fix requireUpperBoundDeps -->
-      <dependency><!-- jenkins-core vs. junit plugin -->
-        <groupId>javax.annotation</groupId>
-        <artifactId>javax.annotation-api</artifactId>
-        <version>1.3.2</version>
-      </dependency>
-      <dependency><!-- pipeline-model-extensions vs. io.jenkins.configuration-as-code:test-harness -->
-        <groupId>joda-time</groupId>
-        <artifactId>joda-time</artifactId>
-        <version>2.10.5</version>
-      </dependency>
-      <dependency><!-- io.jenkins:configuration-as-code vs. org.jenkins-ci.plugins:junit -->
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
