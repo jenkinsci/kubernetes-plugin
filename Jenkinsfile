@@ -5,7 +5,7 @@ properties([
 ])
 parallel kind: {
     node('docker') {
-        timeout(60) {
+        timeout(90) {
             checkout scm
             withEnv(["WSTMP=${pwd tmp: true}"]) {
                 try {
