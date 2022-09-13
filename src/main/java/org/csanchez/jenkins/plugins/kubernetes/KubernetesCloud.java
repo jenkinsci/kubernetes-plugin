@@ -128,6 +128,7 @@ public class KubernetesCloud extends Cloud {
     private transient Map<String, String> labels;
     private List<PodLabel> podLabels = new ArrayList<>();
     private boolean usageRestricted;
+    private boolean usingLogWatcher; 
 
     private int maxRequestsPerHost;
 
@@ -189,6 +190,15 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setUsageRestricted(boolean usageRestricted) {
         this.usageRestricted = usageRestricted;
+    }
+    
+    public boolean isUsingLogWatcher() {
+        return usingLogWatcher;
+    }
+
+    @DataBoundSetter
+    public void setUsingLogWatcher(boolean usingLogWatcher) {
+        this.usingLogWatcher = usingLogWatcher;
     }
     
     public int getRetentionTimeout() {
@@ -489,6 +499,7 @@ public class KubernetesCloud extends Cloud {
     public void setConnectTimeout(int connectTimeout) {
         this.connectTimeout = Math.max(DEFAULT_CONNECT_TIMEOUT_SECONDS, connectTimeout);
     }
+    
 
     /**
      * Gets the global pod retention policy for the plugin.
@@ -669,6 +680,7 @@ public class KubernetesCloud extends Cloud {
                 connectTimeout == that.connectTimeout &&
                 readTimeout == that.readTimeout &&
                 usageRestricted == that.usageRestricted &&
+                usingLogWatcher == that.usingLogWatcher &&
                 maxRequestsPerHost == that.maxRequestsPerHost &&
                 Objects.equals(defaultsProviderTemplate, that.defaultsProviderTemplate) &&
                 templates.equals(that.templates) &&
@@ -690,7 +702,7 @@ public class KubernetesCloud extends Cloud {
         return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
                 addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jnlpregistry, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
-                maxRequestsPerHost, podRetention, useJenkinsProxy);
+                usingLogWatcher,maxRequestsPerHost, podRetention, useJenkinsProxy);
     }
 
     public Integer getWaitForPodSec() {
@@ -914,6 +926,7 @@ public class KubernetesCloud extends Cloud {
                 ", labels=" + labels +
                 ", podLabels=" + podLabels +
                 ", usageRestricted=" + usageRestricted +
+                ", usingLogWatcher=" + usingLogWatcher +
                 ", maxRequestsPerHost=" + maxRequestsPerHost +
                 ", waitForPodSec=" + waitForPodSec +
                 ", podRetention=" + podRetention +

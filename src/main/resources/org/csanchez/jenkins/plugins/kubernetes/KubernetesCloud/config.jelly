@@ -95,6 +95,10 @@
         <f:entry title="${%Restrict pipeline support to authorized folders}" field="usageRestricted">
             <f:checkbox />
         </f:entry>
+        
+        <f:entry title="${%Enable Pod/Container Log Watching}" field="usingLogWatcher">
+            <f:checkbox />
+        </f:entry>        
 
         <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
           <f:textbox default=""/>
