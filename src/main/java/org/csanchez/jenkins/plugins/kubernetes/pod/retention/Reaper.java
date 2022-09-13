@@ -466,6 +466,14 @@ public class Reaper extends ComputerListener {
             if (action != Watcher.Action.MODIFIED) {
                 return;
             }
+            int imagePullBackoffTolerationSeconds = NumberUtils.toInt(System.getenv("IMAGE_PULL_BACKOFF_TOLERATION_SECONDS"));
+            if (imagePullBackoffTolerationSeconds > 0) {
+                LocalDateTime podStartTime = LocalDateTime.parse(pod.getStatus().getStartTime());
+                LocalDateTime deadlineForContainerStartUp = podStartTime.plusSeconds(imagePullBackoffTolerationSeconds);
+                if (LocalDateTime.now().isBefore(deadlineForContainerStartUp) ) {
+                    return;
+                }
+            }
 
             List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
                 ContainerStateWaiting waiting = cs.getState().getWaiting();
