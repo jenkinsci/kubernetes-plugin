@@ -23,7 +23,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
-import com.cloudbees.hudson.plugins.folder.Folder;
 
 import hudson.Extension;
 import hudson.model.ItemGroup;
@@ -215,7 +214,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class)
         public List<UsagePermission> getEffectivePermissions() {
-            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(Folder.class).getParent());
+            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(AbstractFolder.class).getParent());
             List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
                                                                            .map(cloud -> new UsagePermission(cloud.name, inheritedClouds.contains(cloud.name), inheritedClouds.contains(cloud.name)))
                                                                            .collect(Collectors.toList());
