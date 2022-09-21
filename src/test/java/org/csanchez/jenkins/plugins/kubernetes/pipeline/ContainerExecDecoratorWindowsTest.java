@@ -2,7 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2022, CloudBees Inc.
- *
+ * Copyright (c) 2022, Nokia Inc.
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -131,11 +131,7 @@ public class ContainerExecDecoratorWindowsTest {
                 .endSpec().build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
-        AllContainersRunningPodWatcher watcher = new AllContainersRunningPodWatcher(client, pod);
-        try (Watch w1 = client.pods().withName(podName).watch(watcher);) {
-            assert watcher != null; // assigned 3 lines above
-            watcher.await(10, TimeUnit.MINUTES);
-        }
+        client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
         PodTemplate template = new PodTemplate();
         template.setName(pod.getMetadata().getName());
         agent = mock(KubernetesSlave.class);
