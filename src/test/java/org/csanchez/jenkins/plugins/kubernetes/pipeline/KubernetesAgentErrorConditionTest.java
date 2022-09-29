@@ -33,7 +33,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.InboundAgentRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
@@ -43,7 +42,6 @@ public class KubernetesAgentErrorConditionTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public InboundAgentRule inboundAgents = new InboundAgentRule();
     @Rule public LoggerRule logging = new LoggerRule().record(KubernetesAgentErrorCondition.class, Level.FINE);
 
     @Test public void handleNonKubernetes() throws Exception {
