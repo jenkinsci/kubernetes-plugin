@@ -87,13 +87,8 @@ Docker image - the docker image name that will be used as a reference to spin up
 
 ![image](images/pod-template-configuration.png)
 
-
-
-> **Notes:**
-> 
-> - If your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
+> **Note:** If your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
 >   you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
-> - Be aware that there is a current bug in Jenkins which affects the resuming of builds during restarts of the controller when using WebSockets: [JENKINS-67062](https://issues.jenkins.io/browse/JENKINS-67062).
 
 ### Restricting what jobs can use your configured cloud
 
