@@ -100,11 +100,11 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>639.v6eca_cd8c04a_a_</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
+      <version>1200.v8005c684b_a_c6</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -120,7 +120,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>2759.v87459c4eea_ca_</version> <!-- TODO until in BOM -->
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -138,7 +137,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1283.v2e95e3a_da_a_c0</version> <!-- TODO https://github.com/jenkinsci/workflow-durable-task-step-plugin/pull/180 -->
+      <version>1206.v8a_d5f86e336b</version> <!-- TODO until in BOM -->
     </dependency>
 
     <!-- for testing -->
@@ -255,7 +254,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.346.x</artifactId>
-        <version>1494.v5d4d71876757</version>
+        <version>1643.v1cffef51df73</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
