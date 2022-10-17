@@ -51,6 +51,7 @@ It is not required to run the Jenkins controller inside Kubernetes.
 * A running Kubernetes cluster 1.14 or later. For OpenShift users, this means OpenShift Container Platform 4.x.
 * A Jenkins instance installed
 * The Jenkins Kubernetes plugin installed
+* A ServiceAccount with sufficient privileges ([example](src/main/kubernetes/service-account.yml))
 
 ## Configuration
 
@@ -86,13 +87,8 @@ Docker image - the docker image name that will be used as a reference to spin up
 
 ![image](images/pod-template-configuration.png)
 
-
-
-> **Notes:**
-> 
-> - If your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
+> **Note:** If your Jenkins controller is outside the cluster and uses a self-signed HTTPS certificate,
 >   you will need some [additional configuration](#using-websockets-with-a-jenkins-master-with-self-signed-https-certificate).
-> - Be aware that there is a current bug in Jenkins which affects the resuming of builds during restarts of the controller when using WebSockets: [JENKINS-67062](https://issues.jenkins.io/browse/JENKINS-67062).
 
 ### Restricting what jobs can use your configured cloud
 

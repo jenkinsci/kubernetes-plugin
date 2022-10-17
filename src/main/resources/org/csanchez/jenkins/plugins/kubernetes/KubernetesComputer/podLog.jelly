@@ -27,19 +27,23 @@ THE SOFTWARE.
   <l:layout title="${it.displayName} log" permission="${app.ADMINISTER}">
     <st:include page="sidepanel.jelly" />
     <l:main-panel>
-      <table class="sortable pane bigtable">
-        <tr>
-          <th>Name</th><th>Image</th><th>ImagePullPolicy</th><th>WorkingDir</th>
-        </tr>
-
-        <j:forEach var="v" items="${it.containers}">
+      <table class="sortable jenkins-table">
+        <thead>
           <tr>
-            <td><f:link href="container?name=${v.name}">${v.name}</f:link></td>
-            <td>${v.image}</td>
-            <td>${v.imagePullPolicy}</td>
-            <td>${v.workingDir}</td>
+            <th>Name</th><th>Image</th><th>ImagePullPolicy</th><th>WorkingDir</th>
           </tr>
-        </j:forEach>
+        </thead>
+
+        <tbody>
+          <j:forEach var="v" items="${it.containers}">
+            <tr>
+              <td><f:link href="container?name=${v.name}">${v.name}</f:link></td>
+              <td>${v.image}</td>
+              <td>${v.imagePullPolicy}</td>
+              <td>${v.workingDir}</td>
+            </tr>
+          </j:forEach>
+        </tbody>
       </table>
     </l:main-panel>
   </l:layout>

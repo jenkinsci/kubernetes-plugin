@@ -27,23 +27,27 @@ THE SOFTWARE.
   <l:layout title="${it.displayName} log" permission="${app.ADMINISTER}">
     <st:include page="sidepanel.jelly" />
     <l:main-panel>
-      <table class="sortable pane bigtable">
-        <tr>
-          <th>${%Type}</th><th>${%Reason}</th><th>${%Count}</th>
-          <th>${%FirstTime}</th><th>${%LastTime}</th><th>${%From}</th><th>${%Message}</th>
-        </tr>
-
-        <j:forEach var="v" items="${it.podEvents}">
+      <table class="sortable jenkins-table">
+        <thead>
           <tr>
-            <td>${v.type}</td>
-            <td>${v.reason}</td>
-            <td>${v.count}</td>
-            <td>${v.firstTimestamp}</td>
-            <td>${v.lastTimestamp}</td>
-            <td>${v.source.component}</td>
-            <td>${v.message}</td>
+            <th>${%Type}</th><th>${%Reason}</th><th>${%Count}</th>
+            <th>${%FirstTime}</th><th>${%LastTime}</th><th>${%From}</th><th>${%Message}</th>
           </tr>
-        </j:forEach>
+        </thead>
+
+        <tbody>
+          <j:forEach var="v" items="${it.podEvents}">
+            <tr>
+              <td>${v.type}</td>
+              <td>${v.reason}</td>
+              <td>${v.count}</td>
+              <td>${v.firstTimestamp}</td>
+              <td>${v.lastTimestamp}</td>
+              <td>${v.source.component}</td>
+              <td>${v.message}</td>
+            </tr>
+          </j:forEach>
+        </tbody>
       </table>
     </l:main-panel>
   </l:layout>
