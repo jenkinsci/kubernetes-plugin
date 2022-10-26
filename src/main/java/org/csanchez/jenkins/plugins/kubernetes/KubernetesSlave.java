@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
@@ -556,13 +557,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
-                    computerLauncher == null ? defaultLauncher() : computerLauncher,
+                    decorateLauncher(computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher),
                     retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
         }
 
-        private KubernetesLauncher defaultLauncher() {
-            KubernetesLauncher launcher = new KubernetesLauncher(cloud.getJenkinsTunnel(), null);
-            launcher.setWebSocket(cloud.isWebSocket());
+        private ComputerLauncher decorateLauncher(@NonNull ComputerLauncher launcher) {
+            if (launcher instanceof KubernetesLauncher) {
+                ((KubernetesLauncher) launcher).setWebSocket(cloud.isWebSocket());
+            }
             return launcher;
         }
 
