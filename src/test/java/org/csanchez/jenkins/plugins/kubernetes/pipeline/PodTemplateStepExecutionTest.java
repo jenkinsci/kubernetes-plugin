@@ -35,14 +35,14 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import hudson.model.Result;
 
 public class PodTemplateStepExecutionTest {
 
     @Rule
-    public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
+    public JenkinsRule r = new JenkinsRule();
 
     protected KubernetesCloud cloud;
 
