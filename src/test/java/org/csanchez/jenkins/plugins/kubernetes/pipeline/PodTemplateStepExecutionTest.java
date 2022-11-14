@@ -25,6 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.junit.Assert.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
@@ -33,6 +34,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
@@ -51,6 +53,11 @@ public class PodTemplateStepExecutionTest {
         cloud = new KubernetesCloud("kubernetes");
         r.jenkins.clouds.add(cloud);
     }
+    
+    @BeforeClass 
+    public static void isKubernetesConfigured() throws Exception { 
+        assumeKubernetes();
+    } 
 
     private String loadPipelineScript(String name) {
         return KubernetesTestUtil.loadPipelineScript(getClass(), name);
