@@ -35,7 +35,6 @@ import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.client.HttpClientAware;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
@@ -347,7 +346,6 @@ public class ContainerExecDecoratorTest {
     @Test
     @Issue("JENKINS-55392")
     public void testRejectedExecutionException() throws Exception {
-        assertTrue(client instanceof HttpClientAware);
         List<Thread> threads = new ArrayList<>();
         final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
