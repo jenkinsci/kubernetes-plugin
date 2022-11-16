@@ -45,7 +45,7 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.346.1</jenkins.version>
+    <jenkins.version>2.346.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -254,9 +254,15 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.346.x</artifactId>
-        <version>1643.v1cffef51df73</version>
+        <version>1678.vc1feb_6a_3c0f1</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+      <dependency>
+        <!-- TODO remove when https://github.com/jenkinsci/bom/pull/1571 is released -->
+        <groupId>io.jenkins.plugins</groupId>
+        <artifactId>snakeyaml-api</artifactId>
+        <version>1.33-90.v80dcb_3814d35</version>
       </dependency>
       <!-- Fix InjectedTest -->
       <dependency>
