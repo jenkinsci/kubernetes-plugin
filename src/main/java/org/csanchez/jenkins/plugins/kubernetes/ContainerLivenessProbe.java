@@ -12,12 +12,13 @@ import java.io.Serializable;
  * Created by fabricio.leotti on 26/04/17.
  */
 public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLivenessProbe> implements Serializable {
-        private String execArgs;
-        private int timeoutSeconds;
-        private int initialDelaySeconds;
-        private int failureThreshold;
-        private int periodSeconds;
-        private int successThreshold;
+    
+    private String execArgs;
+    private int timeoutSeconds;
+    private int initialDelaySeconds;
+    private int failureThreshold;
+    private int periodSeconds;
+    private int successThreshold;
 
     @DataBoundConstructor
     public ContainerLivenessProbe(String execArgs, int timeoutSeconds, int initialDelaySeconds, int failureThreshold, int periodSeconds, int successThreshold) {

@@ -18,8 +18,8 @@ public class DefaultInProvisioning extends InProvisioning {
     private static boolean isNotAcceptingTasks(Node n) {
         Computer computer = n.toComputer();
         return computer != null && (computer.isLaunchSupported() // Launcher hasn't been called yet
-                || !n.isAcceptingTasks()) // node is not ready yet
-        ;
+                || !n.isAcceptingTasks() // node is not ready yet
+        );
     }
 
     @Override

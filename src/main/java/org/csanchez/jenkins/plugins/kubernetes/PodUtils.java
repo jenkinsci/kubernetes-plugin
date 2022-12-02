@@ -111,7 +111,7 @@ public final class PodUtils {
         PodStatus status = pod.getStatus();
         ObjectMeta metadata = pod.getMetadata();
         if (status == null || metadata == null) {
-             return null;
+            return null;
         }
         String podName = metadata.getName();
         String namespace = metadata.getNamespace();
