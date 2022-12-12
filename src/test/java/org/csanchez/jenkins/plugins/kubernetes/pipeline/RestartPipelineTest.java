@@ -66,8 +66,6 @@ import hudson.model.Node;
 import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.RetentionStrategy;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -181,9 +179,7 @@ public class RestartPipelineTest {
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh
@@ -202,9 +198,7 @@ public class RestartPipelineTest {
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh
@@ -317,9 +311,7 @@ public class RestartPipelineTest {
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", "dummy", tmp.newFolder("remoteFS").getPath(), "1",
-                    Node.Mode.NORMAL, "", new JNLPLauncher(), RetentionStrategy.NOOP,
-                    Collections.<NodeProperty<?>>emptyList())); // TODO JENKINS-26398 clumsy
+            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh

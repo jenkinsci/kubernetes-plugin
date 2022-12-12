@@ -23,8 +23,8 @@ parallel kind: {
             }
         }
     }
-}, jdk11: {
-    node('maven-11') {
+}, jdk17: {
+    node('maven-17') {
         timeout(60) {
             checkout scm
             sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
