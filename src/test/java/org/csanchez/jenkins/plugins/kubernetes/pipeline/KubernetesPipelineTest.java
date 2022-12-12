@@ -290,7 +290,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithMultipleContainers() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("image: \"jenkins/inbound-agent:4.3-4-alpine\"", b);
+        r.assertLogContains("image: \"jenkins/inbound-agent:", b);
         r.assertLogContains("image: \"maven:3.3.9-jdk-8-alpine\"", b);
         r.assertLogContains("image: \"golang:1.6.3-alpine\"", b);
         r.assertLogContains("My Kubernetes Pipeline", b);
@@ -428,8 +428,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         PodTemplate pt = new PodTemplate();
         pt.setName("podTemplate");
         pt.setLabel("label1 label2");
-        ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jenkins/inbound-agent:4.3-4-alpine");
-        pt.setContainers(Collections.singletonList(jnlp));
         cloud.addTemplate(pt);
         SemaphoreStep.waitForStart("pod/1", b);
         Map<String, String> labels = getLabels(cloud, this, name);

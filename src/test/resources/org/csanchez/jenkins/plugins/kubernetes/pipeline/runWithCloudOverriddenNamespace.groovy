@@ -1,6 +1,4 @@
-podTemplate(volumes: [emptyDirVolume(mountPath: '/my-mount')], containers: [
-        containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}')
-]) {
+podTemplate(volumes: [emptyDirVolume(mountPath: '/my-mount')]) {
 
     node(POD_LABEL) {
         semaphore 'pod'

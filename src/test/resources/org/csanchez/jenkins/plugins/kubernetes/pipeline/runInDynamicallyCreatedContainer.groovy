@@ -8,11 +8,6 @@ spec:
     - name: jnlp
 ''',
         containers: [
-            containerTemplate(name: 'jnlp',
-                image: 'jenkins/inbound-agent:latest',
-                alwaysPullImage: true,
-                args: '${computer.jnlpmac} ${computer.name}',
-            ),
             containerTemplate(
                 name: 'docker-dind',
                 image: 'docker:19-dind',
