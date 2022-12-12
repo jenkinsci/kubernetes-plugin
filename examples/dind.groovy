@@ -16,6 +16,9 @@ podTemplate(yaml: '''
                 containers:
                 - name: docker
                   image: docker:19.03.1
+                  readinessProbe:
+                    exec:
+                      command: [sh, -c, "ls -S /var/run/docker.sock"]
                   command:
                   - sleep
                   args:
@@ -34,7 +37,6 @@ podTemplate(yaml: '''
   node(POD_LABEL) {
     writeFile file: 'Dockerfile', text: 'FROM scratch'
     container('docker') {
-      sh 'echo "Waiting for docker daemon."; while (! docker stats --no-stream); do sleep 1; done &> /dev/null'
       sh 'docker version && DOCKER_BUILDKIT=1 docker build --progress plain -t testing .'
     }
   }
