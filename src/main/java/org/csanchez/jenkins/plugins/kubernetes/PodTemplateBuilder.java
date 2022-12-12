@@ -77,7 +77,6 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
-import io.jenkins.lib.versionnumber.JavaSpecificationVersion;
 import jenkins.model.Jenkins;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
@@ -113,12 +112,7 @@ public class PodTemplateBuilder {
             String s = IOUtils.readFirstLine(dockerfileStream, StandardCharsets.UTF_8.toString());
             Matcher matcher = FROM_DIRECTIVE.matcher(s);
             if (matcher.matches()) {
-                String name = matcher.group(1);
-                if (JavaSpecificationVersion.forCurrentJVM().isNewerThanOrEqualTo(JavaSpecificationVersion.JAVA_11)) {
-                    defaultImageName = name + "-jdk11";
-                } else {
-                    defaultImageName = name + "-jdk8";
-                }
+                defaultImageName = matcher.group(1);
             } else {
                 throw new IllegalStateException("Dockerfile in plugin resources doesn't have the expected content");
             }
