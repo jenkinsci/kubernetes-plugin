@@ -1,35 +1,36 @@
 timeout ([time: 10, unit: 'MINUTES']) {
-    def label = "jenkins-slave-${UUID.randomUUID().toString()}"
-    podTemplate(
-        label: label,
-        yaml: '''
+    podTemplate(yaml: '''
+apiVersion: v1
+kind: Pod
 spec:
+  volumes:
+  - name: docker-socket
+    emptyDir: {}
   containers:
-    - name: jnlp
-''',
-        containers: [
-            containerTemplate(
-                name: 'docker-dind',
-                image: 'docker:19-dind',
-                alwaysPullImage: true,
-                privileged: true,
-                envVars: [
-                    envVar(key: 'DOCKER_TLS_CERTDIR', value: '')
-                ],
-            ),
-            containerTemplate(
-                name: 'docker',
-                image: 'docker:19',
-                alwaysPullImage: true,
-                ttyEnabled: true,
-                command: 'cat',
-                envVars: [
-                    envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')
-                ],
-            ),
-        ]
-    ) {
-        node(label) {
+  - name: docker
+    image: docker:20.10.21
+    readinessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - ls -S /var/run/docker.sock
+    command:
+    - sleep
+    args:
+    - 99d
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
+  - name: docker-daemon
+    image: docker:20.10.21-dind
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
+''') {
+        node(POD_LABEL) {
             stage('build') {
                 container('docker') {
                     sh 'echo "FROM ubuntu:bionic" > Dockerfile'
