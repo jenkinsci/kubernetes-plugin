@@ -31,8 +31,6 @@ import hudson.model.Saveable;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.SaveableListener;
-import hudson.security.ACL;
-import hudson.security.ACLContext;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
 import io.fabric8.kubernetes.api.model.ContainerStateTerminated;
@@ -59,6 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import jenkins.util.Listeners;
 import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -314,7 +313,7 @@ public class Reaper extends ComputerListener {
                 return;
             }
 
-            ExtensionList.lookup(Listener.class).forEach(listener -> { // TODO 2.324+ jenkins.util.Listeners
+            Listeners.notify(Listener.class, true, listener -> {
                 try {
                     listener.onEvent(action, optionalNode.get(), pod, terminationReasons.get(optionalNode.get().getNodeName()));
                 } catch (Exception x) {
@@ -420,9 +419,7 @@ public class Reaper extends ComputerListener {
                     }
                 });
                 logLastLinesThenTerminateNode(node, pod, runListener);
-                try (ACLContext context = ACL.as(ACL.SYSTEM)) {
-                    PodUtils.cancelQueueItemFor(pod, "ContainerError");
-                }
+                PodUtils.cancelQueueItemFor(pod, "ContainerError");
             }
         }
     }
@@ -486,9 +483,7 @@ public class Reaper extends ComputerListener {
                 }
             });
             terminationReasons.add("ImagePullBackOff");
-            try (ACLContext context = ACL.as(ACL.SYSTEM)) {
-                PodUtils.cancelQueueItemFor(pod, "ImagePullBackOff");
-            }
+            PodUtils.cancelQueueItemFor(pod, "ImagePullBackOff");
             node.terminate();
         }
     }

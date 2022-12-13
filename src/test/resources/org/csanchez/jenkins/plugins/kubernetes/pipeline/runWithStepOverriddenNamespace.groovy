@@ -1,10 +1,7 @@
 // Step namespace should have priority over anything else.
 podTemplate(
     namespace: '$OVERRIDDEN_NAMESPACE',
-    volumes: [emptyDirVolume(mountPath: '/my-mount')], 
-    containers: [
-      containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}')
-    ]) {
+    volumes: [emptyDirVolume(mountPath: '/my-mount')]) {
 
     node(POD_LABEL) {
         semaphore 'pod'

@@ -1,6 +1,4 @@
-podTemplate(volumes: [dynamicPVC(requestsSize: '10Gi', mountPath: '/tmp/mountPath')], containers: [
-        containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.11-1-jdk8', args: '${computer.jnlpmac} ${computer.name}')
-], yaml:'''
+podTemplate(volumes: [dynamicPVC(requestsSize: '10Gi', mountPath: '/tmp/mountPath')], yaml:'''
 spec:
   securityContext:
     fsGroup: 1000

@@ -76,7 +76,7 @@ podTemplate(label: label) {
 可以在模板中自定义 `jnlp` 节点镜像
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.3-4-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 或者使用 `yaml` 语法
@@ -87,7 +87,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/inbound-agent:4.3-4-alpine'
+    image: 'jenkins/inbound-agent'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 

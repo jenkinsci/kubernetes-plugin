@@ -151,7 +151,7 @@ Find more examples in the [examples dir](examples).
 The default jnlp agent image used can be customized by adding it to the template
 
 ```groovy
-containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:4.7-1', args: '${computer.jnlpmac} ${computer.name}'),
+containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent', args: '${computer.jnlpmac} ${computer.name}'),
 ```
 
 or with the yaml syntax. Pretty much any field from the [pod model](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/) can be specified through the yaml syntax.
@@ -162,7 +162,7 @@ kind: Pod
 spec:
   containers:
   - name: jnlp
-    image: 'jenkins/inbound-agent:4.7-1'
+    image: 'jenkins/inbound-agent'
     args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
 ```
 
@@ -911,24 +911,7 @@ However, if your Jenkins controller has HTTPS configured with self-signed certif
 To do that, you can extend the `jenkins/inbound-agent` image and add your certificate as follows:
 
 ```Dockerfile
-FROM jenkins/inbound-agent:jdk8
-
-USER root
-
-ADD cert.pem /tmp/cert.pem
-
-RUN keytool -noprompt -storepass changeit \
-  -keystore "$JAVA_HOME/jre/lib/security/cacerts" \
-  -import -file /tmp/cert.pem -alias jenkinsMaster && \
-  rm -f /tmp/cert.pem
-
-USER jenkins
-```
-
-Or, if you are using JDK 11:
-
-```Dockerfile
-FROM jenkins/inbound-agent:jdk11
+FROM jenkins/inbound-agent
 
 USER root
 

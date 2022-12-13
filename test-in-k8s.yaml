@@ -24,7 +24,7 @@ spec:
   serviceAccountName: jenkins
   containers:
   - name: jenkins
-    image: maven:3.8.2-jdk-8
+    image: maven:3.8.6-eclipse-temurin-17
     command:
       - sleep
     args:
@@ -100,11 +100,6 @@ rules:
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"] # KubernetesPipelineTest#dynamicPVC
   verbs: ["create","delete","get","list","patch","update","watch"]
-- apiGroups: ['policy']
-  resources: ['podsecuritypolicies']
-  verbs:     ['use']
-  resourceNames:
-  - privileged
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -118,32 +113,3 @@ subjects:
 - kind: ServiceAccount
   name: jenkins
   namespace: kubernetes-plugin-test
----
-# https://kubernetes.io/docs/concepts/policy/pod-security-policy/#example-policies
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: privileged
-  annotations:
-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
-spec:
-  privileged: true
-  allowPrivilegeEscalation: true
-  allowedCapabilities:
-  - '*'
-  volumes:
-  - '*'
-  hostNetwork: true
-  hostPorts:
-  - min: 0
-    max: 65535
-  hostIPC: true
-  hostPID: true
-  runAsUser:
-    rule: 'RunAsAny'
-  seLinux:
-    rule: 'RunAsAny'
-  supplementalGroups:
-    rule: 'RunAsAny'
-  fsGroup:
-    rule: 'RunAsAny'
