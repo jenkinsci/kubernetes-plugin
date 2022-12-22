@@ -277,6 +277,26 @@ podTemplate(containers: […]) {
 }
 ```
 
+### Retrying after infrastructure outages
+
+You can use the `retry` step to automatically try the whole build stage again with a fresh pod in case of fatal infrastructure problems.
+(For example: cluster backup & restore; node pool used for agents drained and upgraded.)
+
+```groovy
+podTemplate(…) {
+  retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
+    node(POD_LABEL) {
+      sh 'your-build-process'
+    }
+  }
+}
+```
+
+will rerun the whole `node` block (using the same pod definition) in case the first attempt fails for a qualifying reason traceable to loss of the pod
+(_not_ routine problems such as compilation errors or `OutOfMemoryError`).
+
+For Declarative Pipeline, just add the `retries` option, as shown below.
+
 # Configuration reference
 ## Pod template
 
@@ -588,6 +608,7 @@ pipeline {
             - cat
             tty: true
         '''
+      retries 2
     }
   }
   stages {
@@ -612,6 +633,7 @@ pipeline {
   agent {
     kubernetes {
       yamlFile 'KubernetesPod.yaml'
+      retries 2
     }
   }
   stages {
