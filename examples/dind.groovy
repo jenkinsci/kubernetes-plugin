@@ -16,6 +16,9 @@ podTemplate(yaml: '''
                 containers:
                 - name: docker
                   image: docker:19.03.1
+                  readinessProbe:
+                    exec:
+                      command: [sh, -c, "ls -S /var/run/docker.sock"]
                   command:
                   - sleep
                   args:

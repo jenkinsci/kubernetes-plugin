@@ -3,8 +3,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.50</version>
-    <relativePath />
+    <version>4.53</version>
+    <relativePath/>
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
@@ -45,7 +45,7 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.346.3</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -104,7 +104,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
-      <version>1200.v8005c684b_a_c6</version> <!-- TODO until in BOM -->
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -137,7 +136,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
-      <version>1206.v8a_d5f86e336b</version> <!-- TODO until in BOM -->
     </dependency>
 
     <!-- for testing -->
@@ -225,7 +223,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>docker-workflow</artifactId>
-      <version>1.26</version>
+      <version>563.vd5d2e5c4007f</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -253,16 +251,10 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.346.x</artifactId>
-        <version>1706.vc166d5f429f8</version>
+        <artifactId>bom-2.361.x</artifactId>
+        <version>1742.vb_70478c1b_25f</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <!-- Fix InjectedTest -->
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>docker-commons</artifactId>
-        <version>1.18</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

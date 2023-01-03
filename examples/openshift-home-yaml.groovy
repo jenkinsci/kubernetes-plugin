@@ -9,7 +9,7 @@ podTemplate(yaml:'''
               spec:
                 containers:
                 - name: jnlp
-                  image: jenkins/inbound-agent:4.7-1
+                  image: jenkins/inbound-agent
                   volumeMounts:
                   - name: home-volume
                     mountPath: /home/jenkins

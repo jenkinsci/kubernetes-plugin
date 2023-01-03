@@ -86,7 +86,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private transient Pod pod;
 
     @NonNull
-    public PodTemplate getTemplate() {
+    public PodTemplate getTemplate() throws IllegalStateException {
         // Look up updated pod template after a restart
         PodTemplate template = getTemplateOrNull();
         if (template == null) {
@@ -402,7 +402,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 if (currentExecutable != null && executables.add(currentExecutable)) {
                     listener.getLogger().println(Messages.KubernetesSlave_AgentIsProvisionedFromTemplate(
                             ModelHyperlinkNote.encodeTo("/computer/" + getNodeName(), getNodeName()),
-                            getTemplate().getName())
+                            template.getName())
                     );
                     printAgentDescription(listener);
                     checkHomeAndWarnIfNeeded(listener);
