@@ -56,6 +56,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 public class ReaperTest {
 
+    private static final Long EVENT_WAIT_PERIOD_MS = 10L;
+
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
@@ -385,10 +387,15 @@ public class ReaperTest {
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = createPod(node);
 
-        String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "DELETED")).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "BOOKMARK")).always();
+        server.expect().withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "DELETED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "BOOKMARK"))
+                .done()
+        .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/foo/pods/node-123").andReturn(200, node123).once();
 
@@ -401,7 +408,7 @@ public class ReaperTest {
 
         // wait for the delete event to be processed
         waitForKubeClientRequests(6)
-                .assertRequestCountAtLeast(watchPodsPath, 3);
+                .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 3);
 
         // verify listener got notified
         listener.expectEvent(Watcher.Action.DELETED, node);
