@@ -29,6 +29,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -159,11 +160,25 @@ public class ReaperTest {
     public void testReconnectOnNewComputer() throws InterruptedException, IOException {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .once();
         // trigger HTTP_GONE status which should result in Watcher#onClose(Exception)
-        server.expect().withPath(watchPodsPath).andReturnChunked(410).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(outdatedEvent())
+                .done()
+                .once();
         // after Gone error, should reconnect fresh
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -176,9 +191,11 @@ public class ReaperTest {
         listener.expectNoEvents();
 
         // wait until watch is removed
+        System.out.println("Waiting for watch to be removed");
         while (r.isWatchingCloud(cloud.name)) {
             Thread.sleep(250L);
         }
+        System.out.println("Watch removed");
 
         // launch computer
         KubernetesSlave n2 = addNode(cloud, "p1-123", "p1");
@@ -187,9 +204,11 @@ public class ReaperTest {
         r.preLaunch(kc, tl);
 
         // should have started new watch
+        System.out.println("Waiting for a new watch to be started");
         while (!r.isWatchingCloud(cloud.name)) {
             Thread.sleep(100);
         }
+        System.out.println("Watch started");
     }
 
     @Test(timeout = 10_000)
@@ -248,11 +267,20 @@ public class ReaperTest {
                 .build();
 
         String watchFooPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchFooPodsPath).andReturnChunked(200).always();
+        server.expect().withPath(watchFooPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         String watchBarPodsPath = "/api/v1/namespaces/bar/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchBarPodsPath).andReturnChunked(200).once();
-        server.expect().withPath(watchBarPodsPath).andReturnChunked(200, new WatchEvent(node123, "MODIFIED")).always();
+        server.expect().withPath(watchBarPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "MODIFIED"))
+                .done()
+                .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/bar/pods/node-123").andReturn(200, node123).once();
 
@@ -424,9 +452,15 @@ public class ReaperTest {
         Pod node123 = withContainerStatusTerminated(createPod(node));
 
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "MODIFIED")).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "BOOKMARK")).always();
+        server.expect().withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "BOOKMARK"))
+                .done()
+        .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/foo/pods/node-123").andReturn(200, node123).once();
 
@@ -446,7 +480,7 @@ public class ReaperTest {
                 .expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
-        verify(node).terminate();
+        verify(node, atLeastOnce()).terminate();
         // verify node is still registered (will be removed when pod deleted)
         assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
     }
@@ -459,10 +493,15 @@ public class ReaperTest {
         Pod node123 = createPod(node);
         node123.getStatus().setPhase("Failed");
 
-        String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "MODIFIED")).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "BOOKMARK")).always();
+        server.expect().withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "BOOKMARK"))
+                .done()
+        .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/foo/pods/node-123").andReturn(200, node123).once();
 
@@ -478,7 +517,7 @@ public class ReaperTest {
                 .expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
-        verify(node).terminate();
+        verify(node, atLeastOnce()).terminate();
         // verify node is still registered (will be removed when pod deleted)
         assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
     }
@@ -490,9 +529,15 @@ public class ReaperTest {
         Pod node123 = withContainerImagePullBackoff(createPod(node));
 
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "MODIFIED")).once();
-        server.expect().withPath(watchPodsPath).andReturnChunked(200, new WatchEvent(node123, "BOOKMARK")).always();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "BOOKMARK"))
+                .done()
+        .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/foo/pods/node-123").andReturn(200, node123).once();
 
@@ -511,7 +556,7 @@ public class ReaperTest {
         listener.expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
-        verify(node).terminate();
+        verify(node, atLeastOnce()).terminate();
         // verify node is still registered (will be removed when pod deleted)
         assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
     }
@@ -717,5 +762,15 @@ public class ReaperTest {
         public String toString() {
             return "[" + action + ", " + node + ", " + pod + "]";
         }
+    }
+
+    private static WatchEvent outdatedEvent() {
+        return new WatchEventBuilder().withType(Watcher.Action.ERROR.name())
+                .withStatusObject(
+                        new StatusBuilder().withCode(HttpURLConnection.HTTP_GONE)
+                                .withMessage(
+                                        "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]")
+                                .build())
+                .build();
     }
 }
