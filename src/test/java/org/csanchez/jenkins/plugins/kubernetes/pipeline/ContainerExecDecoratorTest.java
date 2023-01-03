@@ -330,7 +330,7 @@ public class ContainerExecDecoratorTest {
     public void testContainerDoesNotExist() throws Exception {
         decorator.setContainerName("doesNotExist");
         exception.expect(KubernetesClientException.class);
-        exception.expectCause(isA(WebSocketHandshakeException.class));
+        exception.expectMessage("container doesNotExist not found in pod");
         execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127");
     }
 

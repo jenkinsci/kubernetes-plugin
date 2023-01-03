@@ -468,13 +468,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         
                     } catch (KubernetesClientException e) {
                         launcher.getListener().getLogger().print("Failed to start websocket connection: ");
-                        
-                        // In case of 400 / Bad Request, do not attempt a retry
-                        if (e.getCause() instanceof WebSocketHandshakeException) {
-                            WebSocketHandshakeException wsException = (WebSocketHandshakeException) e.getCause();
-                            if (wsException.getResponse() != null && wsException.getResponse().code() == 400) {
-                                throw e;
-                            }
+                        String message = e.getMessage();
+                        if (message != null && message.startsWith("container " + containerName + " not found in pod")) {
+                            // Don't even retry if the container is invalid.
+                            throw e;
                         }
                         
                         e.printStackTrace(launcher.getListener().getLogger());
