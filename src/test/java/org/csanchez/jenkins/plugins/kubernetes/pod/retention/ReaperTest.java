@@ -77,7 +77,11 @@ public class ReaperTest {
     public void testMaybeActivate() throws IOException, InterruptedException {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         // add node that does not exist in k8s so it get's removed
         KubernetesSlave podNotRunning = addNode(cloud, "k8s-node-123", "k8s-node");
@@ -128,9 +132,10 @@ public class ReaperTest {
 
     @Test
     public void testActivateOnNewComputer() throws IOException, InterruptedException {
-        server.expect()
-                .withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
-                .andReturnChunked(200)
+        server.expect().withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
                 .always();
 
         // initiate reaper
@@ -214,7 +219,11 @@ public class ReaperTest {
     @Test(timeout = 10_000)
     public void testAddWatchWhenCloudAdded() throws InterruptedException, IOException {
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -238,7 +247,11 @@ public class ReaperTest {
     public void testRemoveWatchWhenCloudRemoved() throws InterruptedException, IOException {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -310,9 +323,19 @@ public class ReaperTest {
     public void testStopWatchingOnCloseException() throws InterruptedException {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .once();
         // trigger HTTP_GONE status which should result in Watcher#onClose(Exception)
-        server.expect().withPath(watchPodsPath).andReturnChunked(410).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(outdatedEvent())
+                .done()
+                .once();
 
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -335,9 +358,25 @@ public class ReaperTest {
     public void testKeepWatchingOnKubernetesApiServerError() throws InterruptedException {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(errorEvent())
+                .done()
+                .once();
         // trigger error action event
         server.expect().withPath(watchPodsPath).andReturnChunked(500).once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .once();
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
         server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
 
         // activate reaper
@@ -384,7 +423,12 @@ public class ReaperTest {
     @Test
     public void testCloseWatchersOnShutdown() throws InterruptedException {
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
-        server.expect().withPath(watchPodsPath).andReturnChunked(200).always();
+
+        server.expect().withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .done()
+                .always();
 
         // add more clouds to make sure they are all closed
         KubernetesCloud cloud = addCloud("k8s", "foo");
@@ -770,6 +814,16 @@ public class ReaperTest {
                         new StatusBuilder().withCode(HttpURLConnection.HTTP_GONE)
                                 .withMessage(
                                         "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]")
+                                .build())
+                .build();
+    }
+
+    private static WatchEvent errorEvent() {
+        return new WatchEventBuilder().withType(Watcher.Action.ERROR.name())
+                .withStatusObject(
+                        new StatusBuilder().withCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
+                                .withMessage(
+                                        "500: Internal error")
                                 .build())
                 .build();
     }
