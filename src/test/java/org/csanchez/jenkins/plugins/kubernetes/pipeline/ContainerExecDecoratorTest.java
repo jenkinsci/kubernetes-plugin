@@ -37,7 +37,6 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
@@ -78,7 +77,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabe
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -111,6 +109,7 @@ public class ContainerExecDecoratorTest {
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
+            .record(ContainerExecProc.class, Level.ALL) //
             .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
     @Rule
