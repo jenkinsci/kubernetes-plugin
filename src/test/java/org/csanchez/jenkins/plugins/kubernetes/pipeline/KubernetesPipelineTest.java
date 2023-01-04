@@ -2,7 +2,7 @@
  * The MIT License
  *
  * Copyright (c) 2016, Carlos Sanchez
- *
+ * Copyright (c) 2022, Nokia Inc.
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -223,6 +223,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         SemaphoreStep.waitForStart("pod1/1", b);
         Map<String, String> labels1 = getLabels(cloud, this, name);
         labels1.put("jenkins/label",label1);
+        cloud.setUsingLogWatcher(true);
         PodList pods = cloud.connect().pods().withLabels(labels1).list();
         assertFalse(pods.getItems().isEmpty());
         SemaphoreStep.success("pod1/1", null);
@@ -242,8 +243,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         SemaphoreStep.success("pod2/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("script file contents: ", b);
+        r.assertLogContains("Started container jnlp", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+        cloud.setUsingLogWatcher(false);
     }
 
     @Issue("JENKINS-57893")
