@@ -7,10 +7,11 @@ metadata:
 spec:
   containers:
   - name: kubectl
-    image: bitnami/kubectl:1.16.3
+    image: bitnami/kubectl:1.25.4
     command:
-    - cat
-    tty: true
+      - sleep
+    args:
+      - infinity
 '''
 ) {
   node(POD_LABEL) {
