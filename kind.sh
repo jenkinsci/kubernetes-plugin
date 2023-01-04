@@ -24,9 +24,14 @@ function cleanup() {
 trap cleanup EXIT
 kubectl cluster-info
 
-DOCKER_IMAGE=$(grep -e image: test-in-k8s.yaml | cut -d ':' -f 2- | xargs)
-docker pull $DOCKER_IMAGE
-kind load docker-image $DOCKER_IMAGE --name $cluster
+PRE_LOAD_IMAGES=()
+PRE_LOAD_IMAGES+=($(grep -e image: test-in-k8s.yaml | cut -d ':' -f 2- | xargs))
+PRE_LOAD_IMAGES=+=(grep -h -e "^\s*image: .*$" src/test/resources/**/*.groovy | sed -e "s/^[[:space:]]*image: //" | sort | uniq | grep -v "windows" | grep -v "nonexistent" | grep -v "invalid")
+for image in "${PRE_LOAD_IMAGES[@]}"
+do
+  docker pull $image
+  kind load docker-image $image --name $cluster
+done
 
 bash test-in-k8s.sh
 rm -rf $WSTMP/surefire-reports
