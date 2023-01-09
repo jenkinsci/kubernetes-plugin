@@ -17,6 +17,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 
+import io.fabric8.kubernetes.api.model.Status;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FilterOutputStream;
@@ -44,7 +45,6 @@ import java.util.regex.Matcher;
 
 import hudson.AbortException;
 import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.client.http.WebSocketHandshakeException;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -62,7 +62,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import io.fabric8.kubernetes.client.dsl.Execable;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 
@@ -375,7 +374,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         stream = new TeeOutputStream(toggleDryRunCaller, stream);
                     }
                 }
-                ByteArrayOutputStream error = new ByteArrayOutputStream();
 
                 String[] sh = shell != null ? new String[]{shell} : launcher.isUnix() ? new String[] {"sh"} : new String[] {"cmd", "/Q"};
                 String msg = "Executing " + String.join(" ", sh) + " script inside container " + containerName + " of pod " + getPodName();
@@ -414,7 +412,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
                             .writingOutput(stream)
                             .writingError(stream)
-                            .writingErrorChannel(error)
                             .usingListener(new ExecListener() {
                                 @Override
                                 public void onOpen() {
@@ -449,7 +446,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                     finished.countDown();
                                 }
                             }).exec(sh);
-                        
                         // prevent a wait forever if the connection is closed as the listener would never be called
                         try {
                             if (started.await(WEBSOCKET_CONNECTION_TIMEOUT, TimeUnit.SECONDS)) {
@@ -468,13 +464,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         
                     } catch (KubernetesClientException e) {
                         launcher.getListener().getLogger().print("Failed to start websocket connection: ");
-                        
-                        // In case of 400 / Bad Request, do not attempt a retry
-                        if (e.getCause() instanceof WebSocketHandshakeException) {
-                            WebSocketHandshakeException wsException = (WebSocketHandshakeException) e.getCause();
-                            if (wsException.getResponse() != null && wsException.getResponse().code() == 400) {
-                                throw e;
-                            }
+                        String message = e.getMessage();
+                        if (message != null && message.startsWith("container " + containerName + " not found in pod")) {
+                            // Don't even retry if the container is invalid.
+                            throw e;
                         }
                         
                         e.printStackTrace(launcher.getListener().getLogger());
@@ -571,7 +564,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                     LOGGER.log(Level.INFO, "Created process inside pod: [" + getPodName() + "], container: ["
                             + containerName + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
-                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, error);
+                    ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin);
                     closables.add(proc);
                     return proc;
                 } catch (InterruptedException ie) {

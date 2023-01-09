@@ -239,10 +239,7 @@ public class KubernetesTestUtil {
             PodList list = client.pods().withLabels(labels).list();
             if (!list.getItems().isEmpty()) {
                 LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(list));
-                if (Boolean.TRUE.equals(client.pods().withLabels(labels).delete())) {
-                    return true;
-                }
-
+                return client.pods().withLabels(labels).delete().size() > 0;
             }
         }
         return false;

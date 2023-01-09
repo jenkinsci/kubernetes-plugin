@@ -42,8 +42,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.*;
 
+import io.fabric8.kubernetes.api.model.StatusDetails;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -460,7 +461,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void runInPodWithRetention() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        assertTrue(deletePods(cloud.connect(), getLabels(this, name), true));
+        System.out.println("Deleting leftover pods");
+        KubernetesClient client = cloud.connect();
+        Map<String, String> labels = getLabels(this, name);
+        assertTrue(client.pods().withLabels(labels).delete().size() > 0);
     }
 
     @Issue("JENKINS-49707")

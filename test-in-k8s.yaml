@@ -69,7 +69,7 @@ rules:
   verbs: ["create","delete","get","list","patch","update","watch"]
 - apiGroups: [""]
   resources: ["pods"]
-  verbs: ["create","delete","get","list","patch","update","watch"]
+  verbs: ["create","delete","deletecollection","get","list","patch","update","watch"]
 - apiGroups: [""]
   resources: ["pods/exec"]
   verbs: ["create","delete","get","list","patch","update","watch"]
@@ -96,7 +96,7 @@ rules:
   verbs: ["create","delete","get","list","patch","update","watch"]
 - apiGroups: ["apps"]
   resources: ["replicasets"] # ditto
-  verbs: ["create","delete","get","list","patch","update","watch"]
+  verbs: ["create","delete","deletecollection","get","list","patch","update","watch"]
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"] # KubernetesPipelineTest#dynamicPVC
   verbs: ["create","delete","get","list","patch","update","watch"]

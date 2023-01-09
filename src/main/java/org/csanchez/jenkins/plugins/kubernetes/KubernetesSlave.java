@@ -1,8 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.fabric8.kubernetes.api.model.StatusDetails;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -353,10 +355,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
         try {
-            Boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).
-                cascading(true). // TODO JENKINS-58306 pending https://github.com/fabric8io/kubernetes-client/pull/1620
-                delete();
-            if (!Boolean.TRUE.equals(deleted)) {
+            boolean deleted = client.pods().inNamespace(getNamespace()).withName(name).delete().size() == 1;
+            if (!deleted) {
                 String msg = String.format("Failed to delete pod for agent %s/%s: not found", getNamespace(), name);
                 LOGGER.log(Level.WARNING, msg);
                 listener.error(msg);

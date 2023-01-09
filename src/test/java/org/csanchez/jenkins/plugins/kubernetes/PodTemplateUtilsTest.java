@@ -344,13 +344,13 @@ public class PodTemplateUtilsTest {
         Pod parentPod = new PodBuilder()
                 .withNewMetadata().endMetadata()
                 .withNewSpec()
-                .withInitContainers(new ContainerBuilder().withName("init").withNewImage("image-parent").build())
+                .withInitContainers(new ContainerBuilder().withName("init").withImage("image-parent").build())
                 .endSpec()
                 .build();
         Pod childPod = new PodBuilder()
                 .withNewMetadata().endMetadata()
                 .withNewSpec()
-                .withInitContainers(new ContainerBuilder().withName("init").withNewImage("image-child").build())
+                .withInitContainers(new ContainerBuilder().withName("init").withImage("image-child").build())
                 .endSpec()
                 .build();
 
