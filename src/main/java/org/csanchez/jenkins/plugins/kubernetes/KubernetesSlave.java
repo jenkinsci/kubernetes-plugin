@@ -233,6 +233,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
         Cloud cloud = Jenkins.get().getCloud(cloudName);
         if (cloud instanceof KubernetesCloud) {
             return (KubernetesCloud) cloud;
+        } else if (cloud == null) {
+            throw new IllegalStateException("No such cloud " + cloudName);
         } else {
             throw new IllegalStateException(KubernetesSlave.class.getName() + " can be launched only by instances of " + KubernetesCloud.class.getName() + ". Cloud is " + cloud.getClass().getName());
         }
