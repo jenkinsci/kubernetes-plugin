@@ -18,7 +18,16 @@ public abstract class AbstractKubernetesPipelineRJRTest {
     public TestName name = new TestName();
 
     @Rule
-    public RealJenkinsRule rjr = new RealJenkinsRule();
+    public RealJenkinsRule rjr;
+    {
+        rjr = new RealJenkinsRule();
+        String port = System.getProperty("port");
+        if (port != null) {
+            System.err.println("Overriding port using system property: " + port);
+            rjr = rjr.withPort(Integer.parseInt(port));
+        }
+    }
+
 
     protected RunId runId;
 

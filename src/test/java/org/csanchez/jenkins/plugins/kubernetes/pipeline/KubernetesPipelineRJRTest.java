@@ -12,7 +12,6 @@ public class KubernetesPipelineRJRTest extends AbstractKubernetesPipelineRJRTest
     }
 
     @Test
-    @Ignore // Need RealJenkinsRule to accept a custom port
     public void basicPipeline() throws Throwable {
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }

@@ -49,6 +49,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <jenkins-test-harness.version>1919.v8b_ea_09f5a_b_e2</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
