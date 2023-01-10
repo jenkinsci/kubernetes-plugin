@@ -53,6 +53,8 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String name;
 
+    private String id;
+
     @CheckForNull
     private String namespace;
 
@@ -117,9 +119,18 @@ public class PodTemplateStep extends Step implements Serializable {
         this.label = Util.fixEmpty(label);
     }
 
+    @DataBoundSetter
+    public void setId(String id) {
+        this.id = Util.fixEmpty(id);
+    }
+
     @CheckForNull
     public String getName() {
         return name;
+    }
+
+    public String getId() {
+        return id;
     }
 
     @DataBoundSetter

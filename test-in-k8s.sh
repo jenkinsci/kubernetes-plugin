@@ -18,6 +18,8 @@ kubectl exec jenkins -- mkdir /checkout
 kubectl cp pom.xml jenkins:/checkout/pom.xml
 kubectl cp .mvn jenkins:/checkout/.mvn
 kubectl cp src jenkins:/checkout/src
+
+TEST='RestartPipelinePodTemplateIdConsistencyTest,RestartPipelineTest'
 if [ -v TEST ]
 then
     args="-Dtest=$TEST test"

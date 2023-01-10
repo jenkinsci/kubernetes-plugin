@@ -86,7 +86,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         String name = String.format(NAME_FORMAT, stepName, randString);
         String namespace = checkNamespace(cloud, podTemplateContext);
 
-        newTemplate = new PodTemplate();
+        newTemplate = new PodTemplate(step.getId());
         newTemplate.setName(name);
         newTemplate.setNamespace(namespace);
 
@@ -118,7 +118,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         TaskListener listener = getContext().get(TaskListener.class);
         newTemplate.setListener(listener);
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
-        if(run!=null) {
+        if(run != null) {
             String url = cloud.getJenkinsUrlOrNull();
             if(url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
