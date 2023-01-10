@@ -44,12 +44,13 @@
     minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
     <connectorHost />
     <jenkins.host.address />
+    <port/>
     <slaveAgentPort />
     <jenkins.version>2.361.4</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins-test-harness.version>1919.v8b_ea_09f5a_b_e2</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/541 -->
+    <jenkins-test-harness.version>1921.v1f1c29de9da_2</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/541 -->
   </properties>
 
   <dependencies>
@@ -274,6 +275,7 @@
             <!-- have pods connect to this address for Jenkins -->
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
             <slaveAgentPort>${slaveAgentPort}</slaveAgentPort>
+            <port>${port}</port>
           </systemPropertyVariables>
         </configuration>
       </plugin>
