@@ -188,18 +188,4 @@ public class KubernetesFactoryAdapter {
         return c;
     }
 
-    private static class WithContextClassLoader implements AutoCloseable {
-
-        private final ClassLoader previousClassLoader;
-
-        public WithContextClassLoader(ClassLoader classLoader) {
-            this.previousClassLoader = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(classLoader);
-        }
-
-        @Override
-        public void close() {
-            Thread.currentThread().setContextClassLoader(previousClassLoader);
-        }
-    }
 }
