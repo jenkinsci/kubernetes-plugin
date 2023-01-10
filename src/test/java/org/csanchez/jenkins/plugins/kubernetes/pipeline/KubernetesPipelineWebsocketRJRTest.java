@@ -10,6 +10,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.RunId;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.SetupCloud;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -21,6 +22,7 @@ public class KubernetesPipelineWebsocketRJRTest extends AbstractKubernetesPipeli
         super(new SetupCloud(true));
     }
     @Test
+    @Ignore // Need RealJenkinsRule to accept a custom port
     public void basicPipeline() throws Throwable {
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }
