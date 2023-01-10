@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
 
+import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.CreateWorkflowJobThenScheduleRun;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.RunId;
@@ -22,12 +23,12 @@ public abstract class AbstractKubernetesPipelineRJRTest {
     {
         rjr = new RealJenkinsRule();
         String connectorHost = System.getProperty("connectorHost");
-        if (connectorHost != null) {
+        if (StringUtils.isNotBlank(connectorHost)) {
             System.err.println("Listening on host address: " + connectorHost);
             rjr.withHttpListenAddress(connectorHost);
         }
         String port = System.getProperty("port");
-        if (port != null) {
+        if (StringUtils.isNotBlank(port)) {
             System.err.println("Overriding port using system property: " + port);
             rjr = rjr.withPort(Integer.parseInt(port));
         }
