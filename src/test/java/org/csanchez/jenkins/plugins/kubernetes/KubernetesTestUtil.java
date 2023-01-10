@@ -160,7 +160,7 @@ public class KubernetesTestUtil {
     }
 
     public static boolean isWindows(@CheckForNull String buildNumber) {
-        try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
+        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             for (Node n : client.nodes().list().getItems()) {
                 Map<String, String> labels = n.getMetadata().getLabels();
                 String os = labels.get("kubernetes.io/os");

@@ -54,8 +54,8 @@ import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 
 import static hudson.Util.replaceMacro;
@@ -599,7 +599,8 @@ public class PodTemplateUtils {
 
     public static Pod parseFromYaml(String yaml) {
         String s = yaml;
-        try (KubernetesClient client = new DefaultKubernetesClient()) {
+        try (WithContextClassLoader ignored = new WithContextClassLoader(PodTemplateUtils.class.getClassLoader());
+             KubernetesClient client = new KubernetesClientBuilder().build()) {
             // JENKINS-57116
             if (StringUtils.isBlank(s)) {
                 LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);
