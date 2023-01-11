@@ -6,7 +6,7 @@ properties([
 
 def splits
 stage('Determine splits') {
-    node('linux') {
+    node('maven-11') {
         checkout scm
         splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
     }
