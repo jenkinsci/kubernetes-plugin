@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.logging.Logger;
@@ -18,7 +19,6 @@ import org.apache.commons.lang.StringUtils;
 
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
@@ -144,7 +144,10 @@ public class KubernetesFactoryAdapter {
                 }
             }
         }
-        return new DefaultKubernetesClient(builder.build());
+        // TODO post 2.362 use jenkins.util.SetContextClassLoader
+        try (WithContextClassLoader ignored = new WithContextClassLoader(getClass().getClassLoader())) {
+            return new KubernetesClientBuilder().withConfig(builder.build()).build();
+        }
     }
     private String getProxyPasswordDecrypted(ProxyConfiguration p) {
         String passwordEncrypted = p.getPassword();
@@ -184,4 +187,5 @@ public class KubernetesFactoryAdapter {
         }
         return c;
     }
+
 }

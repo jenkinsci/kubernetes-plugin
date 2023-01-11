@@ -23,11 +23,31 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.logging.Level.*;
-import static org.junit.Assume.*;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeTrue;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.Util;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,8 +60,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import hudson.Util;
+import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -49,23 +69,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.rules.TestName;
-
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.api.model.Node;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.Secret;
-import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.utils.Serialization;
-import java.net.InetAddress;
-import java.net.URL;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -139,8 +142,7 @@ public class KubernetesTestUtil {
     }
 
     public static void assumeKubernetes() throws Exception {
-        try (DefaultKubernetesClient client = new DefaultKubernetesClient(
-                new ConfigBuilder(Config.autoConfigure(null)).build())) {
+        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             client.pods().list();
         } catch (Exception e) {
             assumeNoException(e);
@@ -158,7 +160,7 @@ public class KubernetesTestUtil {
     }
 
     public static boolean isWindows(@CheckForNull String buildNumber) {
-        try (KubernetesClient client = new DefaultKubernetesClient(new ConfigBuilder(Config.autoConfigure(null)).build())) {
+        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             for (Node n : client.nodes().list().getItems()) {
                 Map<String, String> labels = n.getMetadata().getLabels();
                 String os = labels.get("kubernetes.io/os");
