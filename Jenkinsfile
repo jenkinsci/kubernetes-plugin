@@ -5,7 +5,7 @@ properties([
 ])
 
 def splits
-node('alpine') {
+node('linux') {
     checkout scm
     splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
 }
