@@ -15,7 +15,7 @@ kubectl delete --ignore-not-found --now pod jenkins
 sed "s/@HTTP_PORT@/$http_port/g; s/@TCP_PORT@/$tcp_port/g" < test-in-k8s.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready --timeout=15m pod/jenkins
 # Copy temporary split files
-kubectl exec jenkins -- mkdir "$WORKSPACE_TMP"
+kubectl exec jenkins -- mkdir -p "$WORKSPACE_TMP"
 tar cf - "$WORKSPACE_TMP" | kubectl exec -i jenkins -- tar xf - -C "$WORKSPACE_TMP"
 # Copy plugin files
 kubectl exec jenkins -- mkdir /checkout
