@@ -12,10 +12,11 @@ node('linux') {
 def branches = [:]
 branches['failFast'] = true
 
-for (int i = 1; i < splits.size() + 1; i++) {
+for (int i = 0; i < splits.size(); i++) {
     def num = i
     def split = splits[num]
-    branches["kind-${num}"] = {
+    def index = num + 1
+    branches["kind-${index}"] = {
         node('docker') {
             timeout(90) {
                 checkout scm
