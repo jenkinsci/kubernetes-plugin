@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -95,9 +96,10 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         System.err.println("Listening on host address: " + HOST);
         connector.setHost(HOST);
 
-        if (System.getProperty("port")!=null) {
-            LOGGER.info("Overriding port using system property: " + System.getProperty("port"));
-            connector.setPort(Integer.parseInt(System.getProperty("port")));
+        String customPort = System.getProperty("port");
+        if (StringUtils.isNotBlank(customPort)) {
+            LOGGER.info("Overriding port using system property: " + customPort);
+            connector.setPort(Integer.parseInt(customPort));
         } else {
             if (port != null) {
                 connector.setPort(port);

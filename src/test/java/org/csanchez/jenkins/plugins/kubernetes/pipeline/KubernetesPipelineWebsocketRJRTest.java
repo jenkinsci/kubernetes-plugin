@@ -22,7 +22,6 @@ public class KubernetesPipelineWebsocketRJRTest extends AbstractKubernetesPipeli
         super(new SetupCloud(true));
     }
     @Test
-    @Ignore // Need RealJenkinsRule to accept a custom port
     public void basicPipeline() throws Throwable {
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }
