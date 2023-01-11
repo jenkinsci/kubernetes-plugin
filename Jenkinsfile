@@ -10,6 +10,7 @@ node('linux') {
     splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
 }
 def branches = [:]
+branches['failFast'] = true
 
 for (int i = 1; i < splits.size() + 1; i++) {
     def num = i
@@ -46,5 +47,5 @@ branches['jdk11'] = {
         }
     }
 }
-parallel branches, failFast: true
+parallel branches
 infra.maybePublishIncrementals()
