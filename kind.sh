@@ -33,6 +33,6 @@ do
   kind load docker-image "$image" --name $cluster
 done
 
-test-in-k8s.sh "$@"
+./test-in-k8s.sh "$@"
 rm -rf "$WORKSPACE_TMP/surefire-reports"
 kubectl cp jenkins:/checkout/target/surefire-reports "$WORKSPACE_TMP/surefire-reports"
