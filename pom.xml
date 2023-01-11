@@ -49,7 +49,7 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins-test-harness.version>1921.v1f1c29de9da_2</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/541 -->
+    <jenkins-test-harness.version>1922.v91779ee45b_5e</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
