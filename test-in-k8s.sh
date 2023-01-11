@@ -28,6 +28,6 @@ kubectl exec jenkins -- \
         -DslaveAgentPort=$tcp_port \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test.svc.cluster.local \
         -Dmaven.test.failure.ignore \
-        verify
+        verify \
         "$@"
 kubectl exec jenkins -- sh -c 'fgrep skipped /checkout/target/surefire-reports/*.xml' || :
