@@ -7,7 +7,7 @@ properties([
 def splits
 node('linux') {
     checkout scm
-    splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
+    splits = splitTests parallelism: count(3), generateInclusions: true, estimateTestsFromFiles: true
 }
 def branches = [:]
 branches['failFast'] = true
