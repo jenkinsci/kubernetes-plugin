@@ -22,7 +22,7 @@ for (int i = 1; i < splits.size() + 1; i++) {
                 try {
                     writeFile file: (split.includes ? "$WORKSPACE_TMP/includes.txt" : "$WORKSPACE_TMP/excludes.txt"), text: split.list.join("\n")
                     writeFile file: (split.includes ? "$WORKSPACE_TMP/excludes.txt" : "$WORKSPACE_TMP/includes.txt"), text: ''
-                    sh 'kind.sh -Dsurefire.includesFile="$WORKSPACE_TMP/includes.txt -Dsurefire.excludesFile="$WORKSPACE_TMP/excludes.txt"'
+                    sh 'kind.sh -Dsurefire.includesFile="$WORKSPACE_TMP/includes.txt" -Dsurefire.excludesFile="$WORKSPACE_TMP/excludes.txt"'
                     dir (env.WORKSPACE_TMP) {
                         junit 'surefire-reports/*.xml'
                     }
