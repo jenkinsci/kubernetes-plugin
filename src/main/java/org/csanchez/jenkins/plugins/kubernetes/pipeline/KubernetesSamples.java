@@ -16,20 +16,20 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import hudson.Extension;
 import hudson.ExtensionComponent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import jenkins.ExtensionFilter;
 import org.apache.commons.io.IOUtils;
+import org.jenkinsci.plugins.variant.OptionalExtension;
 import org.jenkinsci.plugins.workflow.cps.GroovySample;
 
 public class KubernetesSamples {
 
-    @Extension public static final class SuppressToolBasedSamples extends ExtensionFilter {
+    @OptionalExtension(requirePlugins = "workflow-cps") public static final class SuppressToolBasedSamples extends ExtensionFilter {
 
         @Override public <T> boolean allows(Class<T> type, ExtensionComponent<T> component) {
-            if (type.getName().equals("org.jenkinsci.plugins.workflow.cps.GroovySample")) { // do not link against GroovySample yet
+            if (type == GroovySample.class) {
                 switch (((GroovySample) component.getInstance()).name()) {
                 case "github-maven":
                 case "scripted":
@@ -55,7 +55,7 @@ public class KubernetesSamples {
 
     }
 
-    @Extension(ordinal = 1500, optional = true) public static final class Declarative extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1500) public static final class Declarative extends Static {
 
         @Override public String name() {
             return "kubernetes-declarative";
@@ -67,7 +67,7 @@ public class KubernetesSamples {
 
     }
 
-    @Extension(ordinal = 1400, optional = true) public static final class Maven extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1400) public static final class Maven extends Static {
 
         @Override public String name() {
             return "kubernetes-maven";
@@ -79,7 +79,7 @@ public class KubernetesSamples {
 
     }
 
-    @Extension(ordinal = 1300, optional = true) public static final class Windows extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1300) public static final class Windows extends Static {
 
         @Override public String name() {
             return "kubernetes-windows";
