@@ -1,9 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,6 +17,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.model.Label;
+import hudson.slaves.Cloud;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -37,6 +35,8 @@ import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import jenkins.model.JenkinsLocationConfiguration;
+
+import static org.junit.Assert.*;
 
 public class KubernetesCloudTest {
 
@@ -295,6 +295,20 @@ public class KubernetesCloudTest {
     public void readResolveContainerCapZero() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         assertEquals(cloud.getContainerCap(), Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void maintenanceModeNoProvision() throws Exception {
+        String testNodeLabel = "test-node";
+        PodTemplate podTemplate = new PodTemplate("test");
+        podTemplate.setLabel(testNodeLabel);
+        KubernetesCloud cloud = new KubernetesCloud("kubernetes");
+        cloud.addTemplate(podTemplate);
+        Cloud.CloudState state = new Cloud.CloudState(Label.parseExpression(testNodeLabel), 1);
+        assertTrue(cloud.canProvision(state));
+        // disable provision
+        cloud.setMaintenanceMode(true);
+        assertFalse(cloud.canProvision(state));
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {

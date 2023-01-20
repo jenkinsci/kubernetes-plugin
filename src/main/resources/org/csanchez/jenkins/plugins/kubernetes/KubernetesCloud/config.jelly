@@ -82,7 +82,9 @@
       <f:entry title="Seconds to wait for pod to be running" field="waitForPodSec">
         <f:number clazz="required number" min="0" step="1" default="${descriptor.defaultWaitForPod}"/>
       </f:entry>
-
+      <f:entry title="${%Maintenance Mode}" field="maintenanceMode">
+        <f:checkbox default="false" />
+      </f:entry>
       <f:advanced>
         <f:entry title="${%Container Cleanup Timeout (minutes)}" field="retentionTimeout">
             <f:number min="${descriptor.defaultRetentionTimeout}" default="${descriptor.defaultRetentionTimeout}" checkMethod="post"/>

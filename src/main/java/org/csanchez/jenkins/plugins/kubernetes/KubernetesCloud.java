@@ -133,7 +133,7 @@ public class KubernetesCloud extends Cloud {
 
     // Integer to differentiate null from 0
     private Integer waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
-
+    private boolean maintenanceMode;
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
@@ -510,6 +510,14 @@ public class KubernetesCloud extends Cloud {
         this.podRetention = podRetention;
     }
 
+    public boolean isMaintenanceMode() {
+        return maintenanceMode;
+    }
+    @DataBoundSetter
+    public void setMaintenanceMode(boolean maintenanceMode) {
+        this.maintenanceMode = maintenanceMode;
+    }
+
     /**
      * Connects to Kubernetes.
      *
@@ -575,6 +583,10 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public boolean canProvision(@NonNull Cloud.CloudState state) {
+        if (isMaintenanceMode()){
+            LOGGER.log(Level.FINE, "skip provision because maintenanceMode is set");
+            return false;
+        }
         return getTemplate(state.getLabel()) != null;
     }
 
