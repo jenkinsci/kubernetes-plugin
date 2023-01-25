@@ -661,7 +661,8 @@ public class KubernetesCloud extends Cloud {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         KubernetesCloud that = (KubernetesCloud) o;
-        return skipTlsVerify == that.skipTlsVerify &&
+        return Objects.equals(name, that.name) &&
+                skipTlsVerify == that.skipTlsVerify &&
                 addMasterProxyEnvVars == that.addMasterProxyEnvVars &&
                 capOnlyOnAlivePods == that.capOnlyOnAlivePods &&
                 Objects.equals(containerCap, that.containerCap) &&
@@ -687,7 +688,7 @@ public class KubernetesCloud extends Cloud {
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
+        return Objects.hash(name, defaultsProviderTemplate, templates, serverUrl, serverCertificate, skipTlsVerify,
                 addMasterProxyEnvVars, capOnlyOnAlivePods, namespace, jnlpregistry, jenkinsUrl, jenkinsTunnel, credentialsId,
                 containerCap, retentionTimeout, connectTimeout, readTimeout, podLabels, usageRestricted,
                 maxRequestsPerHost, podRetention, useJenkinsProxy);
