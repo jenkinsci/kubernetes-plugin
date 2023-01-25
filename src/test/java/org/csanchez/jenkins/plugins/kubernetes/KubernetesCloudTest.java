@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -244,7 +246,7 @@ public class KubernetesCloudTest {
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
         assertEquals("copy", copy.name);
-        assertEquals("Expected cloud from copy constructor to be equal to the source except for name", cloud, copy);
+        assertTrue("Expected cloud from copy constructor to be equal to the source except for name", EqualsBuilder.reflectionEquals(cloud, copy, true, KubernetesCloud.class, "name"));
     }
 
     @Test
