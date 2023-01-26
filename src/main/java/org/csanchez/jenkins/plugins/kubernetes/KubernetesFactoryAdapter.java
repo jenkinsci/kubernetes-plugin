@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import hudson.Util;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.util.Base64;
 import java.util.Collections;
@@ -76,13 +77,26 @@ public class KubernetesFactoryAdapter {
                                     @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost, boolean useJenkinsProxy) throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
-        this.caCertData = caCertData;
+        this.caCertData = decodeBase64IfNeeded(caCertData);
         this.auth = AuthenticationTokens.convert(KubernetesAuth.class, resolveCredentials(credentialsId));
         this.skipTlsVerify = skipTlsVerify;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.maxRequestsPerHost = maxRequestsPerHost;
         this.useJenkinsProxy = useJenkinsProxy;
+    }
+
+    private static String decodeBase64IfNeeded(String caCertData) {
+        if (Util.fixEmpty(caCertData) != null) {
+            try {
+                // Decode Base64 if needed
+                byte[] decode = Base64.getDecoder().decode(caCertData.getBytes(UTF_8));
+                return new String(decode, UTF_8);
+            } catch (IllegalArgumentException e) {
+                return caCertData;
+            }
+        }
+        return caCertData;
     }
 
     public KubernetesClient createClient() throws KubernetesAuthException {
