@@ -107,11 +107,9 @@ public class KubernetesFactoryAdapter {
             LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
             builder = new ConfigBuilder(Config.autoConfigure(null));
         } else {
-            // although this will still autoconfigure based on Config constructor notes
-            // In future releases (2.4.x) the public constructor will be empty.
-            // The current functionality will be provided by autoConfigure().
-            // This is a necessary change to allow us distinguish between auto configured values and builder values.
-            builder = new ConfigBuilder().withMasterUrl(serviceAddress);
+            // Using Config.empty() disables autoconfiguration when both serviceAddress and auth are set
+            builder = auth == null ? new ConfigBuilder() : new ConfigBuilder(Config.empty());
+            builder = builder.withMasterUrl(serviceAddress);
         }
 
         if (auth != null) {
