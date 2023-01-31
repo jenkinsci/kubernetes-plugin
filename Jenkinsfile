@@ -42,12 +42,14 @@ stage('Tests') {
         }
     }
     branches['jdk11'] = {
-        node('maven-11') {
-            timeout(60) {
-                checkout scm
-                sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
-                infra.prepareToPublishIncrementals()
-                junit 'target/surefire-reports/*.xml'
+        retry(count: 3, conditions: [kubernetesAgent(handleNonKubernetes: true), nonresumable()]) {
+            node('maven-11') {
+                timeout(60) {
+                    checkout scm
+                    sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
+                    infra.prepareToPublishIncrementals()
+                    junit 'target/surefire-reports/*.xml'
+                }
             }
         }
     }
