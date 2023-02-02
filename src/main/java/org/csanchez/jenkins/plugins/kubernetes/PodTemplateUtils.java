@@ -608,7 +608,7 @@ public class PodTemplateUtils {
             }
             Pod podFromYaml;
             try (InputStream is = new ByteArrayInputStream(s.getBytes(UTF_8))) {
-                podFromYaml = client.pods().load(is).get();
+                podFromYaml = client.pods().load(is).item();
             } catch (IOException | KubernetesClientException e) {
                 throw new RuntimeException(String.format("Failed to parse yaml: \"%s\"", yaml), e);
             }
