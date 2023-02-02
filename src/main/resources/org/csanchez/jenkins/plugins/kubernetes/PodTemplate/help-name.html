@@ -13,6 +13,10 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
-The name prefix of the pod.
-Defaults to the label.
+<p>
+    Name that identifies the pod template. Also used to prefix the name of the node and pod created.
+</p>
+<p>
+    When omitted, the agent and pod name is randomly generated using <i>jenkins-agent-</i> as a prefix.
+    When omitted <b>in a <i>podTemplate(...)</i> step</b>, the <i>label</i> is used as a prefix for the name of the dynamic pod template.
+</p>
