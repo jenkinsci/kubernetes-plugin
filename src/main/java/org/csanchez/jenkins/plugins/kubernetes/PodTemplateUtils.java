@@ -599,8 +599,7 @@ public class PodTemplateUtils {
 
     public static Pod parseFromYaml(String yaml) {
         String s = yaml;
-        try (WithContextClassLoader ignored = new WithContextClassLoader(PodTemplateUtils.class.getClassLoader());
-             KubernetesClient client = new KubernetesClientBuilder().build()) {
+        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             // JENKINS-57116
             if (StringUtils.isBlank(s)) {
                 LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);

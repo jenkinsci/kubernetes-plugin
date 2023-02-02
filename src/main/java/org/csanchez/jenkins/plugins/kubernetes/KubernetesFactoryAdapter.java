@@ -156,10 +156,7 @@ public class KubernetesFactoryAdapter {
                 }
             }
         }
-        // TODO post 2.362 use jenkins.util.SetContextClassLoader
-        try (WithContextClassLoader ignored = new WithContextClassLoader(getClass().getClassLoader())) {
-            return new KubernetesClientBuilder().withConfig(builder.build()).build();
-        }
+        return new KubernetesClientBuilder().withConfig(builder.build()).build();
     }
     private String getProxyPasswordDecrypted(ProxyConfiguration p) {
         String passwordEncrypted = p.getPassword();
