@@ -8,10 +8,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class OnFailure extends PodRetention implements Serializable {
 
     private static final long serialVersionUID = 6424267627207206819L;
+
+    private static final Logger LOGGER = Logger.getLogger(OnFailure.class.getName());
 
     @DataBoundConstructor
     public OnFailure() {
@@ -19,7 +24,13 @@ public class OnFailure extends PodRetention implements Serializable {
     }
 
     @Override
-    public boolean shouldDeletePod(KubernetesCloud cloud, Pod pod) {
+    public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> podS) {
+        Pod pod = null;
+        try {
+            pod = podS.get();
+        } catch (RuntimeException x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
         if (pod == null || pod.getStatus() == null) {
             return false;
         }

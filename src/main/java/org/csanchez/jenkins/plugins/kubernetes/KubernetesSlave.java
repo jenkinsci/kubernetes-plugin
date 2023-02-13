@@ -310,8 +310,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         // Prior to termination, determine if we should delete the slave pod based on
         // the slave pod's current state and the pod retention policy.
         // Healthy slave pods should still have a JNLP agent running at this point.
-        Pod pod = client.pods().inNamespace(getNamespace()).withName(name).get();
-        boolean deletePod = getPodRetention(cloud).shouldDeletePod(cloud, pod);
+        boolean deletePod = getPodRetention(cloud).shouldDeletePod(cloud, () -> client.pods().inNamespace(getNamespace()).withName(name).get());
         
         Computer computer = toComputer();
         if (computer == null) {
@@ -367,6 +366,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     e.getMessage());
             LOGGER.log(Level.WARNING, msg, e);
             listener.error(msg);
+            // TODO should perhaps retry later, in case API server is just overloaded currently
             return;
         }
 

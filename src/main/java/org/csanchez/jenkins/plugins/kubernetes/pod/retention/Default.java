@@ -10,6 +10,7 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import io.fabric8.kubernetes.api.model.Pod;
+import java.util.function.Supplier;
 
 public class Default extends PodRetention implements Serializable {
 
@@ -21,7 +22,7 @@ public class Default extends PodRetention implements Serializable {
     }
 
     @Override
-    public boolean shouldDeletePod(KubernetesCloud cloud, Pod pod) {
+    public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod) {
         PodRetention parent = cloud.getPodRetention();
         if (!(parent instanceof Default)) {
             return parent.shouldDeletePod(cloud, pod);

@@ -8,6 +8,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
+import java.util.function.Supplier;
 
 public class Never extends PodRetention implements Serializable {
 
@@ -19,7 +20,7 @@ public class Never extends PodRetention implements Serializable {
     }
 
     @Override
-    public boolean shouldDeletePod(KubernetesCloud cloud, Pod pod) {
+    public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod) {
         return true;
     }
 

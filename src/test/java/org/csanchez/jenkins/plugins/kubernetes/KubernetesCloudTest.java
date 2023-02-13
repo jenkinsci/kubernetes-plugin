@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlButton;
@@ -257,11 +258,11 @@ public class KubernetesCloudTest {
         JenkinsRule.WebClient wc = j.createWebClient();
         HtmlPage p = wc.goTo("configureClouds/");
         HtmlForm f = p.getFormByName("config");
-        HtmlButton buttonExtends = HtmlFormUtil.getButtonByCaption(f, "Pod Templates...");
+        HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
-        HtmlButton buttonAdd = HtmlFormUtil.getButtonByCaption(f, "Add Pod Template");
+        HtmlButton buttonAdd = getButton(f, "Add Pod Template");
         buttonAdd.click();
-        HtmlButton buttonDetails = HtmlFormUtil.getButtonByCaption(f, "Pod Template details...");
+        HtmlButton buttonDetails = getButton(f, "Pod Template details");
         buttonDetails.click();
         DomElement templates = p.getElementByName("templates");
         HtmlInput templateName = getInputByName(templates, "_.name");
@@ -271,6 +272,18 @@ public class KubernetesCloudTest {
         PodTemplate podTemplate = cloud.getTemplates().get(0);
         assertEquals("default-workspace-volume", podTemplate.getName());
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
+    }
+
+    // TODO 2.385+ delete
+    private HtmlButton getButton(HtmlForm f, String buttonText) {
+        HtmlButton button;
+        try {
+            button = HtmlFormUtil.getButtonByCaption(f, buttonText);
+        } catch (ElementNotFoundException e) {
+            // before https://github.com/jenkinsci/jenkins/pull/7173 the 3 dots where added by core
+            button = HtmlFormUtil.getButtonByCaption(f, buttonText + "...");
+        }
+        return button;
     }
 
     @Test

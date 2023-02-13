@@ -5,6 +5,7 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
 import io.fabric8.kubernetes.api.model.Pod;
+import java.util.function.Supplier;
 
 /**
  * <code>PodRetention</code> instances determine if the Kubernetes pod running a Jenkins agent
@@ -41,7 +42,7 @@ public abstract class PodRetention extends AbstractDescribableImpl<PodRetention>
      * 
      * @return <code>true</code> if the agent pod should be deleted.
      */
-    public abstract boolean shouldDeletePod(KubernetesCloud cloud, Pod pod);
+    public abstract boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod);
 
     @Override
     public String toString() {
