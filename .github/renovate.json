@@ -11,7 +11,7 @@
       "description": "remoting agent uses non-standard versioning",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["jenkins/inbound-agent"],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?(-(?<buildtype>[^\\.-]*))?$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?$"
     }
   ],
   "enabledManagers": [
