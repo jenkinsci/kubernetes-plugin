@@ -3,6 +3,9 @@
   "extends": [
     "config:base"
   ],
+  "labels": [
+    "dependencies"
+  ],
   "packageRules": [
     {
       "description": "remoting agent uses non-standard versioning",
