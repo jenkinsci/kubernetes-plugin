@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.util.Base64;
@@ -152,7 +153,7 @@ public class KubernetesFactoryAdapter {
                         builder.withProxyUsername(p.name);
                         builder.withProxyPassword(password);
                     }
-                    builder.withNoProxy(p.getNoProxyHost().split("\n"));
+                    builder.withNoProxy(getNoProxyHosts(p));
                 }
             }
         }
@@ -161,6 +162,34 @@ public class KubernetesFactoryAdapter {
             return new KubernetesClientBuilder().withConfig(builder.build()).build();
         }
     }
+
+    /**
+     * Get the no proxy hosts in the format supported by the Kubernetes Client implementation. In particular
+     * <code>*</code> are not supported.
+     *
+     * For Example:
+     * * <code>example.com</code> to not use the proxy for <code>example.com</code> and its subdomain.
+     * * <code>.example.com</code> to not use the proxy for subdomains of <code>example.com</code>. But use it
+     * for <code>.example.com</code>.
+     *
+     * Note: Jenkins Proxy supports wildcard such as <code>192.168.*</code> or <code>*my*.example.com</code> that cannot
+     * be converted to the current kubernetes client implementation.
+     *
+     * @see https://github.com/fabric8io/kubernetes-client/blob/master/CHANGELOG.md#610-2022-08-31
+     * @see https://www.gnu.org/software/wget/manual/html_node/Proxies.html.
+     * @param proxy a {@link ProxyConfiguration}
+     * @return the array of no proxy hosts
+     */
+    private String[] getNoProxyHosts(@NonNull ProxyConfiguration proxy) {
+        String[] noProxyHosts = proxy.getNoProxyHost().split("\n");
+        int i=0;
+        while(i<noProxyHosts.length) {
+            noProxyHosts[i] = noProxyHosts[i].replace("*", "");
+            i++;
+        }
+        return noProxyHosts;
+    }
+
     private String getProxyPasswordDecrypted(ProxyConfiguration p) {
         String passwordEncrypted = p.getPassword();
         String password = null;

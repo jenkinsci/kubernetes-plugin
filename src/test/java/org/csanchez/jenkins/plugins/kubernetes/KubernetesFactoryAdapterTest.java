@@ -24,17 +24,32 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import hudson.ProxyConfiguration;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.utils.HttpClientUtils;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import static io.fabric8.kubernetes.client.Config.*;
-import io.fabric8.kubernetes.client.KubernetesClient;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_HTTPS_PROXY;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_HTTP_PROXY;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_KUBECONFIG_FILE;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_NAMESPACE_FILE;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_NO_PROXY;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_PASSWORD;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_USERNAME;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Test the creation of clients
@@ -58,6 +73,9 @@ public class KubernetesFactoryAdapterTest {
     private static final String PROXY_PASSWORD = "proxy_password";
 
     private Map<String, String> systemProperties = new HashMap<>();
+
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
 
     @Before
     public void saveSystemProperties() {
@@ -116,5 +134,36 @@ public class KubernetesFactoryAdapterTest {
         assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
         assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
         assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+    }
+
+    @Test
+    @Issue("JENKINS-70563")
+    public void jenkinsProxyConfiguration() throws KubernetesAuthException, MalformedURLException {
+
+        j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*acme.com\n*acme*.com\n*.example.com|192.168.*"));
+        KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
+        try(KubernetesClient client = factory.createClient()) {
+            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        }
+
+        j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*acme.com"));
+        factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
+        try(KubernetesClient client = factory.createClient()) {
+            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        }
+        factory = new KubernetesFactoryAdapter("http://k8s.acme.com", null, null, null, false, 15, 5, 32, true);
+        try(KubernetesClient client = factory.createClient()) {
+            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        }
+
+        j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*.acme.com"));
+        factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
+        try(KubernetesClient client = factory.createClient()) {
+            assertNotNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        }
+        factory = new KubernetesFactoryAdapter("http://k8s.acme.com", null, null, null, false, 15, 5, 32, true);
+        try(KubernetesClient client = factory.createClient()) {
+            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        }
     }
 }
