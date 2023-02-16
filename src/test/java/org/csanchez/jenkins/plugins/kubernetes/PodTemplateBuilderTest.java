@@ -121,6 +121,19 @@ public class PodTemplateBuilderTest {
                 parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 
+    @WithoutJenkins
+    @Test
+    public void testParseReadinessProbe() {
+        assertNull(parseReadinessProbe(""));
+        assertNull(parseReadinessProbe(null));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("docker", "info")), parseReadinessProbe("docker info"));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("echo", "I said: 'I am ready'")),
+                parseReadinessProbe("echo \"I said: 'I am ready'\""));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("docker", "--version")), parseReadinessProbe("docker --version"));
+        assertEquals(Collections.unmodifiableList(Arrays.asList("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080")),
+                parseReadinessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
+    }
+
     @Test
     @TestCaseName("{method}(directConnection={0})")
     @Parameters({ "true", "false" })

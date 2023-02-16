@@ -69,6 +69,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private List<PortMapping> ports = new ArrayList<>();
 
     private ContainerLivenessProbe livenessProbe;
+    private ContainerReadinessProbe readinessProbe;
 
     @Deprecated
     public ContainerTemplate(String image) {
@@ -111,6 +112,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.setEnvVars(from.getEnvVars());
         this.setPorts(from.getPorts());
         this.setLivenessProbe(from.getLivenessProbe());
+        this.setReadinessProbe(from.getReadinessProbe());
     }
 
     public void setName(String name) {
@@ -229,6 +231,14 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public void setLivenessProbe(ContainerLivenessProbe livenessProbe) {
         this.livenessProbe = livenessProbe;
     }
+    
+    public ContainerReadinessProbe getReadinessProbe() { return readinessProbe; }
+
+    @DataBoundSetter
+    public void setReadinessProbe(ContainerReadinessProbe readinessProbe) {
+        this.readinessProbe = readinessProbe;
+    }
+
 
     public List<PortMapping> getPorts() {
         return ports != null ? ports : Collections.emptyList();
@@ -375,6 +385,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
                 (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
                 (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
                 (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
+                (readinessProbe == null ? "" : ", readinessProbe=" + readinessProbe) +
                 '}';
     }
 
@@ -446,7 +457,10 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         if (!Objects.equals(ports, that.ports)) {
             return false;
         }
-        return Objects.equals(livenessProbe, that.livenessProbe);
+        if (!Objects.equals(livenessProbe, that.livenessProbe)) {
+            return false;
+        }
+        return Objects.equals(readinessProbe, that.readinessProbe);
     }
 
     @Override
@@ -471,6 +485,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         result = 31 * result + (envVars != null ? envVars.hashCode() : 0);
         result = 31 * result + (ports != null ? ports.hashCode() : 0);
         result = 31 * result + (livenessProbe != null ? livenessProbe.hashCode() : 0);
+        result = 31 * result + (readinessProbe != null ? readinessProbe.hashCode() : 0);
         return result;
     }
 

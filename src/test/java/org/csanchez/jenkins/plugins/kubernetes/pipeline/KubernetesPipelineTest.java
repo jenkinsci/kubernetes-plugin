@@ -424,6 +424,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void runInPodWithReadinessProbe() throws Exception {
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogContains("Still ready", b);
+    }
+
+    @Test
     public void podTemplateWithMultipleLabels() throws Exception {
         PodTemplate pt = new PodTemplate();
         pt.setName("podTemplate");

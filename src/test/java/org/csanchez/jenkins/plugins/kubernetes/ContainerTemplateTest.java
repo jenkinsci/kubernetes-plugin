@@ -40,6 +40,7 @@ public class ContainerTemplateTest {
         originalTemplate.setEnvVars(Collections.emptyList());
         originalTemplate.setPorts(Collections.emptyList());
         originalTemplate.setLivenessProbe(new ContainerLivenessProbe("test", 1, 2, 3, 4, 5));
+        originalTemplate.setReadinessProbe(new ContainerReadinessProbe("test", 1, 2, 3, 4, 5));
 
         ContainerTemplate clonedTemplate = new ContainerTemplate(originalTemplate);
 

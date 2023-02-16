@@ -487,6 +487,19 @@ public class PodTemplateBuilder {
                     .build();
         }
 
+        ContainerReadinessProbe crp = containerTemplate.getReadinessProbe();
+        Probe readinessProbe = null;
+        if (crp != null && parseReadinessProbe(crp.getExecArgs()) != null) {
+            readinessProbe = new ProbeBuilder()
+                    .withExec(new ExecAction(parseReadinessProbe(crp.getExecArgs())))
+                    .withInitialDelaySeconds(crp.getInitialDelaySeconds())
+                    .withTimeoutSeconds(crp.getTimeoutSeconds())
+                    .withFailureThreshold(crp.getFailureThreshold())
+                    .withPeriodSeconds(crp.getPeriodSeconds())
+                    .withSuccessThreshold(crp.getSuccessThreshold())
+                    .build();
+        }
+
         ContainerBuilder containerBuilder = new ContainerBuilder()
                 .withName(substituteEnv(containerTemplate.getName()))
                 .withImage(substituteEnv(containerTemplate.getImage()))
@@ -506,6 +519,7 @@ public class PodTemplateBuilder {
                 .withCommand(parseDockerCommand(containerTemplate.getCommand()))
                 .withArgs(arguments)
                 .withLivenessProbe(livenessProbe)
+                .withReadinessProbe(readinessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
                 .withNewResources()
                 .withRequests(getResourcesMap(containerTemplate.getResourceRequestMemory(), containerTemplate.getResourceRequestCpu(),containerTemplate.getResourceRequestEphemeralStorage()))
@@ -564,6 +578,26 @@ public class PodTemplateBuilder {
         }
         // handle quoted arguments
         Matcher m = SPLIT_IN_SPACES.matcher(livenessProbeExec);
+        List<String> commands = new ArrayList<String>();
+        while (m.find()) {
+            commands.add(substituteEnv(m.group(1).replace("\"", "").replace("?:\\\"", "")));
+        }
+        return commands;
+    }
+
+    /**
+     * Split a command in the parts that ReadinessProbe needs
+     *
+     * @param readinessProbeExec
+     * @return
+     */
+    @Restricted(NoExternalUse.class)
+    static List<String> parseReadinessProbe(String readinessProbeExec) {
+        if (StringUtils.isBlank(readinessProbeExec)) {
+            return null;
+        }
+        // handle quoted arguments
+        Matcher m = SPLIT_IN_SPACES.matcher(readinessProbeExec);
         List<String> commands = new ArrayList<String>();
         while (m.find()) {
             commands.add(substituteEnv(m.group(1).replace("\"", "").replace("?:\\\"", "")));
