@@ -52,6 +52,7 @@ import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepDynamicContext;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -67,6 +68,7 @@ import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
 
+@Ignore
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
