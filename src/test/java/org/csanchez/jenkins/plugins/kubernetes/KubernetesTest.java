@@ -123,7 +123,8 @@ public class KubernetesTest {
         assertEquals("blah", template.getYaml());
         assertEquals(Collections.singletonList("blah"), template.getYamls());
         assertNull(template._getYamls());
-        log.getMessages().stream().anyMatch(msg -> msg.contains("Found several persisted YAML fragments in pod template java"));
+        log.getMessages().stream()
+                .anyMatch(msg -> msg.contains("Found several persisted YAML fragments in pod template java"));
     }
 
     @Test
@@ -183,7 +184,7 @@ public class KubernetesTest {
     public void upgradeFrom_0_10() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         PodTemplate template = templates.get(0);
-        DescribableList<NodeProperty<?>,NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
         assertEquals(1, nodeProperties.size());
         ToolLocationNodeProperty property = (ToolLocationNodeProperty) nodeProperties.get(0);
         assertEquals(1, property.getLocations().size());
@@ -202,11 +203,28 @@ public class KubernetesTest {
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
-    private void assertPodTemplates(List<PodTemplate> templates) {
-        assertEquals(1, templates.size());
+    @Test
+    @LocalData()
+    @Issue("JENKINS-70287")
+    public void mixedPrivivilegedPodTemplates() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates, 2, 2);
+        PodTemplate template = templates.get(0);
+        assertEquals(2, template.getContainers().size());
+        assertEquals(true, template.getContainers().get(0).isPrivileged());
+        assertEquals(false, template.getContainers().get(1).isPrivileged());
+        PodTemplate baseTemplate = templates.get(1);
+        assertEquals(1, baseTemplate.getContainers().size());
+        assertEquals(true, baseTemplate.getContainers().get(0).isPrivileged());
+        assertEquals(Collections.emptyList(), template.getYamls());
+        assertNull(template.getYaml());
+    }
+
+    private void assertPodTemplates(List<PodTemplate> templates, Integer... numbers) {
+        assertEquals(numbers.length > 0 ? numbers[0] : 1, templates.size());
         PodTemplate podTemplate = templates.get(0);
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
-        assertEquals(1, podTemplate.getContainers().size());
+        assertEquals(numbers.length > 1 ? numbers[1] : 1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkins/inbound-agent", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
