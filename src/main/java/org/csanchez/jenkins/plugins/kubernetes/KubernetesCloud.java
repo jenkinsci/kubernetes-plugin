@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.apache.commons.lang.StringUtils.isEmpty;
 
+import hudson.util.FormApply;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -27,6 +28,7 @@ import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
 import jenkins.metrics.api.Metrics;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -34,10 +36,14 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.jetbrains.annotations.NotNull;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -70,6 +76,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
 
 import jenkins.websocket.WebSockets;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * Kubernetes cloud provider.
@@ -701,6 +708,21 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setWaitForPodSec(Integer waitForPodSec) {
         this.waitForPodSec = waitForPodSec;
+    }
+
+    @Override
+    public Cloud reconfigure(@NotNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        KubernetesCloud newCloud = (KubernetesCloud) super.reconfigure(req, form);
+        newCloud.setTemplates(templates);
+        return newCloud;
+    }
+
+    @POST
+    public HttpResponse doPodTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        this.checkPermission(Jenkins.ADMINISTER);
+        req.bindJSON(this, req.getSubmittedForm());
+        Jenkins.get().save();
+        return FormApply.success(".");
     }
 
     @Extension

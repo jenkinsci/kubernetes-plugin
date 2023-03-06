@@ -1,0 +1,27 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+<l:layout permission="${app.SYSTEM_READ}" title="${%title(it.name)}">
+    <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}"/>
+    <st:include page="sidepanel.jelly"/>
+    <l:breadcrumb title="${%Configure}"/>
+    <l:main-panel>
+        <h1>${%title(it.name)}</h1>
+        <f:form method="post" action="podTemplatesSubmit" name="config" class="jenkins-form">
+            <j:set var="instance" value="${it}"/>
+            <j:set var="descriptor" value="${instance.descriptor}"/>
+
+            <st:include it="${instance}" page="config-podTemplates.jelly"/>
+
+            <l:isAdmin>
+                <f:bottomButtonBar>
+                    <f:submit value="${%Save}"/>
+                    <f:apply />
+                </f:bottomButtonBar>
+            </l:isAdmin>
+        </f:form>
+        <l:isAdmin>
+            <st:adjunct includes="lib.form.confirm"/>
+        </l:isAdmin>
+    </l:main-panel>
+</l:layout>
+</j:jelly>
