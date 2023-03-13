@@ -64,6 +64,7 @@ public class KubernetesAgentErrorConditionTest {
         SemaphoreStep.success("wait/1", null);
         s.toComputer().connect(false);
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        r.assertLogContains(s.getNodeName() + " was not a Kubernetes agent", b);
         b = p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("HNK", true))).waitForStart();
         SemaphoreStep.waitForStart("wait/2", b);
         s.toComputer().disconnect(new OfflineCause.UserCause(null, null));
@@ -74,6 +75,7 @@ public class KubernetesAgentErrorConditionTest {
         SemaphoreStep.success("wait/3", null);
         s.toComputer().connect(false);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        r.assertLogNotContains(s.getNodeName() + " was not a Kubernetes agent", b);
     }
 
 }
