@@ -99,7 +99,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 if (n != null) {
                     if (!(n instanceof KubernetesSlave)) {
                         if (!handleNonKubernetes) {
-                            listener.getLogger().println(n.getNodeName() + " was not a Kubernetes agent");
+                            listener.getLogger().println(node + " was not a Kubernetes agent");
                         }
                         return handleNonKubernetes;
                     }
@@ -108,7 +108,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                     Set<LabelAtom> labels = ws.getLabels();
                     if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
                         if (!handleNonKubernetes) {
-                            listener.getLogger().println(n.getNodeName() + " was not a Kubernetes agent judging by " + labels);
+                            listener.getLogger().println(node + " was not a Kubernetes agent judging by " + labels);
                         }
                         return handleNonKubernetes;
                     }
