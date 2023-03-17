@@ -115,6 +115,8 @@ public class KubernetesFactoryAdapter {
 
         if (auth != null) {
             builder = auth.decorate(builder, new KubernetesAuthConfig(builder.getMasterUrl(), caCertData, skipTlsVerify));
+            // If authentication is provided, disable autoconfigure flag to deactivate auto refresh
+            builder = builder.withAutoConfigure(false);
         }
 
         if (skipTlsVerify) {
