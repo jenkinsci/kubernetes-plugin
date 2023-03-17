@@ -151,8 +151,8 @@ public class KubernetesFactoryAdapterTest {
         assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
         assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
         assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
-        assertFalse(client.getConfiguration().getAutoConfigure());
-        assertEquals("http://example.com", client.getConfiguration().getMasterUrl());
+        assertTrue(client.getConfiguration().getAutoConfigure());
+        assertEquals("http://example.com/", client.getConfiguration().getMasterUrl());
     }
 
     @Test
