@@ -24,10 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import hudson.ProxyConfiguration;
+import hudson.util.Secret;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.utils.HttpClientUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,10 +50,14 @@ import static io.fabric8.kubernetes.client.Config.KUBERNETES_NAMESPACE_FILE;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_NO_PROXY;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_PASSWORD;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_USERNAME;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_SERVICE_HOST_PROPERTY;
+import static io.fabric8.kubernetes.client.Config.KUBERNETES_SERVICE_PORT_PROPERTY;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the creation of clients
@@ -71,6 +79,9 @@ public class KubernetesFactoryAdapterTest {
     private static final String NO_PROXY = "noproxy";
     private static final String PROXY_USERNAME = "proxy_username";
     private static final String PROXY_PASSWORD = "proxy_password";
+    private static final String KUBERNETES_HOST = "kubernetes.example";
+    private static final String KUBERNETES_PORT = "443";
+    private static final String KUBERNETES_MASTER_URL = "https://" + KUBERNETES_HOST + ":" + KUBERNETES_PORT + "/";
 
     private Map<String, String> systemProperties = new HashMap<>();
 
@@ -91,6 +102,8 @@ public class KubernetesFactoryAdapterTest {
         System.setProperty(KUBERNETES_NO_PROXY, NO_PROXY);
         System.setProperty(KUBERNETES_PROXY_USERNAME, PROXY_USERNAME);
         System.setProperty(KUBERNETES_PROXY_PASSWORD, PROXY_PASSWORD);
+        System.setProperty(KUBERNETES_SERVICE_HOST_PROPERTY, KUBERNETES_HOST);
+        System.setProperty(KUBERNETES_SERVICE_PORT_PROPERTY, KUBERNETES_PORT);
     }
 
     @After
@@ -110,6 +123,8 @@ public class KubernetesFactoryAdapterTest {
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter(null, null, null, false);
         KubernetesClient client = factory.createClient();
         assertEquals("default", client.getNamespace());
+        assertEquals(KUBERNETES_MASTER_URL, client.getConfiguration().getMasterUrl());
+        assertTrue(client.getConfiguration().getAutoConfigure());
     }
 
     @Test
@@ -123,6 +138,8 @@ public class KubernetesFactoryAdapterTest {
         assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
         assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
         assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertEquals(KUBERNETES_MASTER_URL, client.getConfiguration().getMasterUrl());
+        assertTrue(client.getConfiguration().getAutoConfigure());
     }
 
     @Test
@@ -134,6 +151,27 @@ public class KubernetesFactoryAdapterTest {
         assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
         assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
         assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertTrue(client.getConfiguration().getAutoConfigure());
+        assertEquals("http://example.com/", client.getConfiguration().getMasterUrl());
+    }
+
+    @Test
+    @Issue("JENKINS-70416")
+    public void autoConfigWithAuth() throws Exception {
+        System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
+        StringCredentialsImpl tokenCredential = new StringCredentialsImpl(CredentialsScope.GLOBAL, "sa-token", "some credentials", Secret.fromString("sa-token"));
+        SystemCredentialsProvider.getInstance().getCredentials().add(tokenCredential);
+        KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter(null, null, "sa-token", false);
+        KubernetesClient client = factory.createClient();
+        assertEquals("test-namespace", client.getNamespace());
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] { NO_PROXY }, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertFalse(client.getConfiguration().getAutoConfigure());
+        assertEquals(KUBERNETES_MASTER_URL, client.getConfiguration().getMasterUrl());
+        assertEquals("sa-token", client.getConfiguration().getOauthToken());
     }
 
     @Test
