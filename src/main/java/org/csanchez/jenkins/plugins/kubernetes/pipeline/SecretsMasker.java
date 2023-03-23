@@ -42,6 +42,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -61,14 +63,19 @@ public final class SecretsMasker extends TaskListenerDecorator {
 
     private final Set<String> values;
 
+    private final Pattern pattern;
+
     private SecretsMasker(Set<String> values) {
         assert !values.isEmpty();
         this.values = values;
+        // stored at creation time so SecretPatternFactory extensions are properly loaded
+        // when/if this decorator runs at agent side (see DurableTaskStep.USE_WATCHING)
+        this.pattern = SecretPatterns.getAggregateSecretPattern(values);
     }
 
     @Override
     public OutputStream decorate(OutputStream logger) throws IOException, InterruptedException {
-        return new SecretPatterns.MaskingOutputStream(logger, () -> SecretPatterns.getAggregateSecretPattern(values), "UTF-8");
+        return new SecretPatterns.MaskingOutputStream(logger, () -> pattern, "UTF-8");
     }
 
     @Extension
