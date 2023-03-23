@@ -73,6 +73,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
 import org.junit.Before;
@@ -246,7 +247,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "SECURITY-3079"})
     @Test
     public void runInPodFromYaml() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
@@ -264,6 +265,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+
+        // SECURITY-3079
+        DurableTaskStep.USE_WATCHING = true;
+        WorkflowRun build = p.scheduleBuild2(0).waitForStart();
+        r.assertBuildStatusSuccess(r.waitForCompletion(build));
+        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, build);
+        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", build);
+        DurableTaskStep.USE_WATCHING = false;
     }
 
     @Test
