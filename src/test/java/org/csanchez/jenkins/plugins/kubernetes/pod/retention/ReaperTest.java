@@ -28,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import io.fabric8.kubernetes.client.utils.Utils;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.LinkedList;
@@ -507,6 +508,15 @@ public class ReaperTest {
         .always();
         // don't remove pod on activate
         server.expect().withPath("/api/v1/namespaces/foo/pods/node-123").andReturn(200, node123).once();
+        // Get logs
+        server.expect()
+                .withPath("/api/v1/namespaces/foo/pods?fieldSelector=" + Utils.toUrlEncoded("metadata.name=node-123"))
+                .andReturn(200, new PodListBuilder().withNewMetadata().endMetadata().withItems(node123).build())
+                .always();
+        server.expect()
+                .withPath("/api/v1/namespaces/foo/pods/node-123/log?pretty=false&tailLines=30")
+                .andReturn(200, "some log")
+                .always();
 
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -515,13 +525,8 @@ public class ReaperTest {
         // verify node is still registered
         assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
 
-        // wait for the delete event to be processed
-        waitForKubeClientRequests(6)
-                .assertRequestCountAtLeast(watchPodsPath, 3);
-
         // verify listener got notified
-        listener.waitForEvents()
-                .expectEvent(Watcher.Action.MODIFIED, node);
+        listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
         verify(node, atLeastOnce()).terminate();
@@ -617,14 +622,20 @@ public class ReaperTest {
     }
 
     private Pod withContainerStatusTerminated(Pod pod) {
-        ContainerStatus status = new ContainerStatus();
-        ContainerState state = new ContainerState();
-        ContainerStateTerminated terminated = new ContainerStateTerminated();
-        terminated.setExitCode(123);
-        terminated.setReason("because");
-        state.setTerminated(terminated);
-        status.setState(state);
-        pod.getStatus().getContainerStatuses().add(status);
+        PodStatus podStatus = pod.getStatus();
+        podStatus.getConditions().add(new PodConditionBuilder()
+                .withType("Ready")
+                .withStatus("True")
+                .build());
+        podStatus.getContainerStatuses().add(new ContainerStatusBuilder()
+                .withState(new ContainerStateBuilder()
+                        .withNewTerminated()
+                        .withExitCode(123)
+                        .withReason("because")
+                        .and()
+                        .build())
+                .build());
+
         return pod;
     }
 

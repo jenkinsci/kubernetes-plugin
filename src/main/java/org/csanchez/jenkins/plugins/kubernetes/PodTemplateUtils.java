@@ -1,5 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import io.fabric8.kubernetes.api.model.ConfigMapProjection;
+import io.fabric8.kubernetes.api.model.KeyToPath;
+import io.fabric8.kubernetes.api.model.SecretProjection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -619,8 +622,47 @@ public class PodTemplateUtils {
             if (podFromYaml.getSpec() == null) {
                 podFromYaml.setSpec(new PodSpec());
             }
+            fixOctal(podFromYaml);
             return podFromYaml;
         }
+    }
+
+    private static void fixOctal(Pod podFromYaml) {
+        podFromYaml.getSpec().getVolumes().stream()
+                .map(Volume::getProjected)
+                .forEach(projected -> {
+                    Integer defaultMode = projected.getDefaultMode();
+                    if (defaultMode != null) {
+                        projected.setDefaultMode(convertToOctal(defaultMode));
+                    }
+                    projected.getSources()
+                            .stream()
+                            .forEach(source -> {
+                                ConfigMapProjection configMap = source.getConfigMap();
+                                if (configMap != null) {
+                                    convertDecimalIntegersToOctal(configMap.getItems());
+                                }
+                                SecretProjection secret = source.getSecret();
+                                if (secret != null) {
+                                    convertDecimalIntegersToOctal(secret.getItems());
+                                }
+                            });
+                });
+    }
+
+    private static void convertDecimalIntegersToOctal(List<KeyToPath> items) {
+        items
+                .stream()
+                .forEach(i -> {
+            Integer mode = i.getMode();
+            if (mode != null) {
+                i.setMode(convertToOctal(mode));
+            }
+        });
+    }
+
+    private static int convertToOctal(Integer defaultMode) {
+        return Integer.parseInt(Integer.toString(defaultMode, 10), 8);
     }
 
     public static Collection<String> validateYamlContainerNames(List<String> yamls) {
