@@ -328,7 +328,7 @@ public class Reaper extends ComputerListener {
          */
         void stop() {
             if (watch != null) {
-                LOGGER.info(() -> "Stopping watch for kubernetes cloud " + cloudName);
+                LOGGER.info("Stopping watch for kubernetes cloud " + cloudName);
                 this.watch.close();
             }
         }
