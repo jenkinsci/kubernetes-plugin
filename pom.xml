@@ -81,7 +81,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>authentication-tokens</artifactId>
-      <version>1.4</version>
+      <version>1.53.v1c90fd9191a_b_</version>
     </dependency>
 
     <dependency> <!-- Requires Permission -->
