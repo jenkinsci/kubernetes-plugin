@@ -35,8 +35,12 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
     @Override
     public Closure run(Closure body) {
         return {
-            if ((describable.getYamlFile() != null) && (describable.hasScmContext(script))) {
-                describable.setYaml(script.readTrusted(describable.getYamlFile()))
+            if (describable.getYamlFile() != null) {
+                if (describable.hasScmContext(script)) {
+                    describable.setYaml(script.readTrusted(describable.getYamlFile()))
+                } else {
+                    describable.setYaml(script.readFile(describable.getYamlFile()))
+                }
             }
             if (describable.getInheritFrom() == null) {
                 // Do not implicitly inherit from parent template context for declarative Kubernetes agent declaration
