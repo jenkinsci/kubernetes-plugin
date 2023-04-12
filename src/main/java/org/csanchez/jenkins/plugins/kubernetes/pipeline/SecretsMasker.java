@@ -61,13 +61,10 @@ public final class SecretsMasker extends TaskListenerDecorator {
 
     private static final long serialVersionUID = 1;
 
-    private final Set<String> values;
-
     private final Pattern pattern;
 
     private SecretsMasker(Set<String> values) {
         assert !values.isEmpty();
-        this.values = values;
         // stored at creation time so SecretPatternFactory extensions are properly loaded
         // when/if this decorator runs at agent side (see DurableTaskStep.USE_WATCHING)
         this.pattern = SecretPatterns.getAggregateSecretPattern(values);
