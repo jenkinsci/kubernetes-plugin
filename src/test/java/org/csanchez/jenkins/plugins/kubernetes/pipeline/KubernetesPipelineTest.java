@@ -269,11 +269,14 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         // SECURITY-3079
         DurableTaskStep.USE_WATCHING = true;
-        WorkflowRun build = p.scheduleBuild2(0).waitForStart();
-        r.assertBuildStatusSuccess(r.waitForCompletion(build));
-        r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, build);
-        r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", build);
-        DurableTaskStep.USE_WATCHING = false;
+        try {
+            WorkflowRun build = p.scheduleBuild2(0).waitForStart();
+            r.assertBuildStatusSuccess(r.waitForCompletion(build));
+            r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, build);
+            r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", build);
+        } finally {
+            DurableTaskStep.USE_WATCHING = false;
+        }
     }
 
     @Test
