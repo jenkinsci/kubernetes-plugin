@@ -108,7 +108,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                     Set<LabelAtom> labels = ws.getLabels();
                     if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
                         if (!handleNonKubernetes) {
-                            listener.getLogger().println(node + " was not a Kubernetes agent judging by " + labels);
+                            listener.getLogger().println(node + " did not look like a Kubernetes agent judging by " + labels + "; make sure retry is inside podTemplate, not outside");
                         }
                         return handleNonKubernetes;
                     }
