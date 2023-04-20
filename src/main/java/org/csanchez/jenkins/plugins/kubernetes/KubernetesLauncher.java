@@ -27,8 +27,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Executor;
+import hudson.model.Queue;
+import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
+import hudson.slaves.OfflineCause;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -177,7 +181,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             // so wait for agent to be online
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
-            
+
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
@@ -264,8 +268,33 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
+    @Override
+    public void afterDisconnect(SlaveComputer computer, TaskListener listener) {
+        if (computer == null) {
+            return;
+        }
+
+        final String podName = computer.getDisplayName();
+        LOGGER.info("Agent " + podName + " disconnected");
+        final OfflineCause cause = computer.getOfflineCause();
+
+        for (Executor executor : computer.getExecutors()) {
+            Queue.Executable executable = executor.getCurrentExecutable();
+            if (executable == null) {
+                continue;
+            }
+
+            executor.interrupt(Result.ABORTED, new PodTerminatedCause(podName, cause));
+
+            final Queue.Task task = executable.getParent().getOwnerTask();
+            LOGGER.warning("Aborted " + task.getName() + " because its pod agent was terminated");
+        }
+
+        super.afterDisconnect(computer, listener);
+    }
+
     private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
-            KubernetesSlave slave, KubernetesClient client) {
+                                           KubernetesSlave slave, KubernetesClient client) {
         if (!terminatedContainers.isEmpty()) {
             Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors
                     .toMap(ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
