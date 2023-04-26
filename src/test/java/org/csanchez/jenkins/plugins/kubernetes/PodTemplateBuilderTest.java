@@ -289,7 +289,7 @@ public class PodTemplateBuilderTest {
         template.setHostNetwork(false);
 
         List<PodVolume> volumes = new ArrayList<PodVolume>();
-        volumes.add(new HostPathVolume("/host/data", "/container/data"));
+        volumes.add(new HostPathVolume("/host/data", "/container/data", false));
         volumes.add(new EmptyDirVolume("/empty/dir", false));
         template.setVolumes(volumes);
 
