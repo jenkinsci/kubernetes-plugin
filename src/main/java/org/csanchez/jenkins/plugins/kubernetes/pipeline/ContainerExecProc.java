@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -86,7 +87,14 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
             finished.await();
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
-            return watch.exitCode().join();
+
+            CompletableFuture<Integer> exitCodeFuture = watch.exitCode();
+            if (exitCodeFuture == null) {
+                LOGGER.log(Level.FINEST, "Watcher return 'null' instead of exitCode");
+                return -1;
+            }
+
+            return exitCodeFuture.join();
         } finally {
             close();
         }
