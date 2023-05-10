@@ -8,8 +8,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -94,7 +95,17 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
                 return -1;
             }
 
-            return exitCodeFuture.join();
+            try {
+                return exitCodeFuture.get();
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof NullPointerException) {
+                    LOGGER.log(Level.FINEST, "NullPointerException occurred while waiting for exit code", cause);
+                } else {
+                    LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", cause);
+                }
+                return -1;
+            }
         } finally {
             close();
         }
