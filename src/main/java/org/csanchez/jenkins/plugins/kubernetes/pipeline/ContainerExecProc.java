@@ -90,22 +90,19 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
 
             CompletableFuture<Integer> exitCodeFuture = watch.exitCode();
-            if (exitCodeFuture == null) {
+            Integer exitCode = exitCodeFuture.get();
+
+            if (exitCode == null) {
                 LOGGER.log(Level.FINEST, "Watcher return 'null' instead of exitCode");
                 return -1;
             }
-
-            try {
-                return exitCodeFuture.get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof NullPointerException) {
-                    LOGGER.log(Level.FINEST, "NullPointerException occurred while waiting for exit code", cause);
-                } else {
-                    LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", cause);
-                }
-                return -1;
-            }
+            return exitCode;
+        } catch (ExecutionException e) {
+            LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", e.getCause());
+            return -1;
+        } catch (Exception e) {
+            LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e.getCause());
+            return -1;
         } finally {
             close();
         }
