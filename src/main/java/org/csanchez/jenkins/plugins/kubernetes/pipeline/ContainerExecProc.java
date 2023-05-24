@@ -6,6 +6,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -36,29 +37,32 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
     private final ExecWatch watch;
     private final OutputStream stdin;
 
+    private final PrintStream printStream;
+
     @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             Callable<Integer> exitCode) {
-        this(watch, alive, finished, (OutputStream) null);
+        this(watch, alive, finished, (OutputStream) null, (PrintStream) null);
     }
 
     @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
             ByteArrayOutputStream error) {
-        this(watch, alive, finished, (OutputStream) null);
+        this(watch, alive, finished, (OutputStream) null, (PrintStream) null);
     }
 
     @Deprecated
     public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin,
             ByteArrayOutputStream error) {
-        this(watch, alive, finished, stdin);
+        this(watch, alive, finished, stdin, (PrintStream) null);
     }
 
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin) {
+    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin, PrintStream printStream) {
         this.watch = watch;
         this.stdin = stdin == null ? watch.getInput() : stdin;
         this.alive = alive;
         this.finished = finished;
+        this.printStream = printStream;
         Timer.get().schedule(this, 1, TimeUnit.MINUTES);
     }
 
@@ -94,14 +98,17 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
 
             if (exitCode == null) {
                 LOGGER.log(Level.FINEST, "Watcher return 'null' instead of exitCode");
+                printStream.print("Watcher return 'null' instead of exitCode");
                 return -1;
             }
             return exitCode;
         } catch (ExecutionException e) {
             LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", e.getCause());
+            printStream.printf("ExecutionException occurred while waiting for exit code %s%n", e.getCause());
             return -1;
         } catch (Exception e) {
             LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e.getCause());
+            printStream.printf("Exception occurred while waiting for exit code %s: %s %n", e.getClass(), e.getCause());
             return -1;
         } finally {
             close();
