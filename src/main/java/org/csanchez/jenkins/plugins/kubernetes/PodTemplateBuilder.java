@@ -51,6 +51,7 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.kohsuke.accmod.Restricted;
@@ -195,6 +196,11 @@ public class PodTemplateBuilder {
                     if (subPath != null) {
                         volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
                     }
+                }
+                if (volume instanceof HostPathVolume) {
+                    final HostPathVolume hostPathVolume = (HostPathVolume) volume;
+                    Boolean readOnly = hostPathVolume.getReadOnly();
+                    volumeMountBuilder = volumeMountBuilder.withReadOnly(readOnly);
                 }
                 volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName, podName));
