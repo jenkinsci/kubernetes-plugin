@@ -65,7 +65,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = wc.goTo(cloud.getUrl() + "configure");
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
@@ -256,10 +256,8 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = wc.goTo(cloud.getUrl() + "podTemplates");
         HtmlForm f = p.getFormByName("config");
-        HtmlButton buttonExtends = getButton(f, "Pod Templates");
-        buttonExtends.click();
         HtmlButton buttonAdd = getButton(f, "Add Pod Template");
         buttonAdd.click();
         HtmlButton buttonDetails = getButton(f, "Pod Template details");
