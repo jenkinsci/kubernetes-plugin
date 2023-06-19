@@ -516,6 +516,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
+    public void podDeadlineExceededGlobalTemplate() throws Exception {
+        PodTemplate podTemplate = new PodTemplate("podDeadlineExceededGlobalTemplate");
+        podTemplate.setLabel("podDeadlineExceededGlobalTemplate");
+        podTemplate.setActiveDeadlineSeconds(30);
+        cloud.addTemplate(podTemplate);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+        r.waitForMessage("---Logs---", b);
+    }
+
+    @Test
     public void interruptedPod() throws Exception {
         r.waitForMessage("starting to sleep", b);
         b.getExecutor().interrupt();
