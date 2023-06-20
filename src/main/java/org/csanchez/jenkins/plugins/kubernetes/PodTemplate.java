@@ -818,9 +818,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.podRetention = PodRetention.getPodTemplateDefault().equals(podRetention) ? null : podRetention;
     }
 
+    /** @see KubernetesSlave#getRunListener */
     @NonNull
     public TaskListener getListener() {
         return listener == null ? TaskListener.NULL : listener;
+    }
+
+    /** @see KubernetesSlave#getRunListener */
+    @CheckForNull
+    public TaskListener getListenerOrNull() {
+        return listener;
     }
 
     public void setListener(@CheckForNull TaskListener listener) {

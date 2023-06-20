@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Functions;
 import hudson.model.TaskListener;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
@@ -112,7 +113,6 @@ public class KubernetesLauncher extends JNLPLauncher {
 
         String cloudName = node.getCloudName();
         final PodTemplate template = node.getTemplate();
-        TaskListener runListener = TaskListener.NULL;
         try {
             KubernetesCloud cloud = node.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
@@ -128,8 +128,6 @@ public class KubernetesLauncher extends JNLPLauncher {
             node.setNamespace(namespace);
 
 
-            runListener = template.getListener();
-
             LOGGER.log(FINE, () -> "Creating Pod: " + cloudName + " " + namespace + "/" + podName);
             try {
                 pod = client.pods().inNamespace(namespace).create(pod);
@@ -138,16 +136,16 @@ public class KubernetesLauncher extends JNLPLauncher {
                 int httpCode = e.getCode();
                 if (400 <= httpCode && httpCode < 500) { // 4xx
                     if (httpCode == 403 && e.getMessage().contains("is forbidden: exceeded quota")) {
-                        runListener.getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota exceeded. %n%s%nRetrying...%n%n",
+                        node.getRunListener().getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota exceeded. %n%s%nRetrying...%n%n",
                                 cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
                     }
                     else if (httpCode == 409 && e.getMessage().contains("Operation cannot be fulfilled on resourcequotas")) {
                         // See: https://github.com/kubernetes/kubernetes/issues/67761 ; A retry usually works.
-                        runListener.getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota update conflict. %n%s%nRetrying...%n%n",
+                        node.getRunListener().getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota update conflict. %n%s%nRetrying...%n%n",
                                 cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
                     }
                     else {
-                        runListener.getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                        node.getRunListener().getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
                         PodUtils.cancelQueueItemFor(pod, e.getMessage());
                     }
                 } else if (500 <= httpCode && httpCode < 600) { // 5xx
@@ -161,7 +159,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             listener.getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
             Metrics.metricRegistry().counter(MetricNames.PODS_CREATED).inc();
 
-            runListener.getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
+            node.getRunListener().getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
             kubernetesComputer.setLaunching(true);
 
             ObjectMeta podMetadata = pod.getMetadata();
@@ -253,6 +251,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).inc();
         } catch (Throwable ex) {
             setProblem(ex);
+            Functions.printStackTrace(ex, node.getRunListener().error("Failed to launch " + node.getPodName()));
             LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {

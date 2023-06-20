@@ -390,11 +390,7 @@ public class Reaper extends ComputerListener {
             String ns = pod.getMetadata().getNamespace();
             String name = pod.getMetadata().getName();
             LOGGER.info(() -> ns + "/" + name + " was just deleted, so removing corresponding Jenkins agent");
-            PodTemplate template = node.getTemplateOrNull();
-            if (template != null) {
-                template.getListener().getLogger().printf("Pod %s/%s was just deleted%n", ns, name);
-            }
-
+            node.getRunListener().getLogger().printf("Pod %s/%s was just deleted%n", ns, name);
             Jenkins.get().removeNode(node);
             disconnectComputer(node, new PodOfflineCause(Messages._PodOfflineCause_PodDeleted()));
         }
@@ -413,8 +409,7 @@ public class Reaper extends ComputerListener {
             if (!terminatedContainers.isEmpty()) {
                 String ns = pod.getMetadata().getNamespace();
                 String name = pod.getMetadata().getName();
-                PodTemplate template = node.getTemplateOrNull();
-                TaskListener runListener = template != null ? template.getListener() : TaskListener.NULL;
+                TaskListener runListener = node.getRunListener();
                 List<String> containers = new ArrayList<>();
                 terminatedContainers.forEach(c -> {
                     ContainerStateTerminated t = c.getState().getTerminated();
@@ -446,8 +441,7 @@ public class Reaper extends ComputerListener {
             if ("Failed".equals(pod.getStatus().getPhase())) {
                 String ns = pod.getMetadata().getNamespace();
                 String name = pod.getMetadata().getName();
-                PodTemplate template = node.getTemplateOrNull();
-                TaskListener runListener = template != null ? template.getListener() : TaskListener.NULL;
+                TaskListener runListener = node.getRunListener();
                 String reason = pod.getStatus().getReason();
                 String message = pod.getStatus().getMessage();
                 LOGGER.info(() -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: " + reason + ", Message: " + message);
@@ -507,10 +501,7 @@ public class Reaper extends ComputerListener {
                 List<String> images = new ArrayList<>();
                 backOffContainers.forEach(cs -> {
                     images.add(cs.getImage());
-                    PodTemplate template = node.getTemplateOrNull();
-                    if (template != null) {
-                        template.getListener().error("Unable to pull Docker image \"" + cs.getImage() + "\". Check if image tag name is spelled correctly.");
-                    }
+                    node.getRunListener().error("Unable to pull Docker image \"" + cs.getImage() + "\". Check if image tag name is spelled correctly.");
                 });
 
                 terminationReasons.add("ImagePullBackOff");

@@ -42,6 +42,7 @@ import hudson.Extension;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.OfflineCause;
+import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
@@ -663,6 +664,7 @@ public class ReaperTest {
         when(node.getNumExecutors()).thenReturn(1);
         PodTemplate podTemplate = new PodTemplate();
         when(node.getTemplate()).thenReturn(podTemplate);
+        when(node.getRunListener()).thenReturn(StreamTaskListener.fromStderr());
         ComputerLauncher launcher = mock(ComputerLauncher.class);
         when(node.getLauncher()).thenReturn(launcher);
         KubernetesComputer computer = mock(KubernetesComputer.class);

@@ -52,9 +52,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.model.Computer;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlPage;
 import hudson.model.Label;
 import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
@@ -74,6 +74,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
 import org.junit.Before;
@@ -247,7 +248,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
     }
 
-    @Issue("JENKINS-57893")
+    @Issue({"JENKINS-57893", "SECURITY-3079"})
     @Test
     public void runInPodFromYaml() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
@@ -265,6 +266,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", b);
         assertFalse("There are pods leftover after test execution, see previous logs",
                 deletePods(cloud.connect(), getLabels(cloud, this, name), true));
+
+        // SECURITY-3079
+        DurableTaskStep.USE_WATCHING = true;
+        try {
+            WorkflowRun build = p.scheduleBuild2(0).waitForStart();
+            r.assertBuildStatusSuccess(r.waitForCompletion(build));
+            r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, build);
+            r.assertLogContains("INSIDE_CONTAINER_ENV_VAR_FROM_SECRET = **** or " + CONTAINER_ENV_VAR_FROM_SECRET_VALUE.toUpperCase(Locale.ROOT) + "\n", build);
+        } finally {
+            DurableTaskStep.USE_WATCHING = false;
+        }
     }
 
     @Test
@@ -501,6 +513,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void podDeadlineExceeded() throws Exception {
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+    }
+
+    @Test
+    public void podDeadlineExceededGlobalTemplate() throws Exception {
+        PodTemplate podTemplate = new PodTemplate("podDeadlineExceededGlobalTemplate");
+        podTemplate.setLabel("podDeadlineExceededGlobalTemplate");
+        podTemplate.setActiveDeadlineSeconds(30);
+        cloud.addTemplate(podTemplate);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+        r.waitForMessage("---Logs---", b);
     }
 
     @Test
