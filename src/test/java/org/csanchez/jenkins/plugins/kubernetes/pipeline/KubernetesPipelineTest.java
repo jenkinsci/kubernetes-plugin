@@ -52,9 +52,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import hudson.model.Computer;
-import com.gargoylesoftware.htmlunit.html.DomNodeUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.DomNodeUtil;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlPage;
 import hudson.model.Label;
 import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
@@ -513,6 +513,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void podDeadlineExceeded() throws Exception {
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+    }
+
+    @Test
+    public void podDeadlineExceededGlobalTemplate() throws Exception {
+        PodTemplate podTemplate = new PodTemplate("podDeadlineExceededGlobalTemplate");
+        podTemplate.setLabel("podDeadlineExceededGlobalTemplate");
+        podTemplate.setActiveDeadlineSeconds(30);
+        cloud.addTemplate(podTemplate);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.waitForMessage("Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)", b);
+        r.waitForMessage("---Logs---", b);
     }
 
     @Test

@@ -29,6 +29,7 @@ import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jvnet.localizer.ResourceBundleHolder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -106,6 +107,42 @@ public class KubernetesSlave extends AbstractCloudSlave {
             template = getKubernetesCloud().getTemplateById(podTemplateId);
         }
         return template;
+    }
+
+    /**
+     * Makes a best effort to find the build log corresponding to this agent.
+     */
+    @NonNull
+    public TaskListener getRunListener() {
+        PodTemplate podTemplate = getTemplateOrNull();
+        if (podTemplate != null) {
+            TaskListener listener = podTemplate.getListenerOrNull();
+            if (listener != null) {
+                return listener;
+            }
+        }
+        Computer c = toComputer();
+        if (c != null) {
+            for (Executor executor : c.getExecutors()) {
+                Queue.Executable executable = executor.getCurrentExecutable();
+                // If this executor hosts a PlaceholderExecutable, send to the owning build log.
+                if (executable != null) {
+                    Queue.Executable parentExecutable = executable.getParentExecutable();
+                    if (parentExecutable instanceof FlowExecutionOwner.Executable) {
+                        FlowExecutionOwner flowExecutionOwner = ((FlowExecutionOwner.Executable) parentExecutable).asFlowExecutionOwner();
+                        if (flowExecutionOwner != null) {
+                            try {
+                                return flowExecutionOwner.getListener();
+                            } catch (IOException x) {
+                                LOGGER.log(Level.WARNING, null, x);
+                            }
+                        }
+                    }
+                }
+                // TODO handle freestyle and similar if executable instanceof Run, by capturing a TaskListener from RunListener.onStarted
+            }
+        }
+        return TaskListener.NULL;
     }
 
     /**
