@@ -36,6 +36,9 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 public class EmptyDirVolume extends PodVolume {
 
+
+    private static final long serialVersionUID = 42L;
+
     private static final String DEFAULT_MEDIUM = "";
     private static final String MEMORY_MEDIUM = "Memory";
 

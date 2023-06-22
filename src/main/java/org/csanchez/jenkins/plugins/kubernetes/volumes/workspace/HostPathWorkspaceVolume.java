@@ -35,6 +35,9 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import java.util.Objects;
 
 public class HostPathWorkspaceVolume extends WorkspaceVolume {
+
+    private static final long serialVersionUID = 42L;
+
     private String hostPath;
 
     @DataBoundConstructor

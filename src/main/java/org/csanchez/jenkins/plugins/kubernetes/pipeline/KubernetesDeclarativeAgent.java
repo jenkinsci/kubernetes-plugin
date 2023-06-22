@@ -33,6 +33,9 @@ import org.jenkinsci.plugins.pipeline.modeldefinition.agent.RetryableDeclarative
 
 public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<KubernetesDeclarativeAgent> {
 
+
+    private static final long serialVersionUID = 42L;
+
     private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
 
     @CheckForNull
@@ -328,7 +331,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
                         "Ignoring containerTemplate option as containerTemplates is also defined");
             }
         }
-        if (containerTemplates != null && !containerTemplates.isEmpty()) {
+        if (!containerTemplates.isEmpty()) {
             argMap.put("containers", containerTemplates);
         }
 

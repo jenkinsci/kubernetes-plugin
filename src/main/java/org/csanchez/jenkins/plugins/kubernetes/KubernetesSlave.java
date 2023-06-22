@@ -1,10 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.fabric8.kubernetes.api.model.StatusDetails;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -16,7 +15,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.FilePath;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
@@ -182,6 +182,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     private String remoteFS;
 
+    @SuppressFBWarnings(value = "NM_CONFUSING", justification = "Naming confusion with a getRemoteFs method, but the latter is deprecated.")
     @Override
     public String getRemoteFS() {
         if (remoteFS == null) {
@@ -249,7 +250,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return String.format("%s-%s", DEFAULT_AGENT_PREFIX,  randString);
         }
         // no spaces
-        name = name.replaceAll("[ _]", "-").toLowerCase();
+        name = name.replaceAll("[ _]", "-").toLowerCase(Locale.getDefault());
         // keep it under 63 chars (62 is used to account for the '-')
         name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
         String slaveName = String.format("%s-%s", name, randString);
@@ -536,8 +537,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return this;
         }
 
+        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
+                                                                                                + "validation check is done before using it.")
         private RetentionStrategy determineRetentionStrategy() {
             if (podTemplate.getIdleMinutes() == 0) {
+                Validate.notNull(cloud);
                 return new OnceRetentionStrategy(cloud.getRetentionTimeout());
             } else {
                 return new CloudRetentionStrategy(podTemplate.getIdleMinutes());
@@ -550,6 +554,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
          * @throws IOException
          * @throws Descriptor.FormException
          */
+        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
+                                                                                                + "validation check is done before using it.")
         public KubernetesSlave build() throws IOException, Descriptor.FormException {
             Validate.notNull(podTemplate);
             Validate.notNull(cloud);
@@ -563,8 +569,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
         }
 
+        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
+                                                                                                + "validation check is done before using it.")
         private ComputerLauncher decorateLauncher(@NonNull ComputerLauncher launcher) {
             if (launcher instanceof KubernetesLauncher) {
+                Validate.notNull(cloud);
                 ((KubernetesLauncher) launcher).setWebSocket(cloud.isWebSocket());
             }
             return launcher;

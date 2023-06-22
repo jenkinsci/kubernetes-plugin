@@ -12,6 +12,9 @@ import java.io.Serializable;
  * Created by fabricio.leotti on 26/04/17.
  */
 public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLivenessProbe> implements Serializable {
+
+    private static final long serialVersionUID = 42L;
+
         private String execArgs;
         private int timeoutSeconds;
         private int initialDelaySeconds;

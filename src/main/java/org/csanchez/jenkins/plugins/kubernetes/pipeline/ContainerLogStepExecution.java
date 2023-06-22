@@ -29,6 +29,8 @@ import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecution<String> {
     private static final long serialVersionUID = 5588861066775717487L;
     private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
@@ -41,6 +43,8 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
         this.step = step;
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning raised for catching the Exception x, not entirely sure about the "
+                                                                       + "possible effects of removing that bit.")
     private PrintStream logger() {
         TaskListener l = null;
         StepContext context = getContext();

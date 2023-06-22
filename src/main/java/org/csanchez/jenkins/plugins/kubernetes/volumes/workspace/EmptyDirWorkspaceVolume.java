@@ -38,6 +38,9 @@ import java.util.Objects;
 
 public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
+
+    private static final long serialVersionUID = 42L;
+
     private static final String DEFAULT_MEDIUM = "";
     private static final String MEMORY_MEDIUM = "Memory";
 

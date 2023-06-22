@@ -49,6 +49,9 @@ import org.kohsuke.stapler.DataBoundSetter;
  */
 public class KubernetesAgentErrorCondition extends ErrorCondition {
 
+
+    private static final long serialVersionUID = 42L;
+
     private static final Logger LOGGER = Logger.getLogger(KubernetesAgentErrorCondition.class.getName());
 
     private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS = new HashSet<>();

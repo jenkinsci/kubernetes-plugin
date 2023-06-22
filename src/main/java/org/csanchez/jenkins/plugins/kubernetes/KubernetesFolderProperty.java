@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.model.Job;
 
 import org.jenkinsci.Symbol;
@@ -150,6 +152,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             this.inherited = inherited;
         }
 
+        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
         private void setInherited(boolean inherited) {
             this.inherited = inherited;
         }
@@ -158,6 +161,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             return inherited;
         }
 
+        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
         private void setGranted(boolean granted) {
             this.granted = granted;
         }
@@ -167,6 +171,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             return granted;
         }
 
+        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
         private void setName(String name) {
             this.name = name;
         }
@@ -191,6 +196,8 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         return Jenkins.get().hasPermission(Jenkins.ADMINISTER);
     }
 
+
+    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD")
     private static boolean isUsageRestrictedKubernetesCloud(Cloud cloud) {
         if (cloud instanceof KubernetesCloud) {
             return ((KubernetesCloud) cloud).isUsageRestricted();

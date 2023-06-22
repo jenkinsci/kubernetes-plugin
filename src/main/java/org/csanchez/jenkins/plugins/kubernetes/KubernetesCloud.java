@@ -151,6 +151,9 @@ public class KubernetesCloud extends Cloud {
      * @param source Source Kubernetes cloud implementation
      * @since 0.13
      */
+    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification = "Problem raised for calling unmarshal. Ignoring the "
+                                                                                             + "warning cause it leads to too many changes, with "
+                                                                                             + "unclear impact.")
     public KubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
         super(name);
         XStream2 xs = new XStream2();

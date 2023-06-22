@@ -43,7 +43,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final long serialVersionUID = -6139090518333729333L;
 
-    private static final transient String NAME_FORMAT = "%s-%s";
+    private static final String NAME_FORMAT = "%s-%s";
 
     private static /* almost final */ boolean VERBOSE = Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
 
@@ -245,6 +245,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
+    @SuppressFBWarnings(value = "SE_INNER_CLASS", justification = "Not sure if it is intended or if this inner class should be static.")
     private class PodTemplateCallback extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 6043919968776851324L;

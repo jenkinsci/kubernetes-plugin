@@ -14,6 +14,9 @@ public class PodVolumes {
     @Deprecated
     public static class EmptyDirVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume {
 
+
+        private static final long serialVersionUID = 42L;
+
         public EmptyDirVolume(String mountPath, Boolean memory) {
             super(mountPath, memory);
         }
@@ -26,6 +29,9 @@ public class PodVolumes {
 
     @Deprecated
     public static class SecretVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume {
+
+
+        private static final long serialVersionUID = 42L;
 
         public SecretVolume(String mountPath, String secretName) {
             super(mountPath, secretName);
@@ -40,6 +46,9 @@ public class PodVolumes {
     @Deprecated
     public static class HostPathVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume {
 
+
+        private static final long serialVersionUID = 42L;
+
         public HostPathVolume(String hostPath, String mountPath, Boolean readOnly) {
             super(hostPath, mountPath, readOnly);
         }
@@ -52,6 +61,9 @@ public class PodVolumes {
 
     @Deprecated
     public static class NfsVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume {
+
+
+        private static final long serialVersionUID = 42L;
 
         public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
             super(serverAddress, serverPath, readOnly, mountPath);
@@ -66,6 +78,7 @@ public class PodVolumes {
     /**
      * @deprecated Use {@link PodVolume#volumeMountExists(String, List)} instead
      */
+    @Deprecated
     public static boolean volumeMountExists(String path, List<VolumeMount> existingMounts) {
         return PodVolume.volumeMountExists(path, existingMounts);
     }
@@ -73,6 +86,7 @@ public class PodVolumes {
     /**
      * @deprecated Use {@link PodVolume#podVolumeExists(String,List)} instead
      */
+    @Deprecated
     public static boolean podVolumeExists(String path, List<PodVolume> existingVolumes) {
         for (PodVolume podVolume : existingVolumes) {
             if (podVolume.getMountPath().equals(path)) {

@@ -24,6 +24,9 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * @author <a href="root@junwuhui.cn">runzexia</a>
  */
 public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements DynamicPVC {
+
+    private static final long serialVersionUID = 42L;
+
     private String storageClassName;
     private String requestsSize;
     private String accessModes;

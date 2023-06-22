@@ -49,6 +49,8 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <spotbugs.threshold>Low</spotbugs.threshold>
   </properties>
 
   <dependencies>

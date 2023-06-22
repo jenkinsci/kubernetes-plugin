@@ -36,6 +36,9 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 
 public class ConfigMapVolume extends PodVolume {
+
+    private static final long serialVersionUID = 42L;
+
     private String mountPath;
     private String subPath;
     private String configMapName;

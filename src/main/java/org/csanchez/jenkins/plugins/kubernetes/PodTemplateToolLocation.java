@@ -34,6 +34,9 @@ import java.util.Collection;
  */
 public class PodTemplateToolLocation extends DescribableList<NodeProperty<?>,NodePropertyDescriptor> implements Serializable {
 
+
+    private static final long serialVersionUID = 42L;
+
     public PodTemplateToolLocation() {}
 
 

@@ -8,6 +8,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
+
+import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,7 +36,7 @@ public class OnFailure extends PodRetention implements Serializable {
         if (pod == null || pod.getStatus() == null) {
             return false;
         }
-        boolean hasErrors = pod.getStatus().getPhase().toLowerCase().matches("(failed|unknown)");
+        boolean hasErrors = pod.getStatus().getPhase().toLowerCase(Locale.getDefault()).matches("(failed|unknown)");
         return !hasErrors;
     }
 

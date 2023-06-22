@@ -37,6 +37,9 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import java.util.Objects;
 
 public class NfsWorkspaceVolume extends WorkspaceVolume {
+
+    private static final long serialVersionUID = 42L;
+
     private String serverAddress;
     private String serverPath;
     @CheckForNull

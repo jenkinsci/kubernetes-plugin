@@ -23,6 +23,9 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  * Implements a dynamic PVC volume, that is created before the agent pod is created, and terminated afterwards.
  */
 public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
+
+    private static final long serialVersionUID = 42L;
+
     private String id;
     private String storageClassName;
     private String requestsSize;

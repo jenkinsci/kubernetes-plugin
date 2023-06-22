@@ -44,6 +44,7 @@ import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.WatcherException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +147,8 @@ public class Reaper extends ComputerListener {
     /**
      * Remove any {@link KubernetesSlave} nodes that reference Pods that don't exist.
      */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning about the Exception x catch at the end. Not sure about the possible"
+                                                                       + "  impact of removing it.")
     private void reapAgents() {
         Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins != null) {
@@ -210,6 +213,8 @@ public class Reaper extends ComputerListener {
      * is no longer valid.
      * @param kc kubernetes cloud to watch
      */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning about the Exception x caught at the end, but not sure about the "
+                                                                       + "possible impact of removing it.")
     private void watchCloud(@NonNull KubernetesCloud kc) {
         // can't use ConcurrentHashMap#computeIfAbsent because CloudPodWatcher will remove itself from the watchers
         // map on close. If an error occurs when creating the watch it would create a deadlock situation.
@@ -315,7 +320,8 @@ public class Reaper extends ComputerListener {
 
             Listeners.notify(Listener.class, true, listener -> {
                 try {
-                    listener.onEvent(action, optionalNode.get(), pod, terminationReasons.get(optionalNode.get().getNodeName()));
+                    Set<String> terminationReasons = Reaper.this.terminationReasons.get(optionalNode.get().getNodeName());
+                    listener.onEvent(action, optionalNode.get(), pod, terminationReasons != null ? terminationReasons : Collections.emptySet());
                 } catch (Exception x) {
                     LOGGER.log(Level.WARNING, "Listener " + listener + " failed for " + ns + "/" + name, x);
                 }

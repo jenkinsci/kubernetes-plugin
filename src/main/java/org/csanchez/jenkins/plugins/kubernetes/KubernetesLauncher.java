@@ -86,6 +86,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
+    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Only this accessor is called without synchronized.")
     public boolean isLaunchSupported() {
         return !launched;
     }
@@ -112,7 +113,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
         String cloudName = node.getCloudName();
         final PodTemplate template = node.getTemplate();
-        TaskListener runListener = TaskListener.NULL;
+        TaskListener runListener;
         try {
             KubernetesCloud cloud = node.getKubernetesCloud();
             KubernetesClient client = cloud.connect();

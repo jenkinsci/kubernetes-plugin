@@ -18,6 +18,8 @@ import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -25,6 +27,7 @@ import hudson.model.Label;
 import hudson.model.Node;
 import hudson.model.Saveable;
 import hudson.model.TaskListener;
+
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -223,6 +226,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         recomputeLabelDerivedFields();
     }
 
+    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification = "Warning raised for the call to unmarshal. Ignoring as"
+                                                                                             + " it would require too many changes and uncertain "
+                                                                                             + "impact.")
     public PodTemplate(PodTemplate from) {
         XStream2 xs = new XStream2();
         xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
@@ -236,6 +242,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this(null, image, volumes);
     }
 
+    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification =
+            "Warning raised for calling the getContainers method. As " + "this current method is deprecated anyway, it is "
+            + "probably safer to not change it.")
     @Deprecated
     PodTemplate(String name, String image, List<? extends PodVolume> volumes) {
         this(name, volumes, Collections.emptyList());
@@ -244,7 +253,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
-    @Restricted(NoExternalUse.class) // testing only
+    @Restricted(NoExternalUse.class)
+        // testing only
     PodTemplate(String name, List<? extends PodVolume> volumes, List<? extends ContainerTemplate> containers) {
         this();
         this.name = name;
@@ -322,6 +332,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Deprecated
+    @SuppressFBWarnings(value = "NM_CONFUSING", justification = "Naming confusion with a getRemoteFS method, but the current one is deprecated.")
     public String getRemoteFs() {
         return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(ContainerTemplate.DEFAULT_WORKING_DIR);
     }

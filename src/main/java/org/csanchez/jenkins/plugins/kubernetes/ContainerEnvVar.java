@@ -16,6 +16,8 @@ import hudson.model.DescriptorVisibilityFilter;
 @Deprecated
 public class ContainerEnvVar extends KeyValueEnvVar {
 
+    private static final long serialVersionUID = 42L;
+
     @DataBoundConstructor
     public ContainerEnvVar(String key, String value) {
         super(key, value);

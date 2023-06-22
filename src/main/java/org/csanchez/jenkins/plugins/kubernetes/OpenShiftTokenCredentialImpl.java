@@ -17,6 +17,9 @@ import hudson.util.Secret;
 @Deprecated
 public class OpenShiftTokenCredentialImpl extends BaseStandardCredentials implements TokenProducer {
 
+
+    private static final long serialVersionUID = 42L;
+
     private final Secret secret;
 
     @DataBoundConstructor
