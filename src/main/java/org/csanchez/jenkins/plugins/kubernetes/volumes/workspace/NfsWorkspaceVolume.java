@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -36,10 +37,8 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 import java.util.Objects;
 
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class NfsWorkspaceVolume extends WorkspaceVolume {
-
-    private static final long serialVersionUID = 42L;
-
     private String serverAddress;
     private String serverPath;
     @CheckForNull

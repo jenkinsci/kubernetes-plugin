@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
 import java.util.UUID;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -22,10 +23,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * Implements a dynamic PVC volume, that is created before the agent pod is created, and terminated afterwards.
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
-
-    private static final long serialVersionUID = 42L;
-
     private String id;
     private String storageClassName;
     private String requestsSize;

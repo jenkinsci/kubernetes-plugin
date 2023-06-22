@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 
 @Deprecated
@@ -11,11 +12,9 @@ public class PodVolumes {
     public static abstract class PodVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume {
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class EmptyDirVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume {
-
-
-        private static final long serialVersionUID = 42L;
 
         public EmptyDirVolume(String mountPath, Boolean memory) {
             super(mountPath, memory);
@@ -27,11 +26,9 @@ public class PodVolumes {
         }
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class SecretVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume {
-
-
-        private static final long serialVersionUID = 42L;
 
         public SecretVolume(String mountPath, String secretName) {
             super(mountPath, secretName);
@@ -43,11 +40,9 @@ public class PodVolumes {
         }
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class HostPathVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume {
-
-
-        private static final long serialVersionUID = 42L;
 
         public HostPathVolume(String hostPath, String mountPath, Boolean readOnly) {
             super(hostPath, mountPath, readOnly);
@@ -59,11 +54,9 @@ public class PodVolumes {
         }
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class NfsVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume {
-
-
-        private static final long serialVersionUID = 42L;
 
         public NfsVolume(String serverAddress, String serverPath, Boolean readOnly, String mountPath) {
             super(serverAddress, serverPath, readOnly, mountPath);

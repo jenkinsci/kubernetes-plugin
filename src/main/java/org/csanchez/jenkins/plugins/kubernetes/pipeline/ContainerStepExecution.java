@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
 
 import java.io.Closeable;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -95,15 +96,14 @@ public class ContainerStepExecution extends StepExecution {
         closeQuietly(getContext(), decorator);
     }
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "Warning about closeables not being non-transient non-serializable, not entirely "
-                                                                + "sure what is the desired behavior and what impact could a change have here.")
-    private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
+    private static class ContainerExecCallback <T extends Serializable & Closeable> extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 6385838254761750483L;
 
-        private final Closeable[] closeables;
+        private final T[] closeables;
 
-        private ContainerExecCallback(Closeable... closeables) {
+        @SafeVarargs
+        private ContainerExecCallback(T... closeables) {
             this.closeables = closeables;
         }
         @Override

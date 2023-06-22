@@ -87,8 +87,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
-    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Only this accessor is called without synchronized.")
-    public boolean isLaunchSupported() {
+    public synchronized boolean isLaunchSupported() {
         return !launched;
     }
 

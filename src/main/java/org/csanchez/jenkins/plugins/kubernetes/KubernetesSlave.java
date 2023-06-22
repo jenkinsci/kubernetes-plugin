@@ -574,11 +574,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return this;
         }
 
-        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
-                                                                                                + "validation check is done before using it.")
-        private RetentionStrategy determineRetentionStrategy() {
+        private static RetentionStrategy determineRetentionStrategy(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate) {
             if (podTemplate.getIdleMinutes() == 0) {
-                Validate.notNull(cloud);
                 return new OnceRetentionStrategy(cloud.getRetentionTimeout());
             } else {
                 return new CloudRetentionStrategy(podTemplate.getIdleMinutes());
@@ -591,8 +588,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
          * @throws IOException
          * @throws Descriptor.FormException
          */
-        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
-                                                                                                + "validation check is done before using it.")
+        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "False positive. https://github.com/spotbugs/spotbugs/issues/567")
         public KubernetesSlave build() throws IOException, Descriptor.FormException {
             Validate.notNull(podTemplate);
             Validate.notNull(cloud);
@@ -602,15 +598,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
-                    decorateLauncher(computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher),
-                    retentionStrategy == null ? determineRetentionStrategy() : retentionStrategy);
+                    decorateLauncher(cloud, computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher),
+                    retentionStrategy == null ? determineRetentionStrategy(cloud, podTemplate) : retentionStrategy);
         }
 
-        @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "Warning is for the cloud field, and a null "
-                                                                                                + "validation check is done before using it.")
-        private ComputerLauncher decorateLauncher(@NonNull ComputerLauncher launcher) {
+        private ComputerLauncher decorateLauncher(@NonNull KubernetesCloud cloud, @NonNull ComputerLauncher launcher) {
             if (launcher instanceof KubernetesLauncher) {
-                Validate.notNull(cloud);
                 ((KubernetesLauncher) launcher).setWebSocket(cloud.isWebSocket());
             }
             return launcher;

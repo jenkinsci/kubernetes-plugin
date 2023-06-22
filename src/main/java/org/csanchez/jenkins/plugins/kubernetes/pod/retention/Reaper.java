@@ -147,8 +147,6 @@ public class Reaper extends ComputerListener {
     /**
      * Remove any {@link KubernetesSlave} nodes that reference Pods that don't exist.
      */
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning about the Exception x catch at the end. Not sure about the possible"
-                                                                       + "  impact of removing it.")
     private void reapAgents() {
         Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins != null) {
@@ -163,20 +161,21 @@ public class Reaper extends ComputerListener {
                 }
                 String ns = ks.getNamespace();
                 String name = ks.getPodName();
-                try {
-                    // TODO more efficient to do a single (or paged) list request, but tricky since there may be multiple clouds,
-                    // and even within a single cloud an agent pod is permitted to use a nondefault namespace,
-                    // yet we do not want to do an unnamespaced pod list for RBAC reasons.
-                    // Could use a hybrid approach: first list all pods in the configured namespace for all clouds;
-                    // then go back and individually check any unmatched agents with their configured namespace.
-                    KubernetesCloud cloud = ks.getKubernetesCloud();
-                    if (cloud.connect().pods().inNamespace(ns).withName(name).get() == null) {
+
+                // TODO more efficient to do a single (or paged) list request, but tricky since there may be multiple clouds,
+                // and even within a single cloud an agent pod is permitted to use a nondefault namespace,
+                // yet we do not want to do an unnamespaced pod list for RBAC reasons.
+                // Could use a hybrid approach: first list all pods in the configured namespace for all clouds;
+                // then go back and individually check any unmatched agents with their configured namespace.
+                KubernetesCloud cloud = ks.getKubernetesCloud();
+                try (KubernetesClient kubernetesClient = cloud.connect()) {
+                    if (kubernetesClient.pods().inNamespace(ns).withName(name).get() == null) {
                         LOGGER.info(() -> ns + "/" + name + " seems to have been deleted, so removing corresponding Jenkins agent");
                         jenkins.removeNode(ks);
                     } else {
                         LOGGER.fine(() -> ns + "/" + name + " still seems to exist, OK");
                     }
-                } catch (Exception x) {
+                } catch (KubernetesAuthException | IOException | RuntimeException x) {
                     LOGGER.log(Level.WARNING, x, () -> "failed to do initial reap check for " + ns + "/" + name);
                 }
             }
@@ -213,15 +212,12 @@ public class Reaper extends ComputerListener {
      * is no longer valid.
      * @param kc kubernetes cloud to watch
      */
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning about the Exception x caught at the end, but not sure about the "
-                                                                       + "possible impact of removing it.")
     private void watchCloud(@NonNull KubernetesCloud kc) {
         // can't use ConcurrentHashMap#computeIfAbsent because CloudPodWatcher will remove itself from the watchers
         // map on close. If an error occurs when creating the watch it would create a deadlock situation.
         CloudPodWatcher watcher = new CloudPodWatcher(kc);
         if (!isCloudPodWatcherActive(watcher)) {
-            try {
-                KubernetesClient client = kc.connect();
+            try(KubernetesClient client = kc.connect()) {
                 watcher.watch = client.pods().inNamespace(client.getNamespace()).watch(watcher);
                 CloudPodWatcher old = watchers.put(kc.name, watcher);
                 // if another watch slipped in then make sure it stopped
@@ -229,7 +225,7 @@ public class Reaper extends ComputerListener {
                     old.stop();
                 }
                 LOGGER.info(() -> "set up watcher on " + kc.getDisplayName());
-            } catch (Exception x) {
+            } catch (KubernetesAuthException | IOException | RuntimeException x) {
                 LOGGER.log(Level.WARNING, x, () -> "failed to set up watcher on " + kc.getDisplayName());
             }
         }

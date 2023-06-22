@@ -4,6 +4,8 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 
@@ -14,11 +16,9 @@ import hudson.util.Secret;
  * @deprecated Use {@link StringCredentials}
  * @author <a href="mailto:andy.block@gmail.com">Andrew Block</a>
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 @Deprecated
 public class OpenShiftTokenCredentialImpl extends BaseStandardCredentials implements TokenProducer {
-
-
-    private static final long serialVersionUID = 42L;
 
     private final Secret secret;
 

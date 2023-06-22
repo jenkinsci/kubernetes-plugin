@@ -8,12 +8,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Created by fabricio.leotti on 26/04/17.
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class ContainerLivenessProbe extends AbstractDescribableImpl<ContainerLivenessProbe> implements Serializable {
-
-    private static final long serialVersionUID = 42L;
 
         private String execArgs;
         private int timeoutSeconds;

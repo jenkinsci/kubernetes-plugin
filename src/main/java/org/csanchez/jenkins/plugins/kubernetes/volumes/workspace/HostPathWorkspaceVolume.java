@@ -34,10 +34,10 @@ import io.fabric8.kubernetes.api.model.VolumeBuilder;
 
 import java.util.Objects;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class HostPathWorkspaceVolume extends WorkspaceVolume {
-
-    private static final long serialVersionUID = 42L;
-
     private String hostPath;
 
     @DataBoundConstructor

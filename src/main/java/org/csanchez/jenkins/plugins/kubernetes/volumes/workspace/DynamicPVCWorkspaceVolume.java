@@ -11,6 +11,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.DynamicPVC;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PVCVolumeUtils;
 import org.jenkinsci.Symbol;
@@ -23,10 +24,8 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * @author <a href="root@junwuhui.cn">runzexia</a>
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements DynamicPVC {
-
-    private static final long serialVersionUID = 42L;
-
     private String storageClassName;
     private String requestsSize;
     private String accessModes;

@@ -152,28 +152,13 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             this.inherited = inherited;
         }
 
-        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
-        private void setInherited(boolean inherited) {
-            this.inherited = inherited;
-        }
-
         public boolean isInherited() {
             return inherited;
-        }
-
-        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
-        private void setGranted(boolean granted) {
-            this.granted = granted;
         }
 
         @SuppressWarnings("unused") // by stapler/jelly
         public boolean isGranted() {
             return granted;
-        }
-
-        @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
-        private void setName(String name) {
-            this.name = name;
         }
 
         /**

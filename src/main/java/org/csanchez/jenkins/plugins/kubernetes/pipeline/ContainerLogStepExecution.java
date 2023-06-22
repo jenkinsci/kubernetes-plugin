@@ -25,6 +25,7 @@ import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,14 +44,12 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
         this.step = step;
     }
 
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Warning raised for catching the Exception x, not entirely sure about the "
-                                                                       + "possible effects of removing that bit.")
     private PrintStream logger() {
         TaskListener l = null;
         StepContext context = getContext();
         try {
             l = context.get(TaskListener.class);
-        } catch (Exception x) {
+        } catch (IOException | InterruptedException x) {
             LOGGER.log(Level.WARNING, "Failed to find TaskListener in context");
         } finally {
             if (l == null) {
