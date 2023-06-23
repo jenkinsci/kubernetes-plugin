@@ -627,26 +627,28 @@ public class PodTemplateUtils {
         }
     }
 
-    private static void fixOctal(Pod podFromYaml) {
+    private static void fixOctal(@NonNull Pod podFromYaml) {
         podFromYaml.getSpec().getVolumes().stream()
                 .map(Volume::getProjected)
                 .forEach(projected -> {
-                    Integer defaultMode = projected.getDefaultMode();
-                    if (defaultMode != null) {
-                        projected.setDefaultMode(convertToOctal(defaultMode));
+                    if (projected != null) {
+                        Integer defaultMode = projected.getDefaultMode();
+                        if (defaultMode != null) {
+                            projected.setDefaultMode(convertToOctal(defaultMode));
+                        }
+                        projected.getSources()
+                                .stream()
+                                .forEach(source -> {
+                                    ConfigMapProjection configMap = source.getConfigMap();
+                                    if (configMap != null) {
+                                        convertDecimalIntegersToOctal(configMap.getItems());
+                                    }
+                                    SecretProjection secret = source.getSecret();
+                                    if (secret != null) {
+                                        convertDecimalIntegersToOctal(secret.getItems());
+                                    }
+                                });
                     }
-                    projected.getSources()
-                            .stream()
-                            .forEach(source -> {
-                                ConfigMapProjection configMap = source.getConfigMap();
-                                if (configMap != null) {
-                                    convertDecimalIntegersToOctal(configMap.getItems());
-                                }
-                                SecretProjection secret = source.getSecret();
-                                if (secret != null) {
-                                    convertDecimalIntegersToOctal(secret.getItems());
-                                }
-                            });
                 });
     }
 
