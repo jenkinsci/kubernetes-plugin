@@ -28,8 +28,8 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import hudson.ProxyConfiguration;
 import hudson.util.Secret;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.utils.HttpClientUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.junit.After;
@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,8 +54,6 @@ import static io.fabric8.kubernetes.client.Config.KUBERNETES_SERVICE_PORT_PROPER
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -176,32 +173,57 @@ public class KubernetesFactoryAdapterTest {
 
     @Test
     @Issue("JENKINS-70563")
-    public void jenkinsProxyConfiguration() throws KubernetesAuthException, MalformedURLException {
+    public void jenkinsProxyConfiguration() throws KubernetesAuthException {
 
         j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*acme.com\n*acme*.com\n*.example.com|192.168.*"));
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
-        try(KubernetesClient client = factory.createClient()) {
-            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        try (KubernetesClient client = factory.createClient()) {
+            Config configuration = client.getConfiguration();
+            assertEquals("http://proxy.com:123", configuration.getHttpProxy());
+            assertEquals(PROXY_USERNAME, configuration.getProxyUsername());
+            assertEquals(PROXY_PASSWORD, configuration.getProxyPassword());
+            assertArrayEquals(new String[] {"acme.com", ".example.com|192.168."}, configuration.getNoProxy());
+            assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
 
         j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*acme.com"));
         factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
-        try(KubernetesClient client = factory.createClient()) {
-            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        try (KubernetesClient client = factory.createClient()) {
+            Config configuration = client.getConfiguration();
+            assertEquals("http://proxy.com:123", configuration.getHttpProxy());
+            assertEquals(PROXY_USERNAME, configuration.getProxyUsername());
+            assertEquals(PROXY_PASSWORD, configuration.getProxyPassword());
+            assertArrayEquals(new String[] {"acme.com"}, configuration.getNoProxy());
+            assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
         factory = new KubernetesFactoryAdapter("http://k8s.acme.com", null, null, null, false, 15, 5, 32, true);
-        try(KubernetesClient client = factory.createClient()) {
-            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        try (KubernetesClient client = factory.createClient()) {
+            Config configuration = client.getConfiguration();
+            assertEquals("http://proxy.com:123", configuration.getHttpProxy());
+            assertEquals(PROXY_USERNAME, configuration.getProxyUsername());
+            assertEquals(PROXY_PASSWORD, configuration.getProxyPassword());
+            assertArrayEquals(new String[] {"acme.com"}, configuration.getNoProxy());
+            assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
 
         j.jenkins.setProxy(new ProxyConfiguration("proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*.acme.com"));
         factory = new KubernetesFactoryAdapter("http://acme.com", null, null, null, false, 15, 5, 32, true);
-        try(KubernetesClient client = factory.createClient()) {
-            assertNotNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        try (KubernetesClient client = factory.createClient()) {
+            Config configuration = client.getConfiguration();
+            assertEquals("http://proxy.com:123", configuration.getHttpProxy());
+            assertEquals(PROXY_USERNAME, configuration.getProxyUsername());
+            assertEquals(PROXY_PASSWORD, configuration.getProxyPassword());
+            assertArrayEquals(new String[] {".acme.com"}, configuration.getNoProxy());
+            assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
         factory = new KubernetesFactoryAdapter("http://k8s.acme.com", null, null, null, false, 15, 5, 32, true);
-        try(KubernetesClient client = factory.createClient()) {
-            assertNull(HttpClientUtils.getProxyUrl(client.getConfiguration()));
+        try (KubernetesClient client = factory.createClient()) {
+            Config configuration = client.getConfiguration();
+            assertEquals("http://proxy.com:123", configuration.getHttpProxy());
+            assertEquals(PROXY_USERNAME, configuration.getProxyUsername());
+            assertEquals(PROXY_PASSWORD, configuration.getProxyPassword());
+            assertArrayEquals(new String[] {".acme.com"}, configuration.getNoProxy());
+            assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
     }
 }

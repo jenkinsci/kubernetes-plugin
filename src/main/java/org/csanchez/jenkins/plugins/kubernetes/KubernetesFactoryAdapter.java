@@ -6,6 +6,8 @@ import hudson.Util;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -139,7 +141,7 @@ public class KubernetesFactoryAdapter {
         }
 
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
-        // JENKINS-63584 If Jenkins has an configured Proxy and cloud has enabled proxy usage pass the arguments to K8S
+        // JENKINS-63584 If Jenkins has a configured Proxy and cloud has enabled proxy usage pass the arguments to K8S
         LOGGER.log(FINE, "Proxy Settings for Cloud: " + useJenkinsProxy);
         if(useJenkinsProxy) {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
@@ -150,9 +152,10 @@ public class KubernetesFactoryAdapter {
                 if (p != null) {
                     builder.withHttpsProxy("http://" + p.name + ":" + p.port);
                     builder.withHttpProxy("http://" + p.name + ":" + p.port);
-                    if (p.name != null) {
+                    String proxyUserName = p.getUserName();
+                    if (proxyUserName != null) {
                         String password = getProxyPasswordDecrypted(p);
-                        builder.withProxyUsername(p.name);
+                        builder.withProxyUsername(proxyUserName);
                         builder.withProxyPassword(password);
                     }
                     builder.withNoProxy(getNoProxyHosts(p));
@@ -180,13 +183,11 @@ public class KubernetesFactoryAdapter {
      * @return the array of no proxy hosts
      */
     private String[] getNoProxyHosts(@NonNull ProxyConfiguration proxy) {
-        String[] noProxyHosts = proxy.getNoProxyHost().split("\n");
-        int i=0;
-        while(i<noProxyHosts.length) {
-            noProxyHosts[i] = noProxyHosts[i].replace("*", "");
-            i++;
+        Set<String> noProxyHosts = new HashSet<>();
+        for (String noProxyHost : proxy.getNoProxyHost().split("\n")) {
+            noProxyHosts.add(noProxyHost.replace("*", ""));
         }
-        return noProxyHosts;
+        return noProxyHosts.toArray(new String[0]);
     }
 
     private String getProxyPasswordDecrypted(ProxyConfiguration p) {
