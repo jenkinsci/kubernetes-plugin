@@ -64,7 +64,6 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 
@@ -78,7 +77,7 @@ import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
  */
 @Extension
 public class Reaper extends ComputerListener {
-    
+
     private static final Logger LOGGER = Logger.getLogger(Reaper.class.getName());
 
     /**
@@ -106,8 +105,8 @@ public class Reaper extends ComputerListener {
     private final Map<String, CloudPodWatcher> watchers = new ConcurrentHashMap<>();
 
     private final LoadingCache<String, Set<String>> terminationReasons = Caffeine.newBuilder().
-        expireAfterAccess(1, TimeUnit.DAYS).
-        build(k -> new ConcurrentSkipListSet<>());
+            expireAfterAccess(1, TimeUnit.DAYS).
+                                                                                         build(k -> new ConcurrentSkipListSet<>());
 
     @Override
     public void preLaunch(Computer c, TaskListener taskListener) throws IOException, InterruptedException {
@@ -161,15 +160,14 @@ public class Reaper extends ComputerListener {
                 }
                 String ns = ks.getNamespace();
                 String name = ks.getPodName();
-
-                // TODO more efficient to do a single (or paged) list request, but tricky since there may be multiple clouds,
-                // and even within a single cloud an agent pod is permitted to use a nondefault namespace,
-                // yet we do not want to do an unnamespaced pod list for RBAC reasons.
-                // Could use a hybrid approach: first list all pods in the configured namespace for all clouds;
-                // then go back and individually check any unmatched agents with their configured namespace.
-                KubernetesCloud cloud = ks.getKubernetesCloud();
-                try (KubernetesClient kubernetesClient = cloud.connect()) {
-                    if (kubernetesClient.pods().inNamespace(ns).withName(name).get() == null) {
+                try {
+                    // TODO more efficient to do a single (or paged) list request, but tricky since there may be multiple clouds,
+                    // and even within a single cloud an agent pod is permitted to use a nondefault namespace,
+                    // yet we do not want to do an unnamespaced pod list for RBAC reasons.
+                    // Could use a hybrid approach: first list all pods in the configured namespace for all clouds;
+                    // then go back and individually check any unmatched agents with their configured namespace.
+                    KubernetesCloud cloud = ks.getKubernetesCloud();
+                    if (cloud.connect().pods().inNamespace(ns).withName(name).get() == null) {
                         LOGGER.info(() -> ns + "/" + name + " seems to have been deleted, so removing corresponding Jenkins agent");
                         jenkins.removeNode(ks);
                     } else {
@@ -198,12 +196,12 @@ public class Reaper extends ComputerListener {
 
             // close any cloud watchers that have been removed
             cloudNames.stream()
-                    .map(this.watchers::get)
-                    .filter(Objects::nonNull)
-                    .forEach(cpw -> {
-                        LOGGER.info(() -> "stopping pod watcher for deleted kubernetes cloud " + cpw.cloudName);
-                        cpw.stop();
-                    });
+                      .map(this.watchers::get)
+                      .filter(Objects::nonNull)
+                      .forEach(cpw -> {
+                          LOGGER.info(() -> "stopping pod watcher for deleted kubernetes cloud " + cpw.cloudName);
+                          cpw.stop();
+                      });
         }
     }
 
@@ -217,7 +215,8 @@ public class Reaper extends ComputerListener {
         // map on close. If an error occurs when creating the watch it would create a deadlock situation.
         CloudPodWatcher watcher = new CloudPodWatcher(kc);
         if (!isCloudPodWatcherActive(watcher)) {
-            try(KubernetesClient client = kc.connect()) {
+            try {
+                KubernetesClient client = kc.connect();
                 watcher.watch = client.pods().inNamespace(client.getNamespace()).watch(watcher);
                 CloudPodWatcher old = watchers.put(kc.name, watcher);
                 // if another watch slipped in then make sure it stopped
@@ -253,10 +252,10 @@ public class Reaper extends ComputerListener {
 
     private static Optional<KubernetesSlave> resolveNode(@NonNull Jenkins jenkins, String namespace, String name) {
         return new ArrayList<>(jenkins.getNodes()).stream()
-                .filter(KubernetesSlave.class::isInstance)
-                .map(KubernetesSlave.class::cast)
-                .filter(ks -> Objects.equals(ks.getNamespace(), namespace) && Objects.equals(ks.getPodName(), name))
-                .findFirst();
+                                                  .filter(KubernetesSlave.class::isInstance)
+                                                  .map(KubernetesSlave.class::cast)
+                                                  .filter(ks -> Objects.equals(ks.getNamespace(), namespace) && Objects.equals(ks.getPodName(), name))
+                                                  .findFirst();
     }
 
     /**

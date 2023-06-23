@@ -61,7 +61,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     @Override
     public boolean start() throws Exception {
-        KubernetesCloud cloud = resolveCloud();
+        KubernetesCloud cloud = resolveCloud(cloudName);
 
         Run<?, ?> run = getContext().get(Run.class);
         if (cloud.isUsageRestricted()) {
@@ -150,7 +150,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             listener.getLogger().println("Registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel());
         }
         cloud.addDynamicTemplate(newTemplate);
-        BodyInvoker invoker = getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate));
+        BodyInvoker invoker =
+                getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate, cloudName));
         if (step.getLabel() == null) {
             invoker.withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), EnvironmentExpander.constant(Collections.singletonMap("POD_LABEL", label))));
         }
@@ -160,7 +161,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     }
 
     @NonNull
-    private KubernetesCloud resolveCloud() throws AbortException {
+    private static KubernetesCloud resolveCloud(final String cloudName) throws AbortException {
         KubernetesCloud cloud;
         if (cloudName == null) {
             cloud = Jenkins.get().clouds.get(KubernetesCloud.class);
@@ -230,7 +231,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public void onResume() {
         try {
-            KubernetesCloud cloud = resolveCloud();
+            KubernetesCloud cloud = resolveCloud(cloudName);
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
             LOGGER.log(Level.FINE, "Re-registering template with id=" + newTemplate.getId() + " after resume");
@@ -245,15 +246,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
-    @SuppressFBWarnings(value = "SE_INNER_CLASS", justification = "Not sure if it is intended or if this inner class should be static.")
-    private class PodTemplateCallback extends BodyExecutionCallback.TailCall {
+    private static class PodTemplateCallback extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 6043919968776851324L;
 
         private final PodTemplate podTemplate;
+        private final String cloudName;
 
-        private PodTemplateCallback(PodTemplate podTemplate) {
+        private PodTemplateCallback(PodTemplate podTemplate, final String cloudName) {
             this.podTemplate = podTemplate;
+            this.cloudName = cloudName;
         }
 
         @Override
@@ -262,7 +264,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
          */
         protected void finished(StepContext context) throws Exception {
             try {
-                KubernetesCloud cloud = resolveCloud();
+                KubernetesCloud cloud = resolveCloud(cloudName);
                 LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
                         + " from cloud " + cloud.name);
                 cloud.removeDynamicTemplate(podTemplate);
