@@ -24,6 +24,8 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
+import org.jenkinsci.plugins.cloudstats.TrackedItem;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
@@ -58,7 +60,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 /**
  * @author Carlos Sanchez carlos@apache.org
  */
-public class KubernetesSlave extends AbstractCloudSlave {
+public class KubernetesSlave extends AbstractCloudSlave implements TrackedItem {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
@@ -82,6 +84,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @CheckForNull
     private transient Pod pod;
+
+    @NonNull
+    private final ProvisioningActivity.Id id;
 
     @NonNull
     public PodTemplate getTemplate() throws IllegalStateException {
@@ -195,6 +200,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this.cloudName = cloudName;
         this.template = template;
         this.podTemplateId = template.getId();
+        this.id = new ProvisioningActivity.Id(cloudName, template.getName(), name);
     }
 
     public String getCloudName() {
@@ -407,6 +413,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
         String msg = String.format("Terminated Kubernetes instance for agent %s/%s", getNamespace(), name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
+    }
+
+    @CheckForNull
+    @Override
+    public ProvisioningActivity.Id getId() {
+        return id;
     }
 
     @Override
