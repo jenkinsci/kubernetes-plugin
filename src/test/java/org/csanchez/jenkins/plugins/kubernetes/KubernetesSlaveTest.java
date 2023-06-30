@@ -46,6 +46,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -162,6 +163,18 @@ public class KubernetesSlaveTest {
 
     private interface GetPodTestCase {
         void test(KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) throws Exception;
+    }
+
+    @Test
+    public void testProvisioningActivityId() throws Descriptor.FormException, IOException {
+        PodTemplate pt = new PodTemplate("x");
+        pt.setName("Template");
+        KubernetesSlave slave = new KubernetesSlave("Node", pt, "bar", "Cloud", "", null, null);
+        ProvisioningActivity.Id id = slave.getId();
+        assertNotNull(id);
+        assertEquals(id.getCloudName(), "Cloud");
+        assertEquals(id.getTemplateName(), "Template");
+        assertEquals(id.getNodeName(), "Node");
     }
 
     @Test
