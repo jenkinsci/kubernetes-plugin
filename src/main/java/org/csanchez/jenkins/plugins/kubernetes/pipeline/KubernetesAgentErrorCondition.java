@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Node;
+import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
 import java.io.IOException;
 import java.util.HashSet;
@@ -35,11 +36,10 @@ import org.jenkinsci.plugins.workflow.flow.ErrorCondition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.StepNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
-import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.steps.AgentErrorCondition;
-import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -80,15 +80,19 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
             LOGGER.fine(() -> "Not a recognized failure: " + t);
             return false;
         }
+        TaskListener listener = context.get(TaskListener.class);
         FlowNode _origin = ErrorAction.findOrigin(t, context.get(FlowExecution.class));
         if (_origin == null) {
-            LOGGER.fine(() -> "No recognized origin of error: " + t);
+            if (!handleNonKubernetes) {
+                listener.getLogger().println("Unable to identify source of error (" + t + ") to see if this was associated with a Kubernetes agent");
+            }
             return handleNonKubernetes;
         }
         FlowNode origin = _origin instanceof BlockEndNode ? ((BlockEndNode) _origin).getStartNode() : _origin;
         LOGGER.fine(() -> "Found origin " + origin + " " + origin.getDisplayFunctionName());
         LinearBlockHoppingScanner scanner = new LinearBlockHoppingScanner();
         scanner.setup(origin);
+        boolean foundPodTemplate = false;
         for (FlowNode callStack : scanner) {
             WorkspaceAction ws = callStack.getPersistentAction(WorkspaceAction.class);
             if (ws != null) {
@@ -96,27 +100,39 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 Node n = Jenkins.get().getNode(node);
                 if (n != null) {
                     if (!(n instanceof KubernetesSlave)) {
-                        LOGGER.fine(() -> node + " was not a K8s agent");
+                        if (!handleNonKubernetes) {
+                            listener.getLogger().println(node + " was not a Kubernetes agent");
+                        }
                         return handleNonKubernetes;
                     }
                 } else {
                     // May have been removed already, but we can look up the labels to see what it was.
                     Set<LabelAtom> labels = ws.getLabels();
                     if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
-                        LOGGER.fine(() -> node + " was not a K8s agent judging by " + labels);
+                        if (!handleNonKubernetes) {
+                            listener.getLogger().println(node + " did not look like a Kubernetes agent judging by " + labels + "; make sure retry is inside podTemplate, not outside");
+                        }
                         return handleNonKubernetes;
                     }
                 }
                 Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
                 if (terminationReasons.stream().anyMatch(r -> IGNORED_CONTAINER_TERMINATION_REASONS.contains(r))) {
-                    LOGGER.fine(() -> "ignored termination reason(s) for " + node + ": " + terminationReasons);
+                    listener.getLogger().println("Ignored termination reason(s) for " + node + " for purposes of retry: " + terminationReasons);
                     return false;
                 }
                 LOGGER.fine(() -> "active on " + node + " (termination reasons: " + terminationReasons + ")");
                 return true;
             }
+            foundPodTemplate |= callStack instanceof StepNode && ((StepNode) callStack).getDescriptor() instanceof PodTemplateStep.DescriptorImpl;
         }
-        LOGGER.fine(() -> "found no WorkspaceAction starting from " + origin);
+        if (!handleNonKubernetes) {
+            if (foundPodTemplate) {
+                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error) but inside podTemplate");
+                return true;
+            } else {
+                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error)");
+            }
+        }
         return handleNonKubernetes;
     }
 

@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.54</version>
+    <version>4.68</version>
     <relativePath/>
   </parent>
 
@@ -49,7 +49,6 @@
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <jenkins-test-harness.version>1922.v91779ee45b_5e</jenkins-test-harness.version>
   </properties>
 
   <dependencies>
@@ -252,8 +251,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
-        <version>1836.vfe602c266c05</version>
+        <artifactId>bom-2.387.x</artifactId>
+        <version>2163.v2d916d90c305</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>

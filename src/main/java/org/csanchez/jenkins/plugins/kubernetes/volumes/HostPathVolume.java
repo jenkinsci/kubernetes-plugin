@@ -24,6 +24,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -36,10 +38,14 @@ public class HostPathVolume extends PodVolume {
     private String mountPath;
     private String hostPath;
 
+    @CheckForNull
+    private Boolean readOnly;
+
     @DataBoundConstructor
-    public HostPathVolume(String hostPath, String mountPath) {
+    public HostPathVolume(String hostPath, String mountPath, Boolean readOnly) {
         this.hostPath = hostPath;
         this.mountPath = mountPath;
+        this.readOnly = readOnly;
     }
 
     public Volume buildVolume(String volumeName) {
@@ -55,6 +61,11 @@ public class HostPathVolume extends PodVolume {
 
     public String getHostPath() {
         return hostPath;
+    }
+
+    @NonNull
+    public Boolean getReadOnly() {
+        return readOnly != null && readOnly;
     }
 
     @Extension

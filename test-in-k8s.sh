@@ -14,8 +14,11 @@ tcp_port=$((2001 + port_offset))
 kubectl delete --ignore-not-found --now pod jenkins
 sed "s/@HTTP_PORT@/$http_port/g; s/@TCP_PORT@/$tcp_port/g" < test-in-k8s.yaml | kubectl apply -f -
 kubectl wait --for=condition=Ready --timeout=15m pod/jenkins
-# Copy temporary split files
-tar cf - "$WORKSPACE_TMP" | kubectl exec -i jenkins -- tar xf -
+if [[ -v WORKSPACE_TMP ]]
+then
+  # Copy temporary split files
+  tar cf - "$WORKSPACE_TMP" | kubectl exec -i jenkins -- tar xf -
+fi
 # Copy plugin files
 kubectl exec jenkins -- mkdir /checkout
 tar cf - pom.xml .mvn src | kubectl exec -i jenkins -- tar xf - -C /checkout
