@@ -61,6 +61,23 @@ public class PodRetentionTest {
         assertTrue(subject.shouldDeletePod(cloud, podS));
     }
 
+    @Test
+    public void testOnJobFailurePodRetention() {
+        OnJobFailure subject = new OnJobFailure();
+
+        // regular
+        String runId = subject.getRunId("job/jobname/42/");
+        assertEquals("42", runId);
+
+        // nested
+        runId = subject.getRunId("job/jobname1/job/jobname2/42/");
+        assertEquals("42", runId);
+
+        // folder name has numbers
+        runId = subject.getRunId("job/22/42/");
+        assertEquals("42", runId);
+    }
+
     private PodStatus buildStatus(String phase) {
         return new PodStatusBuilder().withPhase(phase).build();
     }
