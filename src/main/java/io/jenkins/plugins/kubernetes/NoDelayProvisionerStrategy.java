@@ -62,13 +62,15 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
             }
 
             Cloud.CloudState cloudState = new Cloud.CloudState(label, strategyState.getAdditionalPlannedCapacity());
+
+            searchClouds:
             for (Cloud cloud : jenkinsClouds) {
                 int workloadToProvision = currentDemand - availableCapacity;
                 if (!(cloud instanceof KubernetesCloud)) continue;
                 if (!cloud.canProvision(cloudState)) continue;
                 for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
                     if (cl.canProvision(cloud, cloudState, workloadToProvision) != null) {
-                        continue;
+                        continue searchClouds;
                     }
                 }
 
