@@ -74,10 +74,12 @@ import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.SecurityContextBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
+
 import jenkins.model.Jenkins;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
@@ -302,10 +304,29 @@ public class PodTemplateBuilder {
         }
 
         // default jnlp container
-        Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName()))
-                .findFirst();
-        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME)
-                .withVolumeMounts(volumeMounts.values().toArray(new VolumeMount[volumeMounts.values().size()])).build());
+        Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName())).findFirst();
+        Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).withVolumeMounts(
+                volumeMounts.values().toArray(new VolumeMount[volumeMounts.values().size()])).build());
+
+        // JENKINS-71639 - Inject `securityContext` in `jnlp` container definition when option activated
+        if (cloud != null && cloud.isPspSecurityContext()) {
+            if (jnlp.getSecurityContext() != null) {
+                LOGGER.warning(() -> "Overriding the existing JNLP container Security Context due to the configured restricted PSP injection");
+            } else {
+                LOGGER.fine(() -> "Injecting restricted PSP configuration in the JNLP container security context");
+            }
+            jnlp.setSecurityContext(new SecurityContextBuilder()                    //
+                                            .withAllowPrivilegeEscalation(false)    //
+                                            .withNewCapabilities()                  //
+                                                .withDrop("ALL")                    //
+                                            .endCapabilities()                      //
+                                            .withRunAsNonRoot()                     //
+                                            .withNewSeccompProfile()                //
+                                                .withType("RuntimeDefault")         //
+                                            .endSeccompProfile()                    //
+                                    .build());                                      //
+        }
+
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
         }

@@ -1,0 +1,26 @@
+<div>
+    <p>
+        When using <a href="https://kubernetes.io/docs/concepts/security/pod-security-admission/">Pod Security Admission</a> in the Agents namespace
+        with the <code>restricted</code> <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standard</a>, the
+        <code>jnlp</code> container cannot be scheduled without overriding its container definition with a <code>securityContext</code>.
+    </p>
+    <p>
+        This option allows to automatically inject in the <code>jnlp</code> container a <code>securityContext</code> that is suitable for the use
+        of the <code>restricted</code> <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standard</a>.
+    </p>
+    <p>
+        This is the <code>securityContext</code> that will be used for the <code>jnlp</code> container with that option:
+    </p>
+    <pre>
+        <code>
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              runAsNonRoot: true
+              seccompProfile:
+                type: RuntimeDefault
+        </code>
+    </pre>
+</div>
