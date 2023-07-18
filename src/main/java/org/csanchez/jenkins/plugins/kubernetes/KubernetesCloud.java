@@ -112,7 +112,7 @@ public class KubernetesCloud extends Cloud {
 
     private String namespace;
     private String jnlpregistry;
-    private boolean pspSecurityContext = false;
+    private boolean restrictedPssSecurityContext = false;
     private boolean webSocket;
     private boolean directConnection = false;
     private String jenkinsUrl;
@@ -283,13 +283,13 @@ public class KubernetesCloud extends Cloud {
         this.jnlpregistry = Util.fixEmpty(jnlpregistry);
     }
 
-    public boolean isPspSecurityContext() {
-        return pspSecurityContext;
+    public boolean isRestrictedPssSecurityContext() {
+        return restrictedPssSecurityContext;
     }
 
     @DataBoundSetter
-    public void setPspSecurityContext(boolean pspSecurityContext) {
-        this.pspSecurityContext = pspSecurityContext;
+    public void setRestrictedPssSecurityContext(boolean restrictedPssSecurityContext) {
+        this.restrictedPssSecurityContext = restrictedPssSecurityContext;
     }
 
     @CheckForNull

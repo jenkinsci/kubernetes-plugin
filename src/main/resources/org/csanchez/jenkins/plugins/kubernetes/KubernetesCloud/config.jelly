@@ -31,7 +31,7 @@
         <f:textbox/>
       </f:entry>
 
-      <f:entry title="${%Inject restricted PSP security context in JNLP container definition}" field="pspSecurityContext">
+      <f:entry title="${%Inject restricted PSS security context in JNLP container definition}" field="restrictedPssSecurityContext">
         <f:checkbox/>
       </f:entry>
 

@@ -161,8 +161,8 @@ public class PodTemplateBuilderTest {
 
     @Test
     @Issue("JENKINS-71639")
-    public void testInjectPspSecurityContextInJnlp() throws Exception {
-        cloud.setPspSecurityContext(true);
+    public void testInjectRestrictedPssSecurityContextInJnlp() throws Exception {
+        cloud.setRestrictedPssSecurityContext(true);
         PodTemplate template = new PodTemplate();
         template.setYaml(loadYamlFile("pod-busybox.yaml"));
         setupStubs();

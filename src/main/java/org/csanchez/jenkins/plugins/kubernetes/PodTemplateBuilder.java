@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.Extension;
 import hudson.util.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +42,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -191,7 +193,7 @@ public class PodTemplateBuilder {
             if (!volumeMounts.containsKey(mountPath)) {
                 VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
                         .withMountPath(mountPath).withName(volumeName).withReadOnly(false);
-                
+
                 if (volume instanceof ConfigMapVolume) {
                     final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
                     String subPath = configmapVolume.getSubPath();
@@ -307,25 +309,6 @@ public class PodTemplateBuilder {
         Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream().filter(c -> JNLP_NAME.equals(c.getName())).findFirst();
         Container jnlp = jnlpOpt.orElse(new ContainerBuilder().withName(JNLP_NAME).withVolumeMounts(
                 volumeMounts.values().toArray(new VolumeMount[volumeMounts.values().size()])).build());
-
-        // JENKINS-71639 - Inject `securityContext` in `jnlp` container definition when option activated
-        if (cloud != null && cloud.isPspSecurityContext()) {
-            if (jnlp.getSecurityContext() != null) {
-                LOGGER.warning(() -> "Overriding the existing JNLP container Security Context due to the configured restricted PSP injection");
-            } else {
-                LOGGER.fine(() -> "Injecting restricted PSP configuration in the JNLP container security context");
-            }
-            jnlp.setSecurityContext(new SecurityContextBuilder()                    //
-                                            .withAllowPrivilegeEscalation(false)    //
-                                            .withNewCapabilities()                  //
-                                                .withDrop("ALL")                    //
-                                            .endCapabilities()                      //
-                                            .withRunAsNonRoot()                     //
-                                            .withNewSeccompProfile()                //
-                                                .withType("RuntimeDefault")         //
-                                            .endSeccompProfile()                    //
-                                    .build());                                      //
-        }
 
         if (!jnlpOpt.isPresent()) {
             pod.getSpec().getContainers().add(jnlp);
@@ -664,5 +647,45 @@ public class PodTemplateBuilder {
             }
         }
         return Collections.unmodifiableList(builder);
+    }
+
+    /**
+     * <p>
+     * {@link PodDecorator} allowing to inject in {@code jnlp} containers definition a {@code securityContext} definition allowing to use the
+     * {@code restricted} <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standard</a>.
+     * </p>
+     * <p>
+     * See <a href="https://issues.jenkins.io/browse/JENKINS-71639">JENKINS-71639</a> for more details.
+     * </p>
+     */
+    @Extension
+    public static class RestrictedPssSecurityContextInjector implements PodDecorator {
+
+        @NonNull
+        @Override
+        public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
+            if (kubernetesCloud.isRestrictedPssSecurityContext()) {
+                Optional<Container> maybeJNLP = pod.getSpec().getContainers().stream().filter(container -> JNLP_NAME.equals(container.getName())).findFirst();
+
+                maybeJNLP.ifPresent(jnlp -> {
+                    if (jnlp.getSecurityContext() != null) {
+                        LOGGER.warning(() -> "Overriding the existing JNLP container Security Context due to the configured restricted PSP injection");
+                    } else {
+                        LOGGER.fine(() -> "Injecting restricted PSP configuration in the JNLP container security context");
+                    }
+                    jnlp.setSecurityContext(new SecurityContextBuilder()                //
+                                                .withAllowPrivilegeEscalation(false)    //
+                                                .withNewCapabilities()                  //
+                                                    .withDrop("ALL")                    //
+                                                .endCapabilities()                      //
+                                                .withRunAsNonRoot()                     //
+                                                .withNewSeccompProfile()                //
+                                                    .withType("RuntimeDefault")         //
+                                                .endSeccompProfile()                    //
+                                            .build());                                  //
+                });
+            }
+            return pod;
+        }
     }
 }
