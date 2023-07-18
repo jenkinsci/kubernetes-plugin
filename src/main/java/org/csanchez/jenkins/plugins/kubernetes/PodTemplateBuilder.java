@@ -668,7 +668,7 @@ public class PodTemplateBuilder {
             if (kubernetesCloud.isRestrictedPssSecurityContext()) {
                 Optional<Container> maybeJNLP = pod.getSpec().getContainers().stream().filter(container -> JNLP_NAME.equals(container.getName())).findFirst();
 
-                maybeJNLP.ifPresent(jnlp -> {
+                maybeJNLP.ifPresentOrElse(jnlp -> {
                     if (jnlp.getSecurityContext() != null) {
                         LOGGER.warning(() -> "Overriding the existing JNLP container Security Context due to the configured restricted PSP injection");
                     } else {
@@ -684,6 +684,8 @@ public class PodTemplateBuilder {
                                                     .withType("RuntimeDefault")         //
                                                 .endSeccompProfile()                    //
                                             .build());                                  //
+                }, () -> {
+                    LOGGER.severe(() -> "Cannot find the jnlp container to configure its security when it is expected to be present.");
                 });
             }
             return pod;
