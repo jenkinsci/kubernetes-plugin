@@ -11,16 +11,12 @@
     <p>
         This is the <code>securityContext</code> that will be used for the <code>jnlp</code> container with that option:
     </p>
-    <pre>
-        <code>
-securityContext:
+    <pre>securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
     - ALL
   runAsNonRoot: true
   seccompProfile:
-    type: RuntimeDefault
-        </code>
-    </pre>
+    type: RuntimeDefault</pre>
 </div>
