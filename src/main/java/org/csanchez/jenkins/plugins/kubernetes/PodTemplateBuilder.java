@@ -683,9 +683,7 @@ public class PodTemplateBuilder {
                                                     .withType("RuntimeDefault")         //
                                                 .endSeccompProfile()                    //
                                             .build());                                  //
-                }, () -> {
-                    LOGGER.severe(() -> "Cannot find the jnlp container to configure its security when it is expected to be present.");
-                });
+                }, () -> { throw new IllegalStateException("Cannot find the jnlp container when trying configuring its securityContext for restricted PSS.");});
             }
             return pod;
         }
