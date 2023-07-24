@@ -193,7 +193,7 @@ public class PodTemplateBuilder {
             if (!volumeMounts.containsKey(mountPath)) {
                 VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
                         .withMountPath(mountPath).withName(volumeName).withReadOnly(false);
-
+                
                 if (volume instanceof ConfigMapVolume) {
                     final ConfigMapVolume configmapVolume = (ConfigMapVolume) volume;
                     String subPath = configmapVolume.getSubPath();
