@@ -668,18 +668,21 @@ public class PodTemplateBuilder {
                 Optional<Container> maybeJNLP = pod.getSpec().getContainers().stream().filter(container -> JNLP_NAME.equals(container.getName())).findFirst();
 
                 maybeJNLP.ifPresentOrElse(jnlp -> {
+                    SecurityContextBuilder securityContextBuilder = null;
                     if (jnlp.getSecurityContext() != null) {
-                        LOGGER.warning(() -> "Overriding the existing JNLP container Security Context due to the configured restricted PSP injection");
+                        LOGGER.info(() -> "Updating the existing JNLP container Security Context due to the configured restricted PSP injection");
+                        securityContextBuilder = new SecurityContextBuilder(jnlp.getSecurityContext());
                     } else {
                         LOGGER.fine(() -> "Injecting restricted PSP configuration in the JNLP container security context");
+                        securityContextBuilder = new SecurityContextBuilder();
                     }
-                    jnlp.setSecurityContext(new SecurityContextBuilder()                //
+                    jnlp.setSecurityContext(securityContextBuilder                      //
                                                 .withAllowPrivilegeEscalation(false)    //
                                                 .withNewCapabilities()                  //
                                                     .withDrop("ALL")                    //
                                                 .endCapabilities()                      //
                                                 .withRunAsNonRoot()                     //
-                                                .withNewSeccompProfile()                //
+                                                .editOrNewSeccompProfile()              //
                                                     .withType("RuntimeDefault")         //
                                                 .endSeccompProfile()                    //
                                             .build());                                  //
