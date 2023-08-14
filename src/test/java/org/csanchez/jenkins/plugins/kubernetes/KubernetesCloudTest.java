@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import jenkins.model.JenkinsLocationConfiguration;
+import org.xml.sax.SAXException;
 
 public class KubernetesCloudTest {
 
@@ -65,10 +67,20 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
+    }
+
+    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
+        HtmlPage p = wc.goTo("configureClouds/");
+        List<HtmlForm> forms = p.getForms();
+        // config page was moved in 2.414
+        if (forms.stream().noneMatch(htmlForm -> htmlForm.getNameAttribute().equals("config"))) {
+            p = wc.goTo("cloud/kubernetes/configure");
+        }
+        return p;
     }
 
     @Test
@@ -256,7 +268,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
