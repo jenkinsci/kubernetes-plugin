@@ -423,8 +423,8 @@ public class Reaper extends ComputerListener {
                     }
                 });
 
-                PodUtils.cancelQueueItemFor(pod, "ContainerError");
                 logLastLinesThenTerminateNode(node, pod, runListener);
+                PodUtils.cancelQueueItemFor(pod, "ContainerError");
                 disconnectComputer(node, new PodOfflineCause(Messages._PodOfflineCause_ContainerFailed("ContainerError", containers)));
             }
         }

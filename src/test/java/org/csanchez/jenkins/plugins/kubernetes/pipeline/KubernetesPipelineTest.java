@@ -505,7 +505,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void errorPod() throws Exception {
         r.waitForMessage("jnlp -- terminated (1)", b);
         r.waitForMessage("Foo", b);
-        b.doKill();
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
     }
 
     @Issue("JENKINS-59340")
