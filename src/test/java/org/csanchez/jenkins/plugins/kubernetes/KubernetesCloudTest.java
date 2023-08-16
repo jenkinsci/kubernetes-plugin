@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,15 +15,15 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.gargoylesoftware.htmlunit.ElementNotFoundException;
-import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.DomNodeList;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlFormUtil;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.ElementNotFoundException;
+import org.htmlunit.html.DomElement;
+import org.htmlunit.html.DomNodeList;
+import org.htmlunit.html.HtmlButton;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlFormUtil;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -40,6 +41,7 @@ import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import jenkins.model.JenkinsLocationConfiguration;
+import org.xml.sax.SAXException;
 
 public class KubernetesCloudTest {
 
@@ -65,10 +67,20 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
+    }
+
+    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
+        HtmlPage p = wc.goTo("configureClouds/");
+        List<HtmlForm> forms = p.getForms();
+        // config page was moved in 2.414
+        if (forms.stream().noneMatch(htmlForm -> htmlForm.getNameAttribute().equals("config"))) {
+            p = wc.goTo("cloud/kubernetes/configure");
+        }
+        return p;
     }
 
     @Test
@@ -256,7 +268,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
@@ -266,7 +278,7 @@ public class KubernetesCloudTest {
         buttonDetails.click();
         DomElement templates = p.getElementByName("templates");
         HtmlInput templateName = getInputByName(templates, "_.name");
-        templateName.setValueAttribute("default-workspace-volume");
+        templateName.setValue("default-workspace-volume");
         j.submit(f);
         cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         PodTemplate podTemplate = cloud.getTemplates().get(0);

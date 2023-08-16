@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.Extension;
 import hudson.util.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +42,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -51,6 +53,7 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.kohsuke.accmod.Restricted;
@@ -73,10 +76,12 @@ import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.SecurityContextBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
+
 import jenkins.model.Jenkins;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
@@ -195,6 +200,11 @@ public class PodTemplateBuilder {
                     if (subPath != null) {
                         volumeMountBuilder = volumeMountBuilder.withSubPath(normalizePath(subPath));
                     }
+                }
+                if (volume instanceof HostPathVolume) {
+                    final HostPathVolume hostPathVolume = (HostPathVolume) volume;
+                    Boolean readOnly = hostPathVolume.getReadOnly();
+                    volumeMountBuilder = volumeMountBuilder.withReadOnly(readOnly);
                 }
                 volumeMounts.put(mountPath, volumeMountBuilder.build());
                 volumes.put(volumeName, volume.buildVolume(volumeName, podName));
@@ -637,5 +647,48 @@ public class PodTemplateBuilder {
             }
         }
         return Collections.unmodifiableList(builder);
+    }
+
+    /**
+     * <p>
+     * {@link PodDecorator} allowing to inject in {@code jnlp} containers definition a {@code securityContext} definition allowing to use the
+     * {@code restricted} <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standard</a>.
+     * </p>
+     * <p>
+     * See <a href="https://issues.jenkins.io/browse/JENKINS-71639">JENKINS-71639</a> for more details.
+     * </p>
+     */
+    @Extension
+    public static class RestrictedPssSecurityContextInjector implements PodDecorator {
+
+        @NonNull
+        @Override
+        public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
+            if (kubernetesCloud.isRestrictedPssSecurityContext()) {
+                Optional<Container> maybeJNLP = pod.getSpec().getContainers().stream().filter(container -> JNLP_NAME.equals(container.getName())).findFirst();
+
+                maybeJNLP.ifPresentOrElse(jnlp -> {
+                    SecurityContextBuilder securityContextBuilder = null;
+                    if (jnlp.getSecurityContext() != null) {
+                        LOGGER.info(() -> "Updating the existing JNLP container Security Context due to the configured restricted PSP injection");
+                        securityContextBuilder = new SecurityContextBuilder(jnlp.getSecurityContext());
+                    } else {
+                        LOGGER.fine(() -> "Injecting restricted PSP configuration in the JNLP container security context");
+                        securityContextBuilder = new SecurityContextBuilder();
+                    }
+                    jnlp.setSecurityContext(securityContextBuilder                      //
+                                                .withAllowPrivilegeEscalation(false)    //
+                                                .withNewCapabilities()                  //
+                                                    .withDrop("ALL")                    //
+                                                .endCapabilities()                      //
+                                                .withRunAsNonRoot()                     //
+                                                .editOrNewSeccompProfile()              //
+                                                    .withType("RuntimeDefault")         //
+                                                .endSeccompProfile()                    //
+                                            .build());                                  //
+                }, () -> { throw new IllegalStateException("Cannot find the jnlp container when trying configuring its securityContext for restricted PSS.");});
+            }
+            return pod;
+        }
     }
 }

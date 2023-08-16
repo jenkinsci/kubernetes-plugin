@@ -36,6 +36,7 @@ import org.jenkinsci.plugins.workflow.flow.ErrorCondition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.StepNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.steps.AgentErrorCondition;
@@ -91,6 +92,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
         LOGGER.fine(() -> "Found origin " + origin + " " + origin.getDisplayFunctionName());
         LinearBlockHoppingScanner scanner = new LinearBlockHoppingScanner();
         scanner.setup(origin);
+        boolean foundPodTemplate = false;
         for (FlowNode callStack : scanner) {
             WorkspaceAction ws = callStack.getPersistentAction(WorkspaceAction.class);
             if (ws != null) {
@@ -108,7 +110,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                     Set<LabelAtom> labels = ws.getLabels();
                     if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
                         if (!handleNonKubernetes) {
-                            listener.getLogger().println(node + " was not a Kubernetes agent judging by " + labels);
+                            listener.getLogger().println(node + " did not look like a Kubernetes agent judging by " + labels + "; make sure retry is inside podTemplate, not outside");
                         }
                         return handleNonKubernetes;
                     }
@@ -121,9 +123,15 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 LOGGER.fine(() -> "active on " + node + " (termination reasons: " + terminationReasons + ")");
                 return true;
             }
+            foundPodTemplate |= callStack instanceof StepNode && ((StepNode) callStack).getDescriptor() instanceof PodTemplateStep.DescriptorImpl;
         }
         if (!handleNonKubernetes) {
-            listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error)");
+            if (foundPodTemplate) {
+                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error) but inside podTemplate");
+                return true;
+            } else {
+                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error)");
+            }
         }
         return handleNonKubernetes;
     }

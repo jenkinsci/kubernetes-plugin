@@ -10,4 +10,8 @@
     <f:textbox />
   </f:entry>
 
+  <f:entry title="${%Read Only}" field="readOnly">
+    <f:checkbox />
+  </f:entry>
+
 </j:jelly>

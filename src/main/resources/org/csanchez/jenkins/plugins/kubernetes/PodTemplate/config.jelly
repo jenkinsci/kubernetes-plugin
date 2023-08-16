@@ -107,9 +107,7 @@
       <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Workspace Volume}" field="workspaceVolume">
-      <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%Workspace Volume}" field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
 
     <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 

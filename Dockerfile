@@ -3,7 +3,16 @@ FROM jenkins/jenkins:lts-alpine
 ARG VERSION=1.15.5
 #RUN /usr/local/bin/install-plugins.sh kubernetes:${VERSION}
 
-RUN /usr/local/bin/install-plugins.sh kubernetes-client-api kubernetes-credentials docker-commons cloudbees-folder workflow-api variant durable-task
+RUN jenkins-plugin-cli --plugins kubernetes-client-api \
+    kubernetes-credentials \
+    docker-commons \
+    cloudbees-folder \
+    workflow-api \
+    variant \
+    durable-task \
+    workflow-durable-task-step \
+    metrics \
+    caffeine-api
 COPY target/kubernetes.hpi /usr/share/jenkins/ref/plugins/kubernetes.hpi
 
 # RUN curl -o /usr/share/jenkins/ref/plugins/kubernetes.hpi \

@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -208,7 +208,7 @@ public abstract class AbstractKubernetesPipelineTest {
         return templates.stream().filter(t -> label.equals(t.getLabel())).collect(Collectors.toList());
     }
 
-    @Nonnull
+    @NonNull
     protected List<KubernetesComputer> getKubernetesComputers() {
         return Arrays.stream(r.jenkins.getComputers())
                 .filter(c -> c instanceof KubernetesComputer)

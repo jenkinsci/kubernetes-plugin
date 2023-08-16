@@ -40,13 +40,13 @@ public class PodVolumes {
     @Deprecated
     public static class HostPathVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume {
 
-        public HostPathVolume(String hostPath, String mountPath) {
-            super(hostPath, mountPath);
+        public HostPathVolume(String hostPath, String mountPath, Boolean readOnly) {
+            super(hostPath, mountPath, readOnly);
         }
 
         protected Object readResolve() {
             return new org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume(this.getHostPath(),
-                    this.getMountPath());
+                    this.getMountPath(), this.getReadOnly());
         }
     }
 

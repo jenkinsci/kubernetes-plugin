@@ -6,6 +6,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -159,6 +160,28 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    @Issue("JENKINS-71639")
+    public void testInjectRestrictedPssSecurityContextInJnlp() throws Exception {
+        cloud.setRestrictedPssSecurityContext(true);
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        Map<String, Container> containers = toContainerMap(pod);
+        assertTrue(containers.containsKey("jnlp"));
+
+        Container jnlp = containers.get("jnlp");
+        assertNotNull(jnlp.getSecurityContext());
+        assertFalse(jnlp.getSecurityContext().getAllowPrivilegeEscalation());
+        assertNotNull(jnlp.getSecurityContext().getCapabilities());
+        assertNotNull(jnlp.getSecurityContext().getCapabilities().getDrop());
+        assertTrue(jnlp.getSecurityContext().getCapabilities().getDrop().contains("ALL"));
+        assertTrue(jnlp.getSecurityContext().getRunAsNonRoot());
+        assertNotNull(jnlp.getSecurityContext().getSeccompProfile());
+        assertEquals("RuntimeDefault", jnlp.getSecurityContext().getSeccompProfile().getType());
+    }
+
+    @Test
     public void testValidateDockerRegistryUIOverride() throws Exception {
         final String jnlpregistry = "registry.example.com";
         cloud.setJnlpregistry(jnlpregistry);
@@ -289,7 +312,7 @@ public class PodTemplateBuilderTest {
         template.setHostNetwork(false);
 
         List<PodVolume> volumes = new ArrayList<PodVolume>();
-        volumes.add(new HostPathVolume("/host/data", "/container/data"));
+        volumes.add(new HostPathVolume("/host/data", "/container/data", false));
         volumes.add(new EmptyDirVolume("/empty/dir", false));
         template.setVolumes(volumes);
 

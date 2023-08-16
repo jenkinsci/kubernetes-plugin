@@ -34,6 +34,7 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
     private static final Logger LOGGER = Logger.getLogger(NoDelayProvisionerStrategy.class.getName());
     private static final boolean DISABLE_NODELAY_PROVISING = Boolean.valueOf(
             System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
+    private static final boolean DISABLE_CLOUD_SHUFFLE = Boolean.getBoolean(NoDelayProvisionerStrategy.class.getName() + ".disableCloudShuffle");
 
     @Override
     public NodeProvisioner.StrategyDecision apply(NodeProvisioner.StrategyState strategyState) {
@@ -56,17 +57,23 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 new Object[]{availableCapacity, currentDemand});
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
-            Collections.shuffle(jenkinsClouds);
+            if (!DISABLE_CLOUD_SHUFFLE) {
+                Collections.shuffle(jenkinsClouds);
+            }
+
             Cloud.CloudState cloudState = new Cloud.CloudState(label, strategyState.getAdditionalPlannedCapacity());
+
+            searchClouds:
             for (Cloud cloud : jenkinsClouds) {
                 int workloadToProvision = currentDemand - availableCapacity;
                 if (!(cloud instanceof KubernetesCloud)) continue;
                 if (!cloud.canProvision(cloudState)) continue;
                 for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
                     if (cl.canProvision(cloud, cloudState, workloadToProvision) != null) {
-                        continue;
+                        continue searchClouds;
                     }
                 }
+
                 Collection<NodeProvisioner.PlannedNode> plannedNodes = cloud.provision(cloudState, workloadToProvision);
                 LOGGER.log(Level.FINE, "Planned {0} new nodes", plannedNodes.size());
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
