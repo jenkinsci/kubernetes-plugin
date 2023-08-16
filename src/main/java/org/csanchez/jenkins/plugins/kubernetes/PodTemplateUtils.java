@@ -295,7 +295,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
+        var metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
@@ -304,7 +304,7 @@ public class PodTemplateUtils {
             metadataBuilder.withNamespace(template.getMetadata().getNamespace());
         }
 
-        SpecNested<PodBuilder> specBuilder = metadataBuilder.endMetadata() //
+        var specBuilder = metadataBuilder.endMetadata() //
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //

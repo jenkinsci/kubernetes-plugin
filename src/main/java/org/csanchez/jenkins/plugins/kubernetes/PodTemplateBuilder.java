@@ -42,13 +42,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
-import io.fabric8.kubernetes.api.model.PodSpecFluent;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -69,8 +67,6 @@ import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
-import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -221,7 +217,7 @@ public class PodTemplateBuilder {
                     createContainer(containerTemplate, template.getEnvVars(), volumeMounts.values()));
         }
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder().withNewMetadata();
+        var metadataBuilder = new PodBuilder().withNewMetadata();
         if (agent != null) {
             metadataBuilder.withName(agent.getPodName());
         }
@@ -240,7 +236,7 @@ public class PodTemplateBuilder {
             metadataBuilder.withAnnotations(annotations);
         }
 
-        SpecNested<PodBuilder> builder = metadataBuilder.endMetadata().withNewSpec();
+        var builder = metadataBuilder.endMetadata().withNewSpec();
 
         if (template.getActiveDeadlineSeconds() > 0) {
             builder = builder.withActiveDeadlineSeconds(Long.valueOf(template.getActiveDeadlineSeconds()));
@@ -276,7 +272,7 @@ public class PodTemplateBuilder {
         Long runAsGroup = template.getRunAsGroupAsLong();
         String supplementalGroups = template.getSupplementalGroups();
         if (runAsUser != null || runAsGroup != null || supplementalGroups != null) {
-            PodSpecFluent.SecurityContextNested<SpecNested<PodBuilder>> securityContext = builder.editOrNewSecurityContext();
+            var securityContext = builder.editOrNewSecurityContext();
             if (runAsUser != null) {
                 securityContext.withRunAsUser(runAsUser);
             }
