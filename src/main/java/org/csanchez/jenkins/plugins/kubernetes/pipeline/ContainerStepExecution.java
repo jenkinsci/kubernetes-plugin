@@ -96,14 +96,14 @@ public class ContainerStepExecution extends StepExecution {
         closeQuietly(getContext(), decorator);
     }
 
-    private static class ContainerExecCallback <T extends Serializable & Closeable> extends BodyExecutionCallback.TailCall {
+    @SuppressFBWarnings("SE_BAD_FIELD")
+    private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
 
         private static final long serialVersionUID = 6385838254761750483L;
 
-        private final T[] closeables;
+        private final Closeable[] closeables;
 
-        @SafeVarargs
-        private ContainerExecCallback(T... closeables) {
+        private ContainerExecCallback(Closeable... closeables) {
             this.closeables = closeables;
         }
         @Override
