@@ -482,9 +482,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
     }
 
+    @Override
     protected Object readResolve() {
-        this.executables = new HashSet<>();
-        return this;
+        KubernetesSlave ks = (KubernetesSlave) super.readResolve();
+        ks.executables = new HashSet<>();
+        return ks;
     }
 
     /**
