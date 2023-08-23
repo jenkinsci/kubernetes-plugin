@@ -42,11 +42,13 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.steps.AgentErrorCondition;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Qualifies {@code node} blocks associated with {@link KubernetesSlave} to be retried if the node was deleted.
  * A more specific version of {@link AgentErrorCondition}.
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class KubernetesAgentErrorCondition extends ErrorCondition {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesAgentErrorCondition.class.getName());

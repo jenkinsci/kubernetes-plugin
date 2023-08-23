@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * @author Carlos Sanchez carlos@apache.org
  */
@@ -151,14 +153,30 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     @Override
+    @NonNull
     public ACL getACL() {
         final ACL base = super.getACL();
-        return new ACL() {
-            @Override
-            public boolean hasPermission(Authentication a, Permission permission) {
-                return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
-            }
-        };
+        return new KubernetesComputerACL(base);
+    }
+
+    /**
+     * Simple static inner class to be used by {@link #getACL()}.
+     * It replaces an anonymous inner class in order to fix
+     * <a href="https://spotbugs.readthedocs.io/en/stable/bugDescriptions.html#sic-could-be-refactored-into-a-named-static-inner-class-sic-inner-should-be-static-anon">SIC_INNER_SHOULD_BE_STATIC_ANON</a>.
+     */
+    private static final class KubernetesComputerACL extends ACL {
+
+        private final ACL base;
+
+        public KubernetesComputerACL(final ACL base) {
+            this.base = base;
+        }
+
+        @Override
+        public boolean hasPermission(Authentication a, Permission permission) {
+            return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
+        }
+
     }
 
     public void setLaunching(boolean launching) {

@@ -24,6 +24,8 @@ import hudson.util.DescribableList;
 import java.io.Serializable;
 import java.util.Collection;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  *  Pod Template Tool Location
  *  This class extends Jenkins DescribableList as implemented in Slave Class. Also implements Serializable interface
@@ -32,6 +34,7 @@ import java.util.Collection;
  *
  * @author <a href="mailto:aytuncbeken.ab@gmail.com">Aytunc BEKEN</a>
  */
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class PodTemplateToolLocation extends DescribableList<NodeProperty<?>,NodePropertyDescriptor> implements Serializable {
 
     public PodTemplateToolLocation() {}

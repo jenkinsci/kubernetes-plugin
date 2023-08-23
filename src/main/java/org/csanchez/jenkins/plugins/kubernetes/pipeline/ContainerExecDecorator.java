@@ -568,8 +568,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     closables.add(proc);
                     return proc;
                 } catch (InterruptedException ie) {
+                    closeWatch(watch);
                     throw new InterruptedIOException(ie.getMessage());
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     closeWatch(watch);
                     throw e;
                 }

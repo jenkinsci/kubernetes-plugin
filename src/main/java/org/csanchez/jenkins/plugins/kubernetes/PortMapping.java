@@ -10,7 +10,9 @@ import java.io.Serializable;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class PortMapping extends AbstractDescribableImpl<PortMapping> implements Serializable {
 
     private String name;

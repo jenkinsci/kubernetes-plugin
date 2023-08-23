@@ -25,9 +25,12 @@ import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecution<String> {
     private static final long serialVersionUID = 5588861066775717487L;
@@ -46,7 +49,7 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
         StepContext context = getContext();
         try {
             l = context.get(TaskListener.class);
-        } catch (Exception x) {
+        } catch (IOException | InterruptedException x) {
             LOGGER.log(Level.WARNING, "Failed to find TaskListener in context");
         } finally {
             if (l == null) {
