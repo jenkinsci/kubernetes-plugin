@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import hudson.util.VersionNumber;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
 import org.htmlunit.ElementNotFoundException;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.DomNodeList;
@@ -40,6 +43,7 @@ import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import jenkins.model.JenkinsLocationConfiguration;
+import org.xml.sax.SAXException;
 
 public class KubernetesCloudTest {
 
@@ -65,10 +69,19 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
+    }
+
+    // TODO 2.414+ delete
+    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
+        if (Jenkins.getVersion().isNewerThanOrEqualTo(new VersionNumber("2.414"))) {
+            return wc.goTo("cloud/kubernetes/configure");
+        } else {
+            return wc.goTo("configureClouds/");
+        }
     }
 
     @Test
@@ -256,7 +269,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = wc.goTo("configureClouds/");
+        HtmlPage p = getCloudPage(wc);
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
