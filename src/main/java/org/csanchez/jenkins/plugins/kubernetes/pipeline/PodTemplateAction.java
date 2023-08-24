@@ -9,13 +9,12 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.model.Run;
-import jenkins.model.RunAction2;
 
 /**
  * Use <pre>getContext().get(PodTemplateContext.class)</pre> instead.
  */
 @Deprecated
-public class PodTemplateAction extends AbstractInvisibleRunAction2 implements RunAction2 {
+public class PodTemplateAction extends AbstractInvisibleRunAction2 {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateAction.class.getName());
 

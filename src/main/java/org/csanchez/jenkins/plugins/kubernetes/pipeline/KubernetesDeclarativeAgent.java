@@ -2,6 +2,8 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Label;
@@ -31,6 +33,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.RetryableDeclarativeAgent;
 
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<KubernetesDeclarativeAgent> {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesDeclarativeAgent.class.getName());
@@ -328,7 +331,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
                         "Ignoring containerTemplate option as containerTemplates is also defined");
             }
         }
-        if (containerTemplates != null && !containerTemplates.isEmpty()) {
+        if (!containerTemplates.isEmpty()) {
             argMap.put("containers", containerTemplates);
         }
 

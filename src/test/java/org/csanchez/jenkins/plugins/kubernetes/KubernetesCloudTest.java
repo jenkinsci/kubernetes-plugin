@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import hudson.util.VersionNumber;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
 import org.htmlunit.ElementNotFoundException;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.DomNodeList;
@@ -73,14 +75,13 @@ public class KubernetesCloudTest {
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
     }
 
+    // TODO 2.414+ delete
     private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
-        HtmlPage p = wc.goTo("configureClouds/");
-        List<HtmlForm> forms = p.getForms();
-        // config page was moved in 2.414
-        if (forms.stream().noneMatch(htmlForm -> htmlForm.getNameAttribute().equals("config"))) {
-            p = wc.goTo("cloud/kubernetes/configure");
+        if (Jenkins.getVersion().isNewerThanOrEqualTo(new VersionNumber("2.414"))) {
+            return wc.goTo("cloud/kubernetes/configure");
+        } else {
+            return wc.goTo("configureClouds/");
         }
-        return p;
     }
 
     @Test

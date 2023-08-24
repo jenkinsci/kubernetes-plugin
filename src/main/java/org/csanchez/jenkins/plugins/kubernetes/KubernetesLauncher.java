@@ -87,7 +87,7 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
-    public boolean isLaunchSupported() {
+    public synchronized boolean isLaunchSupported() {
         return !launched;
     }
 

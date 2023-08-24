@@ -45,10 +45,13 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
+    <!-- TODO fix KubernetesCloudTest todos once past 2.414 -->
     <jenkins.version>2.387.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <spotbugs.threshold>Low</spotbugs.threshold>
   </properties>
 
   <dependencies>
