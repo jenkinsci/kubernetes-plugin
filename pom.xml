@@ -79,7 +79,8 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.10.0</version>
+      <!-- TODO https://github.com/jenkinsci/kubernetes-credentials-plugin/pull/39 @ f62dc9ee13617d84ec899274ed897668a4703242 -->
+      <version>0.10.1-rc150.f62dc9ee1361</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
