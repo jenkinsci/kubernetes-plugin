@@ -240,6 +240,10 @@ public class Reaper extends ComputerListener {
         return watchers.get(name) != null;
     }
 
+    public Map<String, ?> getWatchers() {
+        return watchers;
+    }
+
     /**
      * Check if the given cloud pod watcher exists and is still valid. Watchers may become invalid
      * of the kubernetes client configuration changes.

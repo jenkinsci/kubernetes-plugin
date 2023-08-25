@@ -24,7 +24,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
 
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -452,9 +454,9 @@ public class ReaperTest {
         new Reaper.ReaperShutdownListener().onBeforeShutdown();
 
         // watchers removed
-        assertFalse(r.isWatchingCloud(cloud.name));
-        assertFalse(r.isWatchingCloud(cloud2.name));
-        assertFalse(r.isWatchingCloud(cloud3.name));
+        await().until(() -> r.isWatchingCloud(cloud.name), is(false));
+        await().until(() -> r.isWatchingCloud(cloud2.name), is(false));
+        await().until(() -> r.isWatchingCloud(cloud3.name), is(false));
     }
 
     @Test(timeout = 10_000)
@@ -755,7 +757,7 @@ public class ReaperTest {
         }
 
         CapturedRequests assertRequestCountAtLeast(String path, long count) {
-            assertThat(path + " count at least", countByPath.getOrDefault(path, 0L), Matchers.greaterThanOrEqualTo(count));
+            assertThat(path + " count at least", countByPath.getOrDefault(path, 0L), greaterThanOrEqualTo(count));
             return this;
         }
     }
