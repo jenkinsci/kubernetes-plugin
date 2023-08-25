@@ -46,7 +46,9 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <!-- TODO fix KubernetesCloudTest todos once past 2.414 -->
-    <jenkins.version>2.387.3</jenkins.version>
+    <jenkins.version>2.401.1</jenkins.version>
+    <bom>2.401.x</bom>
+    <bom.version>2357.v1043f8578392</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -255,8 +257,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.387.x</artifactId>
-        <version>2163.v2d916d90c305</version>
+        <artifactId>bom-${bom}</artifactId>
+        <version>${bom.version}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -264,6 +266,12 @@
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
         <version>4.9.3</version><!-- should be aligned with the version provided by okhttp-api-plugin -->
+      </dependency>
+      <dependency>
+        <groupId>io.jenkins.plugins</groupId>
+        <artifactId>snakeyaml-api</artifactId>
+        <!-- TODO https://github.com/jenkinsci/snakeyaml-api-plugin/pull/94 @ 4960f40749788fcfe6ddc7def8e0bbc0ce937046-->
+        <version>2.1-110.v4960f4074978</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
