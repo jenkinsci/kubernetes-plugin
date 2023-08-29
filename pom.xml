@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>6.8.1-220.v1f66736f9a_42</version>
+      <version>6.8.1-223.vefe792551b_b_d</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -279,12 +279,6 @@
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
         <version>4.9.3</version><!-- should be aligned with the version provided by okhttp-api-plugin -->
-      </dependency>
-      <dependency>
-        <groupId>io.jenkins.plugins</groupId>
-        <artifactId>snakeyaml-api</artifactId>
-        <!-- TODO https://github.com/jenkinsci/snakeyaml-api-plugin/pull/94 @ 4960f40749788fcfe6ddc7def8e0bbc0ce937046-->
-        <version>2.1-110.v4960f4074978</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
