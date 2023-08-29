@@ -1,5 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import io.fabric8.kubernetes.api.model.ConfigMapProjection;
+import io.fabric8.kubernetes.api.model.KeyToPath;
+import io.fabric8.kubernetes.api.model.SecretProjection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -292,7 +295,7 @@ public class PodTemplateUtils {
 //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
 //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        MetadataNested<PodBuilder> metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
+        var metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
                 .withAnnotations(podAnnotations).withLabels(podLabels);
         if (!isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
@@ -301,7 +304,7 @@ public class PodTemplateUtils {
             metadataBuilder.withNamespace(template.getMetadata().getNamespace());
         }
 
-        SpecNested<PodBuilder> specBuilder = metadataBuilder.endMetadata() //
+        var specBuilder = metadataBuilder.endMetadata() //
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
@@ -619,8 +622,49 @@ public class PodTemplateUtils {
             if (podFromYaml.getSpec() == null) {
                 podFromYaml.setSpec(new PodSpec());
             }
+            fixOctal(podFromYaml);
             return podFromYaml;
         }
+    }
+
+    private static void fixOctal(@NonNull Pod podFromYaml) {
+        podFromYaml.getSpec().getVolumes().stream()
+                .map(Volume::getProjected)
+                .forEach(projected -> {
+                    if (projected != null) {
+                        Integer defaultMode = projected.getDefaultMode();
+                        if (defaultMode != null) {
+                            projected.setDefaultMode(convertToOctal(defaultMode));
+                        }
+                        projected.getSources()
+                                .stream()
+                                .forEach(source -> {
+                                    ConfigMapProjection configMap = source.getConfigMap();
+                                    if (configMap != null) {
+                                        convertDecimalIntegersToOctal(configMap.getItems());
+                                    }
+                                    SecretProjection secret = source.getSecret();
+                                    if (secret != null) {
+                                        convertDecimalIntegersToOctal(secret.getItems());
+                                    }
+                                });
+                    }
+                });
+    }
+
+    private static void convertDecimalIntegersToOctal(List<KeyToPath> items) {
+        items
+                .stream()
+                .forEach(i -> {
+            Integer mode = i.getMode();
+            if (mode != null) {
+                i.setMode(convertToOctal(mode));
+            }
+        });
+    }
+
+    private static int convertToOctal(Integer defaultMode) {
+        return Integer.parseInt(Integer.toString(defaultMode, 10), 8);
     }
 
     public static Collection<String> validateYamlContainerNames(List<String> yamls) {

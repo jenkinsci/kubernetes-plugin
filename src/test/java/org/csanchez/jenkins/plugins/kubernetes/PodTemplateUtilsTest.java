@@ -540,10 +540,6 @@ public class PodTemplateUtilsTest {
         assertThat(result.getVolumes(), containsInAnyOrder(hostPathVolume1, hostPathVolume2, hostPathVolume3, hostPathVolume4));
     }
 
-    private SpecNested<PodBuilder> podBuilder() {
-        return new PodBuilder().withNewMetadata().endMetadata().withNewSpec();
-    }
-
     private ContainerBuilder containerBuilder() {
         Map<String, Quantity> limitMap = new HashMap<>();
         limitMap.put("cpu", new Quantity());
@@ -567,9 +563,9 @@ public class PodTemplateUtilsTest {
         VolumeMount vm4 = new VolumeMountBuilder().withMountPath("/host/mnt1").withName("volume-4").withReadOnly(false)
                 .build();
         Container container1 = containerBuilder().withName("jnlp").withVolumeMounts(vm1, vm2).build();
-        Pod pod1 = podBuilder().withContainers(container1).endSpec().build();
+        Pod pod1 = new PodBuilder().withNewMetadata().endMetadata().withNewSpec().withContainers(container1).endSpec().build();
         Container container2 = containerBuilder().withName("jnlp").withVolumeMounts(vm3, vm4).build();
-        Pod pod2 = podBuilder().withContainers(container2).endSpec().build();
+        Pod pod2 = new PodBuilder().withNewMetadata().endMetadata().withNewSpec().withContainers(container2).endSpec().build();
 
         Pod result = combine(pod1, pod2);
         List<Container> containers = result.getSpec().getContainers();
@@ -648,12 +644,12 @@ public class PodTemplateUtilsTest {
     public void shouldCombineContainersInOrder() {
         Container container1 = containerBuilder().withName("mysql").build();
         Container container2 = containerBuilder().withName("jnlp").build();
-        Pod pod1 = podBuilder().withContainers(container1, container2).endSpec().build();
+        Pod pod1 = new PodBuilder().withNewMetadata().endMetadata().withNewSpec().withContainers(container1, container2).endSpec().build();
         
         Container container3 = containerBuilder().withName("alpine").build();
         Container container4 = containerBuilder().withName("node").build();
         Container container5 = containerBuilder().withName("mvn").build();
-        Pod pod2 = podBuilder().withContainers(container3, container4, container5).endSpec().build();
+        Pod pod2 = new PodBuilder().withNewMetadata().endMetadata().withNewSpec().withContainers(container3, container4, container5).endSpec().build();
         
         Pod result = combine(pod1, pod2);
         assertEquals(Arrays.asList("mysql", "jnlp", "alpine", "node", "mvn"), result.getSpec().getContainers().stream().map(Container::getName).collect(Collectors.toList()));

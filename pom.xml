@@ -46,7 +46,9 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <!-- TODO fix KubernetesCloudTest todos once past 2.414 -->
-    <jenkins.version>2.387.3</jenkins.version>
+    <jenkins.version>2.401.1</jenkins.version>
+    <bom>2.401.x</bom>
+    <bom.version>2357.v1043f8578392</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -58,7 +60,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>6.4.1-215.v2ed17097a_8e9</version>
+      <version>6.8.1-224.vd388fca_4db_3b_</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -79,12 +81,12 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>0.10.0</version>
+      <version>0.11</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>authentication-tokens</artifactId>
-      <version>1.4</version>
+      <version>1.53.v1c90fd9191a_b_</version>
     </dependency>
 
     <dependency> <!-- Requires Permission -->
@@ -107,6 +109,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-api</artifactId>
+      <version>1267.vd9b_a_ddd9eb_47</version>
     </dependency>
     <dependency> <!-- DeclarativeAgent -->
       <groupId>org.jenkinsci.plugins</groupId>
@@ -238,12 +241,24 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-server-mock</artifactId>
-      <version>6.4.1</version>
+      <version>6.8.1</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
           <groupId>org.junit.jupiter</groupId>
           <artifactId>junit-jupiter-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.2.0</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.hamcrest</groupId>
+          <artifactId>hamcrest</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -254,8 +269,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.387.x</artifactId>
-        <version>2163.v2d916d90c305</version>
+        <artifactId>bom-${bom}</artifactId>
+        <version>${bom.version}</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
