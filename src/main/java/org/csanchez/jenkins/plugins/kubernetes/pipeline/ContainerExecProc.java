@@ -1,6 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 
+import hudson.Proc;
+import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.jenkins.cli.shaded.org.apache.commons.io.output.NullPrintStream;
+import jenkins.util.Timer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -17,14 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.Proc;
-import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import io.jenkins.cli.shaded.org.apache.commons.io.output.NullPrintStream;
-import jenkins.util.Timer;
-
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.CTRL_C;
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 /**
  * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.
