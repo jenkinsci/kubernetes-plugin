@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
+import io.jenkins.cli.shaded.org.apache.commons.io.output.NullPrintStream;
 import jenkins.util.Timer;
+
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.CTRL_C;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.NEWLINE;
