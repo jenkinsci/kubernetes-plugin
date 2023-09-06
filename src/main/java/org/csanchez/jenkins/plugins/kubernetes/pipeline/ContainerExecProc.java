@@ -62,7 +62,7 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
         this.stdin = stdin == null ? watch.getInput() : stdin;
         this.alive = alive;
         this.finished = finished;
-        this.printStream = printStream;
+        this.printStream = printStream == null ? NullPrintStream.NULL_PRINT_STREAM : printStream;
         Timer.get().schedule(this, 1, TimeUnit.MINUTES);
     }
 
