@@ -98,17 +98,17 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
 
             if (exitCode == null) {
                 LOGGER.log(Level.FINEST, "The container exec watch was closed before it could obtain an exit code from the process.");
-                printStream.print("Watcher return 'null' instead of exitCode");
+                printStream.print("The container exec watch was closed before it could obtain an exit code from the process.");
                 return -1;
             }
             return exitCode;
         } catch (ExecutionException e) {
             LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", e.getCause());
-            printStream.printf("ExecutionException occurred while waiting for exit code %s%n", e.getCause());
+            printStream.printf("ExecutionException occurred while waiting for exit code: %s%n", e.getCause());
             return -1;
         } catch (Exception e) {
             LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e.getCause());
-            printStream.printf("Exception occurred while waiting for exit code %s: %s %n", e.getClass(), e.getCause());
+            printStream.printf("Exception occurred while waiting for exit code: %s: %s%n", e.getClass(), e.getCause());
             return -1;
         } finally {
             close();
