@@ -97,7 +97,7 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             Integer exitCode = exitCodeFuture.get();
 
             if (exitCode == null) {
-                LOGGER.log(Level.FINEST, "Watcher return 'null' instead of exitCode");
+                LOGGER.log(Level.FINEST, "The container exec watch was closed before it could obtain an exit code from the process.");
                 printStream.print("Watcher return 'null' instead of exitCode");
                 return -1;
             }
