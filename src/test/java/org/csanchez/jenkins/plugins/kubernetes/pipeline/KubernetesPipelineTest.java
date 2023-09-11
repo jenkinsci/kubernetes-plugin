@@ -58,7 +58,6 @@ import org.htmlunit.html.HtmlPage;
 import hudson.model.Label;
 import hudson.model.Run;
 import hudson.slaves.SlaveComputer;
-import hudson.util.VersionNumber;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -566,11 +565,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
         HtmlPage nodeIndex = wc.getPage(node);
         assertNotXPath(nodeIndex, "//*[text() = 'configure']");
-        if (Jenkins.get().getVersion().isNewerThanOrEqualTo(new VersionNumber("2.238"))) {
-            r.assertXPath(nodeIndex, "//*[text() = 'View Configuration']");
-        } else {
-            wc.assertFails(node.toComputer().getUrl()+"configure", 403);
-        }
+        r.assertXPath(nodeIndex, "//*[text() = 'View Configuration']");
         SemaphoreStep.success("pod/1", null);
     }
 
