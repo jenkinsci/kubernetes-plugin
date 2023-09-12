@@ -3,7 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import io.jenkins.cli.shaded.org.apache.commons.io.output.NullPrintStream;
+import org.apache.commons.io.output.NullPrintStream;
 import jenkins.util.Timer;
 
 import java.io.ByteArrayOutputStream;
