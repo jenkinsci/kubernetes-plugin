@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import hudson.util.VersionNumber;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,8 +15,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import jenkins.model.Jenkins;
-import org.htmlunit.ElementNotFoundException;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.DomNodeList;
 import org.htmlunit.html.HtmlButton;
@@ -69,19 +66,14 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
+        HtmlPage p = getCloudPage(wc, cloud);
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
     }
 
-    // TODO 2.414+ delete
-    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
-        if (Jenkins.getVersion().isNewerThanOrEqualTo(new VersionNumber("2.414"))) {
-            return wc.goTo("cloud/kubernetes/configure");
-        } else {
-            return wc.goTo("configureClouds/");
-        }
+    private HtmlPage getCloudPage(JenkinsRule.WebClient wc, KubernetesCloud cloud) throws IOException, SAXException {
+        return wc.goTo(cloud.getUrl() + "configure");
     }
 
     @Test
@@ -269,7 +261,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
+        HtmlPage p = getCloudPage(wc, cloud);
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
@@ -287,16 +279,8 @@ public class KubernetesCloudTest {
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
     }
 
-    // TODO 2.385+ delete
     private HtmlButton getButton(HtmlForm f, String buttonText) {
-        HtmlButton button;
-        try {
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText);
-        } catch (ElementNotFoundException e) {
-            // before https://github.com/jenkinsci/jenkins/pull/7173 the 3 dots where added by core
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText + "...");
-        }
-        return button;
+        return HtmlFormUtil.getButtonByCaption(f, buttonText);
     }
 
     @Test
