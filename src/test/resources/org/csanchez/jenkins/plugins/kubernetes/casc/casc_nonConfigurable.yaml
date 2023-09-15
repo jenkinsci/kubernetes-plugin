@@ -1,0 +1,4 @@
+jenkins:
+  clouds:
+    - nonConfigurableKubernetes:
+        name: "kubernetes"

@@ -7,6 +7,7 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.slaves.Cloud;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.StaplerRequest;
 
 public class NonConfigurableKubernetesCloud extends KubernetesCloud {
@@ -23,6 +24,7 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     }
 
     @Extension
+    @Symbol("nonConfigurableKubernetes")
     public static class DescriptorImpl extends KubernetesCloud.DescriptorImpl {
         @Override
         public String getDisplayName() {
