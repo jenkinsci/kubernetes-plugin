@@ -94,6 +94,13 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
 
             CompletableFuture<Integer> exitCodeFuture = watch.exitCode();
+
+            if (exitCodeFuture == null) {
+                LOGGER.log(Level.FINEST, "exitCodeFuture is null.");
+                printStream.print("exitCodeFuture is null.");
+                return -1;
+            }
+
             Integer exitCode = exitCodeFuture.get();
 
             if (exitCode == null) {
@@ -103,12 +110,14 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             }
             return exitCode;
         } catch (ExecutionException e) {
-            LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", e.getCause());
-            printStream.printf("ExecutionException occurred while waiting for exit code: %s%n", e.getCause());
-            return -1;
-        } catch (Exception e) {
-            LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e);
-            printStream.printf("Exception occurred while waiting for exit code: %s%n", e);
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", cause);
+                printStream.printf("ExecutionException occurred while waiting for exit code: %s%n", cause);
+            } else {
+                LOGGER.log(Level.FINEST, "ExecutionException occurred while waiting for exit code", e);
+                printStream.printf("ExecutionException occurred while waiting for exit code: %s%n", e);
+            }
             return -1;
         } finally {
             close();
