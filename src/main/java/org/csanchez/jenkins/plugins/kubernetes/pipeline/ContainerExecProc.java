@@ -107,8 +107,8 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             printStream.printf("ExecutionException occurred while waiting for exit code: %s%n", e.getCause());
             return -1;
         } catch (Exception e) {
-            LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e.getCause());
-            printStream.printf("Exception occurred while waiting for exit code: %s: %s%n", e.getClass(), e.getCause());
+            LOGGER.log(Level.FINEST, "Exception occurred while waiting for exit code", e);
+            printStream.printf("Exception occurred while waiting for exit code: %s%n", e);
             return -1;
         } finally {
             close();
