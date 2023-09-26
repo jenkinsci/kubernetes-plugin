@@ -36,7 +36,7 @@ public class PodTemplateStepTest {
         step.setInstanceCap(Integer.MAX_VALUE); // make sure this resets instanceCap
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setNumExecutors(1);
-        st.assertRoundTrip(step, "podTemplate(numExecutors: 1) {\n    // some block\n}");
+        st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setNumExecutors(0);
         step.setNumExecutors(2);
         st.assertRoundTrip(step, "podTemplate(numExecutors: 2) {\n    // some block\n}");

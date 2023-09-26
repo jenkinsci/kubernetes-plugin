@@ -437,6 +437,9 @@ public class PodTemplateUtils {
         podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ?
                                    template.getInstanceCap() : parent.getInstanceCap());
 
+        podTemplate.setNumExecutors(template.getNumExecutors() != 1 ?
+                template.getNumExecutors() : parent.getNumExecutors());
+
         podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ?
                                            template.getSlaveConnectTimeout() : parent.getSlaveConnectTimeout());
 
