@@ -58,6 +58,9 @@
         <f:entry field="instanceCap" title="${%Maximum number of instances}">
           <f:textbox default="0"/>
         </f:entry>
+        <f:entry field="numExecutors" title="${%Number of executors}">
+          <f:textbox default="1"/>
+        </f:entry>
         <f:entry title="${%Pod Retention}">
           <f:dropdownDescriptorSelector field="podRetention" default="${descriptor.defaultPodRetention}"/>
         </f:entry>

@@ -149,29 +149,29 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr)
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, Integer numExecutors)
             throws Descriptor.FormException, IOException {
 
-        this(template, nodeDescription, cloud.name, labelStr, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
+        this(template, nodeDescription, cloud.name, labelStr, numExecutors, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
     }
 
     /**
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label)
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label, Integer numExecutors)
             throws Descriptor.FormException, IOException {
-        this(template, nodeDescription, cloud.name, label.toString(), new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
+        this(template, nodeDescription, cloud.name, label.toString(), numExecutors, new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
     }
 
     /**
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr,
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, Integer numExecutors,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
-        this(template, nodeDescription, cloud.name, labelStr, rs);
+        this(template, nodeDescription, cloud.name, labelStr, numExecutors, rs);
     }
 
     /**
@@ -179,18 +179,18 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     @Deprecated
     @DataBoundConstructor // make stapler happy. Not actually used.
-    public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+    public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr, Integer numExecutors,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
-        this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, new KubernetesLauncher(), rs);
+        this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, numExecutors, new KubernetesLauncher(), rs);
     }
 
-    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr,
+    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr, Integer numExecutors,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         super(name, null, computerLauncher);
         setNodeDescription(nodeDescription);
-        setNumExecutors(1);
+        setNumExecutors(numExecutors);
         setMode(template.getNodeUsageMode() != null ? template.getNodeUsageMode() : Node.Mode.NORMAL);
         setLabelString(labelStr);
         setRetentionStrategy(rs);
@@ -510,6 +510,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         private PodTemplate podTemplate;
         private KubernetesCloud cloud;
         private String label;
+        private Integer numExecutors;
         private ComputerLauncher computerLauncher;
         private RetentionStrategy retentionStrategy;
 
@@ -559,6 +560,15 @@ public class KubernetesSlave extends AbstractCloudSlave {
         }
 
         /**
+         * @param numExecutors The numExecutors the {@link KubernetesSlave} has.
+         * @return the current instance for method chaining
+         */
+        public Builder numExecutors(Integer numExecutors) {
+            this.numExecutors = numExecutors;
+            return this;
+        }
+
+        /**
          * @param computerLauncher The computer launcher to use to launch the {@link KubernetesSlave} instance.
          * @return the current instance for method chaining
          */
@@ -600,6 +610,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
+                    numExecutors == null || numExecutors < 1 ? podTemplate.getNumExecutors() : numExecutors,
                     decorateLauncher(cloud, computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher),
                     retentionStrategy == null ? determineRetentionStrategy(cloud, podTemplate) : retentionStrategy);
         }

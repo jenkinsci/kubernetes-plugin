@@ -29,6 +29,7 @@
           <privileged>false</privileged>
           <alwaysPullImage>false</alwaysPullImage>
           <instanceCap>2147483647</instanceCap>
+          <numExecutors>1</numExecutors>
           <slaveConnectTimeout>100</slaveConnectTimeout>
           <idleMinutes>0</idleMinutes>
           <label>java</label>

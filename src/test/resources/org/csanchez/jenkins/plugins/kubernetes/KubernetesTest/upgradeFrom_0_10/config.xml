@@ -22,6 +22,7 @@
           <inheritFrom></inheritFrom>
           <name>maven</name>
           <instanceCap>2147483647</instanceCap>
+          <numExecutors>1</numExecutors>
           <idleMinutes>0</idleMinutes>
           <label>maven</label>
           <nodeSelector></nodeSelector>

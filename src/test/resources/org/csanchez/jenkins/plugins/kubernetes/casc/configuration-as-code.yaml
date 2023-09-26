@@ -11,6 +11,7 @@ jenkins:
             name: "default-java"
             yamlMergeStrategy: "override"
             instanceCap: 10
+            numExecutors: 1
             slaveConnectTimeout: 123
             idleMinutes: 5
             activeDeadlineSeconds: 66

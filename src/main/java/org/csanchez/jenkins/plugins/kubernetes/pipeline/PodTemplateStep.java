@@ -67,6 +67,8 @@ public class PodTemplateStep extends Step implements Serializable {
     private List<String> imagePullSecrets = new ArrayList<>();
 
     private Integer instanceCap = Integer.MAX_VALUE;
+
+    private Integer numExecutors = 1;
     private int idleMinutes;
     private int slaveConnectTimeout = PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
     private int activeDeadlineSeconds;
@@ -221,6 +223,19 @@ public class PodTemplateStep extends Step implements Serializable {
             this.instanceCap = Integer.MAX_VALUE;
         } else {
             this.instanceCap = instanceCap;
+        }
+    }
+
+    public Integer getNumExecutors() {
+        return numExecutors;
+    }
+
+    @DataBoundSetter
+    public void setNumExecutors(@CheckForNull Integer numExecutors) {
+        if (numExecutors == null || numExecutors.intValue() <= 0) {
+            this.numExecutors = 1;
+        } else {
+            this.numExecutors = numExecutors;
         }
     }
 
@@ -400,7 +415,7 @@ public class PodTemplateStep extends Step implements Serializable {
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
 
-        static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
+        static final String[] POD_TEMPLATE_FIELDS = {"name", "namespace", "inheritFrom", "containers", "envVars", "volumes", "annotations", "yaml", "showRawYaml", "instanceCap", "numExecutors", "podRetention", "supplementalGroups", "idleMinutes", "activeDeadlineSeconds", "serviceAccount", "nodeSelector", "workingDir", "workspaceVolume"};
 
         public DescriptorImpl() {
             for (String field : POD_TEMPLATE_FIELDS) {
@@ -473,6 +488,7 @@ public class PodTemplateStep extends Step implements Serializable {
         }
 
         public static final Integer defaultInstanceCap = Integer.MAX_VALUE;
+        public static final Integer defaultNumExecutors = 1;
         public static final PodRetention defaultPodRetention = PodRetention.getPodTemplateDefault();
         public static final WorkspaceVolume defaultWorkspaceVolume = WorkspaceVolume.getDefault();
         /** Only used for snippet generation. */

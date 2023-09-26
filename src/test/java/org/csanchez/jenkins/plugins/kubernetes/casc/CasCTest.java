@@ -41,6 +41,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals("java", podTemplate.getLabel());
         assertEquals("default-java", podTemplate.getName());
         assertEquals(10, podTemplate.getInstanceCap());
+        assertEquals(1, podTemplate.getNumExecutors());
         assertEquals(123, podTemplate.getSlaveConnectTimeout());
         assertEquals(5, podTemplate.getIdleMinutes());
         assertEquals(66, podTemplate.getActiveDeadlineSeconds());

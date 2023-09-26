@@ -156,6 +156,7 @@ podTemplate(label: label, containers: [
 * **podRetention** 用于决定是否保留节点 pod。可以是 'never()'、 'onFailure()'、 'always()' 或 'default()'，如果为空的话，超过 `activeDeadlineSeconds` 设定的时间时间后会删除 pod
 * **activeDeadlineSeconds** 如果 `podRetention` 设置为 'never()' 或 'onFailure()' 的话，在时间超过后 pod 会被删除
 * **idleMinutes** 允许 pod 保持活跃以便再次使用，直到最后一次执行后的时间超过配置的分钟数
+* **numExecutors** 允许 pod 上并行执行的最大构建数量
 
 `containerTemplate` 是容器的模板，会被加到 pod 中。同样地，它的配置可以通过用户界面或流水线来配置，字段包括：
 

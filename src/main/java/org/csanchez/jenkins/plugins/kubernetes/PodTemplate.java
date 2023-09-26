@@ -118,6 +118,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private int instanceCap = Integer.MAX_VALUE;
 
+    private int numExecutors = 1;
+
     private int slaveConnectTimeout = DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT;
 
     private int idleMinutes;
@@ -350,6 +352,19 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @DataBoundSetter
+    public void setNumExecutors(int numExecutors) {
+        if (numExecutors < 0) {
+            this.numExecutors = 1;
+        } else {
+            this.numExecutors = numExecutors;
+        }
+    }
+
+    public int getNumExecutors() {
+        return numExecutors;
+    }
+
+    @DataBoundSetter
     public void setSlaveConnectTimeout(int slaveConnectTimeout) {
         if (slaveConnectTimeout <= 0) {
             LOGGER.log(Level.WARNING, "Agent -> Jenkins connection timeout " +
@@ -381,6 +396,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             return "";
         } else {
             return String.valueOf(instanceCap);
+        }
+    }
+
+
+    @DataBoundSetter
+    public void setNumExecutorsStr(String numExecutorsStr) {
+        if (StringUtils.isBlank(numExecutorsStr)) {
+            setNumExecutors(1);
+        } else {
+            setNumExecutors(Integer.parseInt(numExecutorsStr));
+        }
+    }
+
+    public String getNumExecutorsStr() {
+        if (getNumExecutors() == 1) {
+            return "";
+        } else {
+            return String.valueOf(numExecutors);
         }
     }
 
@@ -1000,6 +1033,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 "activeDeadlineSeconds",
                 "idleMinutes",
                 "instanceCap",
+                "numExecutors",
                 "slaveConnectTimeout",
         };
 
@@ -1056,6 +1090,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 (args == null ? "" : ", args='" + args + '\'') +
                 (remoteFs == null ? "" : ", remoteFs='" + remoteFs + '\'') +
                 (instanceCap == Integer.MAX_VALUE ? "" : ", instanceCap=" + instanceCap) +
+                (numExecutors == 1 ? "" : ", numExecutors='" + numExecutors) +
                 (slaveConnectTimeout == DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ? "" : ", slaveConnectTimeout=" + slaveConnectTimeout) +
                 (idleMinutes == 0 ? "" : ", idleMinutes=" + idleMinutes) +
                 (activeDeadlineSeconds == 0 ? "" : ", activeDeadlineSeconds=" + activeDeadlineSeconds) +

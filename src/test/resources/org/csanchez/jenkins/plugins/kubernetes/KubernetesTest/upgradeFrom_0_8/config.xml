@@ -30,6 +30,7 @@
           <args></args>
           <remoteFs>/home/jenkins</remoteFs>
           <instanceCap>2147483647</instanceCap>
+          <numExecutors>1</numExecutors>
           <label>java</label>
           <nodeSelector></nodeSelector>
           <resourceRequestCpu>500m</resourceRequestCpu>

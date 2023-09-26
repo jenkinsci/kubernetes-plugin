@@ -206,6 +206,7 @@ public class KubernetesTest {
         assertEquals(1, templates.size());
         PodTemplate podTemplate = templates.get(0);
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
+        assertEquals(1, podTemplate.getNumExecutors());
         assertEquals(1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkins/inbound-agent", containerTemplate.getImage());

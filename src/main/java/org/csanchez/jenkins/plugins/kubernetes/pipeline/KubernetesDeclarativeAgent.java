@@ -50,6 +50,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
 
     private int idleMinutes;
     private int instanceCap = Integer.MAX_VALUE;
+
+    private int numExecutors = 1;
+
     @CheckForNull
     private String serviceAccount;
     @CheckForNull
@@ -157,6 +160,20 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
             this.instanceCap = instanceCap;
         }
     }
+
+    public int getNumExecutors() {
+        return numExecutors;
+    }
+
+    @DataBoundSetter
+    public void setNumExecutors(int numExecutors) {
+        if (numExecutors <= 0) {
+            this.numExecutors = 1;
+        } else {
+            this.numExecutors = numExecutors;
+        }
+    }
+
 
     public String getServiceAccount() {
         return serviceAccount;
@@ -379,6 +396,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         }
         if (instanceCap > 0 && instanceCap < Integer.MAX_VALUE) {
             argMap.put("instanceCap", instanceCap);
+        }
+        if (numExecutors > 0 && numExecutors != 1) {
+            argMap.put("numExecutors", numExecutors);
         }
         if (!StringUtils.isEmpty(supplementalGroups)){
             argMap.put("supplementalGroups", supplementalGroups);

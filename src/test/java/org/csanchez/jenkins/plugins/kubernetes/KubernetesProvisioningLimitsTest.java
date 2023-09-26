@@ -35,6 +35,7 @@ public class KubernetesProvisioningLimitsTest {
                 PodTemplate pt = new PodTemplate();
                 pt.setName(cloud.name + "-podTemplate-" + j);
                 pt.setInstanceCap(testRandom.nextInt(4)+1);
+                pt.setNumExecutors(testRandom.nextInt(4)+1);
                 cloud.addTemplate(pt);
             }
             j.jenkins.clouds.add(cloud);

@@ -69,8 +69,8 @@ public class KubernetesQueueTaskDispatcherTest {
         json2.element("usage-permission-B", true);
         folderB.addProperty(property2.reconfigure(null, json2));
 
-        slaveA = new KubernetesSlave("A", new PodTemplate(), "testA", "A", "dockerA", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
-        slaveB = new KubernetesSlave("B", new PodTemplate(), "testB", "B", "dockerB", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
+        slaveA = new KubernetesSlave("A", new PodTemplate(), "testA", "A", "dockerA", 1, new KubernetesLauncher(), RetentionStrategy.INSTANCE);
+        slaveB = new KubernetesSlave("B", new PodTemplate(), "testB", "B", "dockerB", 1, new KubernetesLauncher(), RetentionStrategy.INSTANCE);
     }
 
     @Test
@@ -96,7 +96,7 @@ public class KubernetesQueueTaskDispatcherTest {
         cloud.setUsageRestricted(false);
         jenkins.jenkins.clouds.add(cloud);
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
-        KubernetesSlave slave = new KubernetesSlave("C", new PodTemplate(), "testC", "C", "dockerC", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
+        KubernetesSlave slave = new KubernetesSlave("C", new PodTemplate(), "testC", "C", "dockerC", 1, new KubernetesLauncher(), RetentionStrategy.INSTANCE);
 
         assertNull(canTake(dispatcher, slave, project));
     }

@@ -35,6 +35,17 @@ public class PodTemplateStepTest {
         st.assertRoundTrip(step, "podTemplate(instanceCap: 7) {\n    // some block\n}");
         step.setInstanceCap(Integer.MAX_VALUE); // make sure this resets instanceCap
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
+        step.setNumExecutors(1);
+        st.assertRoundTrip(step, "podTemplate(numExecutors: 1) {\n    // some block\n}");
+        step.setNumExecutors(0);
+        step.setNumExecutors(2);
+        st.assertRoundTrip(step, "podTemplate(numExecutors: 2) {\n    // some block\n}");
+        step.setNumExecutors(null); // make sure this resets numExecutors
+        st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
+        step.setNumExecutors(3);
+        st.assertRoundTrip(step, "podTemplate(numExecutors: 3) {\n    // some block\n}");
+        step.setNumExecutors(1); // make sure this resets numExecutors
+        st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setLabel("podLabel");
         st.assertRoundTrip(step, "podTemplate(label: 'podLabel') {\n    // some block\n}");
         step.setLabel("");

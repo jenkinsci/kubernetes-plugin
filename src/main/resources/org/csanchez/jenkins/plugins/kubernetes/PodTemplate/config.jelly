@@ -54,6 +54,10 @@
       <f:textbox/>
     </f:entry>
 
+    <f:entry field="numExecutorsStr" title="${%Num Executors}">
+      <f:textbox/>
+    </f:entry>
+
     <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention" default="${descriptor.defaultPodRetention}" />
     
     <f:entry field="idleMinutesStr" title="${%Time in minutes to retain agent when idle}">
