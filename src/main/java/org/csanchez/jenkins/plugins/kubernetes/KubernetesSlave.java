@@ -149,7 +149,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, Integer numExecutors)
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, int numExecutors)
             throws Descriptor.FormException, IOException {
 
         this(template, nodeDescription, cloud.name, labelStr, numExecutors, new OnceRetentionStrategy(cloud.getRetentionTimeout()));
@@ -159,7 +159,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label, Integer numExecutors)
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, Label label, int numExecutors)
             throws Descriptor.FormException, IOException {
         this(template, nodeDescription, cloud.name, label.toString(), numExecutors, new OnceRetentionStrategy(cloud.getRetentionTimeout())) ;
     }
@@ -168,7 +168,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
      * @deprecated Use {@link Builder} instead.
      */
     @Deprecated
-    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, Integer numExecutors,
+    public KubernetesSlave(PodTemplate template, String nodeDescription, KubernetesCloud cloud, String labelStr, int numExecutors,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         this(template, nodeDescription, cloud.name, labelStr, numExecutors, rs);
@@ -179,13 +179,13 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     @Deprecated
     @DataBoundConstructor // make stapler happy. Not actually used.
-    public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr, Integer numExecutors,
+    public KubernetesSlave(PodTemplate template, String nodeDescription, String cloudName, String labelStr, int numExecutors,
                            RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         this(getSlaveName(template), template, nodeDescription, cloudName, labelStr, numExecutors, new KubernetesLauncher(), rs);
     }
 
-    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr, Integer numExecutors,
+    protected KubernetesSlave(String name, @NonNull PodTemplate template, String nodeDescription, String cloudName, String labelStr, int numExecutors,
                            ComputerLauncher computerLauncher, RetentionStrategy rs)
             throws Descriptor.FormException, IOException {
         super(name, null, computerLauncher);
@@ -510,7 +510,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         private PodTemplate podTemplate;
         private KubernetesCloud cloud;
         private String label;
-        private Integer numExecutors;
+        private int numExecutors;
         private ComputerLauncher computerLauncher;
         private RetentionStrategy retentionStrategy;
 
@@ -563,7 +563,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
          * @param numExecutors The numExecutors the {@link KubernetesSlave} has.
          * @return the current instance for method chaining
          */
-        public Builder numExecutors(Integer numExecutors) {
+        public Builder numExecutors(int numExecutors) {
             this.numExecutors = numExecutors;
             return this;
         }
@@ -610,7 +610,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
                     cloud.name,
                     label == null ? podTemplate.getLabel() : label,
-                    numExecutors == null || numExecutors < 1 ? podTemplate.getNumExecutors() : numExecutors,
+                    numExecutors < 1 ? podTemplate.getNumExecutors() : numExecutors,
                     decorateLauncher(cloud, computerLauncher == null ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null) : computerLauncher),
                     retentionStrategy == null ? determineRetentionStrategy(cloud, podTemplate) : retentionStrategy);
         }
