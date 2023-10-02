@@ -48,7 +48,7 @@
     <!-- TODO fix KubernetesCloudTest todos once past 2.414 -->
     <jenkins.version>2.401.1</jenkins.version>
     <bom>2.401.x</bom>
-    <bom.version>2357.v1043f8578392</bom.version>
+    <bom.version>2483.v3b_22f030990a_</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
