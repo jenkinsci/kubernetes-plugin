@@ -189,17 +189,24 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public YamlMergeStrategy getYamlMergeStrategy() {
         return yamlMergeStrategy;
     }
+    
+    public YamlMergeStrategy getResolvedYamlMergeStrategy() {
+        return getYamlMergeStrategy() != null ? getYamlMergeStrategy() : YamlMergeStrategy.defaultStrategy();
+    }
+
 
     @DataBoundSetter
     public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
         this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
-    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+    private YamlMergeStrategy yamlMergeStrategy;
 
     public Pod getYamlsPod() {
-        return yamlMergeStrategy.merge(getYamls());
+        return getResolvedYamlMergeStrategy().merge(getYamls());
     }
+
+    private Boolean inheritYamlMergeStrategy;
 
     private Boolean showRawYaml;
 
@@ -893,9 +900,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             yamls = null;
         }
 
-        if (yamlMergeStrategy == null) {
-            yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
-        }
         if (id == null) {
             // Use the label and a digest of the current object representation to get the same value every restart if the object isn't saved.
             id = getLabel() + "-" + Util.getDigestOf(toString());
@@ -928,6 +932,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 getName(),
                 getLabel(),
                 getContainersDescriptionForLogging());
+    }
+
+    public boolean isInheritYamlMergeStrategy() {
+        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+    }
+
+    @DataBoundSetter
+    public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
+        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
     }
 
     boolean isShowRawYamlSet() {

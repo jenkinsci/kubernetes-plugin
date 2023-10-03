@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class CasCTest extends RoundTripAbstractTest {
@@ -44,7 +45,8 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals(123, podTemplate.getSlaveConnectTimeout());
         assertEquals(5, podTemplate.getIdleMinutes());
         assertEquals(66, podTemplate.getActiveDeadlineSeconds());
-        assertThat(podTemplate.getYamlMergeStrategy(), isA(Overrides.class));
+        assertNull(podTemplate.getYamlMergeStrategy());
+        assertThat(podTemplate.getResolvedYamlMergeStrategy(), isA(Overrides.class));
         podTemplate = templates.get(1);
         assertFalse(podTemplate.isHostNetwork());
         assertEquals("dynamic-pvc", podTemplate.getLabel());

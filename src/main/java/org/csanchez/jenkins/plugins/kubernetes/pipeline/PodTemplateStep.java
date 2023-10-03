@@ -88,7 +88,9 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String yaml;
 
-    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+    private YamlMergeStrategy yamlMergeStrategy;
+    
+    private Boolean inheritYamlMergeStrategy;
 
     @CheckForNull
     private PodRetention podRetention;
@@ -354,6 +356,16 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setPodRetention(@CheckForNull PodRetention podRetention) {
         this.podRetention = (podRetention == null || podRetention.equals(DescriptorImpl.defaultPodRetention)) ? null : podRetention;
+    }
+    
+
+    public boolean isInheritYamlMergeStrategy() {
+        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+    }
+
+    @DataBoundSetter
+    public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
+        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
     }
 
     boolean isShowRawYamlSet() {
