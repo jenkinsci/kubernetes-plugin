@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -34,12 +34,20 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerProxy;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.WebMethod;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
+import org.kohsuke.stapler.verb.GET;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -65,6 +73,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.security.stapler.StaplerDispatchable;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
@@ -217,6 +226,35 @@ public class KubernetesCloud extends Cloud {
     public List<PodTemplate> getTemplates() {
         return templates;
     }
+
+    // @GET
+    // @WebMethod(name = "templates")
+    // @StaplerDispatchable
+    // @Restricted(NoExternalUse.class)
+    // public synchronized HttpResponse doTemplates(StaplerRequest req, StaplerResponse rsp,
+    //                                       @QueryParameter String name) throws IOException, ServletException {
+    //     LOGGER.log(Level.WARNING, "Handling KubernetesCloud.doTemplates");
+    //     final Jenkins jenkins = Jenkins.get();
+    //     jenkins.checkPermission(Jenkins.ADMINISTER);
+    //     // req.getView(this, "templates.jelly").forward(req, rsp);
+    //     LOGGER.log(Level.WARNING, req.toString());
+    //     return HttpResponses.ok();
+
+    // RequestDispatcher dispatcher = req.getView(this, "templates.jelly");
+    // try {r
+    //     dispatcher.forward(req, rsp);
+    // } catch (Exception e) {
+    //     throw new ServletException(e);
+    // }
+        // return req.getView(this, "templates.jelly");
+        // .forward(req, rsp);
+    // return HttpResponses.redirectTo(".");
+    // }
+
+    // @NonNull
+    // public List<String> getTemplatesString() {
+    //     return templates.stream().map(PodTemplate::getName).collect(java.util.stream.Collectors.toList());
+    // }
 
     /**
      * Returns all pod templates for this cloud including the dynamic ones.
@@ -985,4 +1023,5 @@ public class KubernetesCloud extends Cloud {
             }
         }
     }
+
 }
