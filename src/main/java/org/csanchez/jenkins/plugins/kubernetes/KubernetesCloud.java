@@ -227,34 +227,14 @@ public class KubernetesCloud extends Cloud {
         return templates;
     }
 
-    // @GET
-    // @WebMethod(name = "templates")
-    // @StaplerDispatchable
-    // @Restricted(NoExternalUse.class)
-    // public synchronized HttpResponse doTemplates(StaplerRequest req, StaplerResponse rsp,
-    //                                       @QueryParameter String name) throws IOException, ServletException {
-    //     LOGGER.log(Level.WARNING, "Handling KubernetesCloud.doTemplates");
-    //     final Jenkins jenkins = Jenkins.get();
-    //     jenkins.checkPermission(Jenkins.ADMINISTER);
-    //     // req.getView(this, "templates.jelly").forward(req, rsp);
-    //     LOGGER.log(Level.WARNING, req.toString());
-    //     return HttpResponses.ok();
+    public void doTemplates(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        req.getView(this, "templates.jelly").forward(req, rsp);
+    }
 
-    // RequestDispatcher dispatcher = req.getView(this, "templates.jelly");
-    // try {r
-    //     dispatcher.forward(req, rsp);
-    // } catch (Exception e) {
-    //     throw new ServletException(e);
-    // }
-        // return req.getView(this, "templates.jelly");
-        // .forward(req, rsp);
-    // return HttpResponses.redirectTo(".");
-    // }
-
-    // @NonNull
-    // public List<String> getTemplatesString() {
-    //     return templates.stream().map(PodTemplate::getName).collect(java.util.stream.Collectors.toList());
-    // }
+    @NonNull
+    public List<String> getTemplatesString() {
+        return templates.stream().map(PodTemplate::getName).collect(java.util.stream.Collectors.toList());
+    }
 
     /**
      * Returns all pod templates for this cloud including the dynamic ones.

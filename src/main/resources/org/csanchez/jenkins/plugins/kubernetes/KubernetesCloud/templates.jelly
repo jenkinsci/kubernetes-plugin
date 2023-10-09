@@ -1,0 +1,36 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <!-- with empty type attribute, takes full width space, works only because core doesn't provide a CSS "app-page-body-" -->
+    <l:layout title="'${it.name}' pod templates"
+              type="${request.hasParameter('expand') ? 'full-screen' : 'two-column'}">
+      <st:include page="sidepanel.jelly" it="${it}"/>
+
+      <l:main-panel>${it.url}
+        <table id="clouds" class="jenkins-table sortable">
+            <thead>
+              <tr>
+                <th initialSortDir="down">${%Name}</th>
+                <th class="jenkins-table__cell--tight"/>
+              </tr>
+            </thead>
+            <tbody>
+              <j:forEach var="cloud" items="${it.templatesString}">
+                <tr id="cloud_${cloud}">
+                  <td>
+                    <a href="${it.getCloudUrl(request,app,cloud)}" class="jenkins-table__link model-link inside">${cloud}</a>
+                  </td>
+                  <td class="jenkins-table__cell--tight">
+                    <div class="jenkins-table__cell__button-wrapper">
+                      <a href="${it.getCloudUrl(request,app,cloud)}configure" class="jenkins-table__button">
+                        <l:icon src="symbol-settings"/>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              </j:forEach>
+            </tbody>
+          </table>
+      </l:main-panel>
+    </l:layout>
+</j:jelly>
