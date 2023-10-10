@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.servlet.ServletException;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -39,16 +42,23 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Util;
 import hudson.model.labels.LabelAtom;
+import hudson.slaves.Cloud;
 import hudson.slaves.NodeProperty;
+import hudson.util.FormApply;
 import hudson.util.XStream2;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.io.StringReader;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 
 /**
  * Kubernetes Pod Template
@@ -629,6 +639,36 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (envVars != null) {
             this.envVars.addAll(envVars);
         }
+    }
+
+    @POST
+    public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        String context = Functions.getNearestAncestorUrl(req, this);
+        // Define regular expressions to match the desired substrings
+        // there maybe a better way to do this, but I don't know how to do it.
+        String regex1 = ".*/cloud/(.*)/template/(.*)";
+        Pattern pattern = Pattern.compile(regex1);
+        Matcher matcher = pattern.matcher(context);
+
+        // Find and extract the substrings
+        if (matcher.find()) {
+            String cloudName = matcher.group(1);  // cloud name
+            Cloud cloud = Jenkins.get().getCloud(cloudName);
+            if (cloud instanceof KubernetesCloud) {
+                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
+                // maybe there is a smarter way to modify? 
+                kubernetesCloud.removeTemplate(this);
+                PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
+                kubernetesCloud.addTemplate(newTemplate);
+            }
+        }
+        // take the user back to the cloud top page.
+        return FormApply.success("../../templates");
+    }
+
+    private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        if (form == null)     return null;
+        return getDescriptor().newInstance(req, form);
     }
 
     @DataBoundSetter

@@ -36,7 +36,7 @@
                     </td>
                     <td class="jenkins-table__cell--tight">
                         <div class="jenkins-table__cell__button-wrapper">
-                        <a href="${it.getCloudUrl(request,app,cloud)}templates?id=${template.id}" class="jenkins-table__button">
+                        <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}/configure" class="jenkins-table__button">
                             <l:icon src="symbol-settings"/>
                         </a>
                         </div>

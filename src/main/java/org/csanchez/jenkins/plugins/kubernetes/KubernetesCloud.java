@@ -73,7 +73,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import jenkins.security.stapler.StaplerDispatchable;
+import jenkins.security.stapler.StaplerAccessibleType;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
@@ -87,6 +87,7 @@ import jenkins.websocket.WebSockets;
  *
  * @author Carlos Sanchez carlos@apache.org
  */
+@StaplerAccessibleType 
 public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
     public static final Integer DEFAULT_WAIT_FOR_POD_SEC = 600;
@@ -147,15 +148,6 @@ public class KubernetesCloud extends Cloud {
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
     @SuppressWarnings("unused") // stapler
-    private PodTemplate template;
-
-    public PodTemplate getTemplate() {
-        return template;
-    }
-
-    public void setTemplate(PodTemplate template) {
-        this.template = template;
-    }
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -633,6 +625,11 @@ public class KubernetesCloud extends Cloud {
     @CheckForNull
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
+    }
+    
+    @CheckForNull
+    public PodTemplate getTemplate(@NonNull String id) {
+        return getTemplateById(id);
     }
 
     @CheckForNull
