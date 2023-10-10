@@ -219,11 +219,6 @@ public class KubernetesCloud extends Cloud {
         return templates;
     }
 
-    @NonNull
-    public List<String> getTemplatesString() {
-        return templates.stream().map(PodTemplate::getName).collect(java.util.stream.Collectors.toList());
-    }
-
     /**
      * Returns all pod templates for this cloud including the dynamic ones.
      * @return all pod templates for this cloud including the dynamic ones.
