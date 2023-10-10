@@ -7,7 +7,9 @@
       <st:include page="sidepanel.jelly" it="${it}"/>
 
       <l:main-panel>
+      TemplateSet
         <j:if test="${it.template!=null}">
+        xxx import 
         <f:advanced title="${%Pod Templates}">
       <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
         <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">

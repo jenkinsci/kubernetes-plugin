@@ -1,0 +1,24 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <!-- with empty type attribute, takes full width space, works only because core doesn't provide a CSS "app-page-body-" -->
+    <l:layout title="'${it.name}' pod templates"
+              type="${request.hasParameter('expand') ? 'full-screen' : 'two-column'}">
+      <st:include page="sidepanel.jelly" it="${it}"/>
+
+      <l:main-panel>
+        <f:advanced title="${%Pod Templates}">
+      <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
+        <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">
+          <f:block>
+            <div align="right">
+              <f:repeatableDeleteButton value="${%Delete Pod Template}"/>
+            </div>
+          </f:block>
+        </f:repeatableProperty>
+      </f:entry>
+    </f:advanced>
+        xxx
+      </l:main-panel>
+    </l:layout>
+</j:jelly>

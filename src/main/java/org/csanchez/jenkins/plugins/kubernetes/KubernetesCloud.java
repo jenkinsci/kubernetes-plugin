@@ -146,6 +146,16 @@ public class KubernetesCloud extends Cloud {
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
+    @SuppressWarnings("unused") // stapler
+    private PodTemplate template;
+
+    public PodTemplate getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(PodTemplate template) {
+        this.template = template;
+    }
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -227,9 +237,15 @@ public class KubernetesCloud extends Cloud {
         return templates;
     }
 
-    public void doTemplates(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        req.getView(this, "templates.jelly").forward(req, rsp);
-    }
+    // public void doTemplates(StaplerRequest req, StaplerResponse rsp, @QueryParameter String id)
+    //         throws IOException, ServletException {
+    //     if(id!=null) {
+    //         template = getTemplateById(id);
+    //     }else{
+    //         template = null;
+    //     }
+    //     req.getView(this, "templates.jelly").forward(req, rsp);
+    // }
 
     @NonNull
     public List<String> getTemplatesString() {
