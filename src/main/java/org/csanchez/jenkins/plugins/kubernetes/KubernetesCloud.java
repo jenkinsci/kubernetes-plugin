@@ -219,16 +219,6 @@ public class KubernetesCloud extends Cloud {
         return templates;
     }
 
-    // public void doTemplates(StaplerRequest req, StaplerResponse rsp, @QueryParameter String id)
-    //         throws IOException, ServletException {
-    //     if(id!=null) {
-    //         template = getTemplateById(id);
-    //     }else{
-    //         template = null;
-    //     }
-    //     req.getView(this, "templates.jelly").forward(req, rsp);
-    // }
-
     @NonNull
     public List<String> getTemplatesString() {
         return templates.stream().map(PodTemplate::getName).collect(java.util.stream.Collectors.toList());
