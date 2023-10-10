@@ -105,42 +105,5 @@
         </f:entry>
       </f:advanced>
     </f:advanced>
-    new ->
-              <table id="clouds" class="jenkins-table sortable">
-            <thead>
-              <tr>
-                <th initialSortDir="down">${%Name}</th>
-                <th class="jenkins-table__cell--tight"/>
-              </tr>
-            </thead>
-            <tbody>
-              <j:forEach var="cloud" items="${it.templatesString}">
-                <tr id="cloud_${cloud}">
-                  <td>
-                    <a href="${it.getCloudUrl(request,app,cloud)}" class="jenkins-table__link model-link inside">${cloud}</a>
-                  </td>
-                  <td class="jenkins-table__cell--tight">
-                    <div class="jenkins-table__cell__button-wrapper">
-                      <a href="${it.getCloudUrl(request,app,cloud)}configure" class="jenkins-table__button">
-                        <l:icon src="symbol-settings"/>
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              </j:forEach>
-            </tbody>
-          </table>
-move ->
-    <f:advanced title="${%Pod Templates}">
-      <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
-        <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">
-          <f:block>
-            <div align="right">
-              <f:repeatableDeleteButton value="${%Delete Pod Template}"/>
-            </div>
-          </f:block>
-        </f:repeatableProperty>
-      </f:entry>
-    </f:advanced>
 
 </j:jelly>

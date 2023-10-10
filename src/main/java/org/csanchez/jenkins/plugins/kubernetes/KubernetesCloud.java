@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.servlet.ServletException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -38,6 +39,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -63,7 +65,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
-import jenkins.security.stapler.StaplerAccessibleType;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
@@ -77,7 +78,6 @@ import jenkins.websocket.WebSockets;
  *
  * @author Carlos Sanchez carlos@apache.org
  */
-@StaplerAccessibleType 
 public class KubernetesCloud extends Cloud {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
     public static final Integer DEFAULT_WAIT_FOR_POD_SEC = 600;
