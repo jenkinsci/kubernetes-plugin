@@ -5,7 +5,7 @@
     <st:include page="sidepanel.jelly"/>
     <l:breadcrumb title="${%Template }"/>
     <l:main-panel>
-      <h1>${%title(it.name)}</h1>
+      <h1>${%Pod template settings}</h1>
       <f:form method="post" action="configSubmit" name="config" class="jenkins-form">
         <j:set var="instance" value="${it}"/>
         <j:set var="descriptor" value="${instance.descriptor}"/>

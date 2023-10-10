@@ -4,48 +4,35 @@
     <!-- with empty type attribute, takes full width space, works only because core doesn't provide a CSS "app-page-body-" -->
     <l:layout title="'${it.name}' pod templates"
               type="${request.hasParameter('expand') ? 'full-screen' : 'two-column'}">
+
+      <!--What I want to do is simply add the templates to the existing sidepanel but do not know how-->
       <st:include page="sidepanel.jelly" it="${it}"/>
 
       <l:main-panel>
-        <j:if test="${it.template!=null}">
-        <f:advanced title="${%Pod Templates}">
-      <f:entry title="${%Pod Templates}" description="${%List of Pods to be launched as agents}">
-        <f:repeatableProperty field="templates" add="${%Add Pod Template}" header="${%Pod Template}">
-          <f:block>
-            <div align="right">
-              <f:repeatableDeleteButton value="${%Delete Pod Template}"/>
-            </div>
-          </f:block>
-        </f:repeatableProperty>
-      </f:entry>
-    </f:advanced>
-        </j:if>
-        <j:if test="${it.template==null}">
-            <table id="templates" class="jenkins-table sortable">
-                <thead>
-                <tr>
-                    <th initialSortDir="down">${%Name}</th>
-                    <th class="jenkins-table__cell--tight"/>
+        <table id="templates" class="jenkins-table sortable">
+            <thead>
+            <tr>
+                <th initialSortDir="down">${%Name}</th>
+                <th class="jenkins-table__cell--tight"/>
+            </tr>
+            </thead>
+            <tbody>
+            <j:forEach var="template" items="${it.templates}">
+                <tr id="template_${template.id}">
+                <td>
+                    ${template.name}
+                </td>
+                <td class="jenkins-table__cell--tight">
+                    <div class="jenkins-table__cell__button-wrapper">
+                    <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
+                        <l:icon src="symbol-settings"/>
+                    </a>
+                    </div>
+                </td>
                 </tr>
-                </thead>
-                <tbody>
-                <j:forEach var="template" items="${it.templates}">
-                    <tr id="template_${template.id}">
-                    <td>
-                        ${template.name}
-                    </td>
-                    <td class="jenkins-table__cell--tight">
-                        <div class="jenkins-table__cell__button-wrapper">
-                        <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}/configure" class="jenkins-table__button">
-                            <l:icon src="symbol-settings"/>
-                        </a>
-                        </div>
-                    </td>
-                    </tr>
-                </j:forEach>
-                </tbody>
-            </table>
-        </j:if>
+            </j:forEach>
+            </tbody>
+        </table>
       </l:main-panel>
     </l:layout>
 </j:jelly>
