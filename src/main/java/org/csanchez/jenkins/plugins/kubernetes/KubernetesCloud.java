@@ -137,7 +137,6 @@ public class KubernetesCloud extends Cloud {
 
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
-    @SuppressWarnings("unused") // stapler
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
