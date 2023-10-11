@@ -662,7 +662,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 kubernetesCloud.addTemplate(newTemplate);
             }
         }
-        // take the user back to the cloud top page.
+        // take the user back.
         return FormApply.success("../../templates");
     }
 

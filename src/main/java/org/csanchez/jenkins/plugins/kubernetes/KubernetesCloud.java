@@ -37,9 +37,12 @@ import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
+import org.kohsuke.stapler.verb.POST;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -54,10 +57,12 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Failure;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
+import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -100,6 +105,10 @@ public class KubernetesCloud extends Cloud {
 
     @NonNull
     private List<PodTemplate> templates = new ArrayList<>();
+
+    public boolean hasTemplates() {
+        return templates.size() > 0;
+    }
     private String serverUrl;
     private boolean useJenkinsProxy;
     @CheckForNull
@@ -719,6 +728,21 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setWaitForPodSec(Integer waitForPodSec) {
         this.waitForPodSec = waitForPodSec;
+    }
+
+    /**
+     * Creating a new template.
+     */
+    @POST
+    public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        PodTemplate newTemplate=new PodTemplate().getDescriptor().newInstance(req, req.getSubmittedForm());
+        addTemplate(newTemplate);
+        // take the user back.
+        return FormApply.success("templates");
+    }
+
+    public PodTemplate getNewTemplate(){
+        return new PodTemplate();
     }
 
     @Extension

@@ -1,11 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.Extension;
 import hudson.model.Action;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import jenkins.model.TransientActionFactory;
 
+@Extension
 public class PodTemplateAction extends TransientActionFactory<KubernetesCloud> implements Action{
     
     @Override
