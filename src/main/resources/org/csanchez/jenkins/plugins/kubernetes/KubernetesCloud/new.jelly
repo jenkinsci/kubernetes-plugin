@@ -1,12 +1,13 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
-  <l:layout permission="${app.SYSTEM_READ}" title="${%title(it.name)}" type="one-column">
+  <l:layout permission="${app.SYSTEM_READ}" title="${%title(it.name)}">
     <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}"/>
         <j:set var="instance" value="${it.newTemplate}"/>
         <j:set var="descriptor" value="${instance.descriptor}"/>
-    <l:breadcrumb title="${%New Template }"/>
+    <l:breadcrumb title="${%New pod template }"/>
+    <st:include page="sidepanel.jelly" it="${it}"/>
     <l:main-panel>
-      <h1>${%New Pod template settings}</h1>
+      <h1>${%New pod template settings}</h1>
       <f:form method="post" action="create" name="config" class="jenkins-form">
         <!-- main body of the configuration -->
 
@@ -14,7 +15,6 @@
         <l:isAdmin>
           <f:bottomButtonBar>
             <f:submit value="${%Create}"/>
-            <f:apply value="${%Apply}"/>
           </f:bottomButtonBar>
         </l:isAdmin>
       </f:form>
