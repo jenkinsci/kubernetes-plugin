@@ -8,7 +8,7 @@
         <f:bottomButtonBar>
             <f:submit value="${%Yes}" clazz="jenkins-!-destructive-color" />
             <a class="jenkins-button jenkins-button--secondary" href="../../templates">
-                ${%Back to pod templates}
+                ${%No}
             </a>
           </f:bottomButtonBar>
       </form>

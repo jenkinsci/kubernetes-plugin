@@ -19,7 +19,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -51,6 +52,7 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.TcpSlaveAgentListener;
 import hudson.Util;
 import hudson.init.InitMilestone;
@@ -75,6 +77,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
 
 import jenkins.websocket.WebSockets;
+import net.sf.json.JSONObject;
 
 /**
  * Kubernetes cloud provider.
@@ -615,6 +618,34 @@ public class KubernetesCloud extends Cloud {
         return getTemplateById(id);
     }
 
+    public PodTemplate currentTemplate;
+
+    public void doTemplates(StaplerRequest req, StaplerResponse rsp, @QueryParameter String id)
+            throws IOException, ServletException {
+        if (id != null) {
+            currentTemplate = getTemplateById(id);
+        } else {
+            currentTemplate = null;
+        }
+        req.getView(this, "templates.jelly").forward(req, rsp);
+    }
+
+    @POST
+    public HttpResponse doUpdateTemplate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        Jenkins j = Jenkins.get();
+        removeTemplate(currentTemplate);
+        PodTemplate newTemplate = reconfigureTemplate(req, req.getSubmittedForm());
+        addTemplate(newTemplate); 
+        j.save();
+        // take the user back.
+        return FormApply.success("./templates");
+    }
+
+    private PodTemplate reconfigureTemplate(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        if (form == null)     return null;
+        return currentTemplate.getDescriptor().newInstance(req, form);
+    }
+    
     @CheckForNull
     public PodTemplate getTemplateById(@NonNull String id) {
         return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);

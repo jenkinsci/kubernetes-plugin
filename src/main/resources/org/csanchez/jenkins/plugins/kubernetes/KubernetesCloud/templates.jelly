@@ -9,6 +9,30 @@
       <st:include page="sidepanel.jelly" it="${it}"/>
 
       <l:main-panel>
+<j:if test="${request.hasParameter('id')}">
+<j:set var="id" value="${request.getParameter('id')}" />
+<j:set var="currentTemplate" value="${it.currentTemplate}" />
+</j:if>
+
+<j:if test="${currentTemplate!=null}">
+        <j:set var="instance" value="${currentTemplate}"/>
+        <j:set var="descriptor" value="${instance.descriptor}"/>
+      <h1>${%Pod template settings}</h1>
+        <f:form method="post" action="updateTemplate" name="config" class="jenkins-form">
+            <st:include it="${instance}" page="config.jelly"/>
+            <l:isAdmin>
+                <f:bottomButtonBar>
+                    <f:submit value="${%Save}"/>
+                       <a href="${it.getCloudUrl(request,app,cloud)}template/${currentTemplate.id}/delete" class="jenkins-!-padding-left-3">
+                                    <button class="jenkins-button jenkins-!-error-color">
+                                        <l:icon src="symbol-close"/> Delete
+                                    </button>
+                                </a>
+                </f:bottomButtonBar>
+            </l:isAdmin>
+        </f:form>
+</j:if>
+<j:if test="${currentTemplate==null}">
         <l:app-bar title="${it.name} - ${%Pod templates}">
             <l:isAdmin>
                 <j:if test="${it.hasTemplates()}">
@@ -52,11 +76,11 @@
                 </table>
             </j:when>
             <j:otherwise>
-                <div class="empty-state-block">
-                    <section class="empty-state-section">
+                <div >
+                    <section>
                         <div>
-                            <div class="jenkins-!-padding-3">No pod template added yet.</div>
-                            <div class="jenkins-!-padding-3">
+                            <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
+                            <div>
                                 <a class="jenkins-button jenkins-button--primary" href="new">
                                     <l:icon src="symbol-add"/>
                                     ${%Add a pod template}
@@ -67,6 +91,8 @@
                 </div>
             </j:otherwise>
         </j:choose>
+
+</j:if>
       </l:main-panel>
     </l:layout>
 </j:jelly>
