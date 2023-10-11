@@ -631,6 +631,26 @@ public class KubernetesCloud extends Cloud {
     }
 
     @POST
+    public HttpResponse doUpdate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        Jenkins j = Jenkins.get();
+        Cloud cloud = j.getCloud(this.name);
+        if (cloud == null) {
+            throw new ServletException("No such cloud " + this.name);
+        }
+        KubernetesCloud result = (KubernetesCloud) cloud.reconfigure(req, req.getSubmittedForm());
+        String proposedName = result.name;
+        if (!proposedName.equals(this.name)
+                && j.getCloud(proposedName) != null) {
+            throw new Descriptor.FormException(jenkins.agents.Messages.CloudSet_CloudAlreadyExists(proposedName), "name");
+        }
+        result.templates = this.templates;
+        j.clouds.replace(this, result);
+        j.save();
+        // take the user back to the cloud top page.
+        return FormApply.success("..");
+    }
+
+    @POST
     public HttpResponse doUpdateTemplate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         removeTemplate(currentTemplate);
