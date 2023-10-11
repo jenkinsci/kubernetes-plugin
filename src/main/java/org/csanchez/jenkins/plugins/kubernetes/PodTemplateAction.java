@@ -12,12 +12,12 @@ public class PodTemplateAction extends TransientActionFactory<KubernetesCloud> i
     
     @Override
     public String getIconFileName() {
-        return "symbol-copy";
+        return "symbol-copy-outline plugin-ionicons-api";
     }
 
     @Override
     public String getDisplayName() {
-        return "PodTemplates";
+        return "Pod templates";
     }
 
     @Override

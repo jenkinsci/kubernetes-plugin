@@ -15,9 +15,13 @@
         <l:isAdmin>
           <f:bottomButtonBar>
             <f:submit value="${%Save}"/>
-            <f:apply />
             <a class="jenkins-button jenkins-button--secondary" href="../../templates">
                 ${%Back to pod templates}
+            </a>
+            <a href="./delete" class="jenkins-!-padding-left-3">
+                <button class="jenkins-button jenkins-!-error-color">
+                    <l:icon src="symbol-close"/> Delete
+                </button>
             </a>
           </f:bottomButtonBar>
         </l:isAdmin>

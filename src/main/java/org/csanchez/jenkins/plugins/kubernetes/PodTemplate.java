@@ -42,9 +42,11 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
 import hudson.Functions;
@@ -641,6 +643,33 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
+    /**
+     * Deletes the cloud.
+     */
+    @RequirePOST
+    public HttpResponse doDoDelete(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        String context = Functions.getNearestAncestorUrl(req, this);
+        // Define regular expressions to match the desired substrings
+        // there maybe a better way to do this, but I don't know how to do it.
+        String regex1 = ".*/cloud/(.*)/template/(.*)";
+        Pattern pattern = Pattern.compile(regex1);
+        Matcher matcher = pattern.matcher(context);
+        // Find and extract the substrings
+        if (matcher.find()) {
+            String cloudName = matcher.group(1);  // cloud name
+            Jenkins j = Jenkins.get();
+            Cloud cloud = j.getCloud(cloudName);
+            if (cloud instanceof KubernetesCloud) {
+                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
+                // maybe there is a smarter way to modify? 
+                kubernetesCloud.removeTemplate(this);
+                j.save();
+            }
+        }
+        // take the user back.
+        return new HttpRedirect("../../templates");
+    }
+
     @POST
     public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         String context = Functions.getNearestAncestorUrl(req, this);
@@ -653,13 +682,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         // Find and extract the substrings
         if (matcher.find()) {
             String cloudName = matcher.group(1);  // cloud name
-            Cloud cloud = Jenkins.get().getCloud(cloudName);
+            Jenkins j = Jenkins.get();
+            Cloud cloud = j.getCloud(cloudName);
             if (cloud instanceof KubernetesCloud) {
                 KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
                 // maybe there is a smarter way to modify? 
                 kubernetesCloud.removeTemplate(this);
                 PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
                 kubernetesCloud.addTemplate(newTemplate);
+                j.save();
             }
         }
         // take the user back.

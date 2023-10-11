@@ -11,10 +11,12 @@
       <l:main-panel>
         <l:app-bar title="${it.name} - ${%Pod templates}">
             <l:isAdmin>
-            `<a class="jenkins-button jenkins-button--primary" href="new">
-                <l:icon src="symbol-add"/>
-                ${%Add a pod template}
-            </a>`
+                <j:if test="${it.hasTemplates()}">
+                    <a class="jenkins-button jenkins-button--primary" href="new">
+                        <l:icon src="symbol-add"/>
+                        ${%Add a pod template}
+                    </a>
+                </j:if>
             </l:isAdmin>
         </l:app-bar>
         <j:choose>
@@ -34,9 +36,14 @@
                         </td>
                         <td class="jenkins-table__cell--tight">
                             <div class="jenkins-table__cell__button-wrapper">
-                            <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
-                                <l:icon src="symbol-settings"/>
-                            </a>
+                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
+                                    <l:icon src="symbol-settings"/>
+                                </a>
+                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}/delete" class="jenkins-!-padding-left-3">
+                                    <button class="jenkins-button jenkins-!-error-color">
+                                        <l:icon src="symbol-close"/> Delete
+                                    </button>
+                                </a>
                             </div>
                         </td>
                         </tr>
@@ -46,9 +53,17 @@
             </j:when>
             <j:otherwise>
                 <div class="empty-state-block">
-                <section class="empty-state-section">
-                No pod template added yet.
-                </section>
+                    <section class="empty-state-section">
+                        <div>
+                            <div class="jenkins-!-padding-3">No pod template added yet.</div>
+                            <div class="jenkins-!-padding-3">
+                                <a class="jenkins-button jenkins-button--primary" href="new">
+                                    <l:icon src="symbol-add"/>
+                                    ${%Add a pod template}
+                                </a>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </j:otherwise>
         </j:choose>

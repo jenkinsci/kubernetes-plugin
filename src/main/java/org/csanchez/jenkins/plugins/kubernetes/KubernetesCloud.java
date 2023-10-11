@@ -737,6 +737,8 @@ public class KubernetesCloud extends Cloud {
     public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         PodTemplate newTemplate=new PodTemplate().getDescriptor().newInstance(req, req.getSubmittedForm());
         addTemplate(newTemplate);
+        Jenkins j = Jenkins.get();
+        j.save();
         // take the user back.
         return FormApply.success("templates");
     }
