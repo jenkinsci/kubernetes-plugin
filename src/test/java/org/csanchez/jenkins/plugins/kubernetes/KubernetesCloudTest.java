@@ -69,19 +69,10 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
+        HtmlPage p = wc.goTo("cloud/kubernetes/configure");
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
-    }
-
-    // TODO 2.414+ delete
-    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
-        if (Jenkins.getVersion().isNewerThanOrEqualTo(new VersionNumber("2.414"))) {
-            return wc.goTo("cloud/kubernetes/configure");
-        } else {
-            return wc.goTo("configureClouds/");
-        }
     }
 
     @Test
@@ -269,7 +260,7 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
+        HtmlPage p = wc.goTo("cloud/kubernetes/configure");
         HtmlForm f = p.getFormByName("config");
         HtmlButton buttonExtends = getButton(f, "Pod Templates");
         buttonExtends.click();
