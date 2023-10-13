@@ -110,7 +110,7 @@ public class KubernetesCloud extends Cloud {
     private List<PodTemplate> templates = new ArrayList<>();
 
     public boolean hasTemplates() {
-        return templates.size() > 0;
+        return !templates.isEmpty();
     }
     private String serverUrl;
     private boolean useJenkinsProxy;
