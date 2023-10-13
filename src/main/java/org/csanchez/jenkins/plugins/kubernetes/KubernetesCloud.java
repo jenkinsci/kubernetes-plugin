@@ -643,7 +643,7 @@ public class KubernetesCloud extends Cloud {
         String proposedName = result.name;
         if (!proposedName.equals(this.name)
                 && j.getCloud(proposedName) != null) {
-            throw new Descriptor.FormException(Messages.CloudAlreadyExists(proposedName), "name");
+            throw new Descriptor.FormException(Messages.cloudAlreadyExists(proposedName), "name");
         }
         result.templates = this.templates;
         j.clouds.replace(this, result);

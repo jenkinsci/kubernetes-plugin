@@ -31,7 +31,7 @@
             <l:app-bar title="${it.name} - ${%Pod templates}">
                 <l:isAdmin>
                     <j:if test="${it.hasTemplates()}">
-                        <a class="jenkins-button jenkins-button--primary" href="new">
+                        <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
                             <l:icon src="symbol-add"/>
                             ${%Add a pod template}
                         </a>
@@ -76,7 +76,7 @@
                             <div>
                                 <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
                                 <div>
-                                    <a class="jenkins-button jenkins-button--primary" href="new">
+                                    <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
                                         <l:icon src="symbol-add"/>
                                         ${%Add a pod template}
                                     </a>
