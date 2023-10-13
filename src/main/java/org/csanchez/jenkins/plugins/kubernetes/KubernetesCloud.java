@@ -632,7 +632,9 @@ public class KubernetesCloud extends Cloud {
 
     @POST
     public HttpResponse doUpdate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        
         Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
         Cloud cloud = j.getCloud(this.name);
         if (cloud == null) {
             throw new ServletException("No such cloud " + this.name);
@@ -653,6 +655,7 @@ public class KubernetesCloud extends Cloud {
     @POST
     public HttpResponse doUpdateTemplate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
         removeTemplate(currentTemplate);
         PodTemplate newTemplate = reconfigureTemplate(req, req.getSubmittedForm());
         addTemplate(newTemplate); 
@@ -786,9 +789,10 @@ public class KubernetesCloud extends Cloud {
      */
     @POST
     public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
         PodTemplate newTemplate=new PodTemplate().getDescriptor().newInstance(req, req.getSubmittedForm());
         addTemplate(newTemplate);
-        Jenkins j = Jenkins.get();
         j.save();
         // take the user back.
         return FormApply.success("templates");

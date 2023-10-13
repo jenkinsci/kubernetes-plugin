@@ -648,24 +648,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @RequirePOST
     public HttpResponse doDoDelete(StaplerRequest req, StaplerResponse rsp) throws IOException {
-        String context = Functions.getNearestAncestorUrl(req, this);
-        // Define regular expressions to match the desired substrings
-        // there maybe a better way to do this, but I don't know how to do it.
-        String regex1 = ".*/cloud/(.*)/template/(.*)";
-        Pattern pattern = Pattern.compile(regex1);
-        Matcher matcher = pattern.matcher(context);
-        // Find and extract the substrings
-        if (matcher.find()) {
-            String cloudName = matcher.group(1);  // cloud name
-            Jenkins j = Jenkins.get();
-            Cloud cloud = j.getCloud(cloudName);
-            if (cloud instanceof KubernetesCloud) {
-                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                // maybe there is a smarter way to modify? 
-                kubernetesCloud.removeTemplate(this);
-                j.save();
-            }
+        Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
+        KubernetesCloud kubernetesCloud = req.findAncestorObject(KubernetesCloud.class);
+        if (kubernetesCloud == null) {
+            throw new IllegalStateException("Cloud could not be found");
         }
+        kubernetesCloud.removeTemplate(this);
+        j.save();
         // take the user back.
         return new HttpRedirect("../../templates");
     }
