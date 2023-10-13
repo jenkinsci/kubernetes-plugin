@@ -1,14 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
-import java.util.ArrayList;
+import hudson.slaves.Cloud;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 import jenkins.model.TransientActionFactory;
 
 @Extension
-public class PodTemplateAction extends TransientActionFactory<KubernetesCloud> implements Action{
+public class PodTemplateAction  implements Action{
     
     @Override
     public String getIconFileName() {
@@ -25,15 +26,20 @@ public class PodTemplateAction extends TransientActionFactory<KubernetesCloud> i
         return "templates";
     }
 
-    @Override
-    public Class<KubernetesCloud> type() {
-        return KubernetesCloud.class;
-    }
+    @Extension
+    public static final class CloudActionFactory extends TransientActionFactory<Cloud> {
+        @Override
+        public Class<Cloud> type() {
+            return Cloud.class;
+        }
 
-    @Override
-    public Collection<? extends Action> createFor(KubernetesCloud target) {
-    List<Action> actions = new ArrayList<>();
-    actions.add(new PodTemplateAction());
-    return actions;
+        @NonNull
+        @Override
+        public Collection<? extends Action> createFor(@NonNull Cloud target) {
+            if (target instanceof KubernetesCloud) {
+                return Collections.singleton(new PodTemplateAction());
+            }
+            return Collections.emptyList();
+        }
     }
 }
