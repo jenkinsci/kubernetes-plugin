@@ -16,8 +16,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -49,10 +47,8 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
-import hudson.Functions;
 import hudson.Util;
 import hudson.model.labels.LabelAtom;
-import hudson.slaves.Cloud;
 import hudson.slaves.NodeProperty;
 import hudson.util.FormApply;
 import hudson.util.XStream2;
@@ -644,7 +640,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     /**
-     * Deletes the cloud.
+     * Deletes the template.
      */
     @RequirePOST
     public HttpResponse doDoDelete(StaplerRequest req, StaplerResponse rsp) throws IOException {
@@ -662,27 +658,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @POST
     public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
-        String context = Functions.getNearestAncestorUrl(req, this);
-        // Define regular expressions to match the desired substrings
-        // there maybe a better way to do this, but I don't know how to do it.
-        String regex1 = ".*/cloud/(.*)/template/(.*)";
-        Pattern pattern = Pattern.compile(regex1);
-        Matcher matcher = pattern.matcher(context);
-
-        // Find and extract the substrings
-        if (matcher.find()) {
-            String cloudName = matcher.group(1);  // cloud name
-            Jenkins j = Jenkins.get();
-            Cloud cloud = j.getCloud(cloudName);
-            if (cloud instanceof KubernetesCloud) {
-                KubernetesCloud kubernetesCloud = (KubernetesCloud) cloud;
-                // maybe there is a smarter way to modify? 
-                kubernetesCloud.removeTemplate(this);
-                PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
-                kubernetesCloud.addTemplate(newTemplate);
-                j.save();
-            }
+        Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
+        KubernetesCloud kubernetesCloud = req.findAncestorObject(KubernetesCloud.class);
+        if (kubernetesCloud == null) {
+            throw new IllegalStateException("Cloud could not be found");
         }
+        kubernetesCloud.removeTemplate(this);
+        PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
+        kubernetesCloud.addTemplate(newTemplate);
+        j.save();
         // take the user back.
         return FormApply.success("../../templates");
     }
