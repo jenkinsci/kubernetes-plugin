@@ -13,7 +13,7 @@ public class PodTemplateAction  implements Action{
     
     @Override
     public String getIconFileName() {
-        return "symbol-copy-outline plugin-ionicons-api";
+        return "symbol-details";
     }
 
     @Override
