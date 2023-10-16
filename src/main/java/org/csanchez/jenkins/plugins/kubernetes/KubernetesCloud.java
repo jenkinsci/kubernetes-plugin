@@ -764,10 +764,6 @@ public class KubernetesCloud extends Cloud {
         return FormApply.success("templates");
     }
 
-    public PodTemplate getNewTemplate(){
-        return new PodTemplate();
-    }
-
     @Extension
     public static class DescriptorImpl extends Descriptor<Cloud> {
         @Override

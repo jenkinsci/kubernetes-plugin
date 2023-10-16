@@ -7,79 +7,59 @@
       <st:include page="sidepanel.jelly"/>
 
       <l:main-panel>
-        <j:if test="${request.hasParameter('id')}">
-        <j:set var="id" value="${request.getParameter('id')}" />
-        <j:set var="currentTemplate" value="${it.currentTemplate}" />
-        </j:if>
-
-        <j:if test="${currentTemplate!=null}">
-            <j:set var="instance" value="${currentTemplate}"/>
-            <j:set var="descriptor" value="${instance.descriptor}"/>
-            <h1>${%Pod template settings}</h1>
-            <f:form method="post" action="updateTemplate" name="config" class="jenkins-form">
-                <st:include it="${instance}" page="config.jelly"/>
-                <l:isAdmin>
-                    <f:bottomButtonBar>
-                        <f:submit value="${%Save}"/>
-                    </f:bottomButtonBar>
-                </l:isAdmin>
-            </f:form>
-        </j:if>
-        <j:if test="${currentTemplate==null}">
-            <l:app-bar title="${it.name} - ${%Pod templates}">
-                <l:isAdmin>
-                    <j:if test="${it.hasTemplates()}">
-                        <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
-                            <l:icon src="symbol-add"/>
-                            ${%Add a pod template}
-                        </a>
-                    </j:if>
-                </l:isAdmin>
-            </l:app-bar>
-            <j:choose>
-                <j:when test="${it.hasTemplates()}">
-                    <table id="templates" class="jenkins-table sortable">
-                        <thead>
-                        <tr>
-                            <th initialSortDir="down">${%Name}</th>
-                            <th class="jenkins-table__cell--tight"/>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <j:forEach var="template" items="${it.templates}">
-                            <tr id="template_${template.id}">
-                            <td>
-                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">${template.name}</a>
-                            </td>
-                            <td class="jenkins-table__cell--tight">
-                                <div class="jenkins-table__cell__button-wrapper">
-                                    <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
-                                        <l:icon src="symbol-settings"/>
-                                    </a>
-                                </div>
-                            </td>
-                            </tr>
-                        </j:forEach>
-                        </tbody>
-                    </table>
-                </j:when>
-                <j:otherwise>
-                    <div >
-                        <section>
-                            <div>
-                                <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
-                                <div>
-                                    <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
-                                        <l:icon src="symbol-add"/>
-                                        ${%Add a pod template}
-                                    </a>
-                                </div>
+        <l:app-bar title="${it.name} - ${%Pod templates}">
+            <l:isAdmin>
+                <j:if test="${it.hasTemplates()}">
+                    <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
+                        <l:icon src="symbol-add"/>
+                        ${%Add a pod template}
+                    </a>
+                </j:if>
+            </l:isAdmin>
+        </l:app-bar>
+        <j:choose>
+            <j:when test="${it.hasTemplates()}">
+                <table id="templates" class="jenkins-table sortable">
+                    <thead>
+                    <tr>
+                        <th initialSortDir="down">${%Name}</th>
+                        <th class="jenkins-table__cell--tight"/>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <j:forEach var="template" items="${it.templates}">
+                        <tr id="template_${template.id}">
+                        <td>
+                            <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">${template.name}</a>
+                        </td>
+                        <td class="jenkins-table__cell--tight">
+                            <div class="jenkins-table__cell__button-wrapper">
+                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
+                                    <l:icon src="symbol-settings"/>
+                                </a>
                             </div>
-                        </section>
-                    </div>
-                </j:otherwise>
-            </j:choose>
-        </j:if>
+                        </td>
+                        </tr>
+                    </j:forEach>
+                    </tbody>
+                </table>
+            </j:when>
+            <j:otherwise>
+                <div >
+                    <section>
+                        <div>
+                            <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
+                            <div>
+                                <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
+                                    <l:icon src="symbol-add"/>
+                                    ${%Add a pod template}
+                                </a>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </j:otherwise>
+        </j:choose>
       </l:main-panel>
     </l:layout>
 </j:jelly>
