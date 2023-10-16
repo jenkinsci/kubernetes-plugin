@@ -618,18 +618,6 @@ public class KubernetesCloud extends Cloud {
         return getTemplateById(id);
     }
 
-    public PodTemplate currentTemplate;
-
-    public void doTemplates(StaplerRequest req, StaplerResponse rsp, @QueryParameter String id)
-            throws IOException, ServletException {
-        if (id != null) {
-            currentTemplate = getTemplateById(id);
-        } else {
-            currentTemplate = null;
-        }
-        req.getView(this, "templates.jelly").forward(req, rsp);
-    }
-
     @POST
     public HttpResponse doUpdate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         
@@ -652,23 +640,6 @@ public class KubernetesCloud extends Cloud {
         return FormApply.success("..");
     }
 
-    @POST
-    public HttpResponse doUpdateTemplate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
-        Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.ADMINISTER);
-        removeTemplate(currentTemplate);
-        PodTemplate newTemplate = reconfigureTemplate(req, req.getSubmittedForm());
-        addTemplate(newTemplate); 
-        j.save();
-        // take the user back.
-        return FormApply.success("./templates");
-    }
-
-    private PodTemplate reconfigureTemplate(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
-        if (form == null)     return null;
-        return currentTemplate.getDescriptor().newInstance(req, form);
-    }
-    
     @CheckForNull
     public PodTemplate getTemplateById(@NonNull String id) {
         return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);

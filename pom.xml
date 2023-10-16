@@ -46,7 +46,7 @@
     <jenkins.host.address />
     <slaveAgentPort />
     <!-- TODO fix KubernetesCloudTest todos once past 2.414 -->
-    <jenkins.version>2.414.2</jenkins.version>
+    <jenkins.version>2.415</jenkins.version>
     <bom>2.401.x</bom>
     <bom.version>2357.v1043f8578392</bom.version>
     <no-test-jar>false</no-test-jar>

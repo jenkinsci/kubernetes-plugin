@@ -1,10 +1,10 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
-  <l:layout permission="${app.SYSTEM_READ}" title="${%title(it.name)}">
+  <l:layout permission="${app.SYSTEM_READ}" title="${%Pod template settings}">
     <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}"/>
-    <l:breadcrumb title="${%Template} '${it.name}'"/>
+    <l:breadcrumb title="${it.name}"/>
 
-    <st:include page="sidepanel.jelly" it="${it}"/>
+    <st:include page="sidepanel.jelly"/>
     <l:main-panel>
       <h1>${%Pod template settings}</h1>
       <f:form method="post" action="configSubmit" name="config" class="jenkins-form">
@@ -17,14 +17,11 @@
         <l:isAdmin>
           <f:bottomButtonBar>
             <f:submit value="${%Save}"/>
-            <a class="jenkins-button jenkins-button--secondary" href="../../templates">
-                ${%Back to pod templates}
-            </a>
           </f:bottomButtonBar>
         </l:isAdmin>
       </f:form>
       <l:isAdmin>
-        <st:adjunct includes="lib.form.confirm"/>
+        <st:adjunct includes="lib.form.confirm"/> 
       </l:isAdmin>
     </l:main-panel>
   </l:layout>

@@ -2,11 +2,9 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <!-- with empty type attribute, takes full width space, works only because core doesn't provide a CSS "app-page-body-" -->
-    <l:layout title="'${it.name} - ${%Pod templates}' pod templates"
+    <l:layout title="${it.name} - ${%Pod templates}"
               type="${request.hasParameter('expand') ? 'full-screen' : 'two-column'}">
-
-      <!--What I want to do is simply add the templates to the existing sidepanel but do not know how-->
-      <st:include page="sidepanel.jelly" it="${it}"/>
+      <st:include page="sidepanel.jelly"/>
 
       <l:main-panel>
         <j:if test="${request.hasParameter('id')}">
@@ -51,17 +49,12 @@
                         <j:forEach var="template" items="${it.templates}">
                             <tr id="template_${template.id}">
                             <td>
-                                ${template.name}
+                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">${template.name}</a>
                             </td>
                             <td class="jenkins-table__cell--tight">
                                 <div class="jenkins-table__cell__button-wrapper">
-                                    <a href="${it.getCloudUrl(request,app,cloud)}templates?id=${template.id}" class="jenkins-table__button">
+                                    <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
                                         <l:icon src="symbol-settings"/>
-                                    </a>
-                                    <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}/delete" class="jenkins-!-padding-left-3">
-                                        <button class="jenkins-button jenkins-!-error-color">
-                                            <l:icon src="symbol-close"/> Delete
-                                        </button>
                                     </a>
                                 </div>
                             </td>
