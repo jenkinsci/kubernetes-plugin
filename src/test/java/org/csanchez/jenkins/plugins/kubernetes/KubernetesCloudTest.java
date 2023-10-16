@@ -265,26 +265,11 @@ public class KubernetesCloudTest {
         HtmlForm f= p.getFormByName("config");
         HtmlInput templateName = getInputByName(f, "_.name");
         templateName.setValue("default-workspace-volume");
-        // make sure the details button still works
-        HtmlButton buttonDetails = getButton(f, "Pod Template details");
-        buttonDetails.click();
         j.submit(f);
         cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         PodTemplate podTemplate = cloud.getTemplates().get(0);
         assertEquals("default-workspace-volume", podTemplate.getName());
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
-    }
-
-    // TODO 2.385+ delete
-    private HtmlButton getButton(HtmlForm f, String buttonText) {
-        HtmlButton button;
-        try {
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText);
-        } catch (ElementNotFoundException e) {
-            // before https://github.com/jenkinsci/jenkins/pull/7173 the 3 dots where added by core
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText + "...");
-        }
-        return button;
     }
 
     @Test

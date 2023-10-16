@@ -19,8 +19,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -52,14 +50,12 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-import hudson.Functions;
 import hudson.TcpSlaveAgentListener;
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.Failure;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
@@ -77,7 +73,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
 
 import jenkins.websocket.WebSockets;
-import net.sf.json.JSONObject;
 
 /**
  * Kubernetes cloud provider.
