@@ -44,7 +44,6 @@ import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
 import hudson.Extension;
 import hudson.Util;
@@ -642,7 +641,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     /**
      * Deletes the template.
      */
-    @RequirePOST
+    @POST
     public HttpResponse doDoDelete(StaplerRequest req, StaplerResponse rsp) throws IOException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);

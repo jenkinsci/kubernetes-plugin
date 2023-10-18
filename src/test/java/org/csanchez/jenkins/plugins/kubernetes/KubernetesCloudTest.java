@@ -270,6 +270,17 @@ public class KubernetesCloudTest {
         PodTemplate podTemplate = cloud.getTemplates().get(0);
         assertEquals("default-workspace-volume", podTemplate.getName());
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
+        // test whether we can edit a template
+        p = wc.goTo("cloud/kubernetes/template/" + podTemplate.getId() + "/");
+        f= p.getFormByName("config");
+        templateName = getInputByName(f, "_.name");
+        templateName.setValue("default-workspace");
+        j.submit(f);
+        podTemplate = cloud.getTemplates().get(0);
+        assertEquals("default-workspace", podTemplate.getName());
+        p = wc.goTo("cloud/kubernetes/templates");
+        DomElement row = p.getElementById("template_"+podTemplate.getId());
+        assertTrue(row != null);
     }
 
     @Test
