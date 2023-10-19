@@ -28,7 +28,7 @@ THE SOFTWARE.
       <f:form method="post" action="create" name="config" class="jenkins-form">
         <!-- main body of the configuration -->
 
-        <st:include it="${instance}" page="config.jelly"/>
+        <st:include class="${it.templateDescriptor.clazz}" page="config.jelly"/>
         <l:isAdmin>
           <f:bottomButtonBar>
             <f:submit value="${%Create}"/>
