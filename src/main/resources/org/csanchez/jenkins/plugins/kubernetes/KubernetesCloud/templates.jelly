@@ -18,7 +18,7 @@
             </l:isAdmin>
         </l:app-bar>
         <j:choose>
-            <j:when test="${it.hasTemplates()}">
+            <j:when test="${not empty it.templates}">
                 <table id="templates" class="jenkins-table sortable">
                     <thead>
                     <tr>

@@ -620,7 +620,7 @@ public class KubernetesCloud extends Cloud {
         j.checkPermission(Jenkins.ADMINISTER);
         Cloud cloud = j.getCloud(this.name);
         if (cloud == null) {
-            throw new ServletException("No such cloud " + this.name);
+            return HttpResponses.notFound();
         }
         KubernetesCloud result = (KubernetesCloud) cloud.reconfigure(req, req.getSubmittedForm());
         String proposedName = result.name;
@@ -750,6 +750,11 @@ public class KubernetesCloud extends Cloud {
         this.waitForPodSec = waitForPodSec;
     }
 
+    @Restricted(NoExternalUse.class)
+    public PodTemplate.DescriptorImpl getTemplateDescriptor() {
+        return (PodTemplate.DescriptorImpl) Jenkins.get().getDescriptorOrDie(PodTemplate.class);
+    }
+    
     /**
      * Creating a new template.
      */
@@ -757,7 +762,7 @@ public class KubernetesCloud extends Cloud {
     public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
-        PodTemplate newTemplate=new PodTemplate().getDescriptor().newInstance(req, req.getSubmittedForm());
+        PodTemplate newTemplate = getTemplateDescriptor().newInstance(req, req.getSubmittedForm());
         addTemplate(newTemplate);
         j.save();
         // take the user back.
