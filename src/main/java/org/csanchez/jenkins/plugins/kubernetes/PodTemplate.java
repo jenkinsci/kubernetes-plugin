@@ -38,6 +38,7 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpRedirect;
@@ -642,10 +643,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Deletes the template.
      */
     @POST
-    public HttpResponse doDoDelete(StaplerRequest req, StaplerResponse rsp) throws IOException {
+    public HttpResponse doDoDelete(@AncestorInPath KubernetesCloud kubernetesCloud) throws IOException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
-        KubernetesCloud kubernetesCloud = req.findAncestorObject(KubernetesCloud.class);
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
@@ -656,10 +656,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath KubernetesCloud kubernetesCloud) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
-        KubernetesCloud kubernetesCloud = req.findAncestorObject(KubernetesCloud.class);
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
