@@ -617,7 +617,7 @@ public class KubernetesCloud extends Cloud {
     }
 
     @POST
-    public HttpResponse doUpdate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+    public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
@@ -635,7 +635,7 @@ public class KubernetesCloud extends Cloud {
         j.clouds.replace(this, result);
         j.save();
         // take the user back to the cloud top page.
-        return FormApply.success("..");
+        return FormApply.success("../..");
     }
 
     @CheckForNull
