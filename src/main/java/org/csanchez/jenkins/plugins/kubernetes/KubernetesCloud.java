@@ -616,6 +616,7 @@ public class KubernetesCloud extends Cloud {
         return getTemplateById(id);
     }
 
+    // TODO: Remove when JENKINS-71737 is fixed
     @POST
     public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
         
