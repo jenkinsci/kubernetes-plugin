@@ -106,10 +106,6 @@ public class KubernetesCloud extends Cloud {
 
     @NonNull
     private List<PodTemplate> templates = new ArrayList<>();
-
-    public boolean hasTemplates() {
-        return !templates.isEmpty();
-    }
     private String serverUrl;
     private boolean useJenkinsProxy;
     @CheckForNull
@@ -611,6 +607,7 @@ public class KubernetesCloud extends Cloud {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
     }
     
+    @SuppressWarnings("unused ") // stapler
     @CheckForNull
     public PodTemplate getTemplate(@NonNull String id) {
         return getTemplateById(id);
@@ -754,7 +751,7 @@ public class KubernetesCloud extends Cloud {
         this.waitForPodSec = waitForPodSec;
     }
 
-    @Restricted(NoExternalUse.class)
+    @Restricted(NoExternalUse.class) // jelly
     public PodTemplate.DescriptorImpl getTemplateDescriptor() {
         return (PodTemplate.DescriptorImpl) Jenkins.get().getDescriptorOrDie(PodTemplate.class);
     }
@@ -1042,5 +1039,4 @@ public class KubernetesCloud extends Cloud {
             }
         }
     }
-
 }
