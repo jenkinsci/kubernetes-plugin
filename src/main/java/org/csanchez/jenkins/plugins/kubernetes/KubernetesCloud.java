@@ -613,29 +613,6 @@ public class KubernetesCloud extends Cloud {
         return getTemplateById(id);
     }
 
-    // TODO: Remove when JENKINS-71737 is fixed
-    @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
-        
-        Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.ADMINISTER);
-        Cloud cloud = j.getCloud(this.name);
-        if (cloud == null) {
-            return HttpResponses.notFound();
-        }
-        KubernetesCloud result = (KubernetesCloud) cloud.reconfigure(req, req.getSubmittedForm());
-        String proposedName = result.name;
-        if (!proposedName.equals(this.name)
-                && j.getCloud(proposedName) != null) {
-            throw new Descriptor.FormException(Messages.cloudAlreadyExists(proposedName), "name");
-        }
-        result.templates = this.templates;
-        j.clouds.replace(this, result);
-        j.save();
-        // take the user back to the cloud top page.
-        return FormApply.success("../..");
-    }
-
     @CheckForNull
     public PodTemplate getTemplateById(@NonNull String id) {
         return getAllTemplates().stream().filter(t -> id.equals(t.getId())).findFirst().orElse(null);
