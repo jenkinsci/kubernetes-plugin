@@ -424,7 +424,9 @@ public class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
             if(directConnection) {
               envVars.add(new EnvVar("JENKINS_PROTOCOLS", JENKINS_PROTOCOLS, null));
-              envVars.add(new EnvVar("JENKINS_DIRECT_CONNECTION", "localhost:" + Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort(), null));
+              envVars.add(new EnvVar("JENKINS_DIRECT_CONNECTION",
+                System.getProperty("hudson.TcpSlaveAgentListener.hostName", "localhost") + ":" +
+                Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort(), null));
               envVars.add(new EnvVar("JENKINS_INSTANCE_IDENTITY", Jenkins.get().getTcpSlaveAgentListener().getIdentityPublicKey(), null));
             } else {
               envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
