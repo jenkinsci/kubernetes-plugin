@@ -31,6 +31,8 @@ kubectl exec jenkins -- \
         -Dport=$http_port \
         -DslaveAgentPort=$tcp_port \
         -Djenkins.host.address=jenkins.kubernetes-plugin-test.svc.cluster.local \
+        `# TODO perhaps PodTemplateBuilder should default host from KubernetesCloud.jenkinsUrl when this is unset? ` \
+        -Dhudson.TcpSlaveAgentListener.hostName=jenkins.kubernetes-plugin-test.svc.cluster.local \
         -Dmaven.test.failure.ignore \
         verify \
         "$@"
