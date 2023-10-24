@@ -670,7 +670,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
-        if (form == null)     return null;
+        if (form == null) {
+            return null;
+        }
         return getDescriptor().newInstance(req, form);
     }
 
