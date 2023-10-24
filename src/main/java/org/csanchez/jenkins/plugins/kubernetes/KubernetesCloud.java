@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.servlet.ServletException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -34,12 +33,17 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
+import org.kohsuke.stapler.verb.POST;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -58,6 +62,7 @@ import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
+import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -600,6 +605,12 @@ public class KubernetesCloud extends Cloud {
     public PodTemplate getTemplate(@CheckForNull Label label) {
         return PodTemplateUtils.getTemplateByLabel(label, getAllTemplates());
     }
+    
+    @SuppressWarnings("unused ") // stapler
+    @CheckForNull
+    public PodTemplate getTemplate(@NonNull String id) {
+        return getTemplateById(id);
+    }
 
     @CheckForNull
     public PodTemplate getTemplateById(@NonNull String id) {
@@ -714,6 +725,25 @@ public class KubernetesCloud extends Cloud {
     @DataBoundSetter
     public void setWaitForPodSec(Integer waitForPodSec) {
         this.waitForPodSec = waitForPodSec;
+    }
+
+    @Restricted(NoExternalUse.class) // jelly
+    public PodTemplate.DescriptorImpl getTemplateDescriptor() {
+        return (PodTemplate.DescriptorImpl) Jenkins.get().getDescriptorOrDie(PodTemplate.class);
+    }
+    
+    /**
+     * Creating a new template.
+     */
+    @POST
+    public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, Descriptor.FormException {
+        Jenkins j = Jenkins.get();
+        j.checkPermission(Jenkins.ADMINISTER);
+        PodTemplate newTemplate = getTemplateDescriptor().newInstance(req, req.getSubmittedForm());
+        addTemplate(newTemplate);
+        j.save();
+        // take the user back.
+        return FormApply.success("templates");
     }
 
     @Extension

@@ -20,6 +20,7 @@ import jenkins.model.Jenkins;
 import org.htmlunit.ElementNotFoundException;
 import org.htmlunit.html.DomElement;
 import org.htmlunit.html.DomNodeList;
+import org.htmlunit.html.HtmlAnchor;
 import org.htmlunit.html.HtmlButton;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
@@ -69,19 +70,10 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
+        HtmlPage p = wc.goTo("cloud/kubernetes/configure");
         HtmlForm f = p.getFormByName("config");
         j.submit(f);
         assertEquals("PodTemplate{id='"+podTemplate.getId()+"', name='test-template', label='test'}", podTemplate.toString());
-    }
-
-    // TODO 2.414+ delete
-    private HtmlPage getCloudPage(JenkinsRule.WebClient wc) throws IOException, SAXException {
-        if (Jenkins.getVersion().isNewerThanOrEqualTo(new VersionNumber("2.414"))) {
-            return wc.goTo("cloud/kubernetes/configure");
-        } else {
-            return wc.goTo("configureClouds/");
-        }
     }
 
     @Test
@@ -269,34 +261,26 @@ public class KubernetesCloudTest {
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
-        HtmlPage p = getCloudPage(wc);
-        HtmlForm f = p.getFormByName("config");
-        HtmlButton buttonExtends = getButton(f, "Pod Templates");
-        buttonExtends.click();
-        HtmlButton buttonAdd = getButton(f, "Add Pod Template");
-        buttonAdd.click();
-        HtmlButton buttonDetails = getButton(f, "Pod Template details");
-        buttonDetails.click();
-        DomElement templates = p.getElementByName("templates");
-        HtmlInput templateName = getInputByName(templates, "_.name");
+        HtmlPage p = wc.goTo("cloud/kubernetes/new");
+        HtmlForm f= p.getFormByName("config");
+        HtmlInput templateName = getInputByName(f, "_.name");
         templateName.setValue("default-workspace-volume");
         j.submit(f);
         cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         PodTemplate podTemplate = cloud.getTemplates().get(0);
         assertEquals("default-workspace-volume", podTemplate.getName());
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
-    }
-
-    // TODO 2.385+ delete
-    private HtmlButton getButton(HtmlForm f, String buttonText) {
-        HtmlButton button;
-        try {
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText);
-        } catch (ElementNotFoundException e) {
-            // before https://github.com/jenkinsci/jenkins/pull/7173 the 3 dots where added by core
-            button = HtmlFormUtil.getButtonByCaption(f, buttonText + "...");
-        }
-        return button;
+        // test whether we can edit a template
+        p = wc.goTo("cloud/kubernetes/template/" + podTemplate.getId() + "/");
+        f= p.getFormByName("config");
+        templateName = getInputByName(f, "_.name");
+        templateName.setValue("default-workspace");
+        j.submit(f);
+        podTemplate = cloud.getTemplates().get(0);
+        assertEquals("default-workspace", podTemplate.getName());
+        p = wc.goTo("cloud/kubernetes/templates");
+        DomElement row = p.getElementById("template_"+podTemplate.getId());
+        assertTrue(row != null);
     }
 
     @Test
