@@ -64,7 +64,6 @@ import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormApply;
 import hudson.util.FormValidation;
-import hudson.util.HttpResponses;
 import hudson.util.ListBoxModel;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
