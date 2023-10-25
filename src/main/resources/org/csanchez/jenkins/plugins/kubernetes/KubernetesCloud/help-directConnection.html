@@ -12,13 +12,14 @@
   <p>
   Here is an example how the connect on agent side would look like. Most parameters are provided automatically when you enable the <i>Direct Connection</i> option.
   <pre>
-  java -cp agent.jar hudson.remoting.jnlp.Main \
+  java -jar agent.jar \
+    -secret &lt;SECRET_STRING&gt; \
+    -name &lt;AGENT_NAME&gt; \
     -headless \
     -workDir &lt;WORK_DIRECTORY&gt; \
     -direct &lt;MASTER_HOST:TCP_AGENT_LISTENER_PORT&gt; \
     -protocols JNLP4-connect \
-    -instanceIdentity &lt;INSTANCE_IDENTITY&gt; \
-    &lt;SECRET_STRING&gt; &lt;AGENT_NAME&gt;
+    -instanceIdentity &lt;INSTANCE_IDENTITY&gt;
   </pre>
   </p>
   
