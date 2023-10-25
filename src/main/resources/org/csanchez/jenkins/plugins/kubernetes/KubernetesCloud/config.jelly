@@ -46,11 +46,11 @@ THE SOFTWARE.
         <f:textbox/>
       </f:entry>
 
-      <f:entry title="${%JNLP Docker Registry}" field="jnlpregistry">
+      <f:entry title="${%Agent Docker Registry}" field="jnlpregistry">
         <f:textbox/>
       </f:entry>
 
-      <f:entry title="${%Inject restricted PSS security context in JNLP container definition}" field="restrictedPssSecurityContext">
+      <f:entry title="${%Inject restricted PSS security context in agent container definition}" field="restrictedPssSecurityContext">
         <f:checkbox/>
       </f:entry>
 
