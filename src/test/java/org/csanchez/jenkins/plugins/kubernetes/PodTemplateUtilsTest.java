@@ -106,7 +106,7 @@ public class PodTemplateUtilsTest {
         PodTemplate template = new PodTemplate();
         template.setName("template");
         template.setServiceAccount("sa1");
-        PodTemplate result = combine(null, template);
+        PodTemplateGroup result = combine(null, template);
         assertEquals(result, template);
     }
 
