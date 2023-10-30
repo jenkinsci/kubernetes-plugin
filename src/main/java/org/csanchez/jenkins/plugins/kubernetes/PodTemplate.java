@@ -655,14 +655,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Override
-    public void replaceTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate){
+    public void replaceTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate, PodTemplate newTemplate){
         removeTemplate(kubernetesCloud, podTemplate);
-        kubernetesCloud.addTemplate(podTemplate);
+        kubernetesCloud.addTemplate(newTemplate);
     }
     
     @Override
-    public void removeTemplate(KubernetesCloud kubernetesCloud, PodTemplateGroup podTemplate){
-        kubernetesCloud.removeTemplate(this);
+    public void removeTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate){
+        kubernetesCloud.removeTemplate(podTemplate);
     }
 
     @POST
@@ -672,14 +672,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        PodTemplateGroup newTemplate = reconfigure(req, req.getSubmittedForm());
-        removeTemplate(kubernetesCloud, newTemplate);
+        PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
+        replaceTemplate(kubernetesCloud, this, newTemplate);
         j.save();
         // take the user back.
         return FormApply.success("../../templates");
     }
 
-    private PodTemplateGroup reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+    private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
         if (form == null) {
             return null;
         }
