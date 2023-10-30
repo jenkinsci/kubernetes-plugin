@@ -62,7 +62,7 @@ import net.sf.json.JSONObject;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable, PodTemplateGroup {
 
     private static final long serialVersionUID = 3285310269140845583L;
 
@@ -648,10 +648,21 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        kubernetesCloud.removeTemplate(this);
+        removeTemplate(kubernetesCloud,this);
         j.save();
         // take the user back.
         return new HttpRedirect("../../templates");
+    }
+
+    @Override
+    public void replaceTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate){
+        removeTemplate(kubernetesCloud, podTemplate);
+        kubernetesCloud.addTemplate(podTemplate);
+    }
+    
+    @Override
+    public void removeTemplate(KubernetesCloud kubernetesCloud, PodTemplateGroup podTemplate){
+        kubernetesCloud.removeTemplate(this);
     }
 
     @POST
@@ -661,15 +672,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        kubernetesCloud.removeTemplate(this);
-        PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
-        kubernetesCloud.addTemplate(newTemplate);
+        PodTemplateGroup newTemplate = reconfigure(req, req.getSubmittedForm());
+        removeTemplate(kubernetesCloud, newTemplate);
         j.save();
         // take the user back.
         return FormApply.success("../../templates");
     }
 
-    private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+    private PodTemplateGroup reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
         if (form == null) {
             return null;
         }
