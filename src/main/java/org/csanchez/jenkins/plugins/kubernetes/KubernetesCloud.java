@@ -83,7 +83,7 @@ import jenkins.websocket.WebSockets;
  *
  * @author Carlos Sanchez carlos@apache.org
  */
-public class KubernetesCloud extends Cloud {
+public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public static final int DEFAULT_MAX_REQUESTS_PER_HOST = 32;
     public static final Integer DEFAULT_WAIT_FOR_POD_SEC = 600;
 
@@ -592,6 +592,12 @@ public class KubernetesCloud extends Cloud {
     }
 
     @Override
+    public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate){
+        this.removeTemplate(oldTemplate);
+        this.addTemplate(newTemplate);
+    }
+
+    @Override
     public boolean canProvision(@NonNull Cloud.CloudState state) {
         return getTemplate(state.getLabel()) != null;
     }
@@ -660,6 +666,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @param t docker template
      */
+    @Override
     public void removeTemplate(PodTemplate t) {
         this.templates.remove(t);
     }

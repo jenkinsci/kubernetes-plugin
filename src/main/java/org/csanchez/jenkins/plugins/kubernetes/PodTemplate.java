@@ -62,7 +62,7 @@ import net.sf.json.JSONObject;
  *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable, PodTemplateGroup {
+public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements Serializable, Saveable {
 
     private static final long serialVersionUID = 3285310269140845583L;
 
@@ -642,38 +642,27 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Deletes the template.
      */
     @POST
-    public HttpResponse doDoDelete(@AncestorInPath KubernetesCloud kubernetesCloud) throws IOException {
+    public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup kubernetesCloud) throws IOException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        removeTemplate(kubernetesCloud,this);
+        kubernetesCloud.removeTemplate(this);
         j.save();
         // take the user back.
         return new HttpRedirect("../../templates");
     }
 
-    @Override
-    public void replaceTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate, PodTemplate newTemplate){
-        removeTemplate(kubernetesCloud, podTemplate);
-        kubernetesCloud.addTemplate(newTemplate);
-    }
-    
-    @Override
-    public void removeTemplate(KubernetesCloud kubernetesCloud, PodTemplate podTemplate){
-        kubernetesCloud.removeTemplate(podTemplate);
-    }
-
     @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath KubernetesCloud kubernetesCloud) throws IOException, ServletException, Descriptor.FormException {
+    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup kubernetesCloud) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
         if (kubernetesCloud == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
-        replaceTemplate(kubernetesCloud, this, newTemplate);
+        kubernetesCloud.replaceTemplate(this, newTemplate);
         j.save();
         // take the user back.
         return FormApply.success("../../templates");
