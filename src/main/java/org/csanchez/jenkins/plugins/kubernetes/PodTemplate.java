@@ -651,7 +651,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         kubernetesCloud.removeTemplate(this);
         j.save();
         // take the user back.
-        return new HttpRedirect("../../templates");
+        return new HttpRedirect(kubernetesCloud.redirectUrl());
     }
 
     @POST
@@ -665,7 +665,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         kubernetesCloud.replaceTemplate(this, newTemplate);
         j.save();
         // take the user back.
-        return FormApply.success("../../templates");
+        return FormApply.success(kubernetesCloud.redirectUrl());
     }
 
     private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {

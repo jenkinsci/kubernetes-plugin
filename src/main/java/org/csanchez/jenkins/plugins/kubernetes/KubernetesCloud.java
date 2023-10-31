@@ -671,6 +671,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         this.templates.remove(t);
     }
 
+    @Override
+    public String redirectUrl() {
+        return "../../templates";
+    }
+
     /**
      * Add a dynamic pod template. Won't be displayed in UI, and persisted separately from the cloud instance.
      * @param t the template to add
