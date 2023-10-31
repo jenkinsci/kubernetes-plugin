@@ -95,7 +95,7 @@ public class KubernetesCloudTest {
         PodTemplate withNewMavenVersion = new PodTemplate();
         withNewMavenVersion.setContainers(Arrays.asList(maven2));
 
-        PodTemplateGroup result = PodTemplateUtils.combine(parent, withNewMavenVersion);
+        PodTemplate result = PodTemplateUtils.combine(parent, withNewMavenVersion);
     }
 
     @Test(expected = IllegalStateException.class)

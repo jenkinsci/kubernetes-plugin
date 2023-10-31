@@ -608,7 +608,7 @@ public class KubernetesCloud extends Cloud {
     
     @SuppressWarnings("unused ") // stapler
     @CheckForNull
-    public PodTemplateGroup getTemplate(@NonNull String id) {
+    public PodTemplate getTemplate(@NonNull String id) {
         return getTemplateById(id);
     }
 
@@ -660,7 +660,7 @@ public class KubernetesCloud extends Cloud {
      *
      * @param t docker template
      */
-    public void removeTemplate(PodTemplateGroup t) {
+    public void removeTemplate(PodTemplate t) {
         this.templates.remove(t);
     }
 

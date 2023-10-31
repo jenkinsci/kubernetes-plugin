@@ -123,7 +123,7 @@ public class KubernetesSlaveTest {
             return this.expectedResult;
         }
 
-        public PodTemplateGroup getPodTemplate() {
+        public PodTemplate getPodTemplate() {
             return this.podTemplate;
         }
 
