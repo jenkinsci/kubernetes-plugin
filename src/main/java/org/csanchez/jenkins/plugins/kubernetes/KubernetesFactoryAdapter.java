@@ -212,10 +212,10 @@ public class KubernetesFactoryAdapter {
             return null;
         }
         StandardCredentials c = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentials(
+                CredentialsProvider.lookupCredentialsInItemGroup(
                         StandardCredentials.class,
                         Jenkins.get(),
-                        ACL.SYSTEM,
+                        ACL.SYSTEM2,
                         Collections.emptyList()
                 ),
                 CredentialsMatchers.allOf(
