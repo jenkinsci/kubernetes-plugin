@@ -672,7 +672,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     }
 
     @Override
-    public String redirectUrl() {
+    public String getPodTemplateGroupUrl() {
         return "../../templates";
     }
 
