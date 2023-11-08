@@ -642,7 +642,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Deletes the template.
      */
     @POST
-    public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup kubernetesCloud) throws IOException {
+    public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup owner) throws IOException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
         if (kubernetesCloud == null) {
@@ -655,7 +655,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup kubernetesCloud) throws IOException, ServletException, Descriptor.FormException {
+    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup owner) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
         if (kubernetesCloud == null) {
