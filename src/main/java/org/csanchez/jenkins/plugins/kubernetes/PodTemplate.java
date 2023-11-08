@@ -642,31 +642,30 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      * Deletes the template.
      */
     @POST
-    public HttpResponse doDoDelete(@AncestorInPath KubernetesCloud kubernetesCloud) throws IOException {
+    public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup owner) throws IOException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
-        if (kubernetesCloud == null) {
+        if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        kubernetesCloud.removeTemplate(this);
+        owner.removeTemplate(this);
         j.save();
         // take the user back.
-        return new HttpRedirect("../../templates");
+        return new HttpRedirect(owner.getPodTemplateGroupUrl());
     }
 
     @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath KubernetesCloud kubernetesCloud) throws IOException, ServletException, Descriptor.FormException {
+    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup owner) throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.ADMINISTER);
-        if (kubernetesCloud == null) {
+        if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        kubernetesCloud.removeTemplate(this);
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
-        kubernetesCloud.addTemplate(newTemplate);
+        owner.replaceTemplate(this, newTemplate);
         j.save();
         // take the user back.
-        return FormApply.success("../../templates");
+        return FormApply.success(owner.getPodTemplateGroupUrl());
     }
 
     private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form) throws Descriptor.FormException {
