@@ -26,6 +26,7 @@ import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
 import jenkins.metrics.api.Metrics;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -147,6 +148,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public KubernetesCloud(String name) {
         super(name);
         setMaxRequestsPerHost(DEFAULT_MAX_REQUESTS_PER_HOST);
+        setPodLabels(null);
     }
 
     /**
@@ -215,7 +217,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setDefaultsProviderTemplate(String defaultsProviderTemplate) {
-        this.defaultsProviderTemplate = defaultsProviderTemplate;
+        this.defaultsProviderTemplate = Util.fixEmpty(defaultsProviderTemplate);
     }
 
     @NonNull
@@ -243,7 +245,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerUrl(@NonNull String serverUrl) {
-        this.serverUrl = serverUrl;
+        this.serverUrl = Util.fixEmpty(serverUrl);
     }
 
     public String getServerCertificate() {
@@ -455,7 +457,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     @NonNull
     public List<PodLabel> getPodLabels() {
-        return podLabels == null || podLabels.isEmpty() ? PodLabel.fromMap(DEFAULT_POD_LABELS) : podLabels;
+        return podLabels == null ? List.of() : podLabels;
     }
 
     /**
@@ -464,9 +466,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @DataBoundSetter
     public void setPodLabels(@CheckForNull List<PodLabel> labels) {
         this.podLabels = new ArrayList<>();
-        if (labels != null) {
-            this.podLabels.addAll(labels);
-        }
+        this.podLabels.addAll(labels == null || labels.isEmpty() ? PodLabel.fromMap(DEFAULT_POD_LABELS) : labels);
     }
 
     /**
@@ -997,13 +997,21 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }
-        if (podLabels == null && labels != null) {
-            setPodLabels(PodLabel.fromMap(labels));
+        if (podLabels == null) {
+            setPodLabels(labels == null ? null : PodLabel.fromMap(labels));
         }
         if (containerCap != null && containerCap == 0) {
             containerCap = null;
         }
         return this;
+    }
+
+    @Override
+    public Cloud reconfigure(@NonNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        // cloud configuration doesn't contain templates anymore, so just keep existing ones.
+        var newInstance = (KubernetesCloud) super.reconfigure(req, form);
+        newInstance.setTemplates(this.templates);
+        return newInstance;
     }
 
     @Extension
