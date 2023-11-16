@@ -148,7 +148,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public KubernetesCloud(String name) {
         super(name);
         setMaxRequestsPerHost(DEFAULT_MAX_REQUESTS_PER_HOST);
-        setPodLabels(PodLabel.fromMap(DEFAULT_POD_LABELS));
+        setPodLabels(null);
     }
 
     /**
@@ -466,9 +466,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @DataBoundSetter
     public void setPodLabels(@CheckForNull List<PodLabel> labels) {
         this.podLabels = new ArrayList<>();
-        if (labels != null) {
-            this.podLabels.addAll(labels);
-        }
+        this.podLabels.addAll(labels == null || labels.isEmpty() ? PodLabel.fromMap(DEFAULT_POD_LABELS) : labels);
     }
 
     /**
@@ -999,8 +997,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
         }
-        if (podLabels == null && labels != null) {
-            setPodLabels(PodLabel.fromMap(labels));
+        if (podLabels == null) {
+            setPodLabels(labels == null ? null : PodLabel.fromMap(labels));
         }
         if (containerCap != null && containerCap == 0) {
             containerCap = null;
