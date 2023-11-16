@@ -26,6 +26,7 @@ import hudson.Main;
 import hudson.model.ItemGroup;
 import hudson.util.XStream2;
 import jenkins.metrics.api.Metrics;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
@@ -1005,6 +1006,14 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             containerCap = null;
         }
         return this;
+    }
+
+    @Override
+    public Cloud reconfigure(@NonNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+        // cloud configuration doesn't contain templates anymore, so just keep existing ones.
+        var newInstance = (KubernetesCloud) super.reconfigure(req, form);
+        newInstance.setTemplates(this.templates);
+        return newInstance;
     }
 
     @Extension
