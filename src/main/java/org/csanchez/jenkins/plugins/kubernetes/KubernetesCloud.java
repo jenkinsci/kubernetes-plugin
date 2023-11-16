@@ -147,6 +147,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public KubernetesCloud(String name) {
         super(name);
         setMaxRequestsPerHost(DEFAULT_MAX_REQUESTS_PER_HOST);
+        setPodLabels(PodLabel.fromMap(DEFAULT_POD_LABELS));
     }
 
     /**
@@ -215,7 +216,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setDefaultsProviderTemplate(String defaultsProviderTemplate) {
-        this.defaultsProviderTemplate = defaultsProviderTemplate;
+        this.defaultsProviderTemplate = Util.fixEmpty(defaultsProviderTemplate);
     }
 
     @NonNull
@@ -243,7 +244,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerUrl(@NonNull String serverUrl) {
-        this.serverUrl = serverUrl;
+        this.serverUrl = Util.fixEmpty(serverUrl);
     }
 
     public String getServerCertificate() {
@@ -455,7 +456,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     @NonNull
     public List<PodLabel> getPodLabels() {
-        return podLabels == null || podLabels.isEmpty() ? PodLabel.fromMap(DEFAULT_POD_LABELS) : podLabels;
+        return podLabels == null ? List.of() : podLabels;
     }
 
     /**
