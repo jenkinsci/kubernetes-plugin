@@ -41,7 +41,7 @@ public interface DynamicPVC {
         OwnerReference ownerReference = new OwnerReferenceBuilder().
                 withApiVersion("v1").
                 withKind("Pod").
-                withBlockOwnerDeletion(true).
+                withBlockOwnerDeletion(false).
                 withController(true).
                 withName(podMetaData.getName()).
                 withUid(podMetaData.getUid()).build();
