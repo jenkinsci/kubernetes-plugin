@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.awaitility.Awaitility.await;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
@@ -44,6 +45,7 @@ import static org.junit.Assume.*;
 
 import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
@@ -688,24 +691,27 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void dynamicPVCWorkspaceVolume() throws Exception {
-        try {
-            cloud.connect().persistentVolumeClaims().list();
-        } catch (KubernetesClientException x) {
-            // Error from server (Forbidden): persistentvolumeclaims is forbidden: User "system:serviceaccount:kubernetes-plugin-test:default" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "kubernetes-plugin-test"
-            assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
-        }
+        assumePvcAccess();
+        var size = cloud.connect().persistentVolumeClaims().list().getItems().size();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        await().until(() -> cloud.connect().persistentVolumeClaims().list().getItems(), hasSize(size));
     }
 
     @Test
     public void dynamicPVCVolume() throws Exception {
+        assumePvcAccess();
+        var size = cloud.connect().persistentVolumeClaims().list().getItems().size();
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        await().until(() -> cloud.connect().persistentVolumeClaims().list().getItems(), hasSize(size));
+    }
+
+    private void assumePvcAccess() throws KubernetesAuthException, IOException {
         try {
             cloud.connect().persistentVolumeClaims().list();
         } catch (KubernetesClientException x) {
             // Error from server (Forbidden): persistentvolumeclaims is forbidden: User "system:serviceaccount:kubernetes-plugin-test:default" cannot list resource "persistentvolumeclaims" in API group "" in the namespace "kubernetes-plugin-test"
             assumeNoException("was not permitted to list pvcs, so presumably cannot run test either", x);
         }
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 
     @Test
