@@ -36,6 +36,8 @@ jenkins:
                 name: "maven"
                 ttyEnabled: true
                 workingDir: "/src"
+              - name: "maven-with-default-entrypoint"
+                image: "maven:3.6.3-jdk-8"
             hostNetwork: false
             label: "test"
             name: "test"

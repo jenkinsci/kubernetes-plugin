@@ -46,9 +46,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     private String workingDir;
 
-    private String command;
+    private String command = "";
 
-    private String args;
+    private String args = "";
 
     private boolean ttyEnabled;
 
