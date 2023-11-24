@@ -81,6 +81,14 @@
                 <periodSeconds>0</periodSeconds>
                 <successThreshold>0</successThreshold>
               </livenessProbe>
+              <readinessProbe>
+                <execArgs></execArgs>
+                <timeoutSeconds>0</timeoutSeconds>
+                <initialDelaySeconds>0</initialDelaySeconds>
+                <failureThreshold>0</failureThreshold>
+                <periodSeconds>0</periodSeconds>
+                <successThreshold>0</successThreshold>
+              </readinessProbe>
             </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
               <name>busybox</name>
@@ -105,6 +113,14 @@
                 <periodSeconds>0</periodSeconds>
                 <successThreshold>0</successThreshold>
               </livenessProbe>
+              <readinessProbe>
+                <execArgs></execArgs>
+                <timeoutSeconds>0</timeoutSeconds>
+                <initialDelaySeconds>0</initialDelaySeconds>
+                <failureThreshold>0</failureThreshold>
+                <periodSeconds>0</periodSeconds>
+                <successThreshold>0</successThreshold>
+              </readinessProbe>
             </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
           </containers>
           <envVars>

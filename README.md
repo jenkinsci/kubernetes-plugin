@@ -437,6 +437,14 @@ containerTemplate(name: 'busybox', image: 'busybox', command: 'sleep', args: '99
 ```
 See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#defining-a-liveness-command) for more details.
 
+### Readiness Probe Usage
+```groovy
+containerTemplate(name: 'busybox', image: 'busybox', command: 'sleep', args: '99d',
+                  readinessProbe: containerReadinessProbe(execArgs: 'some --command', initialDelaySeconds: 30, timeoutSeconds: 1, failureThreshold: 3, periodSeconds: 10, successThreshold: 1)
+)
+```
+See [Define readiness probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#define-readiness-probes) for more details.
+
 # Inheritance
 
 ## Overview

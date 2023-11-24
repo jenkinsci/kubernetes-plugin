@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.casc;
 
 import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerLivenessProbe;
+import org.csanchez.jenkins.plugins.kubernetes.ContainerReadinessProbe;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;

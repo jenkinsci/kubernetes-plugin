@@ -112,6 +112,7 @@ public class PodTemplateUtils {
                 .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
         template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
         ContainerLivenessProbe livenessProbe = template.getLivenessProbe() != null ? template.getLivenessProbe() : parent.getLivenessProbe();
+        ContainerReadinessProbe readinessProbe = template.getReadinessProbe() != null ? template.getReadinessProbe() : parent.getReadinessProbe();
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -134,6 +135,7 @@ public class PodTemplateUtils {
         combined.setEnvVars(combineEnvVars(parent, template));
         combined.setPorts(new ArrayList<>(ports.values()));
         combined.setLivenessProbe(livenessProbe);
+        combined.setReadinessProbe(readinessProbe);
         return combined;
     }
 
