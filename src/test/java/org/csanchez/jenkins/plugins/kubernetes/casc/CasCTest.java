@@ -64,7 +64,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertThat(podTemplate.getYamlMergeStrategy(), isA(Merge.class));
         List<ContainerTemplate> containers = podTemplate.getContainers();
         assertNotNull(containers);
-        assertEquals(1, containers.size());
+        assertEquals(2, containers.size());
         ContainerTemplate container = containers.get(0);
         assertEquals("cat", container.getArgs());
         assertEquals("/bin/sh -c", container.getCommand());
@@ -78,6 +78,9 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals("maven",container.getName());
         assertTrue(container.isTtyEnabled());
         assertEquals("/src", container.getWorkingDir());
+        var containerTemplate = containers.get(1);
+        assertEquals("", containerTemplate.getCommand());
+        assertEquals("", containerTemplate.getArgs());
 
     }
 
