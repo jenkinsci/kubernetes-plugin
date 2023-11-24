@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Queue;
@@ -15,6 +16,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
+import org.jenkinsci.plugins.cloudstats.TrackedItem;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -36,7 +39,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 /**
  * @author Carlos Sanchez carlos@apache.org
  */
-public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
+public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> implements TrackedItem {
     private static final Logger LOGGER = Logger.getLogger(KubernetesComputer.class.getName());
 
     private boolean launching;
@@ -197,5 +200,16 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         if (acceptingTasks) {
             launching = false;
         }
+    }
+
+    @CheckForNull
+    @Override
+    public ProvisioningActivity.Id getId() {
+        KubernetesSlave slave = getNode();
+        if (slave != null) {
+            return slave.getId();
+        }
+
+        return null;
     }
 }
