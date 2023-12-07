@@ -26,71 +26,80 @@ import org.jenkinsci.plugins.workflow.cps.GroovySample;
 
 public class KubernetesSamples {
 
-    @OptionalExtension(requirePlugins = "workflow-cps") public static final class SuppressToolBasedSamples extends ExtensionFilter {
+    @OptionalExtension(requirePlugins = "workflow-cps")
+    public static final class SuppressToolBasedSamples extends ExtensionFilter {
 
-        @Override public <T> boolean allows(Class<T> type, ExtensionComponent<T> component) {
+        @Override
+        public <T> boolean allows(Class<T> type, ExtensionComponent<T> component) {
             if (type == GroovySample.class) {
                 switch (((GroovySample) component.getInstance()).name()) {
-                case "github-maven":
-                case "scripted":
-                    return false;
-                default:
-                    // OK
+                    case "github-maven":
+                    case "scripted":
+                        return false;
+                    default:
+                        // OK
                 }
             }
             return true;
         }
-
     }
 
-    private static abstract class Static implements GroovySample {
+    private abstract static class Static implements GroovySample {
 
-        @Override public String script() {
+        @Override
+        public String script() {
             try {
-                return IOUtils.toString(KubernetesSamples.class.getResource("samples/" + name().replaceFirst("^kubernetes-", "") + ".groovy"), StandardCharsets.UTF_8);
+                return IOUtils.toString(
+                        KubernetesSamples.class.getResource(
+                                "samples/" + name().replaceFirst("^kubernetes-", "") + ".groovy"),
+                        StandardCharsets.UTF_8);
             } catch (IOException x) {
                 throw new AssertionError(x);
             }
         }
-
     }
 
-    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1500) public static final class Declarative extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1500)
+    public static final class Declarative extends Static {
 
-        @Override public String name() {
+        @Override
+        public String name() {
             return "kubernetes-declarative";
         }
 
-        @Override public String title() {
+        @Override
+        public String title() {
             return "Declarative (Kubernetes)";
         }
-
     }
 
-    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1400) public static final class Maven extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1400)
+    public static final class Maven extends Static {
 
-        @Override public String name() {
+        @Override
+        public String name() {
             return "kubernetes-maven";
         }
 
-        @Override public String title() {
+        @Override
+        public String title() {
             return "Maven (Kubernetes)";
         }
-
     }
 
-    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1300) public static final class Windows extends Static {
+    @OptionalExtension(requirePlugins = "workflow-cps", ordinal = 1300)
+    public static final class Windows extends Static {
 
-        @Override public String name() {
+        @Override
+        public String name() {
             return "kubernetes-windows";
         }
 
-        @Override public String title() {
+        @Override
+        public String title() {
             return "Windows (Kubernetes)";
         }
-
     }
 
     private KubernetesSamples() {}
-
 }

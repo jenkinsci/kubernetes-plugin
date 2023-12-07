@@ -1,13 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.io.IOException;
-import java.util.EmptyStackException;
-import java.util.logging.Logger;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.model.Run;
+import java.io.IOException;
+import java.util.EmptyStackException;
+import java.util.logging.Logger;
 
 /**
  * Use <pre>getContext().get(PodTemplateContext.class)</pre> instead.

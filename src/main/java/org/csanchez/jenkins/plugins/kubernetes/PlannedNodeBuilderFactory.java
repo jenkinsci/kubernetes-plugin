@@ -20,7 +20,7 @@ public abstract class PlannedNodeBuilderFactory implements ExtensionPoint {
      * @return a new instance of {@link PlannedNodeBuilder}.
      */
     public static PlannedNodeBuilder createInstance() {
-        for (PlannedNodeBuilderFactory factory: all()) {
+        for (PlannedNodeBuilderFactory factory : all()) {
             PlannedNodeBuilder plannedNodeBuilder = factory.newInstance();
             if (plannedNodeBuilder != null) {
                 return plannedNodeBuilder;

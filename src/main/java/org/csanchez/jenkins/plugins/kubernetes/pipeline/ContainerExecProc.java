@@ -1,11 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
 
 import hudson.Proc;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import org.apache.commons.io.output.NullPrintStream;
-import jenkins.util.Timer;
-
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -21,8 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.*;
+import jenkins.util.Timer;
+import org.apache.commons.io.output.NullPrintStream;
 
 /**
  * Handle the liveness of the processes executed in containers, wait for them to finish and process exit codes.
@@ -40,24 +38,33 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
     private final PrintStream printStream;
 
     @Deprecated
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-            Callable<Integer> exitCode) {
+    public ContainerExecProc(
+            ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, Callable<Integer> exitCode) {
         this(watch, alive, finished, (OutputStream) null, (PrintStream) null);
     }
 
     @Deprecated
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished,
-            ByteArrayOutputStream error) {
+    public ContainerExecProc(
+            ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, ByteArrayOutputStream error) {
         this(watch, alive, finished, (OutputStream) null, (PrintStream) null);
     }
 
     @Deprecated
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin,
+    public ContainerExecProc(
+            ExecWatch watch,
+            AtomicBoolean alive,
+            CountDownLatch finished,
+            OutputStream stdin,
             ByteArrayOutputStream error) {
         this(watch, alive, finished, stdin, (PrintStream) null);
     }
 
-    public ContainerExecProc(ExecWatch watch, AtomicBoolean alive, CountDownLatch finished, OutputStream stdin, PrintStream printStream) {
+    public ContainerExecProc(
+            ExecWatch watch,
+            AtomicBoolean alive,
+            CountDownLatch finished,
+            OutputStream stdin,
+            PrintStream printStream) {
         this.watch = watch;
         this.stdin = stdin == null ? watch.getInput() : stdin;
         this.alive = alive;
@@ -104,8 +111,11 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             Integer exitCode = exitCodeFuture.get();
 
             if (exitCode == null) {
-                LOGGER.log(Level.FINEST, "The container exec watch was closed before it could obtain an exit code from the process.");
-                printStream.print("The container exec watch was closed before it could obtain an exit code from the process.");
+                LOGGER.log(
+                        Level.FINEST,
+                        "The container exec watch was closed before it could obtain an exit code from the process.");
+                printStream.print(
+                        "The container exec watch was closed before it could obtain an exit code from the process.");
                 return -1;
             }
             return exitCode;
@@ -164,5 +174,4 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             LOGGER.log(Level.FINE, "socket keepalive failed", x);
         }
     }
-
 }

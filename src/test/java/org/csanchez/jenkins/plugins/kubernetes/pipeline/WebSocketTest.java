@@ -16,9 +16,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+
 import java.util.logging.Level;
 import jenkins.agents.WebSocketAgents;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -38,5 +39,4 @@ public class WebSocketTest extends AbstractKubernetesPipelineTest {
     public void webSocketAgent() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(createJobThenScheduleRun()));
     }
-
 }

@@ -4,7 +4,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
  */
 public interface PodTemplateGroup {
     /**
-     * Replaces the old template with the new template. 
+     * Replaces the old template with the new template.
      * @param oldTemplate the old template to replace
      * @param newTemplate the new template to replace with
      */

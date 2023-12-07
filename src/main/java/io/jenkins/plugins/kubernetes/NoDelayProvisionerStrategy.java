@@ -1,4 +1,5 @@
 package io.jenkins.plugins.kubernetes;
+
 import hudson.Extension;
 import hudson.model.Label;
 import hudson.model.LoadStatistics;
@@ -7,10 +8,6 @@ import hudson.model.queue.QueueListener;
 import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
-import jenkins.model.Jenkins;
-import jenkins.util.Timer;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,7 +15,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import jenkins.model.Jenkins;
+import jenkins.util.Timer;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 /**
  * Implementation of {@link NodeProvisioner.Strategy} which will provision a new node immediately as
@@ -32,9 +31,10 @@ import java.util.logging.Logger;
 public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
 
     private static final Logger LOGGER = Logger.getLogger(NoDelayProvisionerStrategy.class.getName());
-    private static final boolean DISABLE_NODELAY_PROVISING = Boolean.valueOf(
-            System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
-    private static final boolean DISABLE_CLOUD_SHUFFLE = Boolean.getBoolean(NoDelayProvisionerStrategy.class.getName() + ".disableCloudShuffle");
+    private static final boolean DISABLE_NODELAY_PROVISING =
+            Boolean.valueOf(System.getProperty("io.jenkins.plugins.kubernetes.disableNoDelayProvisioning"));
+    private static final boolean DISABLE_CLOUD_SHUFFLE =
+            Boolean.getBoolean(NoDelayProvisionerStrategy.class.getName() + ".disableCloudShuffle");
 
     @Override
     public NodeProvisioner.StrategyDecision apply(NodeProvisioner.StrategyState strategyState) {
@@ -46,15 +46,16 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         final Label label = strategyState.getLabel();
 
         LoadStatistics.LoadStatisticsSnapshot snapshot = strategyState.getSnapshot();
-        int availableCapacity =
-                snapshot.getAvailableExecutors()   // live executors
-                        + snapshot.getConnectingExecutors()  // executors present but not yet connected
-                        + strategyState.getPlannedCapacitySnapshot()     // capacity added by previous strategies from previous rounds
-                        + strategyState.getAdditionalPlannedCapacity();  // capacity added by previous strategies _this round_
+        int availableCapacity = snapshot.getAvailableExecutors() // live executors
+                + snapshot.getConnectingExecutors() // executors present but not yet connected
+                + strategyState
+                        .getPlannedCapacitySnapshot() // capacity added by previous strategies from previous rounds
+                + strategyState.getAdditionalPlannedCapacity(); // capacity added by previous strategies _this round_
         int previousCapacity = availableCapacity;
         int currentDemand = snapshot.getQueueLength();
-        LOGGER.log(Level.FINE, "Available capacity={0}, currentDemand={1}",
-                new Object[]{availableCapacity, currentDemand});
+        LOGGER.log(
+                Level.FINE, "Available capacity={0}, currentDemand={1}", new Object[] {availableCapacity, currentDemand
+                });
         if (availableCapacity < currentDemand) {
             List<Cloud> jenkinsClouds = new ArrayList<>(Jenkins.get().clouds);
             if (!DISABLE_CLOUD_SHUFFLE) {
@@ -79,7 +80,9 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
                 fireOnStarted(cloud, strategyState.getLabel(), plannedNodes);
                 strategyState.recordPendingLaunches(plannedNodes);
                 availableCapacity += plannedNodes.size();
-                LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[]{availableCapacity, currentDemand});
+                LOGGER.log(Level.FINE, "After provisioning, available capacity={0}, currentDemand={1}", new Object[] {
+                    availableCapacity, currentDemand
+                });
                 break;
             }
         }
@@ -96,17 +99,20 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
         }
     }
 
-    private static void fireOnStarted(final Cloud cloud, final Label label,
-                                      final Collection<NodeProvisioner.PlannedNode> plannedNodes) {
+    private static void fireOnStarted(
+            final Cloud cloud, final Label label, final Collection<NodeProvisioner.PlannedNode> plannedNodes) {
         for (CloudProvisioningListener cl : CloudProvisioningListener.all()) {
             try {
                 cl.onStarted(cloud, label, plannedNodes);
             } catch (Error e) {
                 throw e;
             } catch (Throwable e) {
-                LOGGER.log(Level.SEVERE, "Unexpected uncaught exception encountered while "
-                        + "processing onStarted() listener call in " + cl + " for label "
-                        + label.toString(), e);
+                LOGGER.log(
+                        Level.SEVERE,
+                        "Unexpected uncaught exception encountered while "
+                                + "processing onStarted() listener call in " + cl + " for label "
+                                + label.toString(),
+                        e);
             }
         }
     }
@@ -126,9 +132,8 @@ public class NoDelayProvisionerStrategy extends NodeProvisioner.Strategy {
             final Label label = item.getAssignedLabel();
             for (Cloud cloud : jenkins.clouds) {
                 if (cloud instanceof KubernetesCloud && cloud.canProvision(new Cloud.CloudState(label, 0))) {
-                    final NodeProvisioner provisioner = (label == null
-                            ? jenkins.unlabeledNodeProvisioner
-                            : label.nodeProvisioner);
+                    final NodeProvisioner provisioner =
+                            (label == null ? jenkins.unlabeledNodeProvisioner : label.nodeProvisioner);
                     provisioner.suggestReviewNow();
                 }
             }

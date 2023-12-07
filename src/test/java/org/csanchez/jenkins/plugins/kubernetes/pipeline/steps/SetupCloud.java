@@ -19,7 +19,9 @@ public class SetupCloud implements RealJenkinsRule.Step {
     private boolean websocket;
 
     public SetupCloud(boolean websocket) throws UnknownHostException {
-        hostAddress = StringUtils.defaultIfBlank(System.getProperty("jenkins.host.address"), InetAddress.getLocalHost().getHostAddress());
+        hostAddress = StringUtils.defaultIfBlank(
+                System.getProperty("jenkins.host.address"),
+                InetAddress.getLocalHost().getHostAddress());
         agentPort = Integer.getInteger("slaveAgentPort");
         this.websocket = websocket;
     }

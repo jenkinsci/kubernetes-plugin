@@ -24,13 +24,12 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.model;
 
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * @since 0.13
@@ -75,18 +74,13 @@ public class KeyValueEnvVar extends TemplateEnvVar {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (!super.equals(obj))
-            return false;
-        if (!(obj instanceof KeyValueEnvVar))
-            return false;
+        if (this == obj) return true;
+        if (!super.equals(obj)) return false;
+        if (!(obj instanceof KeyValueEnvVar)) return false;
         KeyValueEnvVar other = (KeyValueEnvVar) obj;
         if (value == null) {
-            if (other.value != null)
-                return false;
-        } else if (!value.equals(other.value))
-            return false;
+            if (other.value != null) return false;
+        } else if (!value.equals(other.value)) return false;
         return true;
     }
 

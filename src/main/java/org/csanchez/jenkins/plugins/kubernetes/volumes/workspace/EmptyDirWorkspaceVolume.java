@@ -27,17 +27,17 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-
 import java.util.Objects;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     private static final String DEFAULT_MEDIUM = "";
@@ -62,7 +62,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @Override
     public Volume buildVolume(String volumeName, String podName) {
-        return new VolumeBuilder().withName(volumeName).withNewEmptyDir().withMedium(getMedium()).endEmptyDir().build();
+        return new VolumeBuilder()
+                .withName(volumeName)
+                .withNewEmptyDir()
+                .withMedium(getMedium())
+                .endEmptyDir()
+                .build();
     }
 
     @Override

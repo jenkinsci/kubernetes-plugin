@@ -20,7 +20,7 @@ public abstract class KubernetesComputerFactory implements ExtensionPoint {
      * @return a new instance of {@link KubernetesComputer}.
      */
     public static KubernetesComputer createInstance(KubernetesSlave slave) {
-        for (KubernetesComputerFactory factory: all()) {
+        for (KubernetesComputerFactory factory : all()) {
             KubernetesComputer kubernetesComputer = factory.newInstance(slave);
             if (kubernetesComputer != null) {
                 return kubernetesComputer;

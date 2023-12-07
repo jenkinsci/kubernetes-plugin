@@ -17,6 +17,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
+
 import org.junit.Test;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.Issue;
@@ -25,12 +26,15 @@ import org.jvnet.hudson.test.Issue;
 public class PodTemplateStepExecutionUnitTest {
 
     @Issue("JENKINS-57830")
-    @Test public void labelify() {
+    @Test
+    public void labelify() {
         assertRegex(PodTemplateStepExecution.labelify("foo"), "foo-[a-z0-9]{5}");
         assertRegex(PodTemplateStepExecution.labelify("foo bar #3"), "foo_bar__3-[a-z0-9]{5}");
         assertRegex(PodTemplateStepExecution.labelify("This/Thing"), "This_Thing-[a-z0-9]{5}");
         assertRegex(PodTemplateStepExecution.labelify("/whatever"), "xwhatever-[a-z0-9]{5}");
-        assertRegex(PodTemplateStepExecution.labelify("way-way-way-too-prolix-for-the-sixty-three-character-limit-in-kubernetes"), "xprolix-for-the-sixty-three-character-limit-in-kubernetes-[a-z0-9]{5}");
+        assertRegex(
+                PodTemplateStepExecution.labelify(
+                        "way-way-way-too-prolix-for-the-sixty-three-character-limit-in-kubernetes"),
+                "xprolix-for-the-sixty-three-character-limit-in-kubernetes-[a-z0-9]{5}");
     }
-
 }

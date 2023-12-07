@@ -2,20 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Resources.*;
 
-import java.io.Closeable;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
-import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
-import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.StepExecution;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.LauncherDecorator;
@@ -25,7 +12,17 @@ import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
+import java.io.Closeable;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
+import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
 public class ContainerStepExecution extends StepExecution {
 
@@ -53,15 +50,15 @@ public class ContainerStepExecution extends StepExecution {
 
         EnvironmentExpander env = EnvironmentExpander.merge(
                 getContext().get(EnvironmentExpander.class),
-                EnvironmentExpander.constant(Collections.singletonMap("POD_CONTAINER", containerName))
-        );
+                EnvironmentExpander.constant(Collections.singletonMap("POD_CONTAINER", containerName)));
 
         EnvVars globalVars = null;
         Jenkins instance = Jenkins.get();
 
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties = instance.getGlobalNodeProperties();
-        List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList = globalNodeProperties
-                .getAll(EnvironmentVariablesNodeProperty.class);
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> globalNodeProperties =
+                instance.getGlobalNodeProperties();
+        List<EnvironmentVariablesNodeProperty> envVarsNodePropertyList =
+                globalNodeProperties.getAll(EnvironmentVariablesNodeProperty.class);
         if (envVarsNodePropertyList != null && envVarsNodePropertyList.size() != 0) {
             globalVars = envVarsNodePropertyList.get(0).getEnvVars();
         }
@@ -69,7 +66,7 @@ public class ContainerStepExecution extends StepExecution {
         EnvVars rcEnvVars = null;
         Run run = getContext().get(Run.class);
         TaskListener taskListener = getContext().get(TaskListener.class);
-        if(run!=null && taskListener != null) {
+        if (run != null && taskListener != null) {
             rcEnvVars = run.getEnvironment(taskListener);
         }
 
@@ -80,11 +77,10 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setGlobalVars(globalVars);
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
-        getContext().newBodyInvoker()
+        getContext()
+                .newBodyInvoker()
                 .withContexts(
-                        BodyInvoker.mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator),
-                        env
-                )
+                        BodyInvoker.mergeLauncherDecorators(getContext().get(LauncherDecorator.class), decorator), env)
                 .withCallback(new ContainerExecCallback(decorator))
                 .start();
         return false;
@@ -106,10 +102,10 @@ public class ContainerStepExecution extends StepExecution {
         private ContainerExecCallback(Closeable... closeables) {
             this.closeables = closeables;
         }
+
         @Override
         public void finished(StepContext context) {
             closeQuietly(context, closeables);
         }
     }
-
 }

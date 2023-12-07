@@ -15,24 +15,23 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
-
 import static org.junit.Assert.*;
+
+import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.junit.Test;
 
 public class ConfigMapVolumeTest {
 
     @Test
     public void testNullSubPathValue() {
-        ConfigMapVolume configMapVolume= new ConfigMapVolume("oneMountPath", "Myvolume",false);
+        ConfigMapVolume configMapVolume = new ConfigMapVolume("oneMountPath", "Myvolume", false);
         assertNull(configMapVolume.getSubPath());
     }
 
     @Test
     public void testValidSubPathValue() {
-        ConfigMapVolume configMapVolume= new ConfigMapVolume("oneMountPath", "Myvolume",false);
+        ConfigMapVolume configMapVolume = new ConfigMapVolume("oneMountPath", "Myvolume", false);
         configMapVolume.setSubPath("miSubpath");
-        assertEquals(configMapVolume.getSubPath(),"miSubpath");
+        assertEquals(configMapVolume.getSubPath(), "miSubpath");
     }
-
 }

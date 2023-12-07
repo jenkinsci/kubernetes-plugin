@@ -24,18 +24,19 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class ConfigMapVolume extends PodVolume {
     private String mountPath;
     private String subPath;
@@ -49,14 +50,13 @@ public class ConfigMapVolume extends PodVolume {
         this.optional = optional;
     }
 
-
     @Override
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewConfigMap()
-                    .withName(getConfigMapName())
-                    .withOptional(getOptional())
+                .withName(getConfigMapName())
+                .withOptional(getOptional())
                 .and()
                 .build();
     }
@@ -73,11 +73,11 @@ public class ConfigMapVolume extends PodVolume {
     public Boolean getOptional() {
         return optional;
     }
-    
+
     public String getSubPath() {
         return subPath;
     }
-    
+
     @DataBoundSetter
     public void setSubPath(String subPath) {
         this.subPath = Util.fixEmpty(subPath);
@@ -87,7 +87,7 @@ public class ConfigMapVolume extends PodVolume {
         this.subPath = Util.fixEmpty(subPath);
         return this;
     }
-    
+
     @Extension
     @Symbol("configMapVolume")
     public static class DescriptorImpl extends Descriptor<PodVolume> {

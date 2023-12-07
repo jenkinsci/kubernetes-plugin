@@ -24,12 +24,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.model;
 
-import java.io.Serializable;
-
-import io.fabric8.kubernetes.api.model.EnvVar;
-
 import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import java.io.Serializable;
 
 /**
  * @since 0.13
@@ -70,18 +68,13 @@ public abstract class TemplateEnvVar extends AbstractDescribableImpl<TemplateEnv
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (!(obj instanceof TemplateEnvVar))
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (!(obj instanceof TemplateEnvVar)) return false;
         TemplateEnvVar other = (TemplateEnvVar) obj;
         if (key == null) {
-            if (other.key != null)
-                return false;
-        } else if (!key.equals(other.key))
-            return false;
+            if (other.key != null) return false;
+        } else if (!key.equals(other.key)) return false;
         return true;
     }
 }

@@ -38,9 +38,6 @@ import io.fabric8.kubernetes.api.model.Node;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
-import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -112,11 +109,15 @@ public class KubernetesTestUtil {
             testingNamespace = DEFAULT_TESTING_NAMESPACE;
             if (client.namespaces().withName(testingNamespace).get() == null) {
                 LOGGER.log(INFO, "Creating namespace: {0}", testingNamespace);
-                client.namespaces().create(
-                        new NamespaceBuilder().withNewMetadata().withName(testingNamespace).endMetadata().build());
+                client.namespaces()
+                        .create(new NamespaceBuilder()
+                                .withNewMetadata()
+                                .withName(testingNamespace)
+                                .endMetadata()
+                                .build());
             }
         }
-        LOGGER.log(INFO, "Using namespace {0} for branch {1}", new String[] { testingNamespace, branch });
+        LOGGER.log(INFO, "Using namespace {0} for branch {1}", new String[] {testingNamespace, branch});
         cloud.setNamespace(testingNamespace);
         client = cloud.connect();
 
@@ -131,8 +132,7 @@ public class KubernetesTestUtil {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         }
         System.err.println("Calling home to address: " + hostAddress);
-        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(),
-                url.getFile());
+        URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(), url.getFile());
         cloud.setJenkinsUrl(nonLocalhostUrl.toString());
 
         Integer slaveAgentPort = Integer.getInteger("slaveAgentPort");
@@ -165,7 +165,8 @@ public class KubernetesTestUtil {
                 Map<String, String> labels = n.getMetadata().getLabels();
                 String os = labels.get("kubernetes.io/os");
                 String windowsBuild = labels.get("node.kubernetes.io/windows-build");
-                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os + " with Windows build " + windowsBuild);
+                LOGGER.info(() -> "Found node " + n.getMetadata().getName() + " running OS " + os
+                        + " with Windows build " + windowsBuild);
                 if ("windows".equals(os)) {
                     if (buildNumber == null || buildNumber.equals(windowsBuild)) {
                         return true;
@@ -215,23 +216,26 @@ public class KubernetesTestUtil {
                 LOGGER.log(INFO, "Waiting for pods to terminate");
                 ForkJoinPool forkJoinPool = new ForkJoinPool(1);
                 try {
-                    forkJoinPool.submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
-                        try {
-                            PodList list = client.pods().withLabels(labels).list();
-                            LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
-                            boolean allTerminated = list.getItems().isEmpty();
-                            if (allTerminated) {
-                                LOGGER.log(INFO, "All pods are terminated: {0}", print(list));
-                            } else {
-                                LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
-                                Thread.sleep(5000);
-                            }
-                            return allTerminated;
-                        } catch (InterruptedException e) {
-                            LOGGER.log(INFO, "Waiting for pods to terminate - interrupted");
-                            return true;
-                        }
-                    })).get(90, TimeUnit.SECONDS);
+                    forkJoinPool
+                            .submit(() -> IntStream.range(1, 1_000_000).anyMatch(i -> {
+                                try {
+                                    PodList list =
+                                            client.pods().withLabels(labels).list();
+                                    LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
+                                    boolean allTerminated = list.getItems().isEmpty();
+                                    if (allTerminated) {
+                                        LOGGER.log(INFO, "All pods are terminated: {0}", print(list));
+                                    } else {
+                                        LOGGER.log(INFO, "Still waiting for pods to terminate: {0}", print(list));
+                                        Thread.sleep(5000);
+                                    }
+                                    return allTerminated;
+                                } catch (InterruptedException e) {
+                                    LOGGER.log(INFO, "Waiting for pods to terminate - interrupted");
+                                    return true;
+                                }
+                            }))
+                            .get(90, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
                     LOGGER.log(INFO, "Waiting for pods to terminate - timed out");
                     // job not done in interval
@@ -249,24 +253,36 @@ public class KubernetesTestUtil {
 
     private static List<String> print(PodList podList) {
         return podList.getItems().stream()
-                .map(pod -> String.format("%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
+                .map(pod -> String.format(
+                        "%s (%s)", pod.getMetadata().getName(), pod.getStatus().getPhase()))
                 .collect(Collectors.toList());
     }
 
     public static void createSecret(KubernetesClient client, String namespace) {
         Secret secret = new SecretBuilder()
-                .withStringData(Collections.singletonMap(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE)).withNewMetadata()
-                .withName("container-secret").endMetadata().build();
+                .withStringData(Collections.singletonMap(SECRET_KEY, CONTAINER_ENV_VAR_FROM_SECRET_VALUE))
+                .withNewMetadata()
+                .withName("container-secret")
+                .endMetadata()
+                .build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
 
         LOGGER.log(Level.INFO, "Created container secret: " + Serialization.asYaml(secret));
-        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
-                .withNewMetadata().withName("pod-secret").endMetadata().build();
+        secret = new SecretBuilder()
+                .withStringData(Collections.singletonMap(SECRET_KEY, POD_ENV_VAR_FROM_SECRET_VALUE))
+                .withNewMetadata()
+                .withName("pod-secret")
+                .endMetadata()
+                .build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
 
-        secret = new SecretBuilder().withStringData(Collections.singletonMap(SECRET_KEY, ""))
-                .withNewMetadata().withName("empty-secret").endMetadata().build();
+        secret = new SecretBuilder()
+                .withStringData(Collections.singletonMap(SECRET_KEY, ""))
+                .withNewMetadata()
+                .withName("empty-secret")
+                .endMetadata()
+                .build();
         secret = client.secrets().inNamespace(namespace).createOrReplace(secret);
         LOGGER.log(Level.INFO, "Created pod secret: " + Serialization.asYaml(secret));
     }
@@ -275,11 +291,14 @@ public class KubernetesTestUtil {
         return name.replaceAll("([A-Z])", " $1");
     }
 
-    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName) throws InterruptedException, ExecutionException, IOException {
+    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName)
+            throws InterruptedException, ExecutionException, IOException {
         return createPipelineJobThenScheduleRun(r, cls, methodName, null);
     }
 
-    public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName, Map<String, String> env) throws IOException, ExecutionException, InterruptedException {
+    public static WorkflowRun createPipelineJobThenScheduleRun(
+            JenkinsRule r, Class cls, String methodName, Map<String, String> env)
+            throws IOException, ExecutionException, InterruptedException {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, generateProjectName(methodName));
         p.setDefinition(new CpsFlowDefinition(loadPipelineDefinition(cls, methodName, env), true));
         return p.scheduleBuild2(0).waitForStart();
@@ -304,5 +323,4 @@ public class KubernetesTestUtil {
         assertNotNull(name);
         assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
     }
-
 }

@@ -24,6 +24,9 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -36,11 +39,6 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import jenkins.metrics.api.Metrics;
-import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,10 +50,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.INFO;
-import static java.util.logging.Level.WARNING;
+import jenkins.metrics.api.Metrics;
+import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Launches on Kubernetes the specified {@link KubernetesComputer} instance.
@@ -122,11 +120,12 @@ public class KubernetesLauncher extends JNLPLauncher {
             String podName = pod.getMetadata().getName();
 
             String namespace = Arrays.asList( //
-                    pod.getMetadata().getNamespace(),
-                    template.getNamespace(), client.getNamespace()) //
-                    .stream().filter(s -> StringUtils.isNotBlank(s)).findFirst().orElse(null);
+                            pod.getMetadata().getNamespace(), template.getNamespace(), client.getNamespace()) //
+                    .stream()
+                    .filter(s -> StringUtils.isNotBlank(s))
+                    .findFirst()
+                    .orElse(null);
             node.setNamespace(namespace);
-
 
             LOGGER.log(FINE, () -> "Creating Pod: " + cloudName + " " + namespace + "/" + podName);
             try {
@@ -136,22 +135,35 @@ public class KubernetesLauncher extends JNLPLauncher {
                 int httpCode = e.getCode();
                 if (400 <= httpCode && httpCode < 500) { // 4xx
                     if (httpCode == 403 && e.getMessage().contains("is forbidden: exceeded quota")) {
-                        node.getRunListener().getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota exceeded. %n%s%nRetrying...%n%n",
-                                cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
-                    }
-                    else if (httpCode == 409 && e.getMessage().contains("Operation cannot be fulfilled on resourcequotas")) {
+                        node.getRunListener()
+                                .getLogger()
+                                .printf(
+                                        "WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota exceeded. %n%s%nRetrying...%n%n",
+                                        cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                    } else if (httpCode == 409
+                            && e.getMessage().contains("Operation cannot be fulfilled on resourcequotas")) {
                         // See: https://github.com/kubernetes/kubernetes/issues/67761 ; A retry usually works.
-                        node.getRunListener().getLogger().printf("WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota update conflict. %n%s%nRetrying...%n%n",
-                                cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
-                    }
-                    else {
-                        node.getRunListener().getLogger().printf("ERROR: Unable to create pod %s %s/%s.%n%s%n", cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                        node.getRunListener()
+                                .getLogger()
+                                .printf(
+                                        "WARNING: Unable to create pod: %s %s/%s because kubernetes resource quota update conflict. %n%s%nRetrying...%n%n",
+                                        cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
+                    } else {
+                        node.getRunListener()
+                                .getLogger()
+                                .printf(
+                                        "ERROR: Unable to create pod %s %s/%s.%n%s%n",
+                                        cloudName, namespace, pod.getMetadata().getName(), e.getMessage());
                         PodUtils.cancelQueueItemFor(pod, e.getMessage());
                     }
                 } else if (500 <= httpCode && httpCode < 600) { // 5xx
-                    LOGGER.log(FINE,"Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {e.getCode(), e.getStatus()});
+                    LOGGER.log(FINE, "Kubernetes returned HTTP code {0} {1}. Retrying...", new Object[] {
+                        e.getCode(), e.getStatus()
+                    });
                 } else {
-                    LOGGER.log(WARNING, "Kubernetes returned unhandled HTTP code {0} {1}", new Object[] {e.getCode(), e.getStatus()});
+                    LOGGER.log(WARNING, "Kubernetes returned unhandled HTTP code {0} {1}", new Object[] {
+                        e.getCode(), e.getStatus()
+                    });
                 }
                 throw e;
             }
@@ -166,7 +178,10 @@ public class KubernetesLauncher extends JNLPLauncher {
             template.getWorkspaceVolume().createVolume(client, podMetadata);
             template.getVolumes().forEach(volume -> volume.createVolume(client, podMetadata));
 
-            client.pods().inNamespace(namespace).withName(podName).waitUntilReady(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
+            client.pods()
+                    .inNamespace(namespace)
+                    .withName(podName)
+                    .waitUntilReady(template.getSlaveConnectTimeout(), TimeUnit.SECONDS);
 
             LOGGER.log(INFO, () -> "Pod is running: " + cloudName + " " + namespace + "/" + podName);
 
@@ -175,7 +190,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             // so wait for agent to be online
             int waitForSlaveToConnect = template.getSlaveConnectTimeout();
             int waitedForSlave;
-            
+
             SlaveComputer slaveComputer = null;
             String status = null;
             List<ContainerStatus> containerStatuses = null;
@@ -199,7 +214,9 @@ public class KubernetesLauncher extends JNLPLauncher {
                 status = pod.getStatus().getPhase();
                 if (POD_TERMINATED_STATES.contains(status)) {
                     Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
-                    Metrics.metricRegistry().counter(MetricNames.metricNameForPodStatus(status)).inc();
+                    Metrics.metricRegistry()
+                            .counter(MetricNames.metricNameForPodStatus(status))
+                            .inc();
                     logLastLines(containerStatuses, podName, namespace, node, null, client);
                     throw new IllegalStateException("Pod '" + podName + "' is terminated. Status: " + status);
                 }
@@ -210,11 +227,16 @@ public class KubernetesLauncher extends JNLPLauncher {
                     if (info != null) {
                         if (info.getState().getTerminated() != null) {
                             // Container has errored
-                            LOGGER.log(INFO, "Container is terminated {0} [{2}]: {1}",
-                                    new Object[] { podName, info.getState().getTerminated(), info.getName() });
-                            listener.getLogger().printf("Container is terminated %1$s [%3$s]: %2$s%n", podName,
-                                    info.getState().getTerminated(), info.getName());
-                            Metrics.metricRegistry().counter(MetricNames.LAUNCH_FAILED).inc();
+                            LOGGER.log(INFO, "Container is terminated {0} [{2}]: {1}", new Object[] {
+                                podName, info.getState().getTerminated(), info.getName()
+                            });
+                            listener.getLogger()
+                                    .printf(
+                                            "Container is terminated %1$s [%3$s]: %2$s%n",
+                                            podName, info.getState().getTerminated(), info.getName());
+                            Metrics.metricRegistry()
+                                    .counter(MetricNames.LAUNCH_FAILED)
+                                    .inc();
                             terminatedContainers.add(info);
                         }
                     }
@@ -223,10 +245,13 @@ public class KubernetesLauncher extends JNLPLauncher {
                 checkTerminatedContainers(terminatedContainers, podName, namespace, node, client);
 
                 if (lastReportTimestamp + REPORT_INTERVAL < System.currentTimeMillis()) {
-                    LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}",
-                            new Object[]{podName, waitedForSlave, waitForSlaveToConnect});
-                    listener.getLogger().printf("Waiting for agent to connect (%2$s/%3$s): %1$s%n", podName, waitedForSlave,
-                            waitForSlaveToConnect);
+                    LOGGER.log(INFO, "Waiting for agent to connect ({1}/{2}): {0}", new Object[] {
+                        podName, waitedForSlave, waitForSlaveToConnect
+                    });
+                    listener.getLogger()
+                            .printf(
+                                    "Waiting for agent to connect (%2$s/%3$s): %1$s%n",
+                                    podName, waitedForSlave, waitForSlaveToConnect);
                     lastReportTimestamp = System.currentTimeMillis();
                 }
                 Thread.sleep(1000);
@@ -252,7 +277,8 @@ public class KubernetesLauncher extends JNLPLauncher {
         } catch (Throwable ex) {
             setProblem(ex);
             Functions.printStackTrace(ex, node.getRunListener().error("Failed to launch " + node.getPodName()));
-            LOGGER.log(Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
+            LOGGER.log(
+                    Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {
                 node.terminate();
@@ -263,11 +289,17 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
     }
 
-    private void checkTerminatedContainers(List<ContainerStatus> terminatedContainers, String podId, String namespace,
-            KubernetesSlave slave, KubernetesClient client) {
+    private void checkTerminatedContainers(
+            List<ContainerStatus> terminatedContainers,
+            String podId,
+            String namespace,
+            KubernetesSlave slave,
+            KubernetesClient client) {
         if (!terminatedContainers.isEmpty()) {
-            Map<String, Integer> errors = terminatedContainers.stream().collect(Collectors
-                    .toMap(ContainerStatus::getName, (info) -> info.getState().getTerminated().getExitCode()));
+            Map<String, Integer> errors = terminatedContainers.stream()
+                    .collect(Collectors.toMap(
+                            ContainerStatus::getName,
+                            (info) -> info.getState().getTerminated().getExitCode()));
 
             // Print the last lines of failed containers
             logLastLines(terminatedContainers, podId, namespace, slave, errors, client);
@@ -278,17 +310,29 @@ public class KubernetesLauncher extends JNLPLauncher {
     /**
      * Log the last lines of containers logs
      */
-    private void logLastLines(@CheckForNull List<ContainerStatus> containers, String podId, String namespace, KubernetesSlave slave,
-            Map<String, Integer> errors, KubernetesClient client) {
+    private void logLastLines(
+            @CheckForNull List<ContainerStatus> containers,
+            String podId,
+            String namespace,
+            KubernetesSlave slave,
+            Map<String, Integer> errors,
+            KubernetesClient client) {
         if (containers != null) {
             for (ContainerStatus containerStatus : containers) {
                 String containerName = containerStatus.getName();
-                String log = client.pods().inNamespace(namespace).withName(podId)
-                        .inContainer(containerStatus.getName()).tailingLines(30).getLog();
+                String log = client.pods()
+                        .inNamespace(namespace)
+                        .withName(podId)
+                        .inContainer(containerStatus.getName())
+                        .tailingLines(30)
+                        .getLog();
                 if (!StringUtils.isBlank(log)) {
-                    String msg = errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
-                    LOGGER.log(Level.SEVERE, "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
-                            new Object[]{slave, slave.getTemplateOrNull(), containerName, msg, log});
+                    String msg =
+                            errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
+                    LOGGER.log(
+                            Level.SEVERE,
+                            "Error in provisioning; agent={0}, template={1}. Container {2}{3}. Logs: {4}",
+                            new Object[] {slave, slave.getTemplateOrNull(), containerName, msg, log});
                 }
             }
         }
@@ -306,5 +350,4 @@ public class KubernetesLauncher extends JNLPLauncher {
     public void setProblem(@CheckForNull Throwable problem) {
         this.problem = problem;
     }
-
 }

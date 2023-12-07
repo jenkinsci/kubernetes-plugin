@@ -26,7 +26,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.junit.Assert.assertEquals;
 
 import java.util.function.Consumer;
-
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,7 +36,8 @@ public class KubernetesClientProviderTest {
     public void testGetValidity() {
         KubernetesCloud cloud = new KubernetesCloud("foo");
         // changes to these properties should trigger different validity value
-        checkValidityChanges(cloud,
+        checkValidityChanges(
+                cloud,
                 c -> c.setServerUrl("https://server:443"),
                 c -> c.setNamespace("blue"),
                 c -> c.setServerCertificate("cert"),
@@ -46,19 +46,18 @@ public class KubernetesClientProviderTest {
                 c -> c.setConnectTimeout(46),
                 c -> c.setReadTimeout(43),
                 c -> c.setMaxRequestsPerHost(47),
-                c -> c.setUseJenkinsProxy(true)
-        );
+                c -> c.setUseJenkinsProxy(true));
 
         // changes to these properties should not trigger different validity value
-        checkValidityDoesNotChange(cloud,
+        checkValidityDoesNotChange(
+                cloud,
                 c -> c.setPodLabels(PodLabel.listOf("foo", "bar")),
                 c -> c.setJenkinsUrl("https://localhost:8081"),
                 c -> c.setJenkinsTunnel("https://jenkins.cluster.svc"),
                 c -> c.setPodRetention(new Always()),
                 c -> c.setWebSocket(true),
                 c -> c.setRetentionTimeout(52),
-                c -> c.setDirectConnection(true)
-        );
+                c -> c.setDirectConnection(true));
 
         // verify stability
         assertEquals(KubernetesClientProvider.getValidity(cloud), KubernetesClientProvider.getValidity(cloud));
@@ -72,7 +71,8 @@ public class KubernetesClientProviderTest {
         checkValidity(cloud, Assert::assertEquals, mutations);
     }
 
-    private void checkValidity(KubernetesCloud cloud, ValidityAssertion validityAssertion, Consumer<KubernetesCloud>... mutations) {
+    private void checkValidity(
+            KubernetesCloud cloud, ValidityAssertion validityAssertion, Consumer<KubernetesCloud>... mutations) {
         int v = KubernetesClientProvider.getValidity(cloud);
         int count = 1;
         for (Consumer<KubernetesCloud> mut : mutations) {
@@ -86,5 +86,4 @@ public class KubernetesClientProviderTest {
     interface ValidityAssertion {
         void doAssert(String message, int before, int after);
     }
-
 }
