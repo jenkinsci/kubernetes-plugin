@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public class KubernetesLauncher extends JNLPLauncher {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
-    private boolean launched;
+    private final AtomicBoolean launched = new AtomicBoolean(false);
 
     /**
      * Provisioning exception if any.
@@ -85,8 +86,8 @@ public class KubernetesLauncher extends JNLPLauncher {
     }
 
     @Override
-    public synchronized boolean isLaunchSupported() {
-        return !launched;
+    public boolean isLaunchSupported() {
+        return !launched.get();
     }
 
     @Override
@@ -103,7 +104,7 @@ public class KubernetesLauncher extends JNLPLauncher {
         if (node == null) {
             throw new IllegalStateException("Node has been removed, cannot launch " + computer.getName());
         }
-        if (launched) {
+        if (launched.get()) {
             LOGGER.log(INFO, "Agent has already been launched, activating: {0}", node.getNodeName());
             computer.setAcceptingTasks(true);
             return;
@@ -266,7 +267,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
 
             computer.setAcceptingTasks(true);
-            launched = true;
+            launched.set(true);
             try {
                 // We need to persist the "launched" setting...
                 node.save();
