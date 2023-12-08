@@ -129,6 +129,17 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         for (int i = 0; i < 100 && r.isSomethingHappening(); i++) {
             Thread.sleep(100);
         }
+        Jenkins.get().getNodes().stream()
+                .filter(KubernetesSlave.class::isInstance)
+                .map(KubernetesSlave.class::cast)
+                .forEach(agent -> {
+                    LOGGER.info(() -> "Deleting remaining node " + agent);
+                    try {
+                        agent.terminate();
+                    } catch (InterruptedException | IOException e) {
+                        LOGGER.log(Level.WARNING, "Failed to terminate " + agent, e);
+                    }
+                });
     }
 
     @Issue("JENKINS-57993")
