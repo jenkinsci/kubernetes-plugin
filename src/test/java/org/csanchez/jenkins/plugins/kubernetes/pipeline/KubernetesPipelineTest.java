@@ -758,17 +758,27 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void dynamicPVCWorkspaceVolume() throws Exception {
         assumePvcAccess();
-        var size = cloud.connect().persistentVolumeClaims().list().getItems().size();
+        var client = cloud.connect();
+        var podSize = client.pods().list().getItems().size();
+        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await().until(() -> cloud.connect().persistentVolumeClaims().list().getItems(), hasSize(size));
+        await("The number of pods should be the same as before building")
+                .until(() -> client.pods().list().getItems(), hasSize(podSize));
+        await("The number of PVCs should be the same as before building")
+                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
     }
 
     @Test
     public void dynamicPVCVolume() throws Exception {
         assumePvcAccess();
-        var size = cloud.connect().persistentVolumeClaims().list().getItems().size();
+        var client = cloud.connect();
+        var podSize = client.pods().list().getItems().size();
+        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await().until(() -> cloud.connect().persistentVolumeClaims().list().getItems(), hasSize(size));
+        await("The number of pods should be the same as before building")
+                .until(() -> client.pods().list().getItems(), hasSize(podSize));
+        await("The number of PVCs should be the same as before building")
+                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
     }
 
     private void assumePvcAccess() throws KubernetesAuthException, IOException {
