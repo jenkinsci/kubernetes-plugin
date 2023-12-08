@@ -24,19 +24,19 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.SecretVolumeSource;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class SecretVolume extends PodVolume {
     private String mountPath;
     private String secretName;
@@ -91,8 +91,8 @@ public class SecretVolume extends PodVolume {
 
     @Override
     public String toString() {
-        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName
-            + ", defaultMode=" + defaultMode + ", optional=" + String.valueOf(optional) + "]";
+        return "SecretVolume [mountPath=" + mountPath + ", secretName=" + secretName + ", defaultMode=" + defaultMode
+                + ", optional=" + String.valueOf(optional) + "]";
     }
 
     @Extension

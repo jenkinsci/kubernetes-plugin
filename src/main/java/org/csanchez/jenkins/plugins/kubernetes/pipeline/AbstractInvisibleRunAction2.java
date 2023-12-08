@@ -24,15 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.io.IOException;
-import java.util.Stack;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.BulkChange;
 import hudson.model.InvisibleAction;
 import hudson.model.Run;
+import java.io.IOException;
+import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.RunAction2;
 
 /**
@@ -57,8 +56,9 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
         this.run = run;
     }
 
-    protected static void push(@NonNull Run<?, ?> run, @NonNull Class<? extends AbstractInvisibleRunAction2> clazz,
-            @NonNull String item) throws IOException {
+    protected static void push(
+            @NonNull Run<?, ?> run, @NonNull Class<? extends AbstractInvisibleRunAction2> clazz, @NonNull String item)
+            throws IOException {
         synchronized (run) {
             BulkChange bc = new BulkChange(run);
             try {
@@ -67,8 +67,7 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
                     action = clazz.newInstance();
                     run.addAction(action);
                 }
-                LOGGER.log(Level.FINEST, "Pushing item {0} to action {1} in run {2}",
-                        new Object[] { item, action, run });
+                LOGGER.log(Level.FINEST, "Pushing item {0} to action {1} in run {2}", new Object[] {item, action, run});
                 action.stack.push(item);
                 bc.commit();
             } catch (InstantiationException | IllegalAccessException e) {
@@ -88,5 +87,4 @@ public abstract class AbstractInvisibleRunAction2 extends InvisibleAction implem
     public void onLoad(Run<?, ?> r) {
         setRun(r);
     }
-
 }

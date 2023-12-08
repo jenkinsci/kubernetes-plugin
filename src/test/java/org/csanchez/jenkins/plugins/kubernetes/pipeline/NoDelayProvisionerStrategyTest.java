@@ -1,22 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.ExtensionList;
-import hudson.model.Label;
-import hudson.model.Node;
-import hudson.model.queue.CauseOfBlockage;
-import hudson.slaves.Cloud;
-import hudson.slaves.CloudProvisioningListener;
-import hudson.slaves.NodeProvisioner;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.jvnet.hudson.test.TestExtension;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Collection;
-
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.junit.Assert.assertNotNull;
@@ -26,6 +9,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ExtensionList;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.model.queue.CauseOfBlockage;
+import hudson.slaves.Cloud;
+import hudson.slaves.CloudProvisioningListener;
+import hudson.slaves.NodeProvisioner;
+import java.util.Collection;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.jvnet.hudson.test.TestExtension;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTest {
@@ -69,7 +68,8 @@ public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTe
         }
 
         @Override
-        public void onRollback(@NonNull NodeProvisioner.PlannedNode plannedNode, @NonNull Node node, @NonNull Throwable t) {
+        public void onRollback(
+                @NonNull NodeProvisioner.PlannedNode plannedNode, @NonNull Node node, @NonNull Throwable t) {
             delegate.onRollback(plannedNode, node, t);
         }
 
@@ -81,10 +81,10 @@ public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTe
 
     @Test
     public void noDelayProvisionerCallsListener() throws Exception {
-        when(cloudProvisioningListener.canProvision(any(Cloud.class), any(Label.class), anyInt())).thenReturn(null);
+        when(cloudProvisioningListener.canProvision(any(Cloud.class), any(Label.class), anyInt()))
+                .thenReturn(null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         verify(cloudProvisioningListener, atLeastOnce()).onStarted(eq(cloud), any(), any());
         verify(cloudProvisioningListener, atLeastOnce()).canProvision(any(Cloud.class), any(Label.class), anyInt());
-
     }
 }

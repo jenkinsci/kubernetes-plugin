@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -30,11 +29,11 @@ public class KubernetesProvisioningLimitsTest {
         ThreadLocalRandom testRandom = ThreadLocalRandom.current();
         for (int i = 1; i < 4; i++) {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes-" + i);
-            cloud.setContainerCap(testRandom.nextInt(4)+1);
+            cloud.setContainerCap(testRandom.nextInt(4) + 1);
             for (int j = 1; j < 4; j++) {
                 PodTemplate pt = new PodTemplate();
                 pt.setName(cloud.name + "-podTemplate-" + j);
-                pt.setInstanceCap(testRandom.nextInt(4)+1);
+                pt.setInstanceCap(testRandom.nextInt(4) + 1);
                 cloud.addTemplate(pt);
             }
             j.jenkins.clouds.add(cloud);
@@ -46,31 +45,35 @@ public class KubernetesProvisioningLimitsTest {
         KubernetesProvisioningLimits kubernetesProvisioningLimits = KubernetesProvisioningLimits.get();
 
         List<KubernetesCloud> clouds = j.jenkins.clouds.getAll(KubernetesCloud.class);
-        for (int k = 0 ; k < 1000; k++) {
-            ecs.submit(() -> {
-                ThreadLocalRandom random = ThreadLocalRandom.current();
-                KubernetesCloud cloud = clouds.get(random.nextInt(clouds.size()));
-                List<PodTemplate> templates = cloud.getTemplates();
-                PodTemplate podTemplate = templates.get(random.nextInt(templates.size()));
-                while (!kubernetesProvisioningLimits.register(cloud, podTemplate, 1)) {
-                    try {
-                        Thread.sleep(8);
-                    } catch(InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
+        for (int k = 0; k < 1000; k++) {
+            ecs.submit(
+                    () -> {
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        KubernetesCloud cloud = clouds.get(random.nextInt(clouds.size()));
+                        List<PodTemplate> templates = cloud.getTemplates();
+                        PodTemplate podTemplate = templates.get(random.nextInt(templates.size()));
+                        while (!kubernetesProvisioningLimits.register(cloud, podTemplate, 1)) {
+                            try {
+                                Thread.sleep(8);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                        }
 
-                ecs.submit(() -> {
-                    kubernetesProvisioningLimits.unregister(cloud, podTemplate, 1);
-                }, null);
-            }, null);
+                        ecs.submit(
+                                () -> {
+                                    kubernetesProvisioningLimits.unregister(cloud, podTemplate, 1);
+                                },
+                                null);
+                    },
+                    null);
         }
 
         while (ecs.poll(20, TimeUnit.SECONDS) != null) {
             try {
                 Thread.sleep(8);
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }

@@ -1,10 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import com.cloudbees.plugins.credentials.CredentialsScope;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -17,9 +15,8 @@ public class OpenShiftBearerTokenCredentialImpl
     private static final long serialVersionUID = -3725963485838773012L;
 
     @DataBoundConstructor
-    public OpenShiftBearerTokenCredentialImpl(CredentialsScope scope, String id, String description, String username,
-            String password) {
+    public OpenShiftBearerTokenCredentialImpl(
+            CredentialsScope scope, String id, String description, String username, String password) {
         super(scope, id, description, username, password);
     }
-
 }

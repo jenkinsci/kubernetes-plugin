@@ -1,13 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import org.apache.commons.lang.Validate;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,8 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import org.apache.commons.lang.Validate;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Serializable {
 
@@ -80,7 +79,7 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
         Validate.isTrue(keyValue.length % 2 == 0, "Expecting an even number of arguments");
         List<PodLabel> labels = new ArrayList<>();
         for (int i = 0; i < keyValue.length / 2; i++) {
-            labels.add(new PodLabel(keyValue[2*i], keyValue[2*i+1]));
+            labels.add(new PodLabel(keyValue[2 * i], keyValue[2 * i + 1]));
         }
         return labels;
     }
@@ -93,7 +92,6 @@ public class PodLabel extends AbstractDescribableImpl<PodLabel> implements Seria
         PodLabel that = (PodLabel) o;
 
         return Objects.equals(key, that.key);
-
     }
 
     @Override

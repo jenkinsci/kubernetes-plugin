@@ -24,13 +24,12 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
-import java.io.Serializable;
-
 import hudson.model.AbstractDescribableImpl;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.Serializable;
 
 /**
  * Base class for all Kubernetes workspace volume types
@@ -49,13 +48,13 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
     }
 
     // Builds a Volume model with the given name.require podName to generate pvc name
-    public Volume buildVolume(String volumeName, String podName){
+    public Volume buildVolume(String volumeName, String podName) {
         return buildVolume(volumeName);
-    };
+    }
 
     // Builds a Volume model with the given name.
     @Deprecated
-    public Volume buildVolume(String volumeName){
+    public Volume buildVolume(String volumeName) {
         throw new UnsupportedOperationException("could not build volume without podName");
     }
 

@@ -24,15 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import hudson.model.AbstractDescribableImpl;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
+import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.io.Serializable;
 import java.util.List;
-
-import hudson.model.AbstractDescribableImpl;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeMount;
 
 /**
  * Base class for all Kubernetes volume types

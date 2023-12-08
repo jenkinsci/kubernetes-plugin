@@ -1,38 +1,34 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.logging.Level.FINE;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ProxyConfiguration;
 import hudson.Util;
+import hudson.security.ACL;
+import hudson.util.Secret;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
-
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import hudson.ProxyConfiguration;
-import hudson.security.ACL;
-import hudson.util.Secret;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
-
-import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.ConfigBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.logging.Level.FINE;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -50,8 +46,10 @@ public class KubernetesFactoryAdapter {
 
     private final String serviceAddress;
     private final String namespace;
+
     @CheckForNull
     private final String caCertData;
+
     @CheckForNull
     private final KubernetesAuth auth;
 
@@ -61,23 +59,64 @@ public class KubernetesFactoryAdapter {
     private final int maxRequestsPerHost;
     private final boolean useJenkinsProxy;
 
-    public KubernetesFactoryAdapter(String serviceAddress, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
+    public KubernetesFactoryAdapter(
+            String serviceAddress,
+            @CheckForNull String caCertData,
+            @CheckForNull String credentials,
+            boolean skipTlsVerify)
+            throws KubernetesAuthException {
         this(serviceAddress, null, caCertData, credentials, skipTlsVerify);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify) throws KubernetesAuthException {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, DEFAULT_CONNECT_TIMEOUT, DEFAULT_READ_TIMEOUT);
+    public KubernetesFactoryAdapter(
+            String serviceAddress,
+            String namespace,
+            @CheckForNull String caCertData,
+            @CheckForNull String credentials,
+            boolean skipTlsVerify)
+            throws KubernetesAuthException {
+        this(
+                serviceAddress,
+                namespace,
+                caCertData,
+                credentials,
+                skipTlsVerify,
+                DEFAULT_CONNECT_TIMEOUT,
+                DEFAULT_READ_TIMEOUT);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentials, boolean skipTlsVerify, int connectTimeout, int readTimeout) throws KubernetesAuthException {
-        this(serviceAddress, namespace, caCertData, credentials, skipTlsVerify, connectTimeout, readTimeout, KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST,false);
+    public KubernetesFactoryAdapter(
+            String serviceAddress,
+            String namespace,
+            @CheckForNull String caCertData,
+            @CheckForNull String credentials,
+            boolean skipTlsVerify,
+            int connectTimeout,
+            int readTimeout)
+            throws KubernetesAuthException {
+        this(
+                serviceAddress,
+                namespace,
+                caCertData,
+                credentials,
+                skipTlsVerify,
+                connectTimeout,
+                readTimeout,
+                KubernetesCloud.DEFAULT_MAX_REQUESTS_PER_HOST,
+                false);
     }
 
-    public KubernetesFactoryAdapter(String serviceAddress, String namespace, @CheckForNull String caCertData,
-                                    @CheckForNull String credentialsId, boolean skipTlsVerify, int connectTimeout, int readTimeout, int maxRequestsPerHost, boolean useJenkinsProxy) throws KubernetesAuthException {
+    public KubernetesFactoryAdapter(
+            String serviceAddress,
+            String namespace,
+            @CheckForNull String caCertData,
+            @CheckForNull String credentialsId,
+            boolean skipTlsVerify,
+            int connectTimeout,
+            int readTimeout,
+            int maxRequestsPerHost,
+            boolean useJenkinsProxy)
+            throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = decodeBase64IfNeeded(caCertData);
@@ -116,7 +155,8 @@ public class KubernetesFactoryAdapter {
         }
 
         if (auth != null) {
-            builder = auth.decorate(builder, new KubernetesAuthConfig(builder.getMasterUrl(), caCertData, skipTlsVerify));
+            builder =
+                    auth.decorate(builder, new KubernetesAuthConfig(builder.getMasterUrl(), caCertData, skipTlsVerify));
             // If authentication is provided, disable autoconfigure flag to deactivate auto refresh
             builder = builder.withAutoConfigure(false);
         }
@@ -143,12 +183,12 @@ public class KubernetesFactoryAdapter {
         LOGGER.log(FINE, "Creating Kubernetes client: {0}", this.toString());
         // JENKINS-63584 If Jenkins has a configured Proxy and cloud has enabled proxy usage pass the arguments to K8S
         LOGGER.log(FINE, "Proxy Settings for Cloud: " + useJenkinsProxy);
-        if(useJenkinsProxy) {
+        if (useJenkinsProxy) {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             LOGGER.log(FINE, "Jenkins Instance: " + jenkins);
             if (jenkins != null) {
                 ProxyConfiguration p = jenkins.proxy;
-                LOGGER.log(FINE,"Proxy Instance: " + p);
+                LOGGER.log(FINE, "Proxy Instance: " + p);
                 if (p != null) {
                     builder.withHttpsProxy("http://" + p.name + ":" + p.port);
                     builder.withHttpProxy("http://" + p.name + ":" + p.port);
@@ -199,6 +239,7 @@ public class KubernetesFactoryAdapter {
         }
         return password;
     }
+
     @Override
     public String toString() {
         return "KubernetesFactoryAdapter [serviceAddress=" + serviceAddress + ", namespace=" + namespace
@@ -207,26 +248,19 @@ public class KubernetesFactoryAdapter {
     }
 
     @CheckForNull
-    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId) throws KubernetesAuthException {
+    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId)
+            throws KubernetesAuthException {
         if (credentialsId == null) {
             return null;
         }
         StandardCredentials c = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentialsInItemGroup(
-                        StandardCredentials.class,
-                        Jenkins.get(),
-                        ACL.SYSTEM2,
-                        Collections.emptyList()
-                ),
+                        StandardCredentials.class, Jenkins.get(), ACL.SYSTEM2, Collections.emptyList()),
                 CredentialsMatchers.allOf(
-                        AuthenticationTokens.matcher(KubernetesAuth.class),
-                        CredentialsMatchers.withId(credentialsId)
-                )
-        );
+                        AuthenticationTokens.matcher(KubernetesAuth.class), CredentialsMatchers.withId(credentialsId)));
         if (c == null) {
             throw new KubernetesAuthException("No credentials found with id " + credentialsId);
         }
         return c;
     }
-
 }

@@ -24,14 +24,14 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
+import static org.junit.Assert.*;
 
+import hudson.model.Descriptor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
@@ -41,8 +41,6 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import hudson.model.Descriptor;
 import org.jvnet.hudson.test.WithoutJenkins;
 
 /**
@@ -60,12 +58,16 @@ public class KubernetesSlaveTest {
         List<ContainerTemplate> containers = Collections.emptyList();
 
         assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("image", volumes)), "^jenkins-agent-[0-9a-z]{5}$");
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^jenkins-agent-[0-9a-z]{5}$");
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("a name", volumes, containers)),
-                ("^a-name-[0-9a-z]{5}$"));
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("an_other_name", volumes, containers)),
+        assertRegex(
+                KubernetesSlave.getSlaveName(new PodTemplate("", volumes, containers)), "^jenkins-agent-[0-9a-z]{5}$");
+        assertRegex(
+                KubernetesSlave.getSlaveName(new PodTemplate("a name", volumes, containers)), ("^a-name-[0-9a-z]{5}$"));
+        assertRegex(
+                KubernetesSlave.getSlaveName(new PodTemplate("an_other_name", volumes, containers)),
                 ("^an-other-name-[0-9a-z]{5}$"));
-        assertRegex(KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)), ("jenkins-agent-[0-9a-z]{5}"));
+        assertRegex(
+                KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)),
+                ("jenkins-agent-[0-9a-z]{5}"));
     }
 
     @Test
@@ -78,14 +80,12 @@ public class KubernetesSlaveTest {
                     createPodRetentionTestCase(new Never(), new Never(), new Never()),
                     createPodRetentionTestCase(new OnFailure(), new Default(), new Default()),
                     createPodRetentionTestCase(new OnFailure(), new Always(), new Always()),
-                    createPodRetentionTestCase(new OnFailure(), new OnFailure(),
-                            new OnFailure()),
+                    createPodRetentionTestCase(new OnFailure(), new OnFailure(), new OnFailure()),
                     createPodRetentionTestCase(new OnFailure(), new Never(), new Never()),
                     createPodRetentionTestCase(new Always(), new Default(), new Default()),
                     createPodRetentionTestCase(new Always(), new Always(), new Always()),
                     createPodRetentionTestCase(new Always(), new OnFailure(), new OnFailure()),
-                    createPodRetentionTestCase(new Always(), new Never(), new Never())
-                    );
+                    createPodRetentionTestCase(new Always(), new Never(), new Never()));
             KubernetesCloud cloud = new KubernetesCloud("test");
             r.jenkins.clouds.add(cloud);
             for (KubernetesSlaveTestCase<PodRetention> testCase : cases) {
@@ -93,15 +93,18 @@ public class KubernetesSlaveTest {
                 KubernetesSlave testSlave = testCase.buildSubject(cloud);
                 assertEquals(testCase.getExpectedResult(), testSlave.getPodRetention(cloud));
             }
-        } catch(IOException | Descriptor.FormException e) {
+        } catch (IOException | Descriptor.FormException e) {
             fail(e.getMessage());
         }
     }
 
-    private KubernetesSlaveTestCase<PodRetention> createPodRetentionTestCase(PodRetention cloudRetention,
-            PodRetention templateRetention, PodRetention expectedResult) {
-        return new KubernetesSlaveTestBuilder<PodRetention>().withCloudPodRetention(cloudRetention)
-                .withTemplatePodRetention(templateRetention).withExpectedResult(expectedResult).build();
+    private KubernetesSlaveTestCase<PodRetention> createPodRetentionTestCase(
+            PodRetention cloudRetention, PodRetention templateRetention, PodRetention expectedResult) {
+        return new KubernetesSlaveTestBuilder<PodRetention>()
+                .withCloudPodRetention(cloudRetention)
+                .withTemplatePodRetention(templateRetention)
+                .withExpectedResult(expectedResult)
+                .build();
     }
 
     public static class KubernetesSlaveTestCase<T> {
@@ -111,8 +114,11 @@ public class KubernetesSlaveTest {
         private String podPhase;
         private T expectedResult;
 
-        public KubernetesSlave buildSubject(KubernetesCloud cloud) throws IOException, Descriptor.FormException  {
-            return new KubernetesSlave.Builder().cloud(cloud).podTemplate(podTemplate).build();
+        public KubernetesSlave buildSubject(KubernetesCloud cloud) throws IOException, Descriptor.FormException {
+            return new KubernetesSlave.Builder()
+                    .cloud(cloud)
+                    .podTemplate(podTemplate)
+                    .build();
         }
 
         public PodRetention getCloudPodRetention() {
@@ -174,6 +180,5 @@ public class KubernetesSlaveTest {
             testCase.podPhase = podPhase;
             return testCase;
         }
-
     }
 }

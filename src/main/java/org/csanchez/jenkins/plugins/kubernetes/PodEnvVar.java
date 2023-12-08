@@ -2,13 +2,12 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Deprecated, use KeyValueEnvVar

@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
@@ -102,7 +101,8 @@ public final class SecretsMasker extends TaskListenerDecorator {
                     Set<String> values = secrets.get(c);
                     if (values != null) {
                         LOGGER.log(Level.FINE, "Using cached secrets for {0}", c);
-                        return TaskListenerDecorator.merge(context.get(TaskListenerDecorator.class), new SecretsMasker(values));
+                        return TaskListenerDecorator.merge(
+                                context.get(TaskListenerDecorator.class), new SecretsMasker(values));
                     } else {
                         LOGGER.log(Level.FINE, "Cached absence of secrets for {0}", c);
                         return null;
@@ -122,7 +122,8 @@ public final class SecretsMasker extends TaskListenerDecorator {
             }
         }
 
-        private static @CheckForNull Set<String> secretsOf(KubernetesComputer c) throws IOException, InterruptedException {
+        private static @CheckForNull Set<String> secretsOf(KubernetesComputer c)
+                throws IOException, InterruptedException {
             Channel ch = c.getChannel();
             if (ch == null) {
                 return null;
@@ -155,7 +156,8 @@ public final class SecretsMasker extends TaskListenerDecorator {
                 }
                 if (!secretContainerKeys.isEmpty()) {
                     String containerName = container.getName();
-                    LOGGER.fine(() -> "looking for " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName + " secrets named " + secretContainerKeys);
+                    LOGGER.fine(() -> "looking for " + slave.getNamespace() + "/" + slave.getPodName() + "/"
+                            + containerName + " secrets named " + secretContainerKeys);
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     Semaphore semaphore = new Semaphore(0);
                     Boolean unix = c.isUnix();
@@ -163,33 +165,48 @@ public final class SecretsMasker extends TaskListenerDecorator {
                         return null;
                     }
                     try (OutputStream errs = new LogTaskListener(LOGGER, Level.FINE).getLogger();
-                         ExecWatch exec = slave.getKubernetesCloud().connect().pods().inNamespace(slave.getNamespace()).withName(slave.getPodName()).inContainer(containerName)
-                            .writingOutput(baos).writingError(errs).writingErrorChannel(errs)
-                            .usingListener(new ExecListener() {
-                                @Override
-                                public void onFailure(Throwable t, Response response) {
-                                    semaphore.release();
-                                }
-                                @Override
-                                public void onClose(int code, String reason) {
-                                    semaphore.release();
-                                }
-                            })
-                            .exec(unix ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
+                            ExecWatch exec = slave.getKubernetesCloud()
+                                    .connect()
+                                    .pods()
+                                    .inNamespace(slave.getNamespace())
+                                    .withName(slave.getPodName())
+                                    .inContainer(containerName)
+                                    .writingOutput(baos)
+                                    .writingError(errs)
+                                    .writingErrorChannel(errs)
+                                    .usingListener(new ExecListener() {
+                                        @Override
+                                        public void onFailure(Throwable t, Response response) {
+                                            semaphore.release();
+                                        }
+
+                                        @Override
+                                        public void onClose(int code, String reason) {
+                                            semaphore.release();
+                                        }
+                                    })
+                                    .exec(unix ? new String[] {"env"} : new String[] {"cmd", "/c", "set"})) {
                         if (!semaphore.tryAcquire(10, TimeUnit.SECONDS)) {
-                            LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName);
+                            LOGGER.fine(() -> "time out trying to find environment from " + slave.getNamespace() + "/"
+                                    + slave.getPodName() + "/" + containerName);
                         }
                     } catch (RuntimeException | KubernetesAuthException x) {
-                        LOGGER.log(Level.FINE, "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName() + "/" + containerName, x);
+                        LOGGER.log(
+                                Level.FINE,
+                                "failed to find environment from " + slave.getNamespace() + "/" + slave.getPodName()
+                                        + "/" + containerName,
+                                x);
                     }
-                    for (String line : baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {
+                    for (String line :
+                            baos.toString(StandardCharsets.UTF_8.name()).split("\r?\n")) {
                         int equals = line.indexOf('=');
                         if (equals != -1) {
                             String key = line.substring(0, equals);
                             if (secretContainerKeys.contains(key)) {
                                 LOGGER.fine(() -> "found value for " + key);
                                 String value = line.substring(equals + 1);
-                                // We add value to set of masked secrets only if it's non-empty not to mask empty strings
+                                // We add value to set of masked secrets only if it's non-empty not to mask empty
+                                // strings
                                 if (!value.isEmpty()) {
                                     values.add(value);
                                 }
@@ -201,7 +218,5 @@ public final class SecretsMasker extends TaskListenerDecorator {
             }
             return values;
         }
-
     }
-
 }

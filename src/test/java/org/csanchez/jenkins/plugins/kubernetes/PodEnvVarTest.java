@@ -35,5 +35,4 @@ public class PodEnvVarTest {
     public void testEquals() {
         assertEquals(new PodEnvVar("a", "b"), new KeyValueEnvVar("a", "b"));
     }
-
 }

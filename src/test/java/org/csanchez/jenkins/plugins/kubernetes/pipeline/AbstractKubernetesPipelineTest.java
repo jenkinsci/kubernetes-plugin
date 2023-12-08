@@ -27,19 +27,23 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.EnvVars;
+import hudson.slaves.EnvironmentVariablesNodeProperty;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.slaves.NodeProvisioner;
+import hudson.util.DescribableList;
+import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
-
-import hudson.slaves.NodeProvisioner;
-import io.fabric8.kubernetes.api.model.NamespaceBuilder;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
 import java.util.stream.Collectors;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -60,12 +64,6 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 
-import hudson.EnvVars;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.NodePropertyDescriptor;
-import hudson.util.DescribableList;
-
 public abstract class AbstractKubernetesPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
@@ -73,10 +71,12 @@ public abstract class AbstractKubernetesPipelineTest {
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
+
     protected KubernetesCloud cloud;
 
     @Rule
     public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
+
     @Rule
     public LoggerRule logs = new LoggerRule()
             .recordPackage(KubernetesCloud.class, Level.FINE)
@@ -120,7 +120,8 @@ public abstract class AbstractKubernetesPipelineTest {
      * @throws ExecutionException If something went wrong while retrieving the run object
      * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
      */
-    protected final WorkflowRun createJobThenScheduleRun() throws IOException, ExecutionException, InterruptedException {
+    protected final WorkflowRun createJobThenScheduleRun()
+            throws IOException, ExecutionException, InterruptedException {
         return createJobThenScheduleRun(null);
     }
 
@@ -137,7 +138,8 @@ public abstract class AbstractKubernetesPipelineTest {
      * @throws ExecutionException If something went wrong while retrieving the run object
      * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
      */
-    protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env) throws IOException, ExecutionException, InterruptedException {
+    protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env)
+            throws IOException, ExecutionException, InterruptedException {
         b = createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName(), env);
         p = b.getParent();
         return b;
@@ -158,7 +160,7 @@ public abstract class AbstractKubernetesPipelineTest {
 
         r.jenkins.clouds.add(cloud);
 
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor> list =  r.jenkins.getGlobalNodeProperties();
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> list = r.jenkins.getGlobalNodeProperties();
         EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
         list.add(newEnvVarsNodeProperty);
         EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();
@@ -189,18 +191,24 @@ public abstract class AbstractKubernetesPipelineTest {
         TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
         TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
-                CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
-                                                                     "container-secret", SECRET_KEY, false);
-        podTemplate.getContainers().get(0)
+        TemplateEnvVar containerEnvVariableLegacy =
+                new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY", CONTAINER_ENV_VAR_VALUE);
+        TemplateEnvVar containerSecretEnvVariable =
+                new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET", "container-secret", SECRET_KEY, false);
+        podTemplate
+                .getContainers()
+                .get(0)
                 .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
     }
 
     protected void createNamespaceIfNotExist(KubernetesClient client, String namespace) {
         if (client.namespaces().withName(namespace).get() == null) {
-            client.namespaces().createOrReplace(
-                    new NamespaceBuilder().withNewMetadata().withName(namespace).endMetadata().build());
+            client.namespaces()
+                    .createOrReplace(new NamespaceBuilder()
+                            .withNewMetadata()
+                            .withName(namespace)
+                            .endMetadata()
+                            .build());
         }
     }
 

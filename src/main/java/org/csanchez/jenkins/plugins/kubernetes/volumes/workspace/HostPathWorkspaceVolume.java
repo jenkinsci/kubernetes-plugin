@@ -24,19 +24,18 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-
 import java.util.Objects;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class HostPathWorkspaceVolume extends WorkspaceVolume {
     private String hostPath;
 
@@ -48,7 +47,9 @@ public class HostPathWorkspaceVolume extends WorkspaceVolume {
     public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder() //
                 .withName(volumeName) //
-                .withNewHostPath().withPath(getHostPath()).endHostPath() //
+                .withNewHostPath()
+                .withPath(getHostPath())
+                .endHostPath() //
                 .build();
     }
 

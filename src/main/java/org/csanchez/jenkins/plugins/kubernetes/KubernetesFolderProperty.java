@@ -1,5 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
+import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
+import hudson.model.Descriptor.FormException;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
+import hudson.slaves.Cloud;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -8,12 +18,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import hudson.model.Job;
-
+import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -21,19 +28,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
-
-import com.cloudbees.hudson.plugins.folder.AbstractFolder;
-import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
-import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
-
-import hudson.Extension;
-import hudson.model.ItemGroup;
-import hudson.model.Descriptor.FormException;
-import hudson.slaves.Cloud;
-import jenkins.model.Jenkins;
-
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
 /**
  * Provides folder level Kubernetes configuration.
@@ -51,7 +45,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     public KubernetesFolderProperty() {}
 
     @DataBoundSetter
-    public void setPermittedClouds(Collection<String> permittedClouds){
+    public void setPermittedClouds(Collection<String> permittedClouds) {
         this.permittedClouds = permittedClouds == null ? Collections.emptyList() : new ArrayList<>(permittedClouds);
     }
 
@@ -89,11 +83,14 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         if (!userHasAdministerPermission()) {
             return this;
         }
-        // Backwards compatibility: this method was expecting a set of entries PREFIX_USAGE_PERMISSION+cloudName --> true | false
+        // Backwards compatibility: this method was expecting a set of entries PREFIX_USAGE_PERMISSION+cloudName -->
+        // true | false
         // Now we're getting a set of permitted cloud names inside permittedClouds entry
         Set<String> formCloudNames = new HashSet<>();
         if (!form.has("permittedClouds")) {
-            form.names().stream().filter(x -> form.getBoolean(x.toString())).forEach(x -> formCloudNames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
+            form.names().stream()
+                    .filter(x -> form.getBoolean(x.toString()))
+                    .forEach(x -> formCloudNames.add(x.toString().replace(PREFIX_USAGE_PERMISSION, "")));
         } else {
             JSONArray clouds = form.optJSONArray("permittedClouds");
             if (clouds != null) {
@@ -108,7 +105,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
 
     /**
      * Recursively collect all allowed clouds from this folder and its parents.
-     * 
+     *
      * @param allowedClouds
      *            This Set contains all allowed clouds after returning.
      * @param itemGroup
@@ -117,8 +114,8 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     public static void collectAllowedClouds(Set<String> allowedClouds, ItemGroup<?> itemGroup) {
         if (itemGroup instanceof AbstractFolder) {
             AbstractFolder<?> folder = (AbstractFolder<?>) itemGroup;
-            KubernetesFolderProperty kubernetesFolderProperty = folder.getProperties()
-                    .get(KubernetesFolderProperty.class);
+            KubernetesFolderProperty kubernetesFolderProperty =
+                    folder.getProperties().get(KubernetesFolderProperty.class);
 
             if (kubernetesFolderProperty != null) {
                 allowedClouds.addAll(kubernetesFolderProperty.getPermittedClouds());
@@ -129,9 +126,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     }
 
     private static List<KubernetesCloud> getUsageRestrictedKubernetesClouds() {
-        List<KubernetesCloud> clouds = Jenkins.get().clouds
-                .getAll(KubernetesCloud.class)
-                .stream()
+        List<KubernetesCloud> clouds = Jenkins.get().clouds.getAll(KubernetesCloud.class).stream()
                 .filter(KubernetesCloud::isUsageRestricted)
                 .collect(Collectors.toList());
         clouds.sort(Comparator.<Cloud, String>comparing(o -> o.name));
@@ -163,7 +158,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
 
         /**
          * Called from Jelly.
-         * 
+         *
          * @return
          */
         public String getName() {
@@ -174,13 +169,11 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         public boolean isReadonly() {
             return !userHasAdministerPermission() || isInherited();
         }
-
     }
 
     private static boolean userHasAdministerPermission() {
         return Jenkins.get().hasPermission(Jenkins.ADMINISTER);
     }
-
 
     @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD")
     private static boolean isUsageRestrictedKubernetesCloud(Cloud cloud) {
@@ -206,10 +199,13 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class)
         public List<UsagePermission> getEffectivePermissions() {
-            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest().findAncestorObject(AbstractFolder.class).getParent());
+            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest()
+                    .findAncestorObject(AbstractFolder.class)
+                    .getParent());
             List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()
-                                                                           .map(cloud -> new UsagePermission(cloud.name, inheritedClouds.contains(cloud.name), inheritedClouds.contains(cloud.name)))
-                                                                           .collect(Collectors.toList());
+                    .map(cloud -> new UsagePermission(
+                            cloud.name, inheritedClouds.contains(cloud.name), inheritedClouds.contains(cloud.name)))
+                    .collect(Collectors.toList());
             // a non-admin User is only allowed to see granted clouds
             if (!userHasAdministerPermission()) {
                 ps = ps.stream().filter(UsagePermission::isGranted).collect(Collectors.toList());
@@ -218,5 +214,4 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
             return ps;
         }
     }
-
 }

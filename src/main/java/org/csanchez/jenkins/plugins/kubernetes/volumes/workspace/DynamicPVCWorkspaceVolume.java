@@ -1,6 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
@@ -10,8 +12,6 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaim;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.DynamicPVC;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PVCVolumeUtils;
 import org.jenkinsci.Symbol;
@@ -24,7 +24,9 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 /**
  * @author <a href="root@junwuhui.cn">runzexia</a>
  */
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements DynamicPVC {
     private String storageClassName;
     private String requestsSize;
@@ -83,9 +85,9 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DynamicPVCWorkspaceVolume that = (DynamicPVCWorkspaceVolume) o;
-        return Objects.equals(storageClassName, that.storageClassName) &&
-                Objects.equals(requestsSize, that.requestsSize) &&
-                Objects.equals(accessModes, that.accessModes);
+        return Objects.equals(storageClassName, that.storageClassName)
+                && Objects.equals(requestsSize, that.requestsSize)
+                && Objects.equals(accessModes, that.accessModes);
     }
 
     @Override
@@ -104,7 +106,7 @@ public class DynamicPVCWorkspaceVolume extends WorkspaceVolume implements Dynami
         @SuppressWarnings("unused") // by stapler
         @RequirePOST
         @Restricted(DoNotUse.class) // stapler only
-        public ListBoxModel doFillAccessModesItems(){
+        public ListBoxModel doFillAccessModesItems() {
             return PVCVolumeUtils.ACCESS_MODES_BOX;
         }
     }

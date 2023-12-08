@@ -39,7 +39,8 @@ public class PodTemplateStepTest {
         st.assertRoundTrip(step, "podTemplate(label: 'podLabel') {\n    // some block\n}");
         step.setLabel("");
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
-        step.setPodRetention(PodRetention.getPodTemplateDefault()); // this is the default, it should not appear in the snippet.
+        step.setPodRetention(
+                PodRetention.getPodTemplateDefault()); // this is the default, it should not appear in the snippet.
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setPodRetention(new OnFailure());
         st.assertRoundTrip(step, "podTemplate(podRetention: onFailure()) {\n    // some block\n}");
@@ -47,12 +48,14 @@ public class PodTemplateStepTest {
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setWorkspaceVolume(new DynamicPVCWorkspaceVolume());
         st.assertRoundTrip(step, "podTemplate(workspaceVolume: dynamicPVC()) {\n    // some block\n}");
-        step.setWorkspaceVolume(new EmptyDirWorkspaceVolume(false)); // this is the default, it should not be in the snippet.
+        step.setWorkspaceVolume(
+                new EmptyDirWorkspaceVolume(false)); // this is the default, it should not be in the snippet.
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume();
         workspaceVolume.setAccessModes("ReadWriteMany");
         step.setWorkspaceVolume(workspaceVolume);
-        st.assertRoundTrip(step, "podTemplate(workspaceVolume: dynamicPVC(accessModes: 'ReadWriteMany')) {\n    // some block\n}");
+        st.assertRoundTrip(
+                step, "podTemplate(workspaceVolume: dynamicPVC(accessModes: 'ReadWriteMany')) {\n    // some block\n}");
         step.setWorkspaceVolume(null);
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         step.setActiveDeadlineSeconds(60);
@@ -66,5 +69,4 @@ public class PodTemplateStepTest {
         step.setInheritFrom(null);
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
     }
-
 }

@@ -1,8 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.util.Locale;
-
 import hudson.model.Label;
+import java.util.Locale;
 
 public class MetricNames {
     private static final String PREFIX = "kubernetes.cloud";

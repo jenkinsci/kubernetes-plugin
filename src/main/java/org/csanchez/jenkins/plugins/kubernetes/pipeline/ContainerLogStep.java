@@ -20,18 +20,17 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Node;
 import hudson.model.TaskListener;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 public class ContainerLogStep extends Step implements Serializable {
     private static final long serialVersionUID = 5588861066775717487L;
@@ -112,7 +111,8 @@ public class ContainerLogStep extends Step implements Serializable {
 
         @Override
         public Set<? extends Class<?>> getRequiredContext() {
-            return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(Node.class, FilePath.class, TaskListener.class)));
+            return Collections.unmodifiableSet(
+                    new HashSet<>(Arrays.asList(Node.class, FilePath.class, TaskListener.class)));
         }
     }
 }

@@ -1,19 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Label;
+import java.util.ArrayList;
+import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 public class PodTemplateFilterTest {
     @Rule
@@ -23,7 +22,8 @@ public class PodTemplateFilterTest {
     public static class PodTemplateFilter1 extends PodTemplateFilter {
         @CheckForNull
         @Override
-        protected PodTemplate transform(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, @CheckForNull Label label) {
+        protected PodTemplate transform(
+                @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, @CheckForNull Label label) {
             return addYaml(podTemplate, "yaml1");
         }
     }
@@ -32,7 +32,8 @@ public class PodTemplateFilterTest {
     public static class PodTemplateFilter2 extends PodTemplateFilter {
         @CheckForNull
         @Override
-        protected PodTemplate transform(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, @CheckForNull Label label) {
+        protected PodTemplate transform(
+                @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, @CheckForNull Label label) {
             return addYaml(podTemplate, "yaml2");
         }
     }

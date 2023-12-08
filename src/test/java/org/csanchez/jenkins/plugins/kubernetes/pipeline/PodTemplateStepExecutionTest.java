@@ -24,9 +24,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
+import static org.junit.Assert.*;
 
+import hudson.model.Result;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.Messages;
@@ -38,8 +39,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
-
-import hudson.model.Result;
 
 public class PodTemplateStepExecutionTest {
 
@@ -53,11 +52,11 @@ public class PodTemplateStepExecutionTest {
         cloud = new KubernetesCloud("kubernetes");
         r.jenkins.clouds.add(cloud);
     }
-    
-    @BeforeClass 
-    public static void isKubernetesConfigured() throws Exception { 
+
+    @BeforeClass
+    public static void isKubernetesConfigured() throws Exception {
         assumeKubernetes();
-    } 
+    }
 
     private String loadPipelineScript(String name) {
         return KubernetesTestUtil.loadPipelineScript(getClass(), name);
@@ -82,5 +81,4 @@ public class PodTemplateStepExecutionTest {
         r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
         r.waitForMessage(Messages.RFC1123_error("badcontainername_!, badcontainername2_!"), b);
     }
-
 }

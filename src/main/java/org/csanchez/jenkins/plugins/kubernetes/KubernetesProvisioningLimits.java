@@ -1,24 +1,20 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
+import hudson.ExtensionList;
+import hudson.model.Node;
+import hudson.model.Queue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import net.jcip.annotations.GuardedBy;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import hudson.Extension;
-import hudson.ExtensionList;
-import hudson.init.InitMilestone;
-import hudson.init.Initializer;
-import hudson.model.Node;
-import hudson.model.Queue;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.NodeListener;
+import net.jcip.annotations.GuardedBy;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Implements provisioning limits for clouds and pod templates
@@ -48,13 +44,15 @@ public final class KubernetesProvisioningLimits {
         boolean previousInit = init;
         if (!init) {
             Queue.withLock(() -> {
-                Jenkins.get().getNodes()
-                        .stream()
+                Jenkins.get().getNodes().stream()
                         .filter(KubernetesSlave.class::isInstance)
                         .map(KubernetesSlave.class::cast)
                         .forEach(node -> {
-                            cloudCounts.put(node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
-                            podTemplateCounts.put(node.getTemplateId(), getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+                            cloudCounts.put(
+                                    node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                            podTemplateCounts.put(
+                                    node.getTemplateId(),
+                                    getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
                         });
             });
             init = true;
@@ -75,24 +73,37 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized boolean register(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+    public synchronized boolean register(
+            @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         initInstance();
         int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
         if (newGlobalCount <= cloud.getContainerCap()) {
             int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) + numExecutors;
             if (newPodTemplateCount <= podTemplate.getInstanceCap()) {
                 cloudCounts.put(cloud.name, newGlobalCount);
-                LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + newGlobalCount + "/" + cloud.getContainerCap());
+                LOGGER.log(
+                        Level.FINEST,
+                        () -> cloud.name + " global limit: " + newGlobalCount + "/" + cloud.getContainerCap());
 
                 podTemplateCounts.put(podTemplate.getId(), newPodTemplateCount);
-                LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + newPodTemplateCount + "/" + podTemplate.getInstanceCap());
+                LOGGER.log(
+                        Level.FINEST,
+                        () -> podTemplate.getName() + " template limit: " + newPodTemplateCount + "/"
+                                + podTemplate.getInstanceCap());
                 return true;
             } else {
-                LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit reached: " + getPodTemplateCount(podTemplate.getId()) + "/" + podTemplate.getInstanceCap() + ". Cannot add " + numExecutors + " more!");
+                LOGGER.log(
+                        Level.FINEST,
+                        () -> podTemplate.getName() + " template limit reached: "
+                                + getPodTemplateCount(podTemplate.getId()) + "/" + podTemplate.getInstanceCap()
+                                + ". Cannot add " + numExecutors + " more!");
                 Metrics.metricRegistry().counter(MetricNames.REACHED_POD_CAP).inc();
             }
         } else {
-            LOGGER.log(Level.FINEST, () -> cloud.name + " global limit reached: " + getGlobalCount(cloud.name) + "/" + cloud.getContainerCap() + ". Cannot add " + numExecutors + " more!");
+            LOGGER.log(
+                    Level.FINEST,
+                    () -> cloud.name + " global limit reached: " + getGlobalCount(cloud.name) + "/"
+                            + cloud.getContainerCap() + ". Cannot add " + numExecutors + " more!");
             Metrics.metricRegistry().counter(MetricNames.REACHED_GLOBAL_CAP).inc();
         }
         return false;
@@ -104,21 +115,33 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+    public synchronized void unregister(
+            @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         if (initInstance()) {
             int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
             if (newGlobalCount < 0) {
-                LOGGER.log(Level.WARNING, "Global count for " + cloud.name + " went below zero. There is likely a bug in kubernetes-plugin");
+                LOGGER.log(
+                        Level.WARNING,
+                        "Global count for " + cloud.name
+                                + " went below zero. There is likely a bug in kubernetes-plugin");
             }
             cloudCounts.put(cloud.name, Math.max(0, newGlobalCount));
-            LOGGER.log(Level.FINEST, () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/" + cloud.getContainerCap());
+            LOGGER.log(
+                    Level.FINEST,
+                    () -> cloud.name + " global limit: " + Math.max(0, newGlobalCount) + "/" + cloud.getContainerCap());
 
             int newPodTemplateCount = getPodTemplateCount(podTemplate.getId()) - numExecutors;
             if (newPodTemplateCount < 0) {
-                LOGGER.log(Level.WARNING, "Pod template count for " + podTemplate.getName() + " went below zero. There is likely a bug in kubernetes-plugin");
+                LOGGER.log(
+                        Level.WARNING,
+                        "Pod template count for " + podTemplate.getName()
+                                + " went below zero. There is likely a bug in kubernetes-plugin");
             }
             podTemplateCounts.put(podTemplate.getId(), Math.max(0, newPodTemplateCount));
-            LOGGER.log(Level.FINEST, () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/" + podTemplate.getInstanceCap());
+            LOGGER.log(
+                    Level.FINEST,
+                    () -> podTemplate.getName() + " template limit: " + Math.max(0, newPodTemplateCount) + "/"
+                            + podTemplate.getInstanceCap());
         }
     }
 
@@ -148,5 +171,4 @@ public final class KubernetesProvisioningLimits {
             }
         }
     }
-
 }

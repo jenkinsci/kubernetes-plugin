@@ -1,6 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes.casc;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import java.util.List;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
@@ -9,13 +15,6 @@ import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
-
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
 public class EnvVarCasCTest extends RoundTripAbstractTest {
@@ -30,10 +29,9 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
     @Parameterized.Parameters(name = "{index}: {1}")
     public static Object[] permutations() {
         return new Object[][] {
-                {new KeyValueEnvVarStrategy(), "keyValue"},
-                {new SecretEnvVarStrategy(), "secret"},
+            {new KeyValueEnvVarStrategy(), "keyValue"},
+            {new SecretEnvVarStrategy(), "secret"},
         };
-
     }
 
     @Override
@@ -47,7 +45,6 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
         List<TemplateEnvVar> envVars = podTemplate.getEnvVars();
         assertEquals(1, envVars.size());
         strategy._verify(envVars.get(0));
-
     }
 
     @Override
@@ -63,8 +60,9 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
     abstract static class EnvVarStrategy {
         void verify(TemplateEnvVar envVar) {
             _verify(envVar);
-            assertEquals("key",envVar.getKey());
+            assertEquals("key", envVar.getKey());
         }
+
         abstract void _verify(TemplateEnvVar envVar);
     }
 
@@ -74,7 +72,7 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
         void _verify(TemplateEnvVar envVar) {
             assertThat(envVar, instanceOf(KeyValueEnvVar.class));
             KeyValueEnvVar d = (KeyValueEnvVar) envVar;
-            assertEquals("value",d.getValue());
+            assertEquals("value", d.getValue());
         }
     }
 
@@ -84,9 +82,8 @@ public class EnvVarCasCTest extends RoundTripAbstractTest {
         void _verify(TemplateEnvVar envVar) {
             assertThat(envVar, instanceOf(SecretEnvVar.class));
             SecretEnvVar d = (SecretEnvVar) envVar;
-            assertEquals("secretKey",d.getSecretKey());
-            assertEquals("secretName",d.getSecretName());
+            assertEquals("secretKey", d.getSecretKey());
+            assertEquals("secretName", d.getSecretName());
         }
     }
-
 }

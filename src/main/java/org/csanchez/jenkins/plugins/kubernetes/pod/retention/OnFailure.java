@@ -1,18 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
-import java.io.Serializable;
-
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
-
+import java.io.Serializable;
 import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class OnFailure extends PodRetention implements Serializable {
 
@@ -21,9 +18,7 @@ public class OnFailure extends PodRetention implements Serializable {
     private static final Logger LOGGER = Logger.getLogger(OnFailure.class.getName());
 
     @DataBoundConstructor
-    public OnFailure() {
-
-    }
+    public OnFailure() {}
 
     @Override
     public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> podS) {
@@ -36,7 +31,8 @@ public class OnFailure extends PodRetention implements Serializable {
         if (pod == null || pod.getStatus() == null) {
             return false;
         }
-        boolean hasErrors = pod.getStatus().getPhase().toLowerCase(Locale.getDefault()).matches("(failed|unknown)");
+        boolean hasErrors =
+                pod.getStatus().getPhase().toLowerCase(Locale.getDefault()).matches("(failed|unknown)");
         return !hasErrors;
     }
 
@@ -72,6 +68,5 @@ public class OnFailure extends PodRetention implements Serializable {
         public String getDisplayName() {
             return Messages.on_Failure();
         }
-
     }
 }

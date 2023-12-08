@@ -18,6 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Before;
@@ -36,5 +37,4 @@ public class PodNameTest extends AbstractKubernetesPipelineTest {
         p.setDefinition(new CpsFlowDefinition("podTemplate {node(POD_LABEL) {sh 'echo ok'}}", true));
         r.buildAndAssertSuccess(p);
     }
-
 }

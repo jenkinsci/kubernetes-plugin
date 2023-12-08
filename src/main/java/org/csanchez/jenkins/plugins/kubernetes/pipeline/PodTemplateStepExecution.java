@@ -2,40 +2,37 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.stream.Collectors.toList;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Collection;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.model.TaskListener;
-import org.apache.commons.lang.RandomStringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
-import org.csanchez.jenkins.plugins.kubernetes.Messages;
-import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
-import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import hudson.AbortException;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.slaves.Cloud;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
+import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
+import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
+import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
+import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
@@ -45,10 +42,12 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
     private static final String NAME_FORMAT = "%s-%s";
 
-    private static /* almost final */ boolean VERBOSE = Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
+    private static /* almost final */ boolean VERBOSE =
+            Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
 
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "not needed on deserialization")
     private final transient PodTemplateStep step;
+
     private final String cloudName;
 
     private PodTemplate newTemplate = null;
@@ -76,8 +75,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             label = labelify(run.getExternalizableId());
         }
 
-        //Let's generate a random name based on the user specified to make sure that we don't have
-        //issues with concurrent builds, or messing with pre-existing configuration
+        // Let's generate a random name based on the user specified to make sure that we don't have
+        // issues with concurrent builds, or messing with pre-existing configuration
         String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String stepName = step.getName();
         if (stepName == null) {
@@ -118,22 +117,23 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         TaskListener listener = getContext().get(TaskListener.class);
         newTemplate.setListener(listener);
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
-        if(run!=null) {
+        if (run != null) {
             String url = cloud.getJenkinsUrlOrNull();
-            if(url != null) {
+            if (url != null) {
                 newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
                 newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
             }
         }
-        newTemplate.setImagePullSecrets(
-                step.getImagePullSecrets().stream().map(x -> new PodImagePullSecret(x)).collect(toList()));
+        newTemplate.setImagePullSecrets(step.getImagePullSecrets().stream()
+                .map(x -> new PodImagePullSecret(x))
+                .collect(toList()));
         newTemplate.setYaml(step.getYaml());
         if (step.isShowRawYamlSet()) {
             newTemplate.setShowRawYaml(step.isShowRawYaml());
         }
         newTemplate.setPodRetention(step.getPodRetention());
 
-        if(step.getActiveDeadlineSeconds() != 0) {
+        if (step.getActiveDeadlineSeconds() != 0) {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
         }
 
@@ -147,13 +147,19 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             throw new AbortException(Messages.RFC1123_error(String.join(", ", errors)));
         }
         if (VERBOSE) {
-            listener.getLogger().println("Registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel());
+            listener.getLogger()
+                    .println(
+                            "Registering template with id=" + newTemplate.getId() + ",label=" + newTemplate.getLabel());
         }
         cloud.addDynamicTemplate(newTemplate);
-        BodyInvoker invoker =
-                getContext().newBodyInvoker().withContexts(step, new PodTemplateContext(namespace, name)).withCallback(new PodTemplateCallback(newTemplate, cloudName));
+        BodyInvoker invoker = getContext()
+                .newBodyInvoker()
+                .withContexts(step, new PodTemplateContext(namespace, name))
+                .withCallback(new PodTemplateCallback(newTemplate, cloudName));
         if (step.getLabel() == null) {
-            invoker.withContext(EnvironmentExpander.merge(getContext().get(EnvironmentExpander.class), EnvironmentExpander.constant(Collections.singletonMap("POD_LABEL", label))));
+            invoker.withContext(EnvironmentExpander.merge(
+                    getContext().get(EnvironmentExpander.class),
+                    EnvironmentExpander.constant(Collections.singletonMap("POD_LABEL", label))));
         }
         invoker.start();
 
@@ -174,8 +180,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 throw new AbortException(String.format("Cloud does not exist: %s", cloudName));
             }
             if (!(cl instanceof KubernetesCloud)) {
-                throw new AbortException(String.format("Cloud is not a Kubernetes cloud: %s (%s)", cloudName,
-                        cl.getClass().getName()));
+                throw new AbortException(String.format(
+                        "Cloud is not a Kubernetes cloud: %s (%s)",
+                        cloudName, cl.getClass().getName()));
             }
             cloud = (KubernetesCloud) cl;
         }
@@ -213,7 +220,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         }
     }
 
-    private String checkNamespace(KubernetesCloud kubernetesCloud, @CheckForNull PodTemplateContext podTemplateContext) {
+    private String checkNamespace(
+            KubernetesCloud kubernetesCloud, @CheckForNull PodTemplateContext podTemplateContext) {
         String namespace = null;
         if (!PodTemplateUtils.isNullOrEmpty(step.getNamespace())) {
             namespace = step.getNamespace();
@@ -236,7 +244,9 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             newTemplate.setListener(listener);
             LOGGER.log(Level.FINE, "Re-registering template with id=" + newTemplate.getId() + " after resume");
             if (VERBOSE) {
-                listener.getLogger().println("Re-registering template with id=" + newTemplate.getId() + ",label="+ newTemplate.getLabel() + " after resume");
+                listener.getLogger()
+                        .println("Re-registering template with id=" + newTemplate.getId() + ",label="
+                                + newTemplate.getLabel() + " after resume");
             }
             cloud.addDynamicTemplate(newTemplate);
         } catch (AbortException e) {
@@ -265,11 +275,16 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         protected void finished(StepContext context) throws Exception {
             try {
                 KubernetesCloud cloud = resolveCloud(cloudName);
-                LOGGER.log(Level.FINE, () -> "Removing pod template " + podTemplate.getName()
-                        + " from cloud " + cloud.name);
+                LOGGER.log(
+                        Level.FINE,
+                        () -> "Removing pod template " + podTemplate.getName() + " from cloud " + cloud.name);
                 cloud.removeDynamicTemplate(podTemplate);
             } catch (AbortException e) {
-                LOGGER.log(Level.WARNING, e, () -> "Unable to resolve cloud for " + podTemplate.getName() + ". Maybe the cloud was removed while running the build?");
+                LOGGER.log(
+                        Level.WARNING,
+                        e,
+                        () -> "Unable to resolve cloud for " + podTemplate.getName()
+                                + ". Maybe the cloud was removed while running the build?");
             }
         }
     }

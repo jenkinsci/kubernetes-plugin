@@ -1,14 +1,13 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
 
 public class PodTemplateMapTest {
     @Rule
@@ -44,9 +43,11 @@ public class PodTemplateMapTest {
 
     private Thread newThread(int i) {
         String name = "test-" + i;
-        return new Thread(() -> {
-            instance.addTemplate(cloud, buildPodTemplate(name));
-        }, name);
+        return new Thread(
+                () -> {
+                    instance.addTemplate(cloud, buildPodTemplate(name));
+                },
+                name);
     }
 
     private PodTemplate buildPodTemplate(String label) {

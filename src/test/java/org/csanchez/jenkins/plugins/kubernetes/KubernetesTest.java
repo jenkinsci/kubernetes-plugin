@@ -32,13 +32,22 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import hudson.model.Label;
+import hudson.plugins.git.GitTool;
+import hudson.slaves.NodeProperty;
+import hudson.slaves.NodePropertyDescriptor;
+import hudson.tools.ToolLocationNodeProperty;
+import hudson.tools.ToolLocationNodeProperty.ToolLocation;
+import hudson.util.DescribableList;
+import hudson.util.Secret;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
-import hudson.model.Label;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
@@ -53,18 +62,6 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-
-import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
-import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-
-import hudson.plugins.git.GitTool;
-import hudson.slaves.NodeProperty;
-import hudson.slaves.NodePropertyDescriptor;
-import hudson.tools.ToolLocationNodeProperty;
-import hudson.tools.ToolLocationNodeProperty.ToolLocation;
-import hudson.util.DescribableList;
-import hudson.util.Secret;
 
 /**
  * @author Carlos Sanchez
@@ -123,7 +120,8 @@ public class KubernetesTest {
         assertEquals("blah", template.getYaml());
         assertEquals(Collections.singletonList("blah"), template.getYamls());
         assertNull(template._getYamls());
-        log.getMessages().stream().anyMatch(msg -> msg.contains("Found several persisted YAML fragments in pod template java"));
+        log.getMessages().stream()
+                .anyMatch(msg -> msg.contains("Found several persisted YAML fragments in pod template java"));
     }
 
     @Test
@@ -172,8 +170,10 @@ public class KubernetesTest {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         PodTemplate template = templates.get(0);
-        assertEquals(Arrays.asList(new KeyValueEnvVar("pod_a_key", "pod_a_value"),
-                new KeyValueEnvVar("pod_b_key", "pod_b_value")), template.getEnvVars());
+        assertEquals(
+                Arrays.asList(
+                        new KeyValueEnvVar("pod_a_key", "pod_a_value"), new KeyValueEnvVar("pod_b_key", "pod_b_value")),
+                template.getEnvVars());
         assertEquals(Collections.emptyList(), template.getYamls());
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
@@ -183,7 +183,7 @@ public class KubernetesTest {
     public void upgradeFrom_0_10() throws Exception {
         List<PodTemplate> templates = cloud.getTemplates();
         PodTemplate template = templates.get(0);
-        DescribableList<NodeProperty<?>,NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
         assertEquals(1, nodeProperties.size());
         ToolLocationNodeProperty property = (ToolLocationNodeProperty) nodeProperties.get(0);
         assertEquals(1, property.getLocations().size());
@@ -210,7 +210,8 @@ public class KubernetesTest {
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkins/inbound-agent", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
-        assertEquals(Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
+        assertEquals(
+                Arrays.asList(new KeyValueEnvVar("a", "b"), new KeyValueEnvVar("c", "d")),
                 containerTemplate.getEnvVars());
         assertEquals(2, podTemplate.getVolumes().size());
 
@@ -219,12 +220,12 @@ public class KubernetesTest {
         assertFalse(emptyVolume.getMemory());
         assertEquals(EmptyDirVolume.class.getName(), emptyVolume.getClass().getName());
 
-        HostPathVolume hostPathVolume = (HostPathVolume) podTemplate.getVolumes().get(1);
+        HostPathVolume hostPathVolume =
+                (HostPathVolume) podTemplate.getVolumes().get(1);
         assertEquals("/host", hostPathVolume.getMountPath());
         assertEquals("/mnt/host", hostPathVolume.getHostPath());
         assertEquals(HostPathVolume.class.getName(), hostPathVolume.getClass().getName());
 
         assertEquals(0, podTemplate.getActiveDeadlineSeconds());
-
     }
 }

@@ -1,23 +1,19 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
+import hudson.Extension;
+import io.fabric8.kubernetes.api.model.Pod;
 import java.io.Serializable;
-
+import java.util.function.Supplier;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import hudson.Extension;
-import io.fabric8.kubernetes.api.model.Pod;
-import java.util.function.Supplier;
 
 public class Never extends PodRetention implements Serializable {
 
     private static final long serialVersionUID = -7127652621214283411L;
 
     @DataBoundConstructor
-    public Never() {
-
-    }
+    public Never() {}
 
     @Override
     public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod) {
@@ -51,11 +47,10 @@ public class Never extends PodRetention implements Serializable {
     @Extension
     @Symbol("never")
     public static class DescriptorImpl extends PodRetentionDescriptor {
-        
+
         @Override
         public String getDisplayName() {
             return Messages.never();
         }
     }
-
 }

@@ -1,17 +1,16 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Functions;
 import hudson.model.TaskListener;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.WatcherException;
-
 import java.io.PrintStream;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
 
 class TaskListenerEventWatcher implements Watcher<Event> {
 
@@ -34,7 +33,13 @@ class TaskListenerEventWatcher implements Watcher<Event> {
             // Messages can have multiple lines
             String[] lines = event.getMessage().split("\n");
             for (String line : lines) {
-                logger.printf("[%s][%s/%s][%s] %s%n", event.getType(), event.getInvolvedObject().getNamespace(), event.getInvolvedObject().getName(), event.getReason(), line);
+                logger.printf(
+                        "[%s][%s/%s][%s] %s%n",
+                        event.getType(),
+                        event.getInvolvedObject().getNamespace(),
+                        event.getInvolvedObject().getName(),
+                        event.getReason(),
+                        line);
             }
         }
     }
@@ -54,5 +59,4 @@ class TaskListenerEventWatcher implements Watcher<Event> {
     public String toString() {
         return getClass().getSimpleName() + " [name=" + name + "]";
     }
-
 }

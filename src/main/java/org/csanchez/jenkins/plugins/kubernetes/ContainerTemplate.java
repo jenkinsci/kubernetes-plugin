@@ -1,5 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.AbstractDescribableImpl;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.util.FormValidation;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-
+import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.Symbol;
@@ -15,16 +21,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
-
 
 public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate> implements Serializable {
 
@@ -39,7 +36,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     private boolean privileged;
 
     private Long runAsUser;
-    
+
     private Long runAsGroup;
 
     private boolean alwaysPullImage;
@@ -203,7 +200,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public Long getRunAsGroupAsLong() {
         return runAsGroup;
     }
-    
+
     @DataBoundSetter
     public void setAlwaysPullImage(boolean alwaysPullImage) {
         this.alwaysPullImage = alwaysPullImage;
@@ -222,8 +219,9 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.envVars.addAll(envVars);
     }
 
-
-    public ContainerLivenessProbe getLivenessProbe() { return livenessProbe; }
+    public ContainerLivenessProbe getLivenessProbe() {
+        return livenessProbe;
+    }
 
     @DataBoundSetter
     public void setLivenessProbe(ContainerLivenessProbe livenessProbe) {
@@ -256,7 +254,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public void setResourceLimitMemory(String resourceLimitMemory) {
         this.resourceLimitMemory = resourceLimitMemory;
     }
-    
+
     public String getResourceRequestCpu() {
         return resourceRequestCpu;
     }
@@ -292,7 +290,6 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
     public void setResourceLimitEphemeralStorage(String resourceLimitEphemeralStorage) {
         this.resourceLimitEphemeralStorage = resourceLimitEphemeralStorage;
     }
-    
 
     public String getShell() {
         return shell;
@@ -303,8 +300,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         this.shell = shell;
     }
 
-    public Map<String,Object> getAsArgs() {
-        Map<String,Object> argMap = new TreeMap<>();
+    public Map<String, Object> getAsArgs() {
+        Map<String, Object> argMap = new TreeMap<>();
 
         argMap.put("name", name);
 
@@ -331,7 +328,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         }
 
         public FormValidation doCheckName(@QueryParameter String value) {
-            if(!PodTemplateUtils.validateContainerName(value)) {
+            if (!PodTemplateUtils.validateContainerName(value)) {
                 return FormValidation.error(Messages.RFC1123_error(value));
             }
             return FormValidation.ok();
@@ -355,27 +352,30 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
     @Override
     public String toString() {
-        return "ContainerTemplate{" +
-                (name == null ? "" : "name='" + name + '\'') +
-                (image == null ? "" : ", image='" + image + '\'') +
-                (!privileged ? "" : ", privileged=" + privileged) +
-                (runAsUser == null ? "" : ", runAsUser=" + runAsUser) +
-                (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup) +
-                (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage) +
-                (workingDir == null ? "" : ", workingDir='" + workingDir + '\'') +
-                (command == null ? "" : ", command='" + command + '\'') +
-                (args == null ? "" : ", args='" + args + '\'') +
-                (!ttyEnabled ? "" : ", ttyEnabled=" + ttyEnabled) +
-                (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'') +
-                (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'') +
-                (resourceRequestEphemeralStorage == null ? "" : ", resourceRequestEphemeralStorage='" + resourceRequestEphemeralStorage + '\'') +
-                (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'') +
-                (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'') +
-                (resourceLimitEphemeralStorage == null ? "" : ", resourceLimitEphemeralStorage='" + resourceLimitEphemeralStorage + '\'') +
-                (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars) +
-                (ports == null || ports.isEmpty() ? "" : ", ports=" + ports) +
-                (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe) +
-                '}';
+        return "ContainerTemplate{" + (name == null ? "" : "name='" + name + '\'')
+                + (image == null ? "" : ", image='" + image + '\'')
+                + (!privileged ? "" : ", privileged=" + privileged)
+                + (runAsUser == null ? "" : ", runAsUser=" + runAsUser)
+                + (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup)
+                + (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage)
+                + (workingDir == null ? "" : ", workingDir='" + workingDir + '\'')
+                + (command == null ? "" : ", command='" + command + '\'')
+                + (args == null ? "" : ", args='" + args + '\'')
+                + (!ttyEnabled ? "" : ", ttyEnabled=" + ttyEnabled)
+                + (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'')
+                + (resourceRequestMemory == null ? "" : ", resourceRequestMemory='" + resourceRequestMemory + '\'')
+                + (resourceRequestEphemeralStorage == null
+                        ? ""
+                        : ", resourceRequestEphemeralStorage='" + resourceRequestEphemeralStorage + '\'')
+                + (resourceLimitCpu == null ? "" : ", resourceLimitCpu='" + resourceLimitCpu + '\'')
+                + (resourceLimitMemory == null ? "" : ", resourceLimitMemory='" + resourceLimitMemory + '\'')
+                + (resourceLimitEphemeralStorage == null
+                        ? ""
+                        : ", resourceLimitEphemeralStorage='" + resourceLimitEphemeralStorage + '\'')
+                + (envVars == null || envVars.isEmpty() ? "" : ", envVars=" + envVars)
+                + (ports == null || ports.isEmpty() ? "" : ", ports=" + ports)
+                + (livenessProbe == null ? "" : ", livenessProbe=" + livenessProbe)
+                + '}';
     }
 
     @Override
@@ -463,7 +463,8 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         result = 31 * result + (ttyEnabled ? 1 : 0);
         result = 31 * result + (resourceRequestCpu != null ? resourceRequestCpu.hashCode() : 0);
         result = 31 * result + (resourceRequestMemory != null ? resourceRequestMemory.hashCode() : 0);
-        result = 31 * result + (resourceRequestEphemeralStorage != null ? resourceRequestEphemeralStorage.hashCode() : 0);
+        result = 31 * result
+                + (resourceRequestEphemeralStorage != null ? resourceRequestEphemeralStorage.hashCode() : 0);
         result = 31 * result + (resourceLimitCpu != null ? resourceLimitCpu.hashCode() : 0);
         result = 31 * result + (resourceLimitMemory != null ? resourceLimitMemory.hashCode() : 0);
         result = 31 * result + (resourceLimitEphemeralStorage != null ? resourceLimitEphemeralStorage.hashCode() : 0);

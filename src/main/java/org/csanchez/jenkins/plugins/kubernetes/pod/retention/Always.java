@@ -1,23 +1,19 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
+import hudson.Extension;
+import io.fabric8.kubernetes.api.model.Pod;
 import java.io.Serializable;
-
+import java.util.function.Supplier;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import hudson.Extension;
-import io.fabric8.kubernetes.api.model.Pod;
-import java.util.function.Supplier;
 
 public class Always extends PodRetention implements Serializable {
 
     private static final long serialVersionUID = -3363056751880572952L;
 
     @DataBoundConstructor
-    public Always() {
-
-    }
+    public Always() {}
 
     @Override
     public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod) {
@@ -57,6 +53,5 @@ public class Always extends PodRetention implements Serializable {
         public String getDisplayName() {
             return Messages.always();
         }
-
     }
 }

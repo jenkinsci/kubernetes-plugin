@@ -1,18 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.util.List;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.VolumeMount;
+import java.util.List;
 
 @Deprecated
 public class PodVolumes {
 
     @Deprecated
-    public static abstract class PodVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume {
-    }
+    public abstract static class PodVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume {}
 
-    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+    @SuppressFBWarnings(
+            value = "SE_NO_SERIALVERSIONID",
+            justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class EmptyDirVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume {
 
@@ -21,12 +21,14 @@ public class PodVolumes {
         }
 
         protected Object readResolve() {
-            return new org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume(this.getMountPath(),
-                    this.getMemory());
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume(
+                    this.getMountPath(), this.getMemory());
         }
     }
 
-    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+    @SuppressFBWarnings(
+            value = "SE_NO_SERIALVERSIONID",
+            justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class SecretVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume {
 
@@ -35,12 +37,14 @@ public class PodVolumes {
         }
 
         protected Object readResolve() {
-            return new org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume(this.getMountPath(),
-                    this.getSecretName());
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.SecretVolume(
+                    this.getMountPath(), this.getSecretName());
         }
     }
 
-    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+    @SuppressFBWarnings(
+            value = "SE_NO_SERIALVERSIONID",
+            justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class HostPathVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume {
 
@@ -49,12 +53,14 @@ public class PodVolumes {
         }
 
         protected Object readResolve() {
-            return new org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume(this.getHostPath(),
-                    this.getMountPath(), this.getReadOnly());
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume(
+                    this.getHostPath(), this.getMountPath(), this.getReadOnly());
         }
     }
 
-    @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+    @SuppressFBWarnings(
+            value = "SE_NO_SERIALVERSIONID",
+            justification = "Serialization happens exclusively through XStream and not Java Serialization.")
     @Deprecated
     public static class NfsVolume extends org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume {
 
@@ -63,8 +69,8 @@ public class PodVolumes {
         }
 
         protected Object readResolve() {
-            return new org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume(this.getServerAddress(),
-                    this.getServerPath(), this.getReadOnly(), this.getMountPath());
+            return new org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume(
+                    this.getServerAddress(), this.getServerPath(), this.getReadOnly(), this.getMountPath());
         }
     }
 

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -43,8 +42,8 @@ public class KubernetesCloudTest {
     public JenkinsRule j = new JenkinsRule();
 
     @Rule
-    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
-            Level.ALL);
+    public LoggerRule logs = new LoggerRule()
+            .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
 
     @After
     public void tearDown() {
@@ -194,7 +193,6 @@ public class KubernetesCloudTest {
         assertEquals(new LinkedHashMap<>(labelsMap), cloud.getPodLabelsMap());
         assertEquals(labels, cloud.getPodLabels());
 
-
         cloud.setLabels(null);
         assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getPodLabelsMap());
         assertEquals(Collections.singletonMap("jenkins", "slave"), cloud.getLabels());
@@ -210,8 +208,9 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        ArrayList<String> objectProperties = new ArrayList<>(Arrays.asList("templates", "podRetention", "podLabels", "labels", "serverCertificate"));
-        for (String property: PropertyUtils.describe(cloud).keySet()) {
+        ArrayList<String> objectProperties =
+                new ArrayList<>(Arrays.asList("templates", "podRetention", "podLabels", "labels", "serverCertificate"));
+        for (String property : PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
                 if (propertyType == String.class) {
@@ -241,7 +240,9 @@ public class KubernetesCloudTest {
 
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
         assertEquals("copy", copy.name);
-        assertTrue("Expected cloud from copy constructor to be equal to the source except for name", EqualsBuilder.reflectionEquals(cloud, copy, true, KubernetesCloud.class, "name"));
+        assertTrue(
+                "Expected cloud from copy constructor to be equal to the source except for name",
+                EqualsBuilder.reflectionEquals(cloud, copy, true, KubernetesCloud.class, "name"));
     }
 
     @Test
@@ -251,7 +252,7 @@ public class KubernetesCloudTest {
         j.jenkins.save();
         JenkinsRule.WebClient wc = j.createWebClient();
         HtmlPage p = wc.goTo("cloud/kubernetes/new");
-        HtmlForm f= p.getFormByName("config");
+        HtmlForm f = p.getFormByName("config");
         HtmlInput templateName = getInputByName(f, "_.name");
         templateName.setValue("default-workspace-volume");
         j.submit(f);
@@ -261,14 +262,14 @@ public class KubernetesCloudTest {
         assertEquals(WorkspaceVolume.getDefault(), podTemplate.getWorkspaceVolume());
         // test whether we can edit a template
         p = wc.goTo("cloud/kubernetes/template/" + podTemplate.getId() + "/");
-        f= p.getFormByName("config");
+        f = p.getFormByName("config");
         templateName = getInputByName(f, "_.name");
         templateName.setValue("default-workspace");
         j.submit(f);
         podTemplate = cloud.getTemplates().get(0);
         assertEquals("default-workspace", podTemplate.getName());
         p = wc.goTo("cloud/kubernetes/templates");
-        DomElement row = p.getElementById("template_"+podTemplate.getId());
+        DomElement row = p.getElementById("template_" + podTemplate.getId());
         assertTrue(row != null);
     }
 
@@ -307,5 +308,4 @@ public class KubernetesCloudTest {
         }
         return null;
     }
-
 }

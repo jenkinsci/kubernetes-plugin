@@ -17,15 +17,15 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.model.TaskListener;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 public class Resources {
     private static final transient Logger LOGGER = Logger.getLogger(ContainerStepExecution.class.getName());
+
     static void closeQuietly(StepContext context, Closeable... closeables) {
         for (Closeable c : closeables) {
             if (c != null) {

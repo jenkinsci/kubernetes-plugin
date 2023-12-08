@@ -31,9 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.servlet.ServletContext;
-
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.http.HttpCompliance;
 import org.eclipse.jetty.http.UriCompliance;
@@ -61,25 +59,25 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         this.port = port;
     }
 
-    public JenkinsRuleNonLocalhost() {
-    }
+    public JenkinsRuleNonLocalhost() {}
 
     /**
      * Prepares a webapp hosting environment to get {@link javax.servlet.ServletContext} implementation
      * that we need for testing.
      */
     protected ServletContext createWebServer() throws Exception {
-        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),new ThreadFactory() {
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r);
-                t.setName("Jetty Thread Pool");
-                return t;
-            }
-        })));
+        server = new Server(new ThreadPoolImpl(new ThreadPoolExecutor(
+                10, 10, 10L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(r);
+                        t.setName("Jetty Thread Pool");
+                        return t;
+                    }
+                })));
 
         WebAppContext context = new WebAppContext(WarExploder.getExplodedDir().getPath(), contextPath);
         context.setClassLoader(getClass().getClassLoader());
-        context.setConfigurations(new Configuration[]{new WebXmlConfiguration()});
+        context.setConfigurations(new Configuration[] {new WebXmlConfiguration()});
         context.addBean(new NoListenerConfiguration(context));
         JettyWebSocketServletContainerInitializer.configure(context, null);
         server.setHandler(context);
@@ -88,7 +86,8 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
         ServerConnector connector = new ServerConnector(server);
-        HttpConfiguration config = connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
+        HttpConfiguration config =
+                connector.getConnectionFactory(HttpConnectionFactory.class).getHttpConfiguration();
         // use a bigger buffer as Stapler traces can get pretty large on deeply nested URL
         config.setRequestHeaderSize(12 * 1024);
         config.setHttpCompliance(HttpCompliance.RFC7230);
@@ -110,8 +109,8 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         try {
             server.start();
         } catch (BindException e) {
-            throw new BindException(String.format("Error binding to %s:%d %s", connector.getHost(), connector.getPort(),
-                    e.getMessage()));
+            throw new BindException(String.format(
+                    "Error binding to %s:%d %s", connector.getHost(), connector.getPort(), e.getMessage()));
         }
 
         localPort = connector.getLocalPort();
@@ -119,5 +118,4 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
 
         return context.getServletContext();
     }
-
 }

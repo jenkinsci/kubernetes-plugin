@@ -1,18 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
-import org.jenkinsci.Symbol;
 import io.fabric8.kubernetes.api.model.ContainerPort;
-
 import java.io.Serializable;
-
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class PortMapping extends AbstractDescribableImpl<PortMapping> implements Serializable {
 
     private String name;
@@ -62,7 +62,7 @@ public class PortMapping extends AbstractDescribableImpl<PortMapping> implements
         ContainerPort p = new ContainerPort();
         p.setName(name);
         p.setContainerPort(containerPort);
-        if(hostPort != null) {
+        if (hostPort != null) {
             p.setHostPort(hostPort);
         }
         return p;
@@ -84,28 +84,19 @@ public class PortMapping extends AbstractDescribableImpl<PortMapping> implements
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         PortMapping other = (PortMapping) obj;
         if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
-            return false;
+            if (other.name != null) return false;
+        } else if (!name.equals(other.name)) return false;
         if (containerPort == null) {
-            if (other.containerPort != null)
-                return false;
-        } else if (!containerPort.equals(other.containerPort))
-            return false;
+            if (other.containerPort != null) return false;
+        } else if (!containerPort.equals(other.containerPort)) return false;
         if (hostPort == null) {
-            if (other.hostPort != null)
-                return false;
-        } else if (!hostPort.equals(other.hostPort))
-            return false;
+            if (other.hostPort != null) return false;
+        } else if (!hostPort.equals(other.hostPort)) return false;
         return true;
     }
 
