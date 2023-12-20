@@ -48,7 +48,7 @@
     <slaveAgentPort />
     <jenkins.version>2.415</jenkins.version>
     <bom>2.414.x</bom>
-    <bom.version>2571.vede9dc5a_2e23</bom.version>
+    <bom.version>2671.va_73a_b_4c103fb_</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
