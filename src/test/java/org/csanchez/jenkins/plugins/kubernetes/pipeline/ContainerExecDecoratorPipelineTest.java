@@ -122,8 +122,14 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         r.waitForCompletion(b);
         r.assertLogContains(
                 "from Groovy: /opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
+        r.assertLogContains(
+                "outside container: /opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                b);
+        r.assertLogContains(
+                "outside container with override: /bar:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                b);
         r.assertLogContains("inside container: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
         r.assertLogContains(
-                "inside withMaven in container: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
+                "inside container with override: /bar:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
     }
 }

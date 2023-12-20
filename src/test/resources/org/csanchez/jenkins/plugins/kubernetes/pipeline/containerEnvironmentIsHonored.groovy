@@ -15,10 +15,13 @@ spec:
   node(POD_LABEL) {
     echo "from Groovy: ${env.PATH}"
     sh 'echo "outside container: $PATH"'
+    withEnv(['PATH+foo=/bar']) {
+      sh 'echo "outside container with override: $PATH"'
+    }
     container('alpine') {
       sh 'echo "inside container: $PATH"'
-      withMaven(publisherStrategy: 'EXPLICIT', traceability: false) {
-          sh 'echo "inside withMaven in container: $PATH"'
+      withEnv(['PATH+foo=/bar']) {
+        sh 'echo "inside container with override: $PATH"'
       }
     }
   }
