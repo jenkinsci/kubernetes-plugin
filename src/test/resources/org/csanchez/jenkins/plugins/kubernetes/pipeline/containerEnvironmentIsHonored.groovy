@@ -13,15 +13,18 @@ spec:
     - infinity
 ''') {
   node(POD_LABEL) {
-    echo "from Groovy: ${env.PATH}"
-    sh 'echo "outside container: $PATH"'
+    echo "from Groovy outside container: ${env.PATH}"
+    sh 'echo "from shell outside container: $PATH"'
     withEnv(['PATH+foo=/bar']) {
-      sh 'echo "outside container with override: $PATH"'
+      echo "from Groovy outside container with override: ${env.PATH}"
+      sh 'echo "from shell outside container with override: $PATH"'
     }
     container('alpine') {
-      sh 'echo "inside container: $PATH"'
+      echo "from Groovy inside container: ${env.PATH}"
+      sh 'echo "from shell inside container: $PATH"'
       withEnv(['PATH+foo=/bar']) {
-        sh 'echo "inside container with override: $PATH"'
+        echo "from Groovy inside container with override: ${env.PATH}"
+        sh 'echo "from shell inside container with override: $PATH"'
       }
     }
   }
