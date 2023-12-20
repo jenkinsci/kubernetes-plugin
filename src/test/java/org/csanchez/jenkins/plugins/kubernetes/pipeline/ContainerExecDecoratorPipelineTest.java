@@ -115,4 +115,15 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         r.assertLogContains("outside container: $string$with$dollars", b);
         r.assertLogContains("inside container: $string$with$dollars", b);
     }
+
+    @Test
+    public void containerEnvironmentIsHonored() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.waitForCompletion(b);
+        r.assertLogContains(
+                "from Groovy: /opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
+        r.assertLogContains("inside container: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
+        r.assertLogContains(
+                "inside withMaven in container: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
+    }
 }
