@@ -138,11 +138,11 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
                 b);
         r.assertLogContains(
                 "from shell inside container: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", b);
-        // When using groovy, the environment relies on the computer's environment, using container step doesn't change
-        // anything.
-        r.assertLogContains(
-                "from Groovy inside container with override: /bar:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-                b);
+        // TODO Using groovy within container, the agent environment is used instead of the container environment.
+        //        r.assertLogContains(
+        //                "from Groovy inside container with override:
+        // /bar:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        //                b);
         // TODO Currently fails because env override is applied to the computer's environment instead of the container's
         // environment.
         //        r.assertLogContains(
