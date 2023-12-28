@@ -1,0 +1,25 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <f:description>
+        Creates a generic ephemeral volume mount for a pod.
+    </f:description>
+
+    <f:entry title="${%Mount path}" field="mountPath">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Storage Class Name}" field="storageClassName">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Requests Size}" field="requestsSize">
+        <f:textbox />
+    </f:entry>
+
+    <f:entry title="${%Access Modes}" field="accessModes">
+        <f:select default="ReadWriteOnce"/>
+    </f:entry>
+
+</j:jelly>
+

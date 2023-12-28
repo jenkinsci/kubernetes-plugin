@@ -1,0 +1,10 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - workspaceVolume:
+              genericEphemeralVolume:
+                storageClass: my-storageclass
+                accessModes: ReadWriteMany
+                requestSize: 10Gi
