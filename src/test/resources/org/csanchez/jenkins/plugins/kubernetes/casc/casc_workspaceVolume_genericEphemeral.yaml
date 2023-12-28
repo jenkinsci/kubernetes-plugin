@@ -5,6 +5,6 @@ jenkins:
         templates:
           - workspaceVolume:
               genericEphemeralVolume:
-                storageClass: my-storageclass
+                storageClassName: test-storageclass
                 accessModes: ReadWriteMany
-                requestSize: 10Gi
+                requestsSize: 10Gi

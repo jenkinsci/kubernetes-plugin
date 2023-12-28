@@ -80,7 +80,7 @@ public class GenericEphemeralWorkspaceVolume extends WorkspaceVolume {
     }
 
     @Extension
-    @Symbol("genericEphemeralWorkspaceVolume")
+    @Symbol("genericEphemeralVolume")
     public static class DescriptorImpl extends Descriptor<WorkspaceVolume> {
         @Override
         public String getDisplayName() {

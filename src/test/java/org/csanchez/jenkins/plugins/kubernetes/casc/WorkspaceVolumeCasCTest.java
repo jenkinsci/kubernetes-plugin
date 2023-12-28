@@ -130,7 +130,7 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
         void verify(WorkspaceVolume workspaceVolume) {
             assertThat(workspaceVolume, instanceOf(GenericEphemeralWorkspaceVolume.class));
             GenericEphemeralWorkspaceVolume d = (GenericEphemeralWorkspaceVolume) workspaceVolume;
-            assertEquals("my-storageclass", d.getStorageClassName());
+            assertEquals("test-storageclass", d.getStorageClassName());
             assertEquals("ReadWriteMany", d.getAccessModes());
             assertEquals("10Gi", d.getRequestsSize());
         }
