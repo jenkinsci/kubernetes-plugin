@@ -28,9 +28,11 @@ public class NonConfigurableKubernetesCloudTest {
         jenkins.clouds.add(cloud);
         jenkins.save();
         var readOnly = new NonConfigurableKubernetesCloud("NonConfigurableKubernetes", cloud);
-        podTemplate.setName("test-template-read-only");
-        podTemplate.setLabel("test-read-only");
-        readOnly.addTemplate(podTemplate);
+
+        var podTemplate2 = new PodTemplate();
+        podTemplate2.setName("test-template-read-only");
+        podTemplate2.setLabel("test-read-only");
+        readOnly.addTemplate(podTemplate2);
         jenkins.clouds.add(readOnly);
         jenkins.save();
         // check that the read only does not added the template
