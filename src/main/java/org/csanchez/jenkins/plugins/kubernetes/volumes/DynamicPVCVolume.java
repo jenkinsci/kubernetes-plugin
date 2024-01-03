@@ -22,10 +22,13 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Implements a dynamic PVC volume, that is created before the agent pod is created, and terminated afterwards.
+ *
+ * @deprecated Use {@link GenericEphemeralVolume} instead.
  */
 @SuppressFBWarnings(
         value = "SE_NO_SERIALVERSIONID",
         justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@Deprecated
 public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
     private String id;
     private String storageClassName;
@@ -109,12 +112,12 @@ public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
         return Objects.hash(id, storageClassName, requestsSize, accessModes);
     }
 
-    @Extension
+    @Extension(ordinal = -100) // Display at the end of the select list
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {
-            return "Dynamic Persistent Volume Claim";
+            return "Dynamic Persistent Volume Claim (deprecated)";
         }
 
         @SuppressWarnings("unused") // by stapler
