@@ -9,12 +9,7 @@ import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
 import java.util.List;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PersistentVolumeClaim;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
@@ -38,6 +33,7 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
             {new HostPathVolumeStrategy(), "hostPath"},
             {new NfsVolumeStrategy(), "nfs"},
             {new PVCVolumeStrategy(), "pvc"},
+            {new GenericEphemeralVolumeStrategy(), "genericEphemeral"},
         };
     }
 
@@ -130,6 +126,19 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
             assertThat(volume, instanceOf(PersistentVolumeClaim.class));
             PersistentVolumeClaim d = (PersistentVolumeClaim) volume;
             assertEquals("my-claim", d.getClaimName());
+        }
+    }
+
+    static class GenericEphemeralVolumeStrategy extends VolumeStrategy {
+
+        @Override
+        void _verify(PodVolume volume) {
+            assertThat(volume, instanceOf(GenericEphemeralVolume.class));
+            GenericEphemeralVolume d = (GenericEphemeralVolume) volume;
+            assertEquals("ReadWriteMany", d.getAccessModes());
+            assertEquals("10Gi", d.getRequestsSize());
+            assertEquals("/mnt/path", d.getMountPath());
+            assertEquals("test-storageclass", d.getStorageClassName());
         }
     }
 }

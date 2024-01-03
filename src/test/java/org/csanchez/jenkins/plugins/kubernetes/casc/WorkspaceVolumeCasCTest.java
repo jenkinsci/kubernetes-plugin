@@ -9,12 +9,7 @@ import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
 import java.util.List;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.HostPathWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.NfsWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.PersistentVolumeClaimWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
@@ -38,6 +33,7 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
             {new HostPathWorkspaceVolumeStrategy(), "hostPath"},
             {new NfsWorkspaceVolumeStrategy(), "nfs"},
             {new PVCWorkspaceVolumeStrategy(), "pvc"},
+            {new GenericEphemeralWorkspaceVolumeStrategy(), "genericEphemeral"},
         };
     }
 
@@ -124,6 +120,18 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
             assertThat(workspaceVolume, instanceOf(PersistentVolumeClaimWorkspaceVolume.class));
             PersistentVolumeClaimWorkspaceVolume d = (PersistentVolumeClaimWorkspaceVolume) workspaceVolume;
             assertEquals("my-claim", d.getClaimName());
+        }
+    }
+
+    static class GenericEphemeralWorkspaceVolumeStrategy extends WorkspaceVolumeStrategy {
+
+        @Override
+        void verify(WorkspaceVolume workspaceVolume) {
+            assertThat(workspaceVolume, instanceOf(GenericEphemeralWorkspaceVolume.class));
+            GenericEphemeralWorkspaceVolume d = (GenericEphemeralWorkspaceVolume) workspaceVolume;
+            assertEquals("test-storageclass", d.getStorageClassName());
+            assertEquals("ReadWriteMany", d.getAccessModes());
+            assertEquals("10Gi", d.getRequestsSize());
         }
     }
 }

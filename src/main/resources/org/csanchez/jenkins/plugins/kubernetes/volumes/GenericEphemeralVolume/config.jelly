@@ -2,12 +2,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:description>
-        <em>This feature is deprecated. Please use generic ephemeral volume instead, which provides the same functionality without requiring explicit RBAC permissions to create persistent volume claims.</em>
-        <p>
-        Allocates a PVC dynamically using the specified parameters, then deletes it when the pod is deleted.
-        Note that this requires the Jenkins controller to have additional RBAC permissions than are typically needed for agent provisioning.
-        </p>
+        Creates a <a href="https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes" target="_new">generic ephemeral volume</a> using the specified parameters.
     </f:description>
+
+    <f:entry title="${%Mount path}" field="mountPath">
+        <f:textbox />
+    </f:entry>
 
     <f:entry title="${%Storage Class Name}" field="storageClassName">
         <f:textbox />
