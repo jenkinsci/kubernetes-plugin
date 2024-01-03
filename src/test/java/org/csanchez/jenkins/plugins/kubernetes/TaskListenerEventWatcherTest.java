@@ -26,14 +26,13 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-
 import hudson.model.TaskListener;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.client.Watcher;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

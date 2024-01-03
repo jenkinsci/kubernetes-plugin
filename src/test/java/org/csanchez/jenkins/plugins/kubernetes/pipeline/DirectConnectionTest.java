@@ -35,5 +35,4 @@ public final class DirectConnectionTest extends AbstractKubernetesPipelineTest {
     public void directConnectionAgent() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(createJobThenScheduleRun()));
     }
-
 }

@@ -23,17 +23,16 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
 
 public class KubernetesRestartTest {
 

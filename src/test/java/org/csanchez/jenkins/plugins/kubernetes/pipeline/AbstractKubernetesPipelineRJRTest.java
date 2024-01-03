@@ -20,6 +20,7 @@ public abstract class AbstractKubernetesPipelineRJRTest {
 
     @Rule
     public RealJenkinsRule rjr;
+
     {
         rjr = new RealJenkinsRule();
         String connectorHost = System.getProperty("connectorHost");
@@ -33,7 +34,6 @@ public abstract class AbstractKubernetesPipelineRJRTest {
             rjr = rjr.withPort(Integer.parseInt(port));
         }
     }
-
 
     protected RunId runId;
 
@@ -52,6 +52,7 @@ public abstract class AbstractKubernetesPipelineRJRTest {
     public void setUp() throws Throwable {
         rjr.startJenkins();
         rjr.runRemotely(setup);
-        runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
+        runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
+                KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
     }
 }

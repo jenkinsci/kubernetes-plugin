@@ -16,15 +16,13 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.io.IOException;
-import java.io.Serializable;
-
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-
 import hudson.AbortException;
 import hudson.model.Node;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.IOException;
+import java.io.Serializable;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
 
 /**
  * helper class for steps running in a kubernetes `node` context

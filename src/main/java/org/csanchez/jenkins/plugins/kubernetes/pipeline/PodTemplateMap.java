@@ -1,20 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
+import hudson.ExtensionList;
+import hudson.util.CopyOnWriteMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateSource;
-
-import hudson.Extension;
-import hudson.ExtensionList;
-import hudson.util.CopyOnWriteMap;
 
 /**
  * A map of {@link KubernetesCloud} -&gt; List of {@link PodTemplate} instances.
@@ -54,7 +52,9 @@ public class PodTemplateMap {
      */
     public void addTemplate(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate) {
         synchronized (this.map) {
-            LOGGER.log(Level.FINE, "Registering template with id=" + podTemplate.getId() + " to kubernetes cloud " + cloud.name);
+            LOGGER.log(
+                    Level.FINE,
+                    "Registering template with id=" + podTemplate.getId() + " to kubernetes cloud " + cloud.name);
             List<PodTemplate> list = getOrCreateTemplateList(cloud);
             list.add(podTemplate);
             map.put(cloud.name, list);
@@ -63,7 +63,9 @@ public class PodTemplateMap {
 
     public void removeTemplate(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate) {
         synchronized (this.map) {
-            LOGGER.log(Level.FINE, "Unregistering template with id=" + podTemplate.getId() + " from kubernetes cloud " + cloud.name);
+            LOGGER.log(
+                    Level.FINE,
+                    "Unregistering template with id=" + podTemplate.getId() + " from kubernetes cloud " + cloud.name);
             getOrCreateTemplateList(cloud).remove(podTemplate);
         }
     }
@@ -77,5 +79,4 @@ public class PodTemplateMap {
             return PodTemplateMap.get().getTemplates(cloud);
         }
     }
-
 }

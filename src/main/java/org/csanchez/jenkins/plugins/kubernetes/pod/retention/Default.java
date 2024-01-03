@@ -1,25 +1,21 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
-import java.io.Serializable;
-
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import io.fabric8.kubernetes.api.model.Pod;
+import java.io.Serializable;
 import java.util.function.Supplier;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class Default extends PodRetention implements Serializable {
 
     private static final long serialVersionUID = -5209499689925746138L;
 
     @DataBoundConstructor
-    public Default() {
-
-    }
+    public Default() {}
 
     @Override
     public boolean shouldDeletePod(KubernetesCloud cloud, Supplier<Pod> pod) {
@@ -75,7 +71,5 @@ public class Default extends PodRetention implements Serializable {
         public String getDisplayName() {
             return Messages._default();
         }
-
     }
-
 }

@@ -15,5 +15,4 @@ public class PodOfflineCause extends OfflineCause.SimpleOfflineCause {
     protected PodOfflineCause(Localizable description) {
         super(description);
     }
-
 }

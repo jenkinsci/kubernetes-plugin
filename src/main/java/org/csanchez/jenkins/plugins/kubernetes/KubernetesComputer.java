@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Queue;
@@ -12,6 +13,13 @@ import io.fabric8.kubernetes.api.model.EventList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
@@ -22,16 +30,6 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
 import org.kohsuke.stapler.framework.io.LargeText;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * @author Carlos Sanchez carlos@apache.org
@@ -71,13 +69,13 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Container> getContainers() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
+        if (!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getContainers, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
 
         KubernetesSlave slave = getNode();
-        if(slave == null) {
+        if (slave == null) {
             return Collections.emptyList();
         }
 
@@ -96,20 +94,20 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
     @Exported
     public List<Event> getPodEvents() throws KubernetesAuthException, IOException {
-        if(!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
+        if (!Jenkins.get().hasPermission(Computer.EXTENDED_READ)) {
             LOGGER.log(Level.FINE, " Computer {0} getPodEvents, lack of admin permission, returning empty list", this);
             return Collections.emptyList();
         }
 
         KubernetesSlave slave = getNode();
-        if(slave != null) {
+        if (slave != null) {
             KubernetesCloud cloud = slave.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
 
             String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
 
             Pod pod = client.pods().inNamespace(namespace).withName(getName()).get();
-            if(pod != null) {
+            if (pod != null) {
                 ObjectMeta podMeta = pod.getMetadata();
                 String podNamespace = podMeta.getNamespace();
 
@@ -118,8 +116,12 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 fields.put("involvedObject.name", podMeta.getName());
                 fields.put("involvedObject.namespace", podNamespace);
 
-                EventList eventList = client.v1().events().inNamespace(podNamespace).withFields(fields).list();
-                if(eventList != null) {
+                EventList eventList = client.v1()
+                        .events()
+                        .inNamespace(podNamespace)
+                        .withFields(fields)
+                        .list();
+                if (eventList != null) {
                     return eventList.getItems();
                 }
             }
@@ -128,20 +130,24 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         return Collections.emptyList();
     }
 
-    public void doContainerLog(@QueryParameter String containerId,
-                               StaplerRequest req, StaplerResponse rsp) throws KubernetesAuthException, IOException {
+    public void doContainerLog(@QueryParameter String containerId, StaplerRequest req, StaplerResponse rsp)
+            throws KubernetesAuthException, IOException {
         Jenkins.get().checkPermission(Computer.EXTENDED_READ);
 
         ByteBuffer outputStream = new ByteBuffer();
         KubernetesSlave slave = getNode();
-        if(slave != null) {
+        if (slave != null) {
             KubernetesCloud cloud = slave.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
 
             String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
 
-            client.pods().inNamespace(namespace).withName(getName())
-                    .inContainer(containerId).tailingLines(20).watchLog(outputStream);
+            client.pods()
+                    .inNamespace(namespace)
+                    .withName(getName())
+                    .inContainer(containerId)
+                    .tailingLines(20)
+                    .watchLog(outputStream);
         }
 
         new LargeText(outputStream, false).doProgressText(req, rsp);
@@ -174,9 +180,8 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
 
         @Override
         public boolean hasPermission(Authentication a, Permission permission) {
-            return permission == Computer.CONFIGURE ? false : base.hasPermission(a,permission);
+            return permission == Computer.CONFIGURE ? false : base.hasPermission(a, permission);
         }
-
     }
 
     public void setLaunching(boolean launching) {

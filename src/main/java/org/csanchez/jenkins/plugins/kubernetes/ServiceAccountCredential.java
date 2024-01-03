@@ -1,9 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import com.cloudbees.plugins.credentials.CredentialsScope;
 import org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import com.cloudbees.plugins.credentials.CredentialsScope;
 
 /**
  * Read the OAuth bearer token from service account file provisioned by kubernetes
@@ -21,5 +20,4 @@ public class ServiceAccountCredential extends FileSystemServiceAccountCredential
     public ServiceAccountCredential(CredentialsScope scope, String id, String description) {
         super(scope, id, description);
     }
-
 }

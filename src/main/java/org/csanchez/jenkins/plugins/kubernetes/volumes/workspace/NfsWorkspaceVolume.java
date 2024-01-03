@@ -27,20 +27,21 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-
 import java.util.Objects;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class NfsWorkspaceVolume extends WorkspaceVolume {
     private String serverAddress;
     private String serverPath;
+
     @CheckForNull
     private Boolean readOnly;
 
@@ -76,9 +77,9 @@ public class NfsWorkspaceVolume extends WorkspaceVolume {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         NfsWorkspaceVolume that = (NfsWorkspaceVolume) o;
-        return Objects.equals(serverAddress, that.serverAddress) &&
-                Objects.equals(serverPath, that.serverPath) &&
-                Objects.equals(readOnly, that.readOnly);
+        return Objects.equals(serverAddress, that.serverAddress)
+                && Objects.equals(serverPath, that.serverPath)
+                && Objects.equals(readOnly, that.readOnly);
     }
 
     @Override

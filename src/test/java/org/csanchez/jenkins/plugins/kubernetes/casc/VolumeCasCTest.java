@@ -1,24 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.casc;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.NfsVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PersistentVolumeClaim;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
-
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import java.util.List;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 @RunWith(Parameterized.class)
 public class VolumeCasCTest extends RoundTripAbstractTest {
@@ -33,12 +27,13 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
     @Parameterized.Parameters(name = "{index}: {1}")
     public static Object[] permutations() {
         return new Object[][] {
-                {new EmptyDirVolumeStrategy(), "emptyDir"},
-                {new EmptyDirVolumeStrategy(Boolean.TRUE), "emptyDir_memory"},
-                {new ConfigMapVolumeStrategy(), "configMap"},
-                {new HostPathVolumeStrategy(), "hostPath"},
-                {new NfsVolumeStrategy(), "nfs"},
-                {new PVCVolumeStrategy(), "pvc"},
+            {new EmptyDirVolumeStrategy(), "emptyDir"},
+            {new EmptyDirVolumeStrategy(Boolean.TRUE), "emptyDir_memory"},
+            {new ConfigMapVolumeStrategy(), "configMap"},
+            {new HostPathVolumeStrategy(), "hostPath"},
+            {new NfsVolumeStrategy(), "nfs"},
+            {new PVCVolumeStrategy(), "pvc"},
+            {new GenericEphemeralVolumeStrategy(), "genericEphemeral"},
         };
     }
 
@@ -53,7 +48,6 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
         List<PodVolume> volumes = podTemplate.getVolumes();
         assertEquals(1, volumes.size());
         strategy.verify(volumes.get(0));
-
     }
 
     @Override
@@ -71,6 +65,7 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
             _verify(volume);
             assertEquals("/mnt/path", volume.getMountPath());
         }
+
         abstract void _verify(PodVolume volume);
     }
 
@@ -120,7 +115,7 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
             assertThat(volume, instanceOf(NfsVolume.class));
             NfsVolume d = (NfsVolume) volume;
             assertEquals("serverAddress", d.getServerAddress());
-            assertEquals("/path",d.getServerPath());
+            assertEquals("/path", d.getServerPath());
         }
     }
 
@@ -134,4 +129,16 @@ public class VolumeCasCTest extends RoundTripAbstractTest {
         }
     }
 
+    static class GenericEphemeralVolumeStrategy extends VolumeStrategy {
+
+        @Override
+        void _verify(PodVolume volume) {
+            assertThat(volume, instanceOf(GenericEphemeralVolume.class));
+            GenericEphemeralVolume d = (GenericEphemeralVolume) volume;
+            assertEquals("ReadWriteMany", d.getAccessModes());
+            assertEquals("10Gi", d.getRequestsSize());
+            assertEquals("/mnt/path", d.getMountPath());
+            assertEquals("test-storageclass", d.getStorageClassName());
+        }
+    }
 }

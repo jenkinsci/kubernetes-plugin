@@ -1,6 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
@@ -11,8 +13,6 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.Objects;
 import java.util.UUID;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -22,8 +22,13 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Implements a dynamic PVC volume, that is created before the agent pod is created, and terminated afterwards.
+ *
+ * @deprecated Use {@link GenericEphemeralVolume} instead.
  */
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@Deprecated
 public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
     private String id;
     private String storageClassName;
@@ -96,10 +101,10 @@ public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DynamicPVCVolume that = (DynamicPVCVolume) o;
-        return Objects.equals(id, that.id) &&
-                Objects.equals(storageClassName, that.storageClassName) &&
-                Objects.equals(requestsSize, that.requestsSize) &&
-                Objects.equals(accessModes, that.accessModes);
+        return Objects.equals(id, that.id)
+                && Objects.equals(storageClassName, that.storageClassName)
+                && Objects.equals(requestsSize, that.requestsSize)
+                && Objects.equals(accessModes, that.accessModes);
     }
 
     @Override
@@ -107,12 +112,12 @@ public class DynamicPVCVolume extends PodVolume implements DynamicPVC {
         return Objects.hash(id, storageClassName, requestsSize, accessModes);
     }
 
-    @Extension
+    @Extension(ordinal = -100) // Display at the end of the select list
     @Symbol("dynamicPVC")
     public static class DescriptorImpl extends Descriptor<PodVolume> {
         @Override
         public String getDisplayName() {
-            return "Dynamic Persistent Volume Claim";
+            return "Dynamic Persistent Volume Claim (deprecated)";
         }
 
         @SuppressWarnings("unused") // by stapler

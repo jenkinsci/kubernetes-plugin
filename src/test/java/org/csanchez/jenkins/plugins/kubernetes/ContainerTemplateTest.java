@@ -15,10 +15,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.junit.Assert.*;
+
 import hudson.util.FormValidation;
 import java.util.Collections;
-
-import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class ContainerTemplateTest {
@@ -44,8 +44,10 @@ public class ContainerTemplateTest {
         ContainerTemplate clonedTemplate = new ContainerTemplate(originalTemplate);
 
         assertEquals("Cloned ContainerTemplate is not equal to the original one!", originalTemplate, clonedTemplate);
-        assertEquals("String representation (toString()) of the cloned and original ContainerTemplate is not equal!",
-                originalTemplate.toString(), clonedTemplate.toString());
+        assertEquals(
+                "String representation (toString()) of the cloned and original ContainerTemplate is not equal!",
+                originalTemplate.toString(),
+                clonedTemplate.toString());
     }
 
     @SuppressWarnings("ResultOfObjectAllocationIgnored")
@@ -55,12 +57,17 @@ public class ContainerTemplateTest {
         assertEquals(FormValidation.Kind.OK, new ContainerTemplate.DescriptorImpl().doCheckImage("something").kind);
         for (String empty : new String[] {null, ""}) {
             assertThrows("rejected " + empty, IllegalArgumentException.class, () -> new ContainerTemplate("n", empty));
-            assertEquals("tolerating " + empty + " during form validation", FormValidation.Kind.OK, new ContainerTemplate.DescriptorImpl().doCheckImage(empty).kind);
+            assertEquals(
+                    "tolerating " + empty + " during form validation",
+                    FormValidation.Kind.OK,
+                    new ContainerTemplate.DescriptorImpl().doCheckImage(empty).kind);
         }
         for (String bad : new String[] {" ", " something"}) {
             assertThrows("rejected " + bad, IllegalArgumentException.class, () -> new ContainerTemplate("n", bad));
-            assertEquals("rejected " + bad, FormValidation.Kind.ERROR, new ContainerTemplate.DescriptorImpl().doCheckImage(bad).kind);
+            assertEquals(
+                    "rejected " + bad,
+                    FormValidation.Kind.ERROR,
+                    new ContainerTemplate.DescriptorImpl().doCheckImage(bad).kind);
         }
     }
-
 }

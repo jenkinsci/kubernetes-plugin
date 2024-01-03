@@ -1,26 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.75</version>
-    <relativePath/>
+    <version>4.76</version>
+    <relativePath />
   </parent>
 
   <groupId>org.csanchez.jenkins.plugins</groupId>
   <artifactId>kubernetes</artifactId>
   <version>${changelist}</version>
+  <packaging>hpi</packaging>
   <name>Kubernetes plugin</name>
   <description>Jenkins plugin to run dynamic agents in a Kubernetes cluster</description>
-  <packaging>hpi</packaging>
   <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-
-  <scm>
-    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
-    <url>https://github.com/${gitHubRepo}</url>
-    <tag>${scmTag}</tag>
-  </scm>
 
   <licenses>
     <license>
@@ -38,6 +32,13 @@
     </developer>
   </developers>
 
+  <scm>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:https://github.com/${gitHubRepo}.git</developerConnection>
+    <tag>${scmTag}</tag>
+    <url>https://github.com/${gitHubRepo}</url>
+  </scm>
+
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <!-- in minikube
@@ -45,28 +46,49 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.415</jenkins.version>
-    <bom>2.414.x</bom>
+    <jenkins.version>2.426.1</jenkins.version>
+    <bom>2.426.x</bom>
     <bom.version>2571.vede9dc5a_2e23</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
+    <spotless.check.skip>false</spotless.check.skip>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-${bom}</artifactId>
+        <version>${bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>mockwebserver</artifactId>
+        <version>4.9.3</version>
+        <!-- should be aligned with the version provided by okhttp-api-plugin -->
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>kubernetes-client-api</artifactId>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>caffeine-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>jackson2-api</artifactId>
+      <artifactId>authentication-tokens</artifactId>
     </dependency>
+
     <dependency>
+      <!-- Requires Permission -->
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>structs</artifactId>
+      <artifactId>cloudbees-folder</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -74,20 +96,7 @@
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>plain-credentials</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>kubernetes-credentials</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>authentication-tokens</artifactId>
-    </dependency>
-
-    <dependency> <!-- Requires Permission -->
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>cloudbees-folder</artifactId>
+      <artifactId>credentials-binding</artifactId>
     </dependency>
 
     <dependency>
@@ -96,119 +105,59 @@
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>variant</artifactId>
+      <artifactId>jackson2-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-step-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-api</artifactId>
-    </dependency>
-    <dependency> <!-- DeclarativeAgent -->
-      <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>pipeline-model-extensions</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency> <!-- DeclarativeGeneratorTester -->
-      <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>pipeline-model-definition</artifactId>
-      <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
-      <optional>true</optional>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>kubernetes-client-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>metrics</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.jenkins.plugins</groupId>
-      <artifactId>caffeine-api</artifactId>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>plain-credentials</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials-binding</artifactId>
+      <artifactId>structs</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>variant</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-durable-task-step</artifactId>
     </dependency>
-
-    <!-- for testing -->
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-job</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-basic-steps</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency> <!-- SemaphoreStep -->
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-support</artifactId>
-      <classifier>tests</classifier>
-      <scope>test</scope>
+      <artifactId>workflow-step-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
-      <artifactId>pipeline-model-definition</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency> <!-- SnippetizerTest -->
-      <groupId>org.jenkins-ci.plugins.workflow</groupId>
-      <artifactId>workflow-cps</artifactId>
-      <classifier>tests</classifier>
-      <scope>test</scope>
+      <artifactId>kubernetes-credentials</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
+      <!-- DeclarativeAgent -->
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-extensions</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>git</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>git</artifactId>
-      <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>scm-api</artifactId>
-      <scope>test</scope>
-      <classifier>tests</classifier>
-    </dependency>
-    <!-- for ContainerExecDecoratorPipelineTest -->
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>ssh-agent</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>ssh-credentials</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>bouncycastle-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>pl.pragmatists</groupId>
-      <artifactId>JUnitParams</artifactId>
-      <version>1.1.1</version>
+      <groupId>io.fabric8</groupId>
+      <artifactId>kubernetes-server-mock</artifactId>
+      <version>6.8.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -222,8 +171,30 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <version>4.2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>bouncycastle-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>docker-workflow</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>git</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>git</artifactId>
+      <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -233,36 +204,87 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.fabric8</groupId>
-      <artifactId>kubernetes-server-mock</artifactId>
-      <version>6.8.1</version>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>scm-api</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <!-- for ContainerExecDecoratorPipelineTest -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>ssh-agent</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.awaitility</groupId>
-      <artifactId>awaitility</artifactId>
-      <version>4.2.0</version>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>ssh-credentials</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-basic-steps</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- SnippetizerTest -->
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- for testing -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-job</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- SemaphoreStep -->
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-support</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- DeclarativeGeneratorTester -->
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-definition</artifactId>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkinsci.plugins</groupId>
+      <artifactId>pipeline-model-definition</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>pl.pragmatists</groupId>
+      <artifactId>JUnitParams</artifactId>
+      <version>1.1.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
+  <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-${bom}</artifactId>
-        <version>${bom.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>mockwebserver</artifactId>
-        <version>4.9.3</version><!-- should be aligned with the version provided by okhttp-api-plugin -->
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <build>
     <plugins>
@@ -297,21 +319,6 @@
       </plugin>
     </plugins>
   </build>
-
-  <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <profiles>
     <profile>

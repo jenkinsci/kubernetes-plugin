@@ -1,5 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isA;
+
+import java.util.Collections;
+import java.util.Map;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
@@ -9,13 +15,6 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.Collections;
-import java.util.Map;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.isA;
 
 public class KubernetesDeclarativeAgentUnitTest {
     @ClassRule
@@ -57,17 +56,15 @@ public class KubernetesDeclarativeAgentUnitTest {
         assertThat(args.get("cloud"), equalTo("cloud"));
         assertThat(args.get("label"), equalTo("label"));
         assertThat(args.get("yaml"), equalTo("yaml"));
-        assertThat(args.get("yamlMergeStrategy"),isA(Merge.class));
-        assertThat(args.get("workspaceVolume"),equalTo(workspaceVolume));
+        assertThat(args.get("yamlMergeStrategy"), isA(Merge.class));
+        assertThat(args.get("workspaceVolume"), equalTo(workspaceVolume));
         assertThat(args.get("idleMinutes"), equalTo(1));
         assertThat(args.get("inheritFrom"), equalTo("inheritFrom"));
     }
 
     @Test
     public void simpleGenerator() throws Exception {
-        dg.assertGenerateDirective(directive, "agent {\n" +
-                "  kubernetes true\n" +
-                "}");
+        dg.assertGenerateDirective(directive, "agent {\n" + "  kubernetes true\n" + "}");
     }
 
     @Test
@@ -82,15 +79,16 @@ public class KubernetesDeclarativeAgentUnitTest {
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setPodRetention(new Never());
         instance.setInheritFrom("inheritFrom");
-        dg.assertGenerateDirective(directive, "agent {\n" +
-                "  kubernetes {\n" +
-                "    cloud 'cloud'\n" +
-                "    inheritFrom 'inheritFrom'\n" +
-                "    podRetention never()\n" +
-                "    workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')\n" +
-                "    yaml 'yaml'\n" +
-                "    yamlMergeStrategy merge()\n" +
-                "  }\n" +
-                "}");
+        dg.assertGenerateDirective(
+                directive,
+                "agent {\n" + "  kubernetes {\n"
+                        + "    cloud 'cloud'\n"
+                        + "    inheritFrom 'inheritFrom'\n"
+                        + "    podRetention never()\n"
+                        + "    workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')\n"
+                        + "    yaml 'yaml'\n"
+                        + "    yamlMergeStrategy merge()\n"
+                        + "  }\n"
+                        + "}");
     }
 }

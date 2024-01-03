@@ -26,22 +26,23 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import java.util.Map;
-import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
-
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringUtils;
 
 public final class PodUtils {
     private static final Logger LOGGER = Logger.getLogger(PodUtils.class.getName());
 
-    public static final Predicate<ContainerStatus> CONTAINER_IS_TERMINATED = cs -> cs.getState().getTerminated() != null;
-    public static final Predicate<ContainerStatus> CONTAINER_IS_WAITING = cs -> cs.getState().getWaiting() != null;
+    public static final Predicate<ContainerStatus> CONTAINER_IS_TERMINATED =
+            cs -> cs.getState().getTerminated() != null;
+    public static final Predicate<ContainerStatus> CONTAINER_IS_WAITING =
+            cs -> cs.getState().getWaiting() != null;
 
     @NonNull
     public static List<ContainerStatus> getTerminatedContainers(Pod pod) {
@@ -83,26 +84,33 @@ public final class PodUtils {
         }
         Map<String, String> annotations = metadata.getAnnotations();
         if (annotations == null) {
-            LOGGER.log(Level.FINE, "Pod .metadata.annotations is null: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
+            LOGGER.log(Level.FINE, "Pod .metadata.annotations is null: {0}/{1}", new Object[] {
+                metadata.getNamespace(), metadata.getName()
+            });
             return;
         }
         String runUrl = annotations.get("runUrl");
         if (runUrl == null) {
-            LOGGER.log(Level.FINE, "Pod .metadata.annotations.runUrl is null: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
+            LOGGER.log(Level.FINE, "Pod .metadata.annotations.runUrl is null: {0}/{1}", new Object[] {
+                metadata.getNamespace(), metadata.getName()
+            });
             return;
         }
-        for (Queue.Item item: q.getItems()) {
+        for (Queue.Item item : q.getItems()) {
             Queue.Task task = item.task;
             if (runUrl.equals(task.getUrl())) {
-                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}",
-                        new Object[]{ task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""});
+                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}", new Object[] {
+                    task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""
+                });
                 q.cancel(item);
                 cancelled = true;
                 break;
             }
         }
         if (!cancelled) {
-            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {metadata.getNamespace(), metadata.getName()});
+            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {
+                metadata.getNamespace(), metadata.getName()
+            });
         }
     }
 
@@ -111,7 +119,7 @@ public final class PodUtils {
         PodStatus status = pod.getStatus();
         ObjectMeta metadata = pod.getMetadata();
         if (status == null || metadata == null) {
-             return null;
+            return null;
         }
         String podName = metadata.getName();
         String namespace = metadata.getNamespace();
@@ -145,7 +153,11 @@ public final class PodUtils {
                     sb.append(log);
                     sb.append("\n");
                 } catch (KubernetesClientException e) {
-                    LOGGER.log(Level.FINE, e, () -> namespace + "/" + podName + " Unable to retrieve container logs as the pod is already gone");
+                    LOGGER.log(
+                            Level.FINE,
+                            e,
+                            () -> namespace + "/" + podName
+                                    + " Unable to retrieve container logs as the pod is already gone");
                 }
             }
         }

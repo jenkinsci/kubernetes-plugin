@@ -16,15 +16,13 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Saveable;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
-
 import java.io.Serializable;
 import java.util.Collection;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  *  Pod Template Tool Location
@@ -34,11 +32,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * @author <a href="mailto:aytuncbeken.ab@gmail.com">Aytunc BEKEN</a>
  */
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
-public class PodTemplateToolLocation extends DescribableList<NodeProperty<?>,NodePropertyDescriptor> implements Serializable {
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+public class PodTemplateToolLocation extends DescribableList<NodeProperty<?>, NodePropertyDescriptor>
+        implements Serializable {
 
     public PodTemplateToolLocation() {}
-
 
     public PodTemplateToolLocation(DescribableList.Owner owner) {
         super(owner);
@@ -49,7 +49,6 @@ public class PodTemplateToolLocation extends DescribableList<NodeProperty<?>,Nod
     }
 
     public PodTemplateToolLocation(Saveable owner, Collection<? extends NodeProperty<?>> initialList) {
-        super(owner,initialList);
+        super(owner, initialList);
     }
-
 }

@@ -5,7 +5,6 @@ import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Queue;
 import hudson.model.Queue.Task;
-
 import hudson.model.queue.CauseOfBlockage;
 import hudson.model.queue.QueueTaskDispatcher;
 

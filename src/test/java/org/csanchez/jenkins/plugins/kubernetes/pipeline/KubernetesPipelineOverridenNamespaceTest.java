@@ -4,19 +4,11 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.testing
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import hudson.model.Computer;
-import hudson.slaves.SlaveComputer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Test;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import org.junit.Test;
 
 public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetesPipelineTest {
 
@@ -30,7 +22,9 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
         assertNotNull(createJobThenScheduleRun());
         SemaphoreStep.waitForStart("pod/1", b);
         for (KubernetesComputer c : getKubernetesComputers()) {
-            assertEquals(overriddenNamespace, c.getNode().getPod().get().getMetadata().getNamespace());
+            assertEquals(
+                    overriddenNamespace,
+                    c.getNode().getPod().get().getMetadata().getNamespace());
         }
         SemaphoreStep.success("pod/1", null);
 

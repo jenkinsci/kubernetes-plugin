@@ -16,6 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Node;
@@ -42,18 +43,20 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.steps.AgentErrorCondition;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Qualifies {@code node} blocks associated with {@link KubernetesSlave} to be retried if the node was deleted.
  * A more specific version of {@link AgentErrorCondition}.
  */
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class KubernetesAgentErrorCondition extends ErrorCondition {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesAgentErrorCondition.class.getName());
 
     private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS = new HashSet<>();
+
     static {
         IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKilled");
         IGNORED_CONTAINER_TERMINATION_REASONS.add("Completed");
@@ -62,13 +65,15 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
 
     private boolean handleNonKubernetes;
 
-    @DataBoundConstructor public KubernetesAgentErrorCondition() {}
+    @DataBoundConstructor
+    public KubernetesAgentErrorCondition() {}
 
     public boolean isHandleNonKubernetes() {
         return handleNonKubernetes;
     }
 
-    @DataBoundSetter public void setHandleNonKubernetes(boolean handleNonKubernetes) {
+    @DataBoundSetter
+    public void setHandleNonKubernetes(boolean handleNonKubernetes) {
         this.handleNonKubernetes = handleNonKubernetes;
     }
 
@@ -86,7 +91,9 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
         FlowNode _origin = ErrorAction.findOrigin(t, context.get(FlowExecution.class));
         if (_origin == null) {
             if (!handleNonKubernetes) {
-                listener.getLogger().println("Unable to identify source of error (" + t + ") to see if this was associated with a Kubernetes agent");
+                listener.getLogger()
+                        .println("Unable to identify source of error (" + t
+                                + ") to see if this was associated with a Kubernetes agent");
             }
             return handleNonKubernetes;
         }
@@ -110,41 +117,53 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 } else {
                     // May have been removed already, but we can look up the labels to see what it was.
                     Set<LabelAtom> labels = ws.getLabels();
-                    if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream().anyMatch(c -> c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
+                    if (labels.stream().noneMatch(l -> Jenkins.get().clouds.stream()
+                            .anyMatch(c ->
+                                    c instanceof KubernetesCloud && ((KubernetesCloud) c).getTemplate(l) != null))) {
                         if (!handleNonKubernetes) {
-                            listener.getLogger().println(node + " did not look like a Kubernetes agent judging by " + labels + "; make sure retry is inside podTemplate, not outside");
+                            listener.getLogger()
+                                    .println(node + " did not look like a Kubernetes agent judging by " + labels
+                                            + "; make sure retry is inside podTemplate, not outside");
                         }
                         return handleNonKubernetes;
                     }
                 }
-                Set<String> terminationReasons = ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
+                Set<String> terminationReasons =
+                        ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
                 if (terminationReasons.stream().anyMatch(r -> IGNORED_CONTAINER_TERMINATION_REASONS.contains(r))) {
-                    listener.getLogger().println("Ignored termination reason(s) for " + node + " for purposes of retry: " + terminationReasons);
+                    listener.getLogger()
+                            .println("Ignored termination reason(s) for " + node + " for purposes of retry: "
+                                    + terminationReasons);
                     return false;
                 }
                 LOGGER.fine(() -> "active on " + node + " (termination reasons: " + terminationReasons + ")");
                 return true;
             }
-            foundPodTemplate |= callStack instanceof StepNode && ((StepNode) callStack).getDescriptor() instanceof PodTemplateStep.DescriptorImpl;
+            foundPodTemplate |= callStack instanceof StepNode
+                    && ((StepNode) callStack).getDescriptor() instanceof PodTemplateStep.DescriptorImpl;
         }
         if (!handleNonKubernetes) {
             if (foundPodTemplate) {
-                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error) but inside podTemplate");
+                listener.getLogger()
+                        .println("Could not find a node block associated with " + origin.getDisplayFunctionName()
+                                + " (source of error) but inside podTemplate");
                 return true;
             } else {
-                listener.getLogger().println("Could not find a node block associated with " + origin.getDisplayFunctionName() + " (source of error)");
+                listener.getLogger()
+                        .println("Could not find a node block associated with " + origin.getDisplayFunctionName()
+                                + " (source of error)");
             }
         }
         return handleNonKubernetes;
     }
 
     @Symbol("kubernetesAgent")
-    @Extension public static final class DescriptorImpl extends ErrorConditionDescriptor {
+    @Extension
+    public static final class DescriptorImpl extends ErrorConditionDescriptor {
 
-        @Override public String getDisplayName() {
+        @Override
+        public String getDisplayName() {
             return "Kubernetes agent errors";
         }
-
     }
-
 }

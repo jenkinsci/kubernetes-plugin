@@ -24,6 +24,18 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import hudson.Launcher;
 import hudson.Launcher.DummyLauncher;
 import hudson.Launcher.ProcStarter;
@@ -33,6 +45,16 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
@@ -50,29 +72,6 @@ import org.junit.rules.TestName;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.recipes.WithTimeout;
-
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.WINDOWS_1809_BUILD;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeWindows;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
-import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ContainerExecDecoratorWindowsTest {
     @Rule
@@ -112,22 +111,24 @@ public class ContainerExecDecoratorWindowsTest {
         String image = "mcr.microsoft.com/windows:" + WINDOWS_1809_BUILD + ".2686";
         String containerName = "container";
         String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        pod = client.pods().create(new PodBuilder()
-                .withNewMetadata()
-                    .withName(podName)
-                    .withLabels(getLabels(this, name))
-                .endMetadata()
-                .withNewSpec()
-                    .withContainers(new ContainerBuilder()
+        pod = client.pods()
+                .create(new PodBuilder()
+                        .withNewMetadata()
+                        .withName(podName)
+                        .withLabels(getLabels(this, name))
+                        .endMetadata()
+                        .withNewSpec()
+                        .withContainers(new ContainerBuilder()
                                 .withName(containerName)
                                 .withImage(image)
                                 .withCommand("powershell")
                                 .withArgs("Start-Sleep", "2147483")
-                            .build())
-                    .addToNodeSelector("kubernetes.io/os", "windows")
-                    .addToNodeSelector("node.kubernetes.io/windows-build", WINDOWS_1809_BUILD)
-                    .withTerminationGracePeriodSeconds(0L)
-                .endSpec().build());
+                                .build())
+                        .addToNodeSelector("kubernetes.io/os", "windows")
+                        .addToNodeSelector("node.kubernetes.io/windows-build", WINDOWS_1809_BUILD)
+                        .withTerminationGracePeriodSeconds(0L)
+                        .endSpec()
+                        .build());
 
         System.out.println("Created pod: " + pod.getMetadata().getName());
         client.pods().withName(podName).waitUntilReady(10, TimeUnit.MINUTES);
@@ -176,15 +177,19 @@ public class ContainerExecDecoratorWindowsTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, true, output, "echo", "pid is 9999");
         String out = output.toString(StandardCharsets.UTF_8.name());
-        assertFalse("Output should not contain command: " + out, PID_PATTERN.matcher(out).find());
+        assertFalse(
+                "Output should not contain command: " + out,
+                PID_PATTERN.matcher(out).find());
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
-    private ProcReturn execCommandInContainer(String containerName, Node node, boolean quiet, OutputStream outputForCaller, String... cmd) throws Exception {
+    private ProcReturn execCommandInContainer(
+            String containerName, Node node, boolean quiet, OutputStream outputForCaller, String... cmd)
+            throws Exception {
         decorator.setContainerName(containerName);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))){
+        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))) {
             @Override
             public boolean isUnix() {
                 return false;
@@ -197,7 +202,8 @@ public class ContainerExecDecoratorWindowsTest {
         }
         envs.put("workingDir1", "C:\\agent");
 
-        ProcStarter procStarter = launcher.new ProcStarter().pwd("C:\\").cmds(cmd).envs(envs).quiet(quiet);
+        ProcStarter procStarter =
+                launcher.new ProcStarter().pwd("C:\\").cmds(cmd).envs(envs).quiet(quiet);
         if (outputForCaller != null) {
             procStarter.stdout(outputForCaller);
         }

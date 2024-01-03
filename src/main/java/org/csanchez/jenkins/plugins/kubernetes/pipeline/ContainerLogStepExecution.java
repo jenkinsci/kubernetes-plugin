@@ -19,18 +19,14 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.TailPrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
 public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecution<String> {
     private static final long serialVersionUID = 5588861066775717487L;
@@ -78,10 +74,13 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             TimeTailPrettyLoggable limited = limitBytes > 0
                     ? client.pods() //
                             .inNamespace(nodeContext.getNamespace()) //
-                            .withName(podName).inContainer(containerName).limitBytes(limitBytes)
+                            .withName(podName)
+                            .inContainer(containerName)
+                            .limitBytes(limitBytes)
                     : client.pods() //
                             .inNamespace(nodeContext.getNamespace()) //
-                            .withName(podName).inContainer(containerName);
+                            .withName(podName)
+                            .inContainer(containerName);
 
             TailPrettyLoggable since = sinceSeconds > 0 ? limited.sinceSeconds(sinceSeconds) : limited;
 

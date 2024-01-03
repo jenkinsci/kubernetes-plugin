@@ -16,10 +16,10 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.junit.Assert.assertNotNull;
+
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-
-import static org.junit.Assert.assertNotNull;
 
 public class ContainerLogStepTest extends AbstractKubernetesPipelineTest {
 

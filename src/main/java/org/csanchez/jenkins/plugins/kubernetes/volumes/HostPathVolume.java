@@ -27,15 +27,16 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class HostPathVolume extends PodVolume {
     private String mountPath;
     private String hostPath;
@@ -53,7 +54,9 @@ public class HostPathVolume extends PodVolume {
     public Volume buildVolume(String volumeName) {
         return new VolumeBuilder() //
                 .withName(volumeName) //
-                .withNewHostPath().withPath(getHostPath()).endHostPath() //
+                .withNewHostPath()
+                .withPath(getHostPath())
+                .endHostPath() //
                 .build();
     }
 

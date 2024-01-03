@@ -27,19 +27,20 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-
 import java.util.Objects;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.DataBoundConstructor;
 
-@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "Serialization happens exclusively through XStream and not Java Serialization.")
+@SuppressFBWarnings(
+        value = "SE_NO_SERIALVERSIONID",
+        justification = "Serialization happens exclusively through XStream and not Java Serialization.")
 public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
     private String claimName;
+
     @CheckForNull
     private Boolean readOnly;
 
@@ -63,8 +64,8 @@ public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewPersistentVolumeClaim()
-                    .withClaimName(getClaimName())
-                    .withReadOnly(getReadOnly())
+                .withClaimName(getClaimName())
+                .withReadOnly(getReadOnly())
                 .and()
                 .build();
     }
@@ -74,8 +75,7 @@ public class PersistentVolumeClaimWorkspaceVolume extends WorkspaceVolume {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PersistentVolumeClaimWorkspaceVolume that = (PersistentVolumeClaimWorkspaceVolume) o;
-        return Objects.equals(claimName, that.claimName) &&
-                Objects.equals(readOnly, that.readOnly);
+        return Objects.equals(claimName, that.claimName) && Objects.equals(readOnly, that.readOnly);
     }
 
     @Override

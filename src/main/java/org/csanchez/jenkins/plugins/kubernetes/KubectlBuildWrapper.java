@@ -19,26 +19,25 @@ import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.ListBoxModel;
-import jenkins.authentication.tokens.api.AuthenticationTokens;
-import jenkins.model.Jenkins;
-import jenkins.tasks.SimpleBuildWrapper;
-import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.Writer;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildWrapper;
+import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -50,8 +49,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     private String caCertificate;
 
     @DataBoundConstructor
-    public KubectlBuildWrapper(@NonNull String serverUrl, @NonNull String credentialsId,
-            @NonNull String caCertificate) {
+    public KubectlBuildWrapper(
+            @NonNull String serverUrl, @NonNull String credentialsId, @NonNull String caCertificate) {
         this.serverUrl = serverUrl;
         this.credentialsId = Util.fixEmpty(credentialsId);
         this.caCertificate = Util.fixEmptyAndTrim(caCertificate);
@@ -76,7 +75,14 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
     }
 
     @Override
-    public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
+    public void setUp(
+            Context context,
+            Run<?, ?> build,
+            FilePath workspace,
+            Launcher launcher,
+            TaskListener listener,
+            EnvVars initialEnvironment)
+            throws IOException, InterruptedException {
         if (credentialsId == null) {
             throw new AbortException("No credentials defined to setup Kubernetes CLI");
         }
@@ -87,25 +93,38 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         context.env("KUBECONFIG", configFile.getRemote());
         context.setDisposer(new CleanupDisposer(tempFiles));
 
-        StandardCredentials credentials = CredentialsProvider.findCredentialById(credentialsId, StandardCredentials.class, build, Collections.emptyList());
+        StandardCredentials credentials = CredentialsProvider.findCredentialById(
+                credentialsId, StandardCredentials.class, build, Collections.emptyList());
         if (credentials == null) {
             throw new AbortException("No credentials found for id \"" + credentialsId + "\"");
         }
         KubernetesAuth auth = AuthenticationTokens.convert(KubernetesAuth.class, credentials);
         if (auth == null) {
-            throw new AbortException("Unsupported Credentials type " + credentials.getClass().getName());
+            throw new AbortException(
+                    "Unsupported Credentials type " + credentials.getClass().getName());
         }
         try (Writer w = new OutputStreamWriter(configFile.write(), StandardCharsets.UTF_8)) {
-            w.write(auth.buildKubeConfig(new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
+            w.write(auth.buildKubeConfig(
+                    new KubernetesAuthConfig(getServerUrl(), getCaCertificate(), getCaCertificate() == null)));
         } catch (KubernetesAuthException e) {
             throw new AbortException(e.getMessage());
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         String cmd = "kubectl version";
-        int status = launcher.launch().cmdAsSingleString(cmd).stdout(out).stderr(err).quiet(true).envs("KUBECONFIG="+configFile.getRemote()).join();
+        int status = launcher.launch()
+                .cmdAsSingleString(cmd)
+                .stdout(out)
+                .stderr(err)
+                .quiet(true)
+                .envs("KUBECONFIG=" + configFile.getRemote())
+                .join();
         if (status != 0) {
-            StringBuilder msgBuilder = new StringBuilder("Failed to run \"").append(cmd).append("\". Returned status code ").append(status).append(".\n");
+            StringBuilder msgBuilder = new StringBuilder("Failed to run \"")
+                    .append(cmd)
+                    .append("\". Returned status code ")
+                    .append(status)
+                    .append(".\n");
             msgBuilder.append("stdout:\n").append(out).append("\n");
             msgBuilder.append("stderr:\n").append(err);
             throw new AbortException(msgBuilder.toString());
@@ -126,7 +145,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return "Setup Kubernetes CLI (kubectl)";
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
+        public ListBoxModel doFillCredentialsIdItems(
+                @AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
             if (item == null
                     ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !item.hasPermission(Item.EXTENDED_READ)) {
@@ -140,10 +160,9 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
                     StandardCredentials.class,
                     URIRequirementBuilder.fromUri(serverUrl).build(),
                     CredentialsMatchers.anyOf(
-                            CredentialsMatchers.instanceOf(org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
-                            AuthenticationTokens.matcher(KubernetesAuth.class)
-                    )
-            );
+                            CredentialsMatchers.instanceOf(
+                                    org.jenkinsci.plugins.kubernetes.credentials.TokenProducer.class),
+                            AuthenticationTokens.matcher(KubernetesAuth.class)));
             return result;
         }
     }
@@ -158,7 +177,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
         }
 
         @Override
-        public void tearDown(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+        public void tearDown(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
+                throws IOException, InterruptedException {
             for (String configFile : configFiles) {
                 workspace.child(configFile).delete();
             }

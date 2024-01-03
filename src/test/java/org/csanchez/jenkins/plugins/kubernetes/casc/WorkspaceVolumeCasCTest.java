@@ -1,24 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes.casc;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.HostPathWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.NfsWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.PersistentVolumeClaimWorkspaceVolume;
-import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
-
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
+import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import java.util.List;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.*;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 @RunWith(Parameterized.class)
 public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
@@ -33,12 +27,13 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
     @Parameterized.Parameters(name = "{index}: {1}")
     public static Object[] permutations() {
         return new Object[][] {
-                {new DynamicPVCWorkspaceVolumeStrategy(), "dynamicPVC"},
-                {new EmptyDirWorkspaceVolumeStrategy(), "emptyDir"},
-                {new EmptyDirWorkspaceVolumeStrategy(Boolean.TRUE), "emptyDir_memory"},
-                {new HostPathWorkspaceVolumeStrategy(), "hostPath"},
-                {new NfsWorkspaceVolumeStrategy(), "nfs"},
-                {new PVCWorkspaceVolumeStrategy(), "pvc"},
+            {new DynamicPVCWorkspaceVolumeStrategy(), "dynamicPVC"},
+            {new EmptyDirWorkspaceVolumeStrategy(), "emptyDir"},
+            {new EmptyDirWorkspaceVolumeStrategy(Boolean.TRUE), "emptyDir_memory"},
+            {new HostPathWorkspaceVolumeStrategy(), "hostPath"},
+            {new NfsWorkspaceVolumeStrategy(), "nfs"},
+            {new PVCWorkspaceVolumeStrategy(), "pvc"},
+            {new GenericEphemeralWorkspaceVolumeStrategy(), "genericEphemeral"},
         };
     }
 
@@ -51,7 +46,6 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
         assertEquals(1, templates.size());
         PodTemplate podTemplate = templates.get(0);
         strategy.verify(podTemplate.getWorkspaceVolume());
-
     }
 
     @Override
@@ -115,7 +109,7 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
             assertThat(workspaceVolume, instanceOf(NfsWorkspaceVolume.class));
             NfsWorkspaceVolume d = (NfsWorkspaceVolume) workspaceVolume;
             assertEquals("serverAddress", d.getServerAddress());
-            assertEquals("/path",d.getServerPath());
+            assertEquals("/path", d.getServerPath());
         }
     }
 
@@ -126,8 +120,18 @@ public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
             assertThat(workspaceVolume, instanceOf(PersistentVolumeClaimWorkspaceVolume.class));
             PersistentVolumeClaimWorkspaceVolume d = (PersistentVolumeClaimWorkspaceVolume) workspaceVolume;
             assertEquals("my-claim", d.getClaimName());
-
         }
     }
 
+    static class GenericEphemeralWorkspaceVolumeStrategy extends WorkspaceVolumeStrategy {
+
+        @Override
+        void verify(WorkspaceVolume workspaceVolume) {
+            assertThat(workspaceVolume, instanceOf(GenericEphemeralWorkspaceVolume.class));
+            GenericEphemeralWorkspaceVolume d = (GenericEphemeralWorkspaceVolume) workspaceVolume;
+            assertEquals("test-storageclass", d.getStorageClassName());
+            assertEquals("ReadWriteMany", d.getAccessModes());
+            assertEquals("10Gi", d.getRequestsSize());
+        }
+    }
 }

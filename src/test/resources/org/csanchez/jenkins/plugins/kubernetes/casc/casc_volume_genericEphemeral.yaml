@@ -1,0 +1,11 @@
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        templates:
+          - volumes:
+            - genericEphemeralVolume:
+                mountPath: /mnt/path
+                accessModes: ReadWriteMany
+                storageClassName: test-storageclass
+                requestsSize: 10Gi

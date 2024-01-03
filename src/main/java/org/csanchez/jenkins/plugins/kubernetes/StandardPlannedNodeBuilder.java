@@ -3,7 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.slaves.NodeProvisioner;
-
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
@@ -18,8 +17,7 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
         CompletableFuture f;
         String displayName;
         try {
-            KubernetesSlave agent = KubernetesSlave
-                    .builder()
+            KubernetesSlave agent = KubernetesSlave.builder()
                     .podTemplate(t.isUnwrapped() ? t : cloud.getUnwrappedTemplate(t))
                     .cloud(cloud)
                     .build();

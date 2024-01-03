@@ -1,8 +1,40 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static hudson.Util.replaceMacro;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
+import hudson.model.Label;
+import hudson.model.Node;
+import hudson.slaves.NodeProperty;
 import io.fabric8.kubernetes.api.model.ConfigMapProjection;
+import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerBuilder;
+import io.fabric8.kubernetes.api.model.EnvFromSource;
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.KeyToPath;
+import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodSpec;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.SecretProjection;
+import io.fabric8.kubernetes.api.model.Toleration;
+import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,47 +58,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import hudson.slaves.NodeProperty;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import hudson.Util;
-import hudson.model.Label;
-import hudson.model.Node;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerBuilder;
-import io.fabric8.kubernetes.api.model.EnvFromSource;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
-import io.fabric8.kubernetes.api.model.PodFluent.MetadataNested;
-import io.fabric8.kubernetes.api.model.PodFluent.SpecNested;
-import io.fabric8.kubernetes.api.model.PodSpec;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.Toleration;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-
-import static hudson.Util.replaceMacro;
-import io.fabric8.kubernetes.client.utils.Serialization;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 public class PodTemplateUtils {
 
@@ -83,7 +78,8 @@ public class PodTemplateUtils {
      * @param template      The actual container template
      * @return              The combined container template.
      */
-    public static ContainerTemplate combine(@CheckForNull ContainerTemplate parent, @NonNull ContainerTemplate template) {
+    public static ContainerTemplate combine(
+            @CheckForNull ContainerTemplate parent, @NonNull ContainerTemplate template) {
         if (template == null) {
             throw new IllegalArgumentException("Container template should not be null");
         }
@@ -93,25 +89,46 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        boolean privileged = template.isPrivileged() ? template.isPrivileged() : (parent.isPrivileged() ? parent.isPrivileged() : false);
+        boolean privileged = template.isPrivileged()
+                ? template.isPrivileged()
+                : (parent.isPrivileged() ? parent.isPrivileged() : false);
         String runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
         String runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
-        boolean alwaysPullImage = template.isAlwaysPullImage() ? template.isAlwaysPullImage() : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
-        String workingDir = isNullOrEmpty(template.getWorkingDir()) ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir()) : template.getWorkingDir();
+        boolean alwaysPullImage = template.isAlwaysPullImage()
+                ? template.isAlwaysPullImage()
+                : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
+        String workingDir = isNullOrEmpty(template.getWorkingDir())
+                ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
+                : template.getWorkingDir();
         String command = isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
         String args = isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
-        boolean ttyEnabled = template.isTtyEnabled() ? template.isTtyEnabled() : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
-        String resourceRequestCpu = isNullOrEmpty(template.getResourceRequestCpu()) ? parent.getResourceRequestCpu() : template.getResourceRequestCpu();
-        String resourceRequestMemory = isNullOrEmpty(template.getResourceRequestMemory()) ? parent.getResourceRequestMemory() : template.getResourceRequestMemory();
-        String resourceRequestEphemeralStorage = isNullOrEmpty(template.getResourceRequestEphemeralStorage()) ? parent.getResourceRequestEphemeralStorage() : template.getResourceRequestEphemeralStorage();
-        String resourceLimitCpu = isNullOrEmpty(template.getResourceLimitCpu()) ? parent.getResourceLimitCpu() : template.getResourceLimitCpu();
-        String resourceLimitMemory = isNullOrEmpty(template.getResourceLimitMemory()) ? parent.getResourceLimitMemory() : template.getResourceLimitMemory();
-        String resourceLimitEphemeralStorage = isNullOrEmpty(template.getResourceLimitEphemeralStorage()) ? parent.getResourceLimitEphemeralStorage() : template.getResourceLimitEphemeralStorage();
+        boolean ttyEnabled = template.isTtyEnabled()
+                ? template.isTtyEnabled()
+                : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
+        String resourceRequestCpu = isNullOrEmpty(template.getResourceRequestCpu())
+                ? parent.getResourceRequestCpu()
+                : template.getResourceRequestCpu();
+        String resourceRequestMemory = isNullOrEmpty(template.getResourceRequestMemory())
+                ? parent.getResourceRequestMemory()
+                : template.getResourceRequestMemory();
+        String resourceRequestEphemeralStorage = isNullOrEmpty(template.getResourceRequestEphemeralStorage())
+                ? parent.getResourceRequestEphemeralStorage()
+                : template.getResourceRequestEphemeralStorage();
+        String resourceLimitCpu = isNullOrEmpty(template.getResourceLimitCpu())
+                ? parent.getResourceLimitCpu()
+                : template.getResourceLimitCpu();
+        String resourceLimitMemory = isNullOrEmpty(template.getResourceLimitMemory())
+                ? parent.getResourceLimitMemory()
+                : template.getResourceLimitMemory();
+        String resourceLimitEphemeralStorage = isNullOrEmpty(template.getResourceLimitEphemeralStorage())
+                ? parent.getResourceLimitEphemeralStorage()
+                : template.getResourceLimitEphemeralStorage();
         String shell = isNullOrEmpty(template.getShell()) ? parent.getShell() : template.getShell();
-        Map<String, PortMapping> ports = parent.getPorts().stream()
-                .collect(Collectors.toMap(PortMapping::getName, Function.identity()));
+        Map<String, PortMapping> ports =
+                parent.getPorts().stream().collect(Collectors.toMap(PortMapping::getName, Function.identity()));
         template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
-        ContainerLivenessProbe livenessProbe = template.getLivenessProbe() != null ? template.getLivenessProbe() : parent.getLivenessProbe();
+        ContainerLivenessProbe livenessProbe =
+                template.getLivenessProbe() != null ? template.getLivenessProbe() : parent.getLivenessProbe();
 
         ContainerTemplate combined = new ContainerTemplate(image);
         combined.setName(name);
@@ -156,16 +173,26 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        Boolean privileged = template.getSecurityContext() != null && template.getSecurityContext().getPrivileged() != null
+        Boolean privileged = template.getSecurityContext() != null
+                        && template.getSecurityContext().getPrivileged() != null
                 ? template.getSecurityContext().getPrivileged()
-                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getPrivileged() : Boolean.FALSE);
-        Long runAsUser = template.getSecurityContext() != null && template.getSecurityContext().getRunAsUser() != null
+                : (parent.getSecurityContext() != null
+                        ? parent.getSecurityContext().getPrivileged()
+                        : Boolean.FALSE);
+        Long runAsUser = template.getSecurityContext() != null
+                        && template.getSecurityContext().getRunAsUser() != null
                 ? template.getSecurityContext().getRunAsUser()
-                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsUser() : null);
-        Long runAsGroup = template.getSecurityContext() != null && template.getSecurityContext().getRunAsGroup() != null
+                : (parent.getSecurityContext() != null
+                        ? parent.getSecurityContext().getRunAsUser()
+                        : null);
+        Long runAsGroup = template.getSecurityContext() != null
+                        && template.getSecurityContext().getRunAsGroup() != null
                 ? template.getSecurityContext().getRunAsGroup()
-                : (parent.getSecurityContext() != null ? parent.getSecurityContext().getRunAsGroup() : null);
-        String imagePullPolicy = isNullOrEmpty(template.getImagePullPolicy()) ? parent.getImagePullPolicy()
+                : (parent.getSecurityContext() != null
+                        ? parent.getSecurityContext().getRunAsGroup()
+                        : null);
+        String imagePullPolicy = isNullOrEmpty(template.getImagePullPolicy())
+                ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
         String workingDir = isNullOrEmpty(template.getWorkingDir())
                 ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
@@ -198,25 +225,27 @@ public class PodTemplateUtils {
         if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null) {
             containerBuilder = containerBuilder
                     .withNewSecurityContext()
-                        .withPrivileged(privileged)
-                        .withRunAsUser(runAsUser)
-                        .withRunAsGroup(runAsGroup)
+                    .withPrivileged(privileged)
+                    .withRunAsUser(runAsUser)
+                    .withRunAsGroup(runAsGroup)
                     .endSecurityContext();
         }
         return containerBuilder.build();
     }
 
-    private static Map<String, Quantity> combineResources(Container parent, Container template,
-                                                          Function<ResourceRequirements,
-                                                                   Map<String, Quantity>> resourceTypeMapper) {
+    private static Map<String, Quantity> combineResources(
+            Container parent,
+            Container template,
+            Function<ResourceRequirements, Map<String, Quantity>> resourceTypeMapper) {
         return Stream.of(template.getResources(), parent.getResources()) //
                 .filter(Objects::nonNull) //
                 .map(resourceTypeMapper) //
                 .filter(Objects::nonNull) //
                 .map(Map::entrySet) //
                 .flatMap(Collection::stream) //
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1) // v2 (parent) loses
-                );
+                .collect(
+                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1) // v2 (parent) loses
+                        );
     }
 
     /**
@@ -225,7 +254,7 @@ public class PodTemplateUtils {
      */
     public static Pod combine(List<Pod> pods) {
         Pod result = null;
-        for (Pod p: pods) {
+        for (Pod p : pods) {
             if (result != null) {
                 result = combine(result, p);
             } else {
@@ -248,10 +277,11 @@ public class PodTemplateUtils {
             return template;
         }
 
-        LOGGER.finest(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: " + Serialization.asYaml(template));
+        LOGGER.finest(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: "
+                + Serialization.asYaml(template));
 
-        Map<String, String> nodeSelector = mergeMaps(parent.getSpec().getNodeSelector(),
-                template.getSpec().getNodeSelector());
+        Map<String, String> nodeSelector =
+                mergeMaps(parent.getSpec().getNodeSelector(), template.getSpec().getNodeSelector());
         String serviceAccount = isNullOrEmpty(template.getSpec().getServiceAccount())
                 ? parent.getSpec().getServiceAccount()
                 : template.getSpec().getServiceAccount();
@@ -260,43 +290,50 @@ public class PodTemplateUtils {
                 : template.getSpec().getServiceAccountName();
         String schedulerName = isNullOrEmpty(template.getSpec().getSchedulerName())
                 ? parent.getSpec().getSchedulerName()
-                 : template.getSpec().getSchedulerName();
+                : template.getSpec().getSchedulerName();
 
         Boolean hostNetwork = template.getSpec().getHostNetwork() != null
                 ? template.getSpec().getHostNetwork()
                 : parent.getSpec().getHostNetwork();
 
-        Map<String, String> podAnnotations = mergeMaps(parent.getMetadata().getAnnotations(),
-                template.getMetadata().getAnnotations());
-        Map<String, String> podLabels = mergeMaps(parent.getMetadata().getLabels(), template.getMetadata().getLabels());
+        Map<String, String> podAnnotations = mergeMaps(
+                parent.getMetadata().getAnnotations(), template.getMetadata().getAnnotations());
+        Map<String, String> podLabels = mergeMaps(
+                parent.getMetadata().getLabels(), template.getMetadata().getLabels());
 
         Set<LocalObjectReference> imagePullSecrets = new LinkedHashSet<>();
         imagePullSecrets.addAll(parent.getSpec().getImagePullSecrets());
         imagePullSecrets.addAll(template.getSpec().getImagePullSecrets());
 
         // Containers
-        List<Container> combinedContainers = combineContainers(parent.getSpec().getContainers(), template.getSpec().getContainers());
+        List<Container> combinedContainers = combineContainers(
+                parent.getSpec().getContainers(), template.getSpec().getContainers());
 
         // Init containers
-        List<Container> combinedInitContainers = combineContainers(parent.getSpec().getInitContainers(), template.getSpec().getInitContainers());
+        List<Container> combinedInitContainers = combineContainers(
+                parent.getSpec().getInitContainers(), template.getSpec().getInitContainers());
 
         // Volumes
-        List<Volume> combinedVolumes = combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
+        List<Volume> combinedVolumes =
+                combineVolumes(parent.getSpec().getVolumes(), template.getSpec().getVolumes());
 
         // Tolerations
         List<Toleration> combinedTolerations = new LinkedList<>();
         Optional.ofNullable(parent.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
         Optional.ofNullable(template.getSpec().getTolerations()).ifPresent(combinedTolerations::addAll);
 
-//        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() && template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
+        //        WorkspaceVolume workspaceVolume = template.isCustomWorkspaceVolumeEnabled() &&
+        // template.getWorkspaceVolume() != null ? template.getWorkspaceVolume() : parent.getWorkspaceVolume();
 
-        //Tool location node properties
-//        List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
-//        toolLocationNodeProperties.addAll(parent.getNodeProperties());
-//        toolLocationNodeProperties.addAll(template.getNodeProperties());
+        // Tool location node properties
+        //        List<ToolLocationNodeProperty> toolLocationNodeProperties = new ArrayList<>();
+        //        toolLocationNodeProperties.addAll(parent.getNodeProperties());
+        //        toolLocationNodeProperties.addAll(template.getNodeProperties());
 
-        var metadataBuilder = new PodBuilder(parent).withNewMetadataLike(parent.getMetadata()) //
-                .withAnnotations(podAnnotations).withLabels(podLabels);
+        var metadataBuilder = new PodBuilder(parent)
+                .withNewMetadataLike(parent.getMetadata()) //
+                .withAnnotations(podAnnotations)
+                .withLabels(podLabels);
         if (!isNullOrEmpty(template.getMetadata().getName())) {
             metadataBuilder.withName(template.getMetadata().getName());
         }
@@ -304,7 +341,8 @@ public class PodTemplateUtils {
             metadataBuilder.withNamespace(template.getMetadata().getNamespace());
         }
 
-        var specBuilder = metadataBuilder.endMetadata() //
+        var specBuilder = metadataBuilder
+                .endMetadata() //
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
                 .withServiceAccount(serviceAccount) //
@@ -317,29 +355,51 @@ public class PodTemplateUtils {
                 .withTolerations(combinedTolerations) //
                 .withImagePullSecrets(new ArrayList<>(imagePullSecrets));
 
-
         // Security context
         if (template.getSpec().getSecurityContext() != null || parent.getSpec().getSecurityContext() != null) {
-            specBuilder.editOrNewSecurityContext()
+            specBuilder
+                    .editOrNewSecurityContext()
                     .withRunAsUser(
-                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsUser() != null ? template.getSpec().getSecurityContext().getRunAsUser() : (
-                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsUser() != null ? parent.getSpec().getSecurityContext().getRunAsUser() : null
-                            )
-                    )
+                            template.getSpec().getSecurityContext() != null
+                                            && template.getSpec()
+                                                            .getSecurityContext()
+                                                            .getRunAsUser()
+                                                    != null
+                                    ? template.getSpec().getSecurityContext().getRunAsUser()
+                                    : (parent.getSpec().getSecurityContext() != null
+                                                    && parent.getSpec()
+                                                                    .getSecurityContext()
+                                                                    .getRunAsUser()
+                                                            != null
+                                            ? parent.getSpec()
+                                                    .getSecurityContext()
+                                                    .getRunAsUser()
+                                            : null))
                     .withRunAsGroup(
-                            template.getSpec().getSecurityContext() != null && template.getSpec().getSecurityContext().getRunAsGroup() != null ? template.getSpec().getSecurityContext().getRunAsGroup() : (
-                                    parent.getSpec().getSecurityContext() != null && parent.getSpec().getSecurityContext().getRunAsGroup() != null ? parent.getSpec().getSecurityContext().getRunAsGroup() : null
-                            )
-                    )
+                            template.getSpec().getSecurityContext() != null
+                                            && template.getSpec()
+                                                            .getSecurityContext()
+                                                            .getRunAsGroup()
+                                                    != null
+                                    ? template.getSpec().getSecurityContext().getRunAsGroup()
+                                    : (parent.getSpec().getSecurityContext() != null
+                                                    && parent.getSpec()
+                                                                    .getSecurityContext()
+                                                                    .getRunAsGroup()
+                                                            != null
+                                            ? parent.getSpec()
+                                                    .getSecurityContext()
+                                                    .getRunAsGroup()
+                                            : null))
                     .endSecurityContext();
         }
 
         // podTemplate.setLabel(label);
-//        podTemplate.setEnvVars(combineEnvVars(parent, template));
-//        podTemplate.setWorkspaceVolume(workspaceVolume);
-//        podTemplate.setNodeProperties(toolLocationNodeProperties);
-//        podTemplate.setNodeUsageMode(nodeUsageMode);
-//        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
+        //        podTemplate.setEnvVars(combineEnvVars(parent, template));
+        //        podTemplate.setWorkspaceVolume(workspaceVolume);
+        //        podTemplate.setNodeProperties(toolLocationNodeProperties);
+        //        podTemplate.setNodeUsageMode(nodeUsageMode);
+        //        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
         Pod pod = specBuilder.endSpec().build();
         LOGGER.finest(() -> "Pods combined: " + Serialization.asYaml(pod));
@@ -349,17 +409,22 @@ public class PodTemplateUtils {
     @NonNull
     private static List<Container> combineContainers(List<Container> parent, List<Container> child) {
         LinkedHashMap<String, Container> combinedContainers = new LinkedHashMap<>(); // Need to retain insertion order
-        Map<String, Container> parentContainers = parent.stream()
-                .collect(toMap(Container::getName, c -> c, throwingMerger(), LinkedHashMap::new));
+        Map<String, Container> parentContainers =
+                parent.stream().collect(toMap(Container::getName, c -> c, throwingMerger(), LinkedHashMap::new));
         Map<String, Container> childContainers = child.stream()
-                .collect(toMap(Container::getName, c -> combine(parentContainers.get(c.getName()), c), throwingMerger(), LinkedHashMap::new));
+                .collect(toMap(
+                        Container::getName,
+                        c -> combine(parentContainers.get(c.getName()), c),
+                        throwingMerger(),
+                        LinkedHashMap::new));
         combinedContainers.putAll(parentContainers);
         combinedContainers.putAll(childContainers);
         return new ArrayList<>(combinedContainers.values());
     }
 
     private static List<Volume> combineVolumes(@NonNull List<Volume> volumes1, @NonNull List<Volume> volumes2) {
-        Map<String, Volume> volumesByName = volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
+        Map<String, Volume> volumesByName =
+                volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
         volumes2.forEach(v -> volumesByName.put(v.getName(), v));
         return new ArrayList<>(volumesByName.values());
     }
@@ -383,10 +448,14 @@ public class PodTemplateUtils {
 
         String name = template.getName();
         String label = template.getLabel();
-        String nodeSelector = isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
-        String serviceAccount = isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
-        String schedulerName = isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
-        Node.Mode nodeUsageMode = template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
+        String nodeSelector =
+                isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
+        String serviceAccount =
+                isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
+        String schedulerName =
+                isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
+        Node.Mode nodeUsageMode =
+                template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
         podAnnotations.addAll(template.getAnnotations());
@@ -399,25 +468,30 @@ public class PodTemplateUtils {
         Map<String, ContainerTemplate> combinedContainers = new HashMap<>();
         Map<String, PodVolume> combinedVolumes = new HashMap<>();
 
-        //Containers
-        Map<String, ContainerTemplate> parentContainers = parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
+        // Containers
+        Map<String, ContainerTemplate> parentContainers =
+                parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
         combinedContainers.putAll(parentContainers);
-        combinedContainers.putAll(template.getContainers().stream().collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+        combinedContainers.putAll(template.getContainers().stream()
+                .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
 
-        //Volumes
-        Map<String, PodVolume> parentVolumes = parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
+        // Volumes
+        Map<String, PodVolume> parentVolumes =
+                parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
         combinedVolumes.putAll(parentVolumes);
         combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
 
-        WorkspaceVolume workspaceVolume = WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
+        WorkspaceVolume workspaceVolume =
+                WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
 
-        //Tool location node properties
+        // Tool location node properties
         List<NodeProperty<?>> nodeProperties = new ArrayList<>(parent.getNodeProperties());
         nodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate(template.getId());
         podTemplate.setName(name);
-        podTemplate.setNamespace(!isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
+        podTemplate.setNamespace(
+                !isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
         podTemplate.setLabel(label);
         podTemplate.setNodeSelector(nodeSelector);
         podTemplate.setServiceAccount(serviceAccount);
@@ -431,27 +505,32 @@ public class PodTemplateUtils {
         podTemplate.setNodeProperties(nodeProperties);
         podTemplate.setNodeUsageMode(nodeUsageMode);
         podTemplate.setYamlMergeStrategy(template.getYamlMergeStrategy());
-        podTemplate.setInheritFrom(!isNullOrEmpty(template.getInheritFrom()) ?
-                                   template.getInheritFrom() : parent.getInheritFrom());
+        podTemplate.setInheritFrom(
+                !isNullOrEmpty(template.getInheritFrom()) ? template.getInheritFrom() : parent.getInheritFrom());
 
-        podTemplate.setInstanceCap(template.getInstanceCap() != Integer.MAX_VALUE ?
-                                   template.getInstanceCap() : parent.getInstanceCap());
+        podTemplate.setInstanceCap(
+                template.getInstanceCap() != Integer.MAX_VALUE ? template.getInstanceCap() : parent.getInstanceCap());
 
-        podTemplate.setSlaveConnectTimeout(template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT ?
-                                           template.getSlaveConnectTimeout() : parent.getSlaveConnectTimeout());
+        podTemplate.setSlaveConnectTimeout(
+                template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT
+                        ? template.getSlaveConnectTimeout()
+                        : parent.getSlaveConnectTimeout());
 
-        podTemplate.setIdleMinutes(template.getIdleMinutes() != 0 ?
-                                   template.getIdleMinutes() : parent.getIdleMinutes());
+        podTemplate.setIdleMinutes(
+                template.getIdleMinutes() != 0 ? template.getIdleMinutes() : parent.getIdleMinutes());
 
-        podTemplate.setActiveDeadlineSeconds(template.getActiveDeadlineSeconds() != 0 ?
-                                             template.getActiveDeadlineSeconds() : parent.getActiveDeadlineSeconds());
+        podTemplate.setActiveDeadlineSeconds(
+                template.getActiveDeadlineSeconds() != 0
+                        ? template.getActiveDeadlineSeconds()
+                        : parent.getActiveDeadlineSeconds());
 
+        podTemplate.setServiceAccount(
+                !isNullOrEmpty(template.getServiceAccount())
+                        ? template.getServiceAccount()
+                        : parent.getServiceAccount());
 
-        podTemplate.setServiceAccount(!isNullOrEmpty(template.getServiceAccount()) ?
-                                      template.getServiceAccount() : parent.getServiceAccount());
-
-        podTemplate.setSchedulerName(!isNullOrEmpty(template.getSchedulerName()) ?
-                                      template.getSchedulerName() : parent.getSchedulerName());
+        podTemplate.setSchedulerName(
+                !isNullOrEmpty(template.getSchedulerName()) ? template.getSchedulerName() : parent.getSchedulerName());
 
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
@@ -459,7 +538,10 @@ public class PodTemplateUtils {
         podTemplate.setRunAsUser(template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser());
         podTemplate.setRunAsGroup(template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup());
 
-        podTemplate.setSupplementalGroups(template.getSupplementalGroups() != null ? template.getSupplementalGroups() : parent.getSupplementalGroups());
+        podTemplate.setSupplementalGroups(
+                template.getSupplementalGroups() != null
+                        ? template.getSupplementalGroups()
+                        : parent.getSupplementalGroups());
 
         if (template.isHostNetworkSet()) {
             podTemplate.setHostNetwork(template.isHostNetwork());
@@ -484,7 +566,8 @@ public class PodTemplateUtils {
      * @param allTemplates               A collection of all the known templates
      * @return
      */
-    static PodTemplate unwrap(PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
+    static PodTemplate unwrap(
+            PodTemplate template, String defaultProviderTemplate, Collection<PodTemplate> allTemplates) {
         if (template == null) {
             return null;
         }
@@ -532,7 +615,6 @@ public class PodTemplateUtils {
         return unwrap(template, null, allTemplates);
     }
 
-
     /**
      * Gets the {@link PodTemplate} by {@link Label}.
      * @param label         The label.
@@ -542,7 +624,8 @@ public class PodTemplateUtils {
     @CheckForNull
     public static PodTemplate getTemplateByLabel(@CheckForNull Label label, Collection<PodTemplate> templates) {
         for (PodTemplate t : templates) {
-            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL) || (label != null && label.matches(t.getLabelSet()))) {
+            if ((label == null && t.getNodeUsageMode() == Node.Mode.NORMAL)
+                    || (label != null && label.matches(t.getLabelSet()))) {
                 return t;
             }
         }
@@ -628,34 +711,28 @@ public class PodTemplateUtils {
     }
 
     private static void fixOctal(@NonNull Pod podFromYaml) {
-        podFromYaml.getSpec().getVolumes().stream()
-                .map(Volume::getProjected)
-                .forEach(projected -> {
-                    if (projected != null) {
-                        Integer defaultMode = projected.getDefaultMode();
-                        if (defaultMode != null) {
-                            projected.setDefaultMode(convertToOctal(defaultMode));
-                        }
-                        projected.getSources()
-                                .stream()
-                                .forEach(source -> {
-                                    ConfigMapProjection configMap = source.getConfigMap();
-                                    if (configMap != null) {
-                                        convertDecimalIntegersToOctal(configMap.getItems());
-                                    }
-                                    SecretProjection secret = source.getSecret();
-                                    if (secret != null) {
-                                        convertDecimalIntegersToOctal(secret.getItems());
-                                    }
-                                });
+        podFromYaml.getSpec().getVolumes().stream().map(Volume::getProjected).forEach(projected -> {
+            if (projected != null) {
+                Integer defaultMode = projected.getDefaultMode();
+                if (defaultMode != null) {
+                    projected.setDefaultMode(convertToOctal(defaultMode));
+                }
+                projected.getSources().stream().forEach(source -> {
+                    ConfigMapProjection configMap = source.getConfigMap();
+                    if (configMap != null) {
+                        convertDecimalIntegersToOctal(configMap.getItems());
+                    }
+                    SecretProjection secret = source.getSecret();
+                    if (secret != null) {
+                        convertDecimalIntegersToOctal(secret.getItems());
                     }
                 });
+            }
+        });
     }
 
     private static void convertDecimalIntegersToOctal(List<KeyToPath> items) {
-        items
-                .stream()
-                .forEach(i -> {
+        items.stream().forEach(i -> {
             Integer mode = i.getMode();
             if (mode != null) {
                 i.setMode(convertToOctal(mode));
@@ -705,7 +782,9 @@ public class PodTemplateUtils {
      * Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
      */
     public static boolean validateLabel(String label) {
-        return StringUtils.isBlank(label) ? true : label.length() <= 63 && LABEL_VALIDATION.matcher(label).matches();
+        return StringUtils.isBlank(label)
+                ? true
+                : label.length() <= 63 && LABEL_VALIDATION.matcher(label).matches();
     }
 
     /** TODO perhaps enforce https://docs.docker.com/engine/reference/commandline/tag/#extended-description */
@@ -732,41 +811,43 @@ public class PodTemplateUtils {
     }
 
     private static List<TemplateEnvVar> combineEnvVars(List<TemplateEnvVar> parent, List<TemplateEnvVar> child) {
-        Map<String,TemplateEnvVar> combinedEnvVars = mergeMaps(templateEnvVarstoMap(parent),templateEnvVarstoMap(child));
-        return combinedEnvVars
-                .entrySet()
-                .stream()
+        Map<String, TemplateEnvVar> combinedEnvVars =
+                mergeMaps(templateEnvVarstoMap(parent), templateEnvVarstoMap(child));
+        return combinedEnvVars.entrySet().stream()
                 .filter(entry -> !isNullOrEmpty(entry.getKey()))
                 .map(Map.Entry::getValue)
                 .collect(toList());
     }
 
     static Map<String, TemplateEnvVar> templateEnvVarstoMap(List<TemplateEnvVar> envVarList) {
-        return envVarList
-                .stream()
-                .collect(Collectors.toMap(TemplateEnvVar::getKey, Function.identity(), throwingMerger(), LinkedHashMap::new));
+        return envVarList.stream()
+                .collect(Collectors.toMap(
+                        TemplateEnvVar::getKey, Function.identity(), throwingMerger(), LinkedHashMap::new));
     }
 
     private static <T> BinaryOperator<T> throwingMerger() {
-        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
+        return (u, v) -> {
+            throw new IllegalStateException(String.format("Duplicate key %s", u));
+        };
     }
 
     private static List<EnvFromSource> combinedEnvFromSources(Container parent, Container template) {
         List<EnvFromSource> combinedEnvFromSources = new ArrayList<>();
         combinedEnvFromSources.addAll(parent.getEnvFrom());
         combinedEnvFromSources.addAll(template.getEnvFrom());
-        return combinedEnvFromSources.stream().filter(envFromSource ->
-                envFromSource.getConfigMapRef() != null && !isNullOrEmpty(envFromSource.getConfigMapRef().getName()) ||
-                        envFromSource.getSecretRef() != null && !isNullOrEmpty(envFromSource.getSecretRef().getName())
-        ).collect(toList());
+        return combinedEnvFromSources.stream()
+                .filter(envFromSource -> envFromSource.getConfigMapRef() != null
+                                && !isNullOrEmpty(
+                                        envFromSource.getConfigMapRef().getName())
+                        || envFromSource.getSecretRef() != null
+                                && !isNullOrEmpty(envFromSource.getSecretRef().getName()))
+                .collect(toList());
     }
 
     private static <K, V> Map<K, V> mergeMaps(Map<K, V> m1, Map<K, V> m2) {
         Map<K, V> m = new LinkedHashMap<>();
-        if (m1 != null)
-            m.putAll(m1);
-        if (m2 != null)
-            m.putAll(m2);
+        if (m1 != null) m.putAll(m1);
+        if (m2 != null) m.putAll(m2);
         return m;
     }
 

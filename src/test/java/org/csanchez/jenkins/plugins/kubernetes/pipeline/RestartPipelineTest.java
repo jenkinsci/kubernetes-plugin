@@ -28,6 +28,10 @@ import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 import static org.junit.Assert.assertTrue;
 
+import hudson.model.Node;
+import hudson.model.Result;
+import hudson.slaves.DumbSlave;
+import hudson.slaves.JNLPLauncher;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
@@ -35,7 +39,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -62,11 +65,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
 
-import hudson.model.Node;
-import hudson.model.Result;
-import hudson.slaves.DumbSlave;
-import hudson.slaves.JNLPLauncher;
-
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
@@ -77,6 +75,7 @@ public class RestartPipelineTest {
 
     @Rule
     public RestartableJenkinsNonLocalhostRule story = new RestartableJenkinsNonLocalhostRule(44000);
+
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
@@ -84,9 +83,11 @@ public class RestartPipelineTest {
     public static BuildWatcher buildWatcher = new BuildWatcher();
 
     @Rule
-    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()),
-           Level.ALL);
-    //.record("org.jenkinsci.plugins.durabletask", Level.ALL).record("org.jenkinsci.plugins.workflow.support.concurrent", Level.ALL).record("org.csanchez.jenkins.plugins.kubernetes.pipeline", Level.ALL);
+    public LoggerRule logs = new LoggerRule()
+            .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
+    // .record("org.jenkinsci.plugins.durabletask",
+    // Level.ALL).record("org.jenkinsci.plugins.workflow.support.concurrent",
+    // Level.ALL).record("org.csanchez.jenkins.plugins.kubernetes.pipeline", Level.ALL);
 
     @Rule
     public TestName name = new TestName();
@@ -101,11 +102,13 @@ public class RestartPipelineTest {
         TemplateEnvVar podSimpleEnvVar = new KeyValueEnvVar("POD_ENV_VAR", POD_ENV_VAR_VALUE);
         podTemplate.setEnvVars(asList(podSecretEnvVar, podSimpleEnvVar));
         TemplateEnvVar containerEnvVariable = new KeyValueEnvVar("CONTAINER_ENV_VAR", CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerEnvVariableLegacy = new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY",
-                CONTAINER_ENV_VAR_VALUE);
-        TemplateEnvVar containerSecretEnvVariable = new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET",
-                                                                     "container-secret", SECRET_KEY, false);
-        podTemplate.getContainers().get(0)
+        TemplateEnvVar containerEnvVariableLegacy =
+                new ContainerEnvVar("CONTAINER_ENV_VAR_LEGACY", CONTAINER_ENV_VAR_VALUE);
+        TemplateEnvVar containerSecretEnvVariable =
+                new SecretEnvVar("CONTAINER_ENV_VAR_FROM_SECRET", "container-secret", SECRET_KEY, false);
+        podTemplate
+                .getContainers()
+                .get(0)
                 .setEnvVars(asList(containerEnvVariable, containerEnvVariableLegacy, containerSecretEnvVariable));
     }
 
@@ -132,11 +135,11 @@ public class RestartPipelineTest {
 
         story.j.jenkins.clouds.add(cloud);
     }
-    
+
     public void configureAgentListener() throws IOException {
-      //Take random port and fix it, to be the same after Jenkins restart
-      int fixedPort = story.j.jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
-      story.j.jenkins.setSlaveAgentPort(fixedPort);
+        // Take random port and fix it, to be the same after Jenkins restart
+        int fixedPort = story.j.jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
+        story.j.jenkins.setSlaveAgentPort(fixedPort);
     }
 
     protected String loadPipelineScript(String name) {
@@ -167,7 +170,9 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep 5", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
@@ -187,7 +192,9 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep 5", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
     }
@@ -206,7 +213,9 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep 5", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
     }
@@ -224,7 +233,9 @@ public class RestartPipelineTest {
             r.waitForMessage("sleeping #0", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.assertLogContains("sleeping #9", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
             r.assertLogContains("finished the test!", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
         });
@@ -241,9 +252,13 @@ public class RestartPipelineTest {
             projectName.set(b.getParent().getFullName());
             r.waitForMessage("+ sleep", b);
         });
-        logs.record(DurableTaskStep.class, Level.FINE).record(Reaper.class, Level.FINE).record(ExecutorStepDynamicContext.class, Level.FINE);
+        logs.record(DurableTaskStep.class, Level.FINE)
+                .record(Reaper.class, Level.FINE)
+                .record(ExecutorStepDynamicContext.class, Level.FINE);
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.waitForMessage("Ready to run", b);
             deletePods(cloud.connect(), getLabels(this, name), false);
             r.waitForMessage("Agent was removed", b);
@@ -263,8 +278,12 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
-            Optional<Node> first = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).findFirst();
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
+            Optional<Node> first = r.jenkins.getNodes().stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .findFirst();
             assertTrue("Kubernetes node should be present after restart", first.isPresent());
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
@@ -286,8 +305,12 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
-            Optional<Node> first = r.jenkins.getNodes().stream().filter(KubernetesSlave.class::isInstance).findFirst();
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
+            Optional<Node> first = r.jenkins.getNodes().stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .findFirst();
             assertTrue("Kubernetes node should be present after restart", first.isPresent());
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
@@ -319,14 +342,17 @@ public class RestartPipelineTest {
             r.waitForMessage("+ sleep 5", b);
         });
         story.then(r -> {
-            WorkflowRun b = r.jenkins.getItemByFullName(projectName.get(), WorkflowJob.class).getBuildByNumber(1);
+            WorkflowRun b = r.jenkins
+                    .getItemByFullName(projectName.get(), WorkflowJob.class)
+                    .getBuildByNumber(1);
             r.assertBuildStatusSuccess(r.waitForCompletion(b));
             r.assertLogContains("[Pipeline] containerLog", b);
             r.assertLogContains("[Pipeline] End of Pipeline", b);
         });
     }
 
-    private WorkflowRun getPipelineJobThenScheduleRun(JenkinsRule r) throws InterruptedException, ExecutionException, IOException {
+    private WorkflowRun getPipelineJobThenScheduleRun(JenkinsRule r)
+            throws InterruptedException, ExecutionException, IOException {
         return createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName());
     }
 }
