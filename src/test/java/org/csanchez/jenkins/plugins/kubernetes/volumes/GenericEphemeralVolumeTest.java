@@ -1,9 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
+import static org.junit.Assert.assertEquals;
+
 import io.fabric8.kubernetes.api.model.Volume;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class GenericEphemeralVolumeTest {
 
@@ -19,8 +19,24 @@ public class GenericEphemeralVolumeTest {
         Volume volume = genericEphemeralVolume.buildVolume("testvolume", "testpod");
 
         assertEquals("testvolume", volume.getName());
-        assertEquals("ReadWriteOnce", volume.getEphemeral().getVolumeClaimTemplate().getSpec().getAccessModes().get(0));
-        assertEquals("standard", volume.getEphemeral().getVolumeClaimTemplate().getSpec().getStorageClassName());
-        assertEquals("1Gi", volume.getEphemeral().getVolumeClaimTemplate().getSpec().getResources().getRequests().get("storage").toString());
+        assertEquals(
+                "ReadWriteOnce",
+                volume.getEphemeral()
+                        .getVolumeClaimTemplate()
+                        .getSpec()
+                        .getAccessModes()
+                        .get(0));
+        assertEquals(
+                "standard",
+                volume.getEphemeral().getVolumeClaimTemplate().getSpec().getStorageClassName());
+        assertEquals(
+                "1Gi",
+                volume.getEphemeral()
+                        .getVolumeClaimTemplate()
+                        .getSpec()
+                        .getResources()
+                        .getRequests()
+                        .get("storage")
+                        .toString());
     }
 }

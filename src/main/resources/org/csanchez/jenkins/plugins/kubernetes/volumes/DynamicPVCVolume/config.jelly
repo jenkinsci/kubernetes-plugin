@@ -10,10 +10,6 @@
         <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Mount subPath}" field="subPath">
-        <f:textbox />
-    </f:entry>
-
     <f:entry title="${%Storage Class Name}" field="storageClassName">
         <f:textbox />
     </f:entry>
