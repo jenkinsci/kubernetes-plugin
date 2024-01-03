@@ -46,8 +46,8 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.415</jenkins.version>
-    <bom>2.414.x</bom>
+    <jenkins.version>2.426.1</jenkins.version>
+    <bom>2.426.x</bom>
     <bom.version>2571.vede9dc5a_2e23</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
