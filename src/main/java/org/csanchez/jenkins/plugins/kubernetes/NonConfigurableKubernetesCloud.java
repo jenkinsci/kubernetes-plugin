@@ -15,22 +15,19 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     }
 
     @Override
-    public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate){
-    }
+    public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate) {}
 
     @Override
-    public void addTemplate(PodTemplate template) {
-    }
+    public void addTemplate(PodTemplate template) {}
 
     @Override
-    public void removeTemplate(PodTemplate template) {
-    }
+    public void removeTemplate(PodTemplate template) {}
 
     @Override
     public Cloud reconfigure(@NonNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
         return DescriptorImpl.class.cast(getDescriptor()).newInstance(req, form);
     }
-    
+
     @Extension
     public static class FilterImpl extends DescriptorVisibilityFilter {
         @Override

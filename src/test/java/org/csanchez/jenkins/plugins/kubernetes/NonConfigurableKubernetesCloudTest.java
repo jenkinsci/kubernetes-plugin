@@ -15,8 +15,12 @@ public class NonConfigurableKubernetesCloudTest {
     public JenkinsRule j = new JenkinsRule();
 
     @Rule
-    public LoggerRule logs = new LoggerRule().record(Logger.getLogger(NonConfigurableKubernetesCloudTest.class.getPackage().getName()),
-            Level.ALL);
+    public LoggerRule logs = new LoggerRule()
+            .record(
+                    Logger.getLogger(NonConfigurableKubernetesCloudTest.class
+                            .getPackage()
+                            .getName()),
+                    Level.ALL);
 
     @Test
     public void configRoundTrip() throws Exception {
@@ -44,7 +48,5 @@ public class NonConfigurableKubernetesCloudTest {
                 throw new RuntimeException("Template should not be added");
             }
         });
-
     }
-
 }
