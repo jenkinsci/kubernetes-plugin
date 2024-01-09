@@ -4,17 +4,6 @@ metadata:
   name: jenkins
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: m2repo
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: v1
 kind: Pod
 metadata:
   name: jenkins
@@ -33,12 +22,12 @@ spec:
       - containerPort: @HTTP_PORT@
       - containerPort: @TCP_PORT@
     volumeMounts:
-    - name: m2repo
-      mountPath: /root/.m2/repository
+    - name: m2
+      mountPath: /root/.m2
   volumes:
-  - name: m2repo
-    persistentVolumeClaim:
-      claimName: m2repo
+  - name: m2
+    hostPath:
+      path: /m2
   nodeSelector:
     kubernetes.io/os: linux
 ---
