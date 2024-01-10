@@ -125,4 +125,6 @@ THE SOFTWARE.
       </f:advanced>
     </f:advanced>
 
+    <st:include page="pod-templates.jelly" class="${descriptor.clazz}"/>
+
 </j:jelly>
