@@ -109,6 +109,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     private EnvVars globalVars;
     private EnvVars rcEnvVars;
     private String shell;
+    private String umask;
     private KubernetesNodeContext nodeContext;
 
     public ContainerExecDecorator() {}
@@ -253,6 +254,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
     public void setShell(String shell) {
         this.shell = shell;
+    }
+
+    public void setUmask(String umask) {
+        this.umask = umask;
     }
 
     public KubernetesNodeContext getNodeContext() {
@@ -579,6 +584,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (!launcher.isUnix()) {
                         in.print("@echo off");
                         in.print(newLine(true));
+                    }
+                    if (launcher.isUnix() && umask != null) {
+                        in.print(String.format("umask \"%s\"", umask));
+                        in.print(newLine(!launcher.isUnix()));
                     }
                     if (pwd != null) {
                         // We need to get into the project workspace.

@@ -45,6 +45,7 @@ public class ContainerStepExecution extends StepExecution {
         LOGGER.log(Level.FINE, "Starting container step.");
         String containerName = step.getName();
         String shell = step.getShell();
+        String umask = step.getUmask();
 
         KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
 
@@ -77,6 +78,7 @@ public class ContainerStepExecution extends StepExecution {
         decorator.setGlobalVars(globalVars);
         decorator.setRunContextEnvVars(rcEnvVars);
         decorator.setShell(shell);
+        decorator.setUmask(umask);
         getContext()
                 .newBodyInvoker()
                 .withContexts(

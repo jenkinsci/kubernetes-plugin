@@ -8,5 +8,8 @@
         <f:entry field="shell" title="${%Shell}">
             <f:textbox/>
         </f:entry>
+        <f:entry field="umask" title="${%Umask}">
+            <f:textbox/>
+        </f:entry>
     </f:advanced>
 </j:jelly>

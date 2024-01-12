@@ -23,6 +23,7 @@ public class ContainerStep extends Step implements Serializable {
 
     private final String name;
     private String shell;
+    private String umask;
 
     @DataBoundConstructor
     public ContainerStep(String name) {
@@ -40,6 +41,15 @@ public class ContainerStep extends Step implements Serializable {
 
     public String getShell() {
         return shell;
+    }
+
+    @DataBoundSetter
+    public void setUmask(String umask) {
+        this.umask = Util.fixEmpty(umask);
+    }
+
+    public String getUmask() {
+        return umask;
     }
 
     @Override
