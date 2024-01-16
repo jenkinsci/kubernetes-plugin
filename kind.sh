@@ -15,7 +15,7 @@ fi
 
 export cluster=ci$RANDOM
 export KUBECONFIG="$WORKSPACE_TMP/kubeconfig-$cluster"
-m2repo=$(dirname $(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout))
+m2=$(dirname $(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout))
 cat >"$WORKSPACE_TMP/kind.yaml" <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
