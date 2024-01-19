@@ -47,6 +47,8 @@ import io.fabric8.kubernetes.api.model.SecretEnvSource;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +56,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.io.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
@@ -883,5 +886,55 @@ public class PodTemplateUtilsTest {
         PodTemplateUtils.parseFromYaml("{}");
         PodTemplateUtils.parseFromYaml(null);
         PodTemplateUtils.parseFromYaml("");
+    }
+
+    @Test
+    public void octalParsing() throws IOException {
+        var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/octal.yaml");
+        assertNotNull(fileStream);
+        var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
+        checkParsed(pod);
+    }
+
+    @Test
+    public void decimalParsing() throws IOException {
+        try {
+            DISABLE_OCTAL_MODES = true;
+            var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/decimal.yaml");
+            assertNotNull(fileStream);
+            var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
+            checkParsed(pod);
+        } finally {
+            DISABLE_OCTAL_MODES = false;
+        }
+    }
+
+    private static void checkParsed(Pod pod) {
+        assertEquals(
+                Integer.valueOf("755", 8),
+                pod.getSpec().getVolumes().get(0).getConfigMap().getDefaultMode());
+        assertEquals(
+                Integer.valueOf("744", 8),
+                pod.getSpec().getVolumes().get(1).getSecret().getDefaultMode());
+        var projectedVolume = pod.getSpec().getVolumes().get(2).getProjected();
+        assertEquals(Integer.valueOf("644", 8), projectedVolume.getDefaultMode());
+        assertEquals(
+                Integer.valueOf("400", 8),
+                projectedVolume
+                        .getSources()
+                        .get(0)
+                        .getConfigMap()
+                        .getItems()
+                        .get(0)
+                        .getMode());
+        assertEquals(
+                Integer.valueOf("600", 8),
+                projectedVolume
+                        .getSources()
+                        .get(1)
+                        .getSecret()
+                        .getItems()
+                        .get(0)
+                        .getMode());
     }
 }
