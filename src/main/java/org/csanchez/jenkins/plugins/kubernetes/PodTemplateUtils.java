@@ -14,7 +14,6 @@ import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.slaves.NodeProperty;
-import io.fabric8.kubernetes.api.model.ConfigMapProjection;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvFromSource;
@@ -27,7 +26,6 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.SecretProjection;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -71,6 +69,13 @@ public class PodTemplateUtils {
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
     public static boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
+
+    /**
+     * If true, all modes permissions provided to pods are expected to be provided in decimal notation.
+     * Otherwise, the plugin will consider they are written in octal notation.
+     */
+    public static /* almost final*/ boolean DISABLE_OCTAL_MODES =
+            Boolean.getBoolean(PodTemplateUtils.class.getName() + ".DISABLE_OCTAL_MODES");
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
@@ -705,24 +710,42 @@ public class PodTemplateUtils {
             if (podFromYaml.getSpec() == null) {
                 podFromYaml.setSpec(new PodSpec());
             }
-            fixOctal(podFromYaml);
+            if (!DISABLE_OCTAL_MODES) {
+                fixOctal(podFromYaml);
+            }
             return podFromYaml;
         }
     }
 
     private static void fixOctal(@NonNull Pod podFromYaml) {
+        podFromYaml.getSpec().getVolumes().stream().map(Volume::getConfigMap).forEach(configMap -> {
+            if (configMap != null) {
+                var defaultMode = configMap.getDefaultMode();
+                if (defaultMode != null) {
+                    configMap.setDefaultMode(convertPermissionToOctal(defaultMode));
+                }
+            }
+        });
+        podFromYaml.getSpec().getVolumes().stream().map(Volume::getSecret).forEach(secretVolumeSource -> {
+            if (secretVolumeSource != null) {
+                var defaultMode = secretVolumeSource.getDefaultMode();
+                if (defaultMode != null) {
+                    secretVolumeSource.setDefaultMode(convertPermissionToOctal(defaultMode));
+                }
+            }
+        });
         podFromYaml.getSpec().getVolumes().stream().map(Volume::getProjected).forEach(projected -> {
             if (projected != null) {
-                Integer defaultMode = projected.getDefaultMode();
+                var defaultMode = projected.getDefaultMode();
                 if (defaultMode != null) {
-                    projected.setDefaultMode(convertToOctal(defaultMode));
+                    projected.setDefaultMode(convertPermissionToOctal(defaultMode));
                 }
-                projected.getSources().stream().forEach(source -> {
-                    ConfigMapProjection configMap = source.getConfigMap();
+                projected.getSources().forEach(source -> {
+                    var configMap = source.getConfigMap();
                     if (configMap != null) {
                         convertDecimalIntegersToOctal(configMap.getItems());
                     }
-                    SecretProjection secret = source.getSecret();
+                    var secret = source.getSecret();
                     if (secret != null) {
                         convertDecimalIntegersToOctal(secret.getItems());
                     }
@@ -732,16 +755,37 @@ public class PodTemplateUtils {
     }
 
     private static void convertDecimalIntegersToOctal(List<KeyToPath> items) {
-        items.stream().forEach(i -> {
-            Integer mode = i.getMode();
+        items.forEach(i -> {
+            var mode = i.getMode();
             if (mode != null) {
-                i.setMode(convertToOctal(mode));
+                i.setMode(convertPermissionToOctal(mode));
             }
         });
     }
 
-    private static int convertToOctal(Integer defaultMode) {
-        return Integer.parseInt(Integer.toString(defaultMode, 10), 8);
+    /**
+     * Permissions are generally expressed in octal notation, e.g. 0777.
+     * After parsing, this is stored as the integer 777, but the snakeyaml-engine does not convert to decimal first.
+     * When the client later sends the pod spec to the server, it sends the integer as is through the json schema,
+     * however the server expects a decimal, which means an integer between 0 and 511.
+     *
+     * The user can also provide permissions as a decimal integer, e.g. 511.
+     *
+     * This method attempts to guess whether the user provided a decimal or octal integer, and converts to octal if needed,
+     * so that the resulting can be submitted to the server.
+     *
+     */
+    static int convertPermissionToOctal(Integer i) {
+        // Permissions are expressed as octal integers
+        // octal goes from 0000 to 0777
+        // decimal goes from 0 to 511
+        var s = Integer.toString(i, 10);
+        // If the input has a digit which is 8 or 9, this was likely a decimal input. Best effort support here.
+        if (s.chars().map(c -> c - '0').anyMatch(a -> a > 7)) {
+            return i;
+        } else {
+            return Integer.parseInt(s, 8);
+        }
     }
 
     public static Collection<String> validateYamlContainerNames(List<String> yamls) {

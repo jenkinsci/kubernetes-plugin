@@ -1,0 +1,29 @@
+# Identical to octal.yaml with values converted to decimal
+apiVersion: "v1"
+kind: "Pod"
+spec:
+  volumes:
+    - configMap:
+        name: cm1
+        defaultMode: 493
+      name: "volume1"
+    - secret:
+        secretName: secret1
+        defaultMode: 484
+      name: "volume2"
+    - projected:
+        sources:
+          - configMap:
+              name: cm2
+              items:
+                - key: username
+                  path: my-group/my-username
+                  mode: 256
+          - secret:
+              name: secret2
+              items:
+                - key: username
+                  path: my-group/my-username
+                  mode: 384
+        defaultMode: 420
+      name: "volume3"
