@@ -74,6 +74,7 @@ public class PodTemplateUtils {
      * If true, all modes permissions provided to pods are expected to be provided in decimal notation.
      * Otherwise, the plugin will consider they are written in octal notation.
      */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
     public static /* almost final*/ boolean DISABLE_OCTAL_MODES =
             Boolean.getBoolean(PodTemplateUtils.class.getName() + ".DISABLE_OCTAL_MODES");
 
