@@ -110,6 +110,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
+      <version>6.10.0-240.va_d17432277a_3</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
