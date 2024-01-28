@@ -1,1 +1,1 @@
-FROM jenkins/inbound-agent:3198.v03a_401881f3e-1
+FROM jenkins/inbound-agent:3206.vb_15dcf73f6a_9-2
