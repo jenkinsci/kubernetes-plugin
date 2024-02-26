@@ -40,6 +40,7 @@ import org.apache.commons.compress.utils.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
+import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Overrides;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
@@ -585,6 +586,62 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void inheritYamlMergeStrategy() throws Exception {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml("apiVersion: v1\n" + "kind: Pod\n"
+                + "spec:\n"
+                + "  tolerations:\n"
+                + "  - key: \"reservedFor\"\n"
+                + "    operator: Exists\n"
+                + "    effect: NoSchedule");
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml("spec:\n");
+        child.setInheritFrom("parent");
+        setupStubs();
+
+        PodTemplate result;
+        Pod pod;
+
+        // Default behavior (backward compatible)
+        parent.setYamlMergeStrategy(merge());
+        parent.setInheritYamlMergeStrategy(false);
+        result = combine(parent, child);
+        pod = new PodTemplateBuilder(result, slave).build();
+        assertThat(pod.getSpec().getTolerations(), hasSize(0));
+
+        // Inherit merge strategy with merge
+        parent.setYamlMergeStrategy(merge());
+        parent.setInheritYamlMergeStrategy(true);
+        result = combine(parent, child);
+        pod = new PodTemplateBuilder(result, slave).build();
+        assertThat(pod.getSpec().getTolerations(), hasSize(1));
+
+        // Inherit merge strategy with override
+        parent.setYamlMergeStrategy(overrides());
+        parent.setInheritYamlMergeStrategy(true);
+        result = combine(parent, child);
+        pod = new PodTemplateBuilder(result, slave).build();
+        assertThat(pod.getSpec().getTolerations(), hasSize(0));
+
+        // Override merge strategy with overrides
+        parent.setYamlMergeStrategy(merge());
+        parent.setInheritYamlMergeStrategy(true);
+        child.setYamlMergeStrategy(overrides());
+        result = combine(parent, child);
+        pod = new PodTemplateBuilder(result, slave).build();
+        assertThat(pod.getSpec().getTolerations(), hasSize(0));
+
+        // Override overrides strategy with merge
+        parent.setYamlMergeStrategy(overrides());
+        parent.setInheritYamlMergeStrategy(true);
+        child.setYamlMergeStrategy(merge());
+        result = combine(parent, child);
+        pod = new PodTemplateBuilder(result, slave).build();
+        assertThat(pod.getSpec().getTolerations(), hasSize(1));
+    }
+
+    @Test
     public void yamlMergeContainers() throws Exception {
         PodTemplate parent = new PodTemplate();
         parent.setYaml("apiVersion: v1\n" + "kind: Pod\n"
@@ -933,6 +990,10 @@ public class PodTemplateBuilderTest {
 
     private String loadYamlFile(String s) throws IOException {
         return new String(IOUtils.toByteArray(getClass().getResourceAsStream(s)));
+    }
+
+    private YamlMergeStrategy overrides() {
+        return new Overrides();
     }
 
     private YamlMergeStrategy merge() {

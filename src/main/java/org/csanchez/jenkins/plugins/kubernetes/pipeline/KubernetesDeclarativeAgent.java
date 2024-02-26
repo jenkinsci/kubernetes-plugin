@@ -91,6 +91,8 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
 
     private YamlMergeStrategy yamlMergeStrategy;
 
+    private Boolean inheritYamlMergeStrategy;
+
     @CheckForNull
     private WorkspaceVolume workspaceVolume;
 
@@ -316,6 +318,15 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
+    public boolean isInheritYamlMergeStrategy() {
+        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+    }
+
+    @DataBoundSetter
+    public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
+        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
+    }
+
     public WorkspaceVolume getWorkspaceVolume() {
         return workspaceVolume == null ? PodTemplateStep.DescriptorImpl.defaultWorkspaceVolume : this.workspaceVolume;
     }
@@ -366,6 +377,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         }
         if (yamlMergeStrategy != null) {
             argMap.put("yamlMergeStrategy", yamlMergeStrategy);
+        }
+        if (inheritYamlMergeStrategy != null) {
+            argMap.put("inheritYamlMergeStrategy", inheritYamlMergeStrategy);
         }
         if (workspaceVolume != null) {
             argMap.put("workspaceVolume", workspaceVolume);
