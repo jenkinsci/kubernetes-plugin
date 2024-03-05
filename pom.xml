@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.77</version>
+    <version>4.78</version>
     <relativePath />
   </parent>
 
@@ -46,9 +46,9 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.426.1</jenkins.version>
+    <jenkins.version>2.426.3</jenkins.version>
     <bom>2.426.x</bom>
-    <bom.version>2571.vede9dc5a_2e23</bom.version>
+    <bom.version>2839.v003b_4d9d24fd</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
