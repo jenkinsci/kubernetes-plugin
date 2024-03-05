@@ -270,7 +270,9 @@ public class ReaperTest {
         j.jenkins.clouds.remove(cloud);
 
         // watch is removed
-        assertFalse("should not be watching cloud", r.isWatchingCloud(cloud.name));
+        // org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper.CloudPodWatcher.onClose() is called in a
+        // separate thread
+        await("should not be watching cloud").until(() -> !r.isWatchingCloud(cloud.name));
     }
 
     @Test(timeout = 10_000)
