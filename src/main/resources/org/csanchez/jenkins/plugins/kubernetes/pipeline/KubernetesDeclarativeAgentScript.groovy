@@ -74,7 +74,7 @@ public class KubernetesDeclarativeAgentScript extends DeclarativeAgentScript<Kub
                     }
                 }
                 if (describable.retries > 1) {
-                    script.retry(count: describable.retries, conditions: [script.kubernetesAgent(), script.nonresumable()]) {
+                    script.retry(count: describable.retries, conditions: [script.kubernetesAgent(handleNonKubernetes: true), script.nonresumable()]) {
                         run.call()
                     }
                 } else {
