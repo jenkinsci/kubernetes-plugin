@@ -97,7 +97,7 @@ public class ReaperTest {
         assertEquals("node removed from jenkins", j.jenkins.getNodes().size(), 0);
 
         // watch was created
-        assertTrue(r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
 
         kubeClientRequests()
                 // expect pod not running to be removed
@@ -129,7 +129,7 @@ public class ReaperTest {
         kubeClientRequests()
                 .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 1);
         // watch failed to register
-        assertFalse(r.isWatchingCloud(cloud.name));
+        assertShouldNotBeWatching(r, cloud);
     }
 
     @Test
@@ -151,15 +151,13 @@ public class ReaperTest {
         KubernetesComputer kc = new KubernetesComputer(n2);
 
         // should not be watching the newly created cloud at this point
-        assertFalse("should not be watching cloud", r.isWatchingCloud(cloud.name));
+        assertShouldNotBeWatching(r, cloud);
 
         // fire compute on-line event
         r.preLaunch(kc, tl);
 
         // expect new cloud registered
-        while (!r.isWatchingCloud(cloud.name)) {
-            Thread.sleep(100);
-        }
+        assertShouldBeWatching(r, cloud);
         kubeClientRequests()
                 .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 1);
     }
@@ -202,9 +200,7 @@ public class ReaperTest {
 
         // wait until watch is removed
         System.out.println("Waiting for watch to be removed");
-        while (r.isWatchingCloud(cloud.name)) {
-            Thread.sleep(250L);
-        }
+        assertShouldNotBeWatching(r, cloud);
         System.out.println("Watch removed");
 
         // launch computer
@@ -215,9 +211,7 @@ public class ReaperTest {
 
         // should have started new watch
         System.out.println("Waiting for a new watch to be started");
-        while (!r.isWatchingCloud(cloud.name)) {
-            Thread.sleep(100);
-        }
+        assertShouldBeWatching(r, cloud);
         System.out.println("Watch started");
     }
 
@@ -244,7 +238,7 @@ public class ReaperTest {
         j.jenkins.clouds.add(cloud);
 
         // watch is added
-        assertTrue("should be watching cloud", r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
         kubeClientRequests().assertRequestCountAtLeast(watchPodsPath, 1);
     }
 
@@ -264,7 +258,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // should not be watching the newly created cloud at this point
-        assertTrue("should be watching cloud", r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
 
         // invalidate client
         j.jenkins.clouds.remove(cloud);
@@ -272,7 +266,7 @@ public class ReaperTest {
         // watch is removed
         // org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper.CloudPodWatcher.onClose() is called in a
         // separate thread
-        await("should not be watching cloud").until(() -> !r.isWatchingCloud(cloud.name));
+        assertShouldNotBeWatching(r, cloud);
     }
 
     @Test(timeout = 10_000)
@@ -315,7 +309,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // should not be watching the newly created cloud at this point
-        assertTrue("should be watching cloud", r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
 
         // invalidate client
         cloud.setNamespace("bar");
@@ -324,7 +318,7 @@ public class ReaperTest {
         KubernetesSlave node = addNode(cloud, "node-123", "node");
 
         // watch is still active
-        assertTrue("should be watching cloud", r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
 
         listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
         kubeClientRequests().assertRequestCountAtLeast(watchBarPodsPath, 1);
@@ -360,10 +354,7 @@ public class ReaperTest {
         listener.expectNoEvents();
 
         // watch is removed
-        while (r.isWatchingCloud(cloud.name)) {
-            Thread.sleep(250L);
-        }
-        assertFalse(r.isWatchingCloud(cloud.name));
+        assertShouldNotBeWatching(r, cloud);
     }
 
     @Test(timeout = 10_000)
@@ -404,7 +395,7 @@ public class ReaperTest {
         listener.expectNoEvents();
 
         // watch is still active
-        assertTrue(r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
     }
 
     @Test(timeout = 10_000)
@@ -418,7 +409,11 @@ public class ReaperTest {
         status.setCode(200);
         server.expect()
                 .withPath(watchPodsPath)
-                .andReturnChunked(200, new WatchEvent(status, "ERROR"))
+                .andUpgradeToWebSocket()
+                .open()
+                .immediately()
+                .andEmit(new WatchEvent(status, "ERROR"))
+                .done()
                 .once();
 
         // activate reaper
@@ -431,7 +426,7 @@ public class ReaperTest {
         listener.expectNoEvents();
 
         // watch is still active
-        assertTrue(r.isWatchingCloud(cloud.name));
+        assertShouldBeWatching(r, cloud);
     }
 
     @Test
@@ -455,17 +450,13 @@ public class ReaperTest {
         r.maybeActivate();
 
         // watching cloud
-        assertTrue(r.isWatchingCloud(cloud.name));
-        assertTrue(r.isWatchingCloud(cloud2.name));
-        assertTrue(r.isWatchingCloud(cloud3.name));
+        assertShouldBeWatching(r, cloud, cloud2, cloud3);
 
         // trigger shutdown listener
         new Reaper.ReaperShutdownListener().onBeforeShutdown();
 
         // watchers removed
-        await().until(() -> r.isWatchingCloud(cloud.name), is(false));
-        await().until(() -> r.isWatchingCloud(cloud2.name), is(false));
-        await().until(() -> r.isWatchingCloud(cloud3.name), is(false));
+        assertShouldNotBeWatching(r, cloud, cloud2, cloud3);
     }
 
     @Test(timeout = 10_000)
@@ -896,5 +887,17 @@ public class ReaperTest {
                 .withMessage("500: Internal error")
                 .endStatusObject()
                 .build();
+    }
+
+    private static void assertShouldBeWatching(Reaper r, KubernetesCloud... clouds) {
+        for (KubernetesCloud cloud : clouds) {
+            await("should be watching cloud " + cloud.name).until(() -> r.isWatchingCloud(cloud.name));
+        }
+    }
+
+    private static void assertShouldNotBeWatching(Reaper r, KubernetesCloud... clouds) {
+        for (KubernetesCloud cloud : clouds) {
+            await("should not be watching cloud " + cloud.name).until(() -> !r.isWatchingCloud(cloud.name));
+        }
     }
 }
