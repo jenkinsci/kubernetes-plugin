@@ -48,7 +48,7 @@
     <slaveAgentPort />
     <jenkins.version>2.426.3</jenkins.version>
     <bom>2.426.x</bom>
-    <bom.version>2839.v003b_4d9d24fd</bom.version>
+    <bom.version>2857.v01a_0144eb_20b_</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -71,18 +71,6 @@
         <artifactId>mockwebserver</artifactId>
         <version>4.9.3</version>
         <!-- should be aligned with the version provided by okhttp-api-plugin -->
-      </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>bouncycastle-api</artifactId>
-        <!-- transitive dependency of kubernetes-client-api 6.10.0 to fix upper bound -->
-        <version>2.30.1.77-225.v26ea_c9455fd9</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>kubernetes-client-api</artifactId>
-        <!-- until it gets into BOM -->
-        <version>6.10.0-240.v57880ce8b_0b_2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
