@@ -346,6 +346,12 @@
                     <dependency>com.squareup.okhttp3:logging-interceptor</dependency>
                   </dependencies>
                 </requireSameVersions>
+                <requireSameVersions>
+                  <dependencies>
+                    <dependency>io.fabric8:kubernetes-server-mock</dependency>
+                    <dependency>io.fabric8:kubernetes-client</dependency>
+                  </dependencies>
+                </requireSameVersions>
               </rules>
             </configuration>
           </execution>
