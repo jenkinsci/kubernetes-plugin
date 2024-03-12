@@ -703,6 +703,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * Add a new template to the cloud
      * @param t docker template
      */
+    @Override
     public void addTemplate(PodTemplate t) {
         this.templates.add(t);
         // t.parent = this;
