@@ -87,7 +87,7 @@ THE SOFTWARE.
     <f:textarea/>
   </f:entry>
 
-    <f:dropdownDescriptorSelector title="${%Yaml merge strategy}" field="yamlMergeStrategy" default="${descriptor.defaultYamlMergeStrategy}" />
+  <f:dropdownDescriptorSelector title="${%Yaml merge strategy}" field="yamlMergeStrategy" default="${descriptor.defaultYamlMergeStrategy}" />
 
     <f:entry field="inheritYamlMergeStrategy" title="${%Inherit yaml merge strategy}" >
       <f:checkbox/>
