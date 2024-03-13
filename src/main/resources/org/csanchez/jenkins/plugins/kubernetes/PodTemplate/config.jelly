@@ -90,7 +90,7 @@ THE SOFTWARE.
     <f:dropdownDescriptorSelector title="${%Yaml merge strategy}" field="yamlMergeStrategy" default="${descriptor.defaultYamlMergeStrategy}" />
 
     <f:entry field="inheritYamlMergeStrategy" title="${%Inherit yaml merge strategy}" >
-      <f:checkbox default="false"/>
+      <f:checkbox/>
     </f:entry>
 
   <f:entry field="showRawYaml" title="${%Show raw yaml in console}" >
