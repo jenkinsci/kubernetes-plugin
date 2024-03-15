@@ -9,6 +9,7 @@ import java.util.List;
 
 public abstract class YamlMergeStrategy extends AbstractDescribableImpl<YamlMergeStrategy>
         implements ExtensionPoint, Serializable {
+    @NonNull
     public static YamlMergeStrategy defaultStrategy() {
         return new Overrides();
     }

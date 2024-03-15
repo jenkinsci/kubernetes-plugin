@@ -191,16 +191,18 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return id;
     }
 
+    @CheckForNull
     public YamlMergeStrategy getYamlMergeStrategy() {
         return yamlMergeStrategy;
     }
 
+    @NonNull
     public YamlMergeStrategy getResolvedYamlMergeStrategy() {
-        return getYamlMergeStrategy() != null ? getYamlMergeStrategy() : YamlMergeStrategy.defaultStrategy();
+        return Optional.ofNullable(getYamlMergeStrategy()).orElse(YamlMergeStrategy.defaultStrategy());
     }
 
     @DataBoundSetter
-    public void setYamlMergeStrategy(YamlMergeStrategy yamlMergeStrategy) {
+    public void setYamlMergeStrategy(@CheckForNull YamlMergeStrategy yamlMergeStrategy) {
         this.yamlMergeStrategy = yamlMergeStrategy;
     }
 
@@ -210,6 +212,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return getResolvedYamlMergeStrategy().merge(getYamls());
     }
 
+    @CheckForNull
     private Boolean inheritYamlMergeStrategy;
 
     private Boolean showRawYaml;
@@ -990,12 +993,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     public boolean isInheritYamlMergeStrategy() {
-        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+        return Optional.ofNullable(inheritYamlMergeStrategy).orElse(false);
     }
 
     @DataBoundSetter
     public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
-        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
+        this.inheritYamlMergeStrategy = inheritYamlMergeStrategy;
     }
 
     boolean isShowRawYamlSet() {

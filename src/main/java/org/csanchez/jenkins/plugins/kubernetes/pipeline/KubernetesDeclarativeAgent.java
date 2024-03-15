@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,6 +92,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
 
     private YamlMergeStrategy yamlMergeStrategy;
 
+    @CheckForNull
     private Boolean inheritYamlMergeStrategy;
 
     @CheckForNull
@@ -319,12 +321,12 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     }
 
     public boolean isInheritYamlMergeStrategy() {
-        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+        return Optional.ofNullable(inheritYamlMergeStrategy).orElse(false);
     }
 
     @DataBoundSetter
     public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
-        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
+        this.inheritYamlMergeStrategy = inheritYamlMergeStrategy;
     }
 
     public WorkspaceVolume getWorkspaceVolume() {
