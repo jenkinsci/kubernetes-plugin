@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
@@ -88,6 +89,7 @@ public class PodTemplateStep extends Step implements Serializable {
 
     private YamlMergeStrategy yamlMergeStrategy;
 
+    @CheckForNull
     private Boolean inheritYamlMergeStrategy;
 
     @CheckForNull
@@ -364,12 +366,12 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     public boolean isInheritYamlMergeStrategy() {
-        return inheritYamlMergeStrategy != null ? inheritYamlMergeStrategy.booleanValue() : false;
+        return Optional.ofNullable(inheritYamlMergeStrategy).orElse(false);
     }
 
     @DataBoundSetter
     public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
-        this.inheritYamlMergeStrategy = Boolean.valueOf(inheritYamlMergeStrategy);
+        this.inheritYamlMergeStrategy = inheritYamlMergeStrategy;
     }
 
     boolean isShowRawYamlSet() {
