@@ -937,4 +937,16 @@ public class PodTemplateUtilsTest {
                         .get(0)
                         .getMode());
     }
+
+    @Test
+    @Issue("JENKINS-72886")
+    public void shouldIgnoreContainerEmptyArgs() {
+        Container parent = new Container();
+        parent.setArgs(List.of("arg1", "arg2"));
+        parent.setCommand(List.of("parent command"));
+        Container child = new Container();
+        Container result = combine(parent, child);
+        assertEquals(List.of("arg1", "arg2"), result.getArgs());
+        assertEquals(List.of("parent command"), result.getCommand());
+    }
 }
