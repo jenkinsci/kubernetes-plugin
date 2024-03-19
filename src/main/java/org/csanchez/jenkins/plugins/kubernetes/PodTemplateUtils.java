@@ -203,8 +203,12 @@ public class PodTemplateUtils {
         String workingDir = isNullOrEmpty(template.getWorkingDir())
                 ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
                 : template.getWorkingDir();
-        List<String> command = template.getCommand() == null || template.getCommand().isEmpty() ? parent.getCommand() : template.getCommand();
-        List<String> args = template.getArgs() == null || template.getArgs().isEmpty() ? parent.getArgs() : template.getArgs();
+        List<String> command =
+                template.getCommand() == null || template.getCommand().isEmpty()
+                        ? parent.getCommand()
+                        : template.getCommand();
+        List<String> args =
+                template.getArgs() == null || template.getArgs().isEmpty() ? parent.getArgs() : template.getArgs();
         Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
         Map<String, Quantity> requests = combineResources(parent, template, ResourceRequirements::getRequests);
         Map<String, Quantity> limits = combineResources(parent, template, ResourceRequirements::getLimits);
