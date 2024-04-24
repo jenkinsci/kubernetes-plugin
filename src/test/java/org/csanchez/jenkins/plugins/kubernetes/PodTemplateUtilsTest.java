@@ -898,15 +898,10 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void decimalParsing() throws IOException {
-        try {
-            DISABLE_OCTAL_MODES = true;
-            var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/decimal.yaml");
-            assertNotNull(fileStream);
-            var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
-            checkParsed(pod);
-        } finally {
-            DISABLE_OCTAL_MODES = false;
-        }
+        var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/decimal.yaml");
+        assertNotNull(fileStream);
+        var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
+        checkParsed(pod);
     }
 
     private static void checkParsed(Pod pod) {
