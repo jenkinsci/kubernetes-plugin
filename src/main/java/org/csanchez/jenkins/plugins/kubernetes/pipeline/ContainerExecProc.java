@@ -97,8 +97,11 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
     public int join() throws IOException, InterruptedException {
         try {
             LOGGER.log(Level.FINEST, "Waiting for websocket to close on command finish ({0})", finished);
-            finished.await();
-            LOGGER.log(Level.FINEST, "Command is finished ({0})", finished);
+            if (finished.await(1, TimeUnit.MINUTES)) {
+                LOGGER.log(Level.FINEST, "Command is finished (the count reached zero)");
+            } else {
+                LOGGER.log(Level.FINEST, "Command is finished (waiting time elapsed before the count reached zero)");
+            }
 
             CompletableFuture<Integer> exitCodeFuture = watch.exitCode();
 
