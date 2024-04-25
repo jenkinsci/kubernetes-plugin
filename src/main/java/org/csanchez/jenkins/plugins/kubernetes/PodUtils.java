@@ -67,7 +67,9 @@ public final class PodUtils {
 
     /**
      * Cancel queue items matching the given pod.
-     * It uses the annotation "runUrl" added to the pod to do the matching.
+     *
+     * The queue item has to have a task url matching the pod "runUrl"-annotation
+     * and the cause of waiting needs to contain the pod name.
      *
      * It uses the current thread context to list item queues,
      * so make sure to be in the right context before calling this method.
@@ -99,12 +101,16 @@ public final class PodUtils {
         for (Queue.Item item : q.getItems()) {
             Queue.Task task = item.task;
             if (runUrl.equals(task.getUrl())) {
-                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}", new Object[] {
-                    task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""
-                });
-                q.cancel(item);
-                cancelled = true;
-                break;
+                String whyOnQueue = item.getWhy();
+                if(whyOnQueue.contains(metadata.getName())) {
+                    LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}\nItem was on queue because: {2}", new Object[] {
+                        task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : "",
+                        whyOnQueue
+                    });
+                    q.cancel(item);
+                    cancelled = true;
+                    break;
+                }
             }
         }
         if (!cancelled) {
