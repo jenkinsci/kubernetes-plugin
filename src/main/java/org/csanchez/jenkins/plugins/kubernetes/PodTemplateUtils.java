@@ -56,6 +56,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -843,6 +844,27 @@ public class PodTemplateUtils {
     /** TODO perhaps enforce https://docs.docker.com/engine/reference/commandline/tag/#extended-description */
     public static boolean validateImage(String image) {
         return image != null && image.matches("\\S+");
+    }
+
+    /**
+     * Sanitizes the input string to create a valid Kubernetes label. The input string is truncated to a maximum length of 57 characters,
+     * and any characters that are not alphanumeric or hyphens are replaced with underscores. If the input string starts with a non-alphanumeric
+     * character, it is replaced with 'x'. A random suffix of 5 characters is appended to the sanitized input string. The resulting label is then
+     * validated to ensure it meets the Kubernetes label requirements. If the label is not valid, an assertion error is thrown.
+     *
+     * @param  input  the input string to be sanitized
+     * @return        the sanitized and validated label
+     * @throws AssertionError if the generated label is not valid
+     */
+    public static String sanitizeLabel(String input) {
+        int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
+        if (input.length() > max) {
+            input = input.substring(input.length() - max);
+        }
+        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
+        String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        assert PodTemplateUtils.validateLabel(label) : label;
+        return label;
     }
 
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {

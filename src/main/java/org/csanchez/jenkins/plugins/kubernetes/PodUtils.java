@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
+import hudson.model.Label;
 import hudson.model.Queue;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -69,7 +70,7 @@ public final class PodUtils {
      * Cancel queue items matching the given pod.
      *
      * The queue item has to have a task url matching the pod "runUrl"-annotation
-     * and the cause of waiting needs to contain the pod name.
+     * and the queue item assigned label needs to match the label jenkins/label of the pod.
      *
      * It uses the current thread context to list item queues,
      * so make sure to be in the right context before calling this method.
@@ -81,32 +82,49 @@ public final class PodUtils {
         Queue q = Jenkins.get().getQueue();
         boolean cancelled = false;
         ObjectMeta metadata = pod.getMetadata();
+
         if (metadata == null) {
             return;
         }
+
+        String podName = metadata.getName();
+        String podJenkinsLabel = metadata.getLabels().get("jenkins/label");
+
         Map<String, String> annotations = metadata.getAnnotations();
         if (annotations == null) {
             LOGGER.log(Level.FINE, "Pod .metadata.annotations is null: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
+                metadata.getNamespace(), podName
             });
             return;
         }
         String runUrl = annotations.get("runUrl");
         if (runUrl == null) {
             LOGGER.log(Level.FINE, "Pod .metadata.annotations.runUrl is null: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
+                metadata.getNamespace(), podName
             });
             return;
         }
         for (Queue.Item item : q.getItems()) {
             Queue.Task task = item.task;
             if (runUrl.equals(task.getUrl())) {
-                String whyOnQueue = item.getWhy();
-                if(whyOnQueue.contains(metadata.getName())) {
-                    LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}\nItem was on queue because: {2}", new Object[] {
-                        task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : "",
-                        whyOnQueue
-                    });
+
+                Label queueItemAssignedLabel = item.getAssignedLabel();
+                if (queueItemAssignedLabel == null) {
+                    continue;
+                }
+                // apply the same transformation that the "jenkins/label"-label of the pod went through
+                String transformedQueueItemAssignedLabel =
+                        PodTemplateUtils.sanitizeLabel(queueItemAssignedLabel.getDisplayName());
+
+                if (transformedQueueItemAssignedLabel.equals(podJenkinsLabel)) {
+                    LOGGER.log(
+                            Level.FINE,
+                            "Cancelling queue item: \"{0}\"\n{1}\nItem on queue was assigned to pod with jenkins/label: {2}",
+                            new Object[] {
+                                task.getDisplayName(),
+                                !StringUtils.isBlank(reason) ? "due to " + reason : "",
+                                transformedQueueItemAssignedLabel
+                            });
                     q.cancel(item);
                     cancelled = true;
                     break;
@@ -114,9 +132,9 @@ public final class PodUtils {
             }
         }
         if (!cancelled) {
-            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
-            });
+            LOGGER.log(
+                    Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {metadata.getNamespace(), podName
+                    });
         }
     }
 

@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.Arrays.*;
 import static java.util.Collections.*;
+import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -948,5 +949,17 @@ public class PodTemplateUtilsTest {
         Container result = combine(parent, child);
         assertEquals(List.of("arg1", "arg2"), result.getArgs());
         assertEquals(List.of("parent command"), result.getCommand());
+    }
+
+    @Test
+    public void testSanitizeLabel() {
+        assertRegex(PodTemplateUtils.sanitizeLabel("foo"), "foo-[a-z0-9]{5}");
+        assertRegex(PodTemplateUtils.sanitizeLabel("foo bar #3"), "foo_bar__3-[a-z0-9]{5}");
+        assertRegex(PodTemplateUtils.sanitizeLabel("This/Thing"), "This_Thing-[a-z0-9]{5}");
+        assertRegex(PodTemplateUtils.sanitizeLabel("/whatever"), "xwhatever-[a-z0-9]{5}");
+        assertRegex(
+                PodTemplateUtils.sanitizeLabel(
+                        "way-way-way-too-prolix-for-the-sixty-three-character-limit-in-kubernetes"),
+                "xprolix-for-the-sixty-three-character-limit-in-kubernetes-[a-z0-9]{5}");
     }
 }

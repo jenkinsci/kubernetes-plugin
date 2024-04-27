@@ -191,14 +191,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     }
 
     static String labelify(String input) {
-        int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
-        if (input.length() > max) {
-            input = input.substring(input.length() - max);
-        }
-        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
-        String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        assert PodTemplateUtils.validateLabel(label) : label;
-        return label;
+        return PodTemplateUtils.sanitizeLabel(input);
     }
 
     /**
