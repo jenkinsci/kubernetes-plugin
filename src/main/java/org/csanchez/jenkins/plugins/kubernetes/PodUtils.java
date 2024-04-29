@@ -36,7 +36,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 
 public final class PodUtils {
     private PodUtils() {}
@@ -71,8 +70,7 @@ public final class PodUtils {
 
     /**
      * <p>Cancel queue items matching the given pod.
-     * <p>The queue item has to have a task url matching the pod "runUrl"-annotation
-     * and the queue item assigned label needs to match the label jenkins/label of the pod.
+     * <p>The queue-item assigned-label needs to match the label "jenkins/label" of the pod.
      * <p>It uses the current thread context to list item queues,
      * so make sure to be in the right context before calling this method.
      *
@@ -87,16 +85,6 @@ public final class PodUtils {
         String podName = metadata.getName();
         String podNamespace = metadata.getNamespace();
         String podDisplayName = podNamespace + "/" + podName;
-        var annotations = metadata.getAnnotations();
-        if (annotations == null) {
-            LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.annotations is null");
-            return;
-        }
-        var runUrl = annotations.get(PodTemplateStepExecution.POD_ANNOTATION_RUN_URL);
-        if (runUrl == null) {
-            LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.annotations.runUrl is null");
-            return;
-        }
         var labels = metadata.getLabels();
         if (labels == null) {
             LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.labels is null");
