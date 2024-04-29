@@ -844,4 +844,12 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         MatcherAssert.assertThat(msg, run.getResult(), Matchers.is(oneOf(status)));
         return run;
     }
+
+    @Test
+    public void cancelOnlyRelevantQueueItem() throws Exception {
+        r.waitForMessage("cancelled pod item by now", b);
+        r.createOnlineSlave(Label.get("special-agent"));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("ran on special agent", b);
+    }
 }
