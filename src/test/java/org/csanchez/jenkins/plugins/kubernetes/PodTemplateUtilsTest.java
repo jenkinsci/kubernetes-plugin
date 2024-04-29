@@ -26,7 +26,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.DISABLE_OCTAL_MODES;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
