@@ -18,7 +18,6 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvFromSource;
 import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.KeyToPath;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -29,10 +28,6 @@ import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.Toleration;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,14 +64,6 @@ public class PodTemplateUtils {
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
     public static boolean SUBSTITUTE_ENV = Boolean.getBoolean(PodTemplateUtils.class.getName() + ".SUBSTITUTE_ENV");
-
-    /**
-     * If true, all modes permissions provided to pods are expected to be provided in decimal notation.
-     * Otherwise, the plugin will consider they are written in octal notation.
-     */
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests & emergency admin")
-    public static /* almost final*/ boolean DISABLE_OCTAL_MODES =
-            Boolean.getBoolean(PodTemplateUtils.class.getName() + ".DISABLE_OCTAL_MODES");
 
     /**
      * Combines a {@link ContainerTemplate} with its parent.
@@ -287,8 +274,8 @@ public class PodTemplateUtils {
             return template;
         }
 
-        LOGGER.finest(() -> "Combining pods, parent: " + Serialization.asYaml(parent) + " template: "
-                + Serialization.asYaml(template));
+        LOGGER.finest(() -> "Combining pods, parent: " + Serialization2.asYaml(parent) + " template: "
+                + Serialization2.asYaml(template));
 
         Map<String, String> nodeSelector =
                 mergeMaps(parent.getSpec().getNodeSelector(), template.getSpec().getNodeSelector());
@@ -412,7 +399,7 @@ public class PodTemplateUtils {
         //        podTemplate.setYaml(template.getYaml() == null ? parent.getYaml() : template.getYaml());
 
         Pod pod = specBuilder.endSpec().build();
-        LOGGER.finest(() -> "Pods combined: " + Serialization.asYaml(pod));
+        LOGGER.finest(() -> "Pods combined: " + Serialization2.asYaml(pod));
         return pod;
     }
 
@@ -699,102 +686,27 @@ public class PodTemplateUtils {
 
     public static Pod parseFromYaml(String yaml) {
         String s = yaml;
-        try (KubernetesClient client = new KubernetesClientBuilder().build()) {
-            // JENKINS-57116
-            if (StringUtils.isBlank(s)) {
-                LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);
-                s = "{}";
-            }
-            Pod podFromYaml;
-            try (InputStream is = new ByteArrayInputStream(s.getBytes(UTF_8))) {
-                podFromYaml = client.pods().load(is).item();
-            } catch (IOException | KubernetesClientException e) {
-                throw new RuntimeException(String.format("Failed to parse yaml: \"%s\"", yaml), e);
-            }
-            LOGGER.finest(() -> "Parsed pod template from yaml: " + Serialization.asYaml(podFromYaml));
-            // yaml can be just a fragment, avoid NPEs
-            if (podFromYaml.getMetadata() == null) {
-                podFromYaml.setMetadata(new ObjectMeta());
-            }
-            if (podFromYaml.getSpec() == null) {
-                podFromYaml.setSpec(new PodSpec());
-            }
-            if (!DISABLE_OCTAL_MODES) {
-                fixOctal(podFromYaml);
-            }
-            return podFromYaml;
+        // JENKINS-57116
+        if (StringUtils.isBlank(s)) {
+            LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);
+            s = "{}";
         }
-    }
-
-    private static void fixOctal(@NonNull Pod podFromYaml) {
-        podFromYaml.getSpec().getVolumes().stream().map(Volume::getConfigMap).forEach(configMap -> {
-            if (configMap != null) {
-                var defaultMode = configMap.getDefaultMode();
-                if (defaultMode != null) {
-                    configMap.setDefaultMode(convertPermissionToOctal(defaultMode));
-                }
-            }
-        });
-        podFromYaml.getSpec().getVolumes().stream().map(Volume::getSecret).forEach(secretVolumeSource -> {
-            if (secretVolumeSource != null) {
-                var defaultMode = secretVolumeSource.getDefaultMode();
-                if (defaultMode != null) {
-                    secretVolumeSource.setDefaultMode(convertPermissionToOctal(defaultMode));
-                }
-            }
-        });
-        podFromYaml.getSpec().getVolumes().stream().map(Volume::getProjected).forEach(projected -> {
-            if (projected != null) {
-                var defaultMode = projected.getDefaultMode();
-                if (defaultMode != null) {
-                    projected.setDefaultMode(convertPermissionToOctal(defaultMode));
-                }
-                projected.getSources().forEach(source -> {
-                    var configMap = source.getConfigMap();
-                    if (configMap != null) {
-                        convertDecimalIntegersToOctal(configMap.getItems());
-                    }
-                    var secret = source.getSecret();
-                    if (secret != null) {
-                        convertDecimalIntegersToOctal(secret.getItems());
-                    }
-                });
-            }
-        });
-    }
-
-    private static void convertDecimalIntegersToOctal(List<KeyToPath> items) {
-        items.forEach(i -> {
-            var mode = i.getMode();
-            if (mode != null) {
-                i.setMode(convertPermissionToOctal(mode));
-            }
-        });
-    }
-
-    /**
-     * Permissions are generally expressed in octal notation, e.g. 0777.
-     * After parsing, this is stored as the integer 777, but the snakeyaml-engine does not convert to decimal first.
-     * When the client later sends the pod spec to the server, it sends the integer as is through the json schema,
-     * however the server expects a decimal, which means an integer between 0 and 511.
-     *
-     * The user can also provide permissions as a decimal integer, e.g. 511.
-     *
-     * This method attempts to guess whether the user provided a decimal or octal integer, and converts to octal if needed,
-     * so that the resulting can be submitted to the server.
-     *
-     */
-    static int convertPermissionToOctal(Integer i) {
-        // Permissions are expressed as octal integers
-        // octal goes from 0000 to 0777
-        // decimal goes from 0 to 511
-        var s = Integer.toString(i, 10);
-        // If the input has a digit which is 8 or 9, this was likely a decimal input. Best effort support here.
-        if (s.chars().map(c -> c - '0').anyMatch(a -> a > 7)) {
-            return i;
-        } else {
-            return Integer.parseInt(s, 8);
+        Pod podFromYaml;
+        try (InputStream is = new ByteArrayInputStream(s.getBytes(UTF_8))) {
+            podFromYaml = Serialization2.unmarshal(is, Pod.class);
+            //            podFromYaml = new KubernetesSerialization().unmarshal(is, Pod.class);
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Failed to parse yaml: \"%s\"", yaml), e);
         }
+        LOGGER.finest(() -> "Parsed pod template from yaml: " + Serialization2.asYaml(podFromYaml));
+        // yaml can be just a fragment, avoid NPEs
+        if (podFromYaml.getMetadata() == null) {
+            podFromYaml.setMetadata(new ObjectMeta());
+        }
+        if (podFromYaml.getSpec() == null) {
+            podFromYaml.setSpec(new PodSpec());
+        }
+        return podFromYaml;
     }
 
     public static Collection<String> validateYamlContainerNames(List<String> yamls) {
