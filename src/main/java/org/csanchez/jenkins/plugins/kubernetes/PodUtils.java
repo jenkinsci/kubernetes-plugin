@@ -105,6 +105,7 @@ public final class PodUtils {
         var jenkinsLabel = labels.get(PodTemplate.JENKINS_LABEL);
         var queue = Jenkins.get().getQueue();
         Arrays.stream(queue.getItems())
+                .filter(item -> item.getTask().getUrl().equals(runUrl))
                 .filter(item -> Optional.ofNullable(item.getAssignedLabel())
                         .map(Label::getName)
                         .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(jenkinsLabel))
