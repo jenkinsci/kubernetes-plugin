@@ -19,6 +19,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
+import hudson.model.Label;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -28,7 +29,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,9 +105,10 @@ public final class PodUtils {
         var jenkinsLabel = labels.get(PodTemplate.JENKINS_LABEL);
         var queue = Jenkins.get().getQueue();
         Arrays.stream(queue.getItems())
-                .filter(item -> item.getAssignedLabel() != null)
-                .filter(item -> Objects.equals(
-                        PodTemplateUtils.sanitizeLabel(item.getAssignedLabel().getName()), jenkinsLabel))
+                .filter(item -> Optional.ofNullable(item.getAssignedLabel())
+                        .map(Label::getName)
+                        .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(jenkinsLabel))
+                        .orElse(false))
                 .findFirst()
                 .ifPresentOrElse(
                         item -> {
