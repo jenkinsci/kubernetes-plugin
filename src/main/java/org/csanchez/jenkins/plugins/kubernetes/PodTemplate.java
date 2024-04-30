@@ -76,6 +76,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public static final Integer DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT =
             Integer.getInteger(PodTemplate.class.getName() + ".connectionTimeout", 1000);
 
+    public static final String JENKINS_LABEL = "jenkins/label";
+    public static final String JENKINS_LABEL_DIGEST = "jenkins/label-digest";
+
     /**
      * Digest function that is used to compute the kubernetes label "jenkins/label-digest"
      * Not used for security.
@@ -477,22 +480,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return labelsMap;
     }
 
-    static String sanitizeLabel(String input) {
-        String label = input;
-        int max = 63;
-        // Kubernetes limit
-        // a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must
-        // start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used
-        // for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
-        if (label.length() > max) {
-            label = label.substring(label.length() - max);
-        }
-        label = label.replaceAll("[^_.a-zA-Z0-9-]", "_")
-                .replaceFirst("^[^a-zA-Z0-9]", "x")
-                .replaceFirst("[^a-zA-Z0-9]$", "x");
-        return label;
-    }
-
     @DataBoundSetter
     public void setLabel(String label) {
         this.label = Util.fixEmptyAndTrim(label);
@@ -503,14 +490,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.labelSet = Label.parse(label);
         Map<String, String> tempMap = new HashMap<>();
         if (label == null) {
-            tempMap.put("jenkins/label", DEFAULT_LABEL);
-            tempMap.put("jenkins/label-digest", "0");
+            tempMap.put(JENKINS_LABEL, DEFAULT_LABEL);
+            tempMap.put(JENKINS_LABEL_DIGEST, "0");
         } else {
             MessageDigest labelDigestFunction = getLabelDigestFunction();
             labelDigestFunction.update(label.getBytes(StandardCharsets.UTF_8));
-            tempMap.put("jenkins/label", sanitizeLabel(label));
-            tempMap.put(
-                    "jenkins/label-digest", String.format("%040x", new BigInteger(1, labelDigestFunction.digest())));
+            tempMap.put(JENKINS_LABEL, PodTemplateUtils.sanitizeLabel(label));
+            tempMap.put(JENKINS_LABEL_DIGEST, String.format("%040x", new BigInteger(1, labelDigestFunction.digest())));
         }
         labelsMap = Collections.unmodifiableMap(tempMap);
     }

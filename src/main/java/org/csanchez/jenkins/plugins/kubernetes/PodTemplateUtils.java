@@ -757,6 +757,32 @@ public class PodTemplateUtils {
         return image != null && image.matches("\\S+");
     }
 
+    /**
+     * <p>Sanitizes the input string to create a valid Kubernetes label.
+     * <p>The input string is truncated to a maximum length of 57 characters,
+     * and any characters that are not alphanumeric or hyphens are replaced with underscores. If the input string starts with a non-alphanumeric
+     * character, it is replaced with 'x'.
+     *
+     * @param  input  the input string to be sanitized
+     * @return        the sanitized and validated label
+     * @throws AssertionError if the generated label is not valid
+     */
+    public static String sanitizeLabel(String input) {
+        int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
+        String label;
+        if (input.length() > max) {
+            label = input.substring(input.length() - max);
+        } else {
+            label = input;
+        }
+        label = label.replaceAll("[^_a-zA-Z0-9-]", "_")
+                .replaceFirst("^[^a-zA-Z0-9]", "x")
+                .replaceFirst("[^a-zA-Z0-9]$", "x");
+
+        assert PodTemplateUtils.validateLabel(label) : label;
+        return label;
+    }
+
     private static List<EnvVar> combineEnvVars(Container parent, Container template) {
         Map<String, EnvVar> combinedEnvVars = new HashMap<>();
         Stream.of(parent.getEnv(), template.getEnv())

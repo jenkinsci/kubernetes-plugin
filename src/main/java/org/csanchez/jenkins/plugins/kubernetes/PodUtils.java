@@ -19,24 +19,28 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
-import hudson.model.Queue;
+import hudson.model.Label;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 
 public final class PodUtils {
+    private PodUtils() {}
+
     private static final Logger LOGGER = Logger.getLogger(PodUtils.class.getName());
 
     public static final Predicate<ContainerStatus> CONTAINER_IS_TERMINATED =
@@ -66,52 +70,56 @@ public final class PodUtils {
     }
 
     /**
-     * Cancel queue items matching the given pod.
-     * It uses the annotation "runUrl" added to the pod to do the matching.
-     *
-     * It uses the current thread context to list item queues,
+     * <p>Cancel queue items matching the given pod.
+     * <p>The queue item has to have a task url matching the pod "runUrl"-annotation
+     * and the queue item assigned label needs to match the label jenkins/label of the pod.
+     * <p>It uses the current thread context to list item queues,
      * so make sure to be in the right context before calling this method.
      *
      * @param pod The pod to cancel items for.
      * @param reason The reason the item are being cancelled.
      */
     public static void cancelQueueItemFor(Pod pod, String reason) {
-        Queue q = Jenkins.get().getQueue();
-        boolean cancelled = false;
-        ObjectMeta metadata = pod.getMetadata();
+        var metadata = pod.getMetadata();
         if (metadata == null) {
             return;
         }
-        Map<String, String> annotations = metadata.getAnnotations();
+        String podName = metadata.getName();
+        String podNamespace = metadata.getNamespace();
+        String podDisplayName = podNamespace + "/" + podName;
+        var annotations = metadata.getAnnotations();
         if (annotations == null) {
-            LOGGER.log(Level.FINE, "Pod .metadata.annotations is null: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
-            });
+            LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.annotations is null");
             return;
         }
-        String runUrl = annotations.get("runUrl");
+        var runUrl = annotations.get(PodTemplateStepExecution.POD_ANNOTATION_RUN_URL);
         if (runUrl == null) {
-            LOGGER.log(Level.FINE, "Pod .metadata.annotations.runUrl is null: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
-            });
+            LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.annotations.runUrl is null");
             return;
         }
-        for (Queue.Item item : q.getItems()) {
-            Queue.Task task = item.task;
-            if (runUrl.equals(task.getUrl())) {
-                LOGGER.log(Level.FINE, "Cancelling queue item: \"{0}\"\n{1}", new Object[] {
-                    task.getDisplayName(), !StringUtils.isBlank(reason) ? "due to " + reason : ""
-                });
-                q.cancel(item);
-                cancelled = true;
-                break;
-            }
+        var labels = metadata.getLabels();
+        if (labels == null) {
+            LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.labels is null");
+            return;
         }
-        if (!cancelled) {
-            LOGGER.log(Level.FINE, "No queue item found for pod: {0}/{1}", new Object[] {
-                metadata.getNamespace(), metadata.getName()
-            });
-        }
+        var jenkinsLabel = labels.get(PodTemplate.JENKINS_LABEL);
+        var queue = Jenkins.get().getQueue();
+        Arrays.stream(queue.getItems())
+                .filter(item -> item.getTask().getUrl().equals(runUrl))
+                .filter(item -> Optional.ofNullable(item.getAssignedLabel())
+                        .map(Label::getName)
+                        .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(jenkinsLabel))
+                        .orElse(false))
+                .findFirst()
+                .ifPresentOrElse(
+                        item -> {
+                            LOGGER.log(
+                                    Level.FINE,
+                                    () -> "Cancelling queue item: \"" + item.task.getDisplayName() + "\"\n"
+                                            + (!StringUtils.isBlank(reason) ? "due to " + reason : ""));
+                            queue.cancel(item);
+                        },
+                        () -> LOGGER.log(Level.FINE, () -> "No queue item found for pod " + podDisplayName));
     }
 
     @CheckForNull
