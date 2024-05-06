@@ -5,15 +5,15 @@ podTemplate(
         secretEnvVar(key: 'EMPTY_POD_ENV_VAR_FROM_SECRET', secretName: 'empty-secret', secretKey: 'password')
     ],
     containers: [
-        containerTemplate(name: 'busybox', image: 'busybox', ttyEnabled: true, command: '/bin/cat',
+        containerTemplate(name: 'busybox', image: 'busybox', command: 'sleep infinity',
             envVars: [
                 containerEnvVar(key: 'CONTAINER_ENV_VAR_LEGACY', value: 'container-env-var-value'),
                 envVar(key: 'CONTAINER_ENV_VAR', value: 'container-env-var-value'),
                 secretEnvVar(key: 'CONTAINER_ENV_VAR_FROM_SECRET', secretName: 'container-secret', secretKey: 'password')
             ],
         ),
-        containerTemplate(name: 'java7', image: 'openjdk:7u151-jre-alpine', ttyEnabled: true, command: '/bin/cat'),
-        containerTemplate(name: 'java8', image: 'openjdk:8u151-jre-alpine', ttyEnabled: true, command: '/bin/cat')
+        containerTemplate(name: 'java17', image: 'eclipse-temurin:17-jre-ubi9-minimal', command: 'sleep infinity'),
+        containerTemplate(name: 'java21', image: 'eclipse-temurin:21-jre-ubi9-minimal', command: 'sleep infinity')
     ]) {
 
     node(POD_LABEL) {
@@ -53,16 +53,16 @@ podTemplate(
                 echo JNLP_JAVA_HOME_X = $JAVA_HOME_X
                 '''
             }
-            container('java7') {
+            container('java17') {
                 sh '''set +x
-                echo JAVA7_HOME = $JAVA_HOME
-                echo JAVA7_HOME_X = $JAVA_HOME_X
+                echo JAVA17_HOME = $JAVA_HOME
+                echo JAVA17_HOME_X = $JAVA_HOME_X
                 '''
             }
-            container('java8') {
+            container('java21') {
                 sh '''set +x
-                echo JAVA8_HOME = $JAVA_HOME
-                echo JAVA8_HOME_X = $JAVA_HOME_X
+                echo JAVA21_HOME = $JAVA_HOME
+                echo JAVA21_HOME_X = $JAVA_HOME_X
                 '''
             }
         }
