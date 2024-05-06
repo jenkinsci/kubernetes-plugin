@@ -147,6 +147,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
+    private GarbageCollection garbageCollection;
+
     @DataBoundConstructor
     public KubernetesCloud(String name) {
         super(name);
@@ -332,6 +334,15 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @Deprecated
     public boolean isCapOnlyOnAlivePods() {
         return capOnlyOnAlivePods;
+    }
+
+    public GarbageCollection getGarbageCollection() {
+        return garbageCollection;
+    }
+
+    @DataBoundSetter
+    public void setGarbageCollection(GarbageCollection garbageCollection) {
+        this.garbageCollection = garbageCollection;
     }
 
     /**

@@ -41,7 +41,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.*;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeNotNull;
 
 import hudson.model.Computer;
 import hudson.model.Label;
@@ -59,11 +60,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.GarbageCollection;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
@@ -81,6 +85,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -851,5 +856,33 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.createOnlineSlave(Label.get("special-agent"));
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("ran on special agent", b);
+    }
+
+    @Test
+    public void garbageCollection() throws Exception {
+        // Pod exists, need to kill the build, delete the agent without deleting the pod.
+        // Wait for the timeout to expire and check that the pod is deleted.
+        var garbageCollection = new GarbageCollection();
+        garbageCollection.setTimeout(120);
+        cloud.setGarbageCollection(garbageCollection);
+        r.jenkins.save();
+        r.waitForMessage("Running on remote agent", b);
+
+        Pod pod = null;
+        for (Computer c : r.jenkins.getComputers()) {
+            if (c instanceof KubernetesComputer) {
+                var node = (KubernetesSlave) c.getNode();
+                pod = node.getPod().get();
+                Assert.assertNotNull(pod);
+                r.jenkins.removeNode(node);
+                break;
+            }
+        }
+        // Build is marked as failed because the agent has vanished
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        final Pod finalPod = pod;
+        var client = cloud.connect();
+        await().timeout(3, TimeUnit.MINUTES)
+                .until(() -> client.resource(finalPod).get() == null);
     }
 }

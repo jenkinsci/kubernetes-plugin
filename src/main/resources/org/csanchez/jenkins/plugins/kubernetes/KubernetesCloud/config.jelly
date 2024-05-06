@@ -119,5 +119,5 @@ THE SOFTWARE.
     <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
       <f:textbox default=""/>
     </f:entry>
-
+    <f:optionalProperty field="garbageCollection" title="${%Enable garbage collection}"/>
 </j:jelly>
