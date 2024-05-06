@@ -147,6 +147,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @CheckForNull
     private PodRetention podRetention = PodRetention.getKubernetesCloudDefault();
 
+    @CheckForNull
     private GarbageCollection garbageCollection;
 
     @DataBoundConstructor

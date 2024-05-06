@@ -863,26 +863,27 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         // Pod exists, need to kill the build, delete the agent without deleting the pod.
         // Wait for the timeout to expire and check that the pod is deleted.
         var garbageCollection = new GarbageCollection();
-        garbageCollection.setTimeout(120);
+        // Considering org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod=5, this leaves 3 ticks
+        garbageCollection.setTimeout(15);
         cloud.setGarbageCollection(garbageCollection);
         r.jenkins.save();
         r.waitForMessage("Running on remote agent", b);
-
         Pod pod = null;
-        for (Computer c : r.jenkins.getComputers()) {
+        for (var c : r.jenkins.getComputers()) {
             if (c instanceof KubernetesComputer) {
                 var node = (KubernetesSlave) c.getNode();
                 pod = node.getPod().get();
                 Assert.assertNotNull(pod);
+                b.doKill();
                 r.jenkins.removeNode(node);
                 break;
             }
         }
-        // Build is marked as failed because the agent has vanished
-        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
-        final Pod finalPod = pod;
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        final var finalPod = pod;
         var client = cloud.connect();
-        await().timeout(3, TimeUnit.MINUTES)
+        assertNotNull(client.resource(finalPod).get());
+        await().timeout(1, TimeUnit.MINUTES)
                 .until(() -> client.resource(finalPod).get() == null);
     }
 }

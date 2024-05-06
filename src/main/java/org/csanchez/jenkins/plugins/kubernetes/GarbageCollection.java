@@ -1,10 +1,11 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.LABEL_KUBERNETES_INSTANCE;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.Main;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.AsyncPeriodicWork;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -40,6 +42,9 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
     private String namespaces;
     private transient Set<String> namespaceSet;
     private int timeout;
+
+    private static Long RECURRENCE_PERIOD = SystemProperties.getLong(
+            GarbageCollection.class.getName() + ".recurrencePeriod", TimeUnit.MINUTES.toSeconds(1));
 
     @DataBoundConstructor
     public GarbageCollection() {}
@@ -71,7 +76,11 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
 
     @DataBoundSetter
     public void setTimeout(int timeout) {
-        this.timeout = Math.max(timeout, MINIMUM_GC_TIMEOUT);
+        if (Main.isUnitTest) {
+            this.timeout = timeout;
+        } else {
+            this.timeout = Math.max(timeout, MINIMUM_GC_TIMEOUT);
+        }
     }
 
     public Duration getDurationTimeout() {
@@ -95,37 +104,25 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
      * Annotate pods owned by live Kubernetes agents to help with garbage collection.
      */
     @Extension
-    public static final class AnnotateLiveAgents extends AsyncPeriodicWork {
-
-        public AnnotateLiveAgents() {
-            super("Annotate Live Kubernetes Agents");
+    public static final class PeriodicGarbageCollection extends AsyncPeriodicWork {
+        public PeriodicGarbageCollection() {
+            super("Garbage collection of orphaned Kubernetes pods");
         }
 
         @Override
         protected void execute(TaskListener listener) throws IOException, InterruptedException {
+            annotateLiveAgents(listener);
+            garbageCollect();
+        }
+
+        private static void annotateLiveAgents(TaskListener listener) {
             Arrays.stream(Jenkins.get().getComputers())
                     .filter(KubernetesComputer.class::isInstance)
                     .map(KubernetesComputer.class::cast)
                     .forEach(kc -> kc.annotateTtl(listener));
         }
 
-        @Override
-        public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(1);
-        }
-    }
-
-    /**
-     * Reap orphan pods that have not been refreshed for a while
-     */
-    @Extension
-    public static final class ReapOrphanPods extends AsyncPeriodicWork {
-        public ReapOrphanPods() {
-            super("Garbage collect orphan pods");
-        }
-
-        @Override
-        protected void execute(TaskListener listener) throws IOException, InterruptedException {
+        private static void garbageCollect() {
             for (var cloud : Jenkins.get().clouds.getAll(KubernetesCloud.class)) {
                 Optional.ofNullable(cloud.getGarbageCollection()).ifPresent(gc -> {
                     try {
@@ -138,7 +135,7 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
                                     .pods()
                                     .inNamespace(ns)
                                     // Only look at pods created by this controller
-                                    .withLabel(LABEL_KUBERNETES_INSTANCE, sanitizeLabel(cloud.getJenkinsUrlOrNull()))
+                                    .withLabel(LABEL_KUBERNETES_CONTROLLER, sanitizeLabel(cloud.getJenkinsUrlOrNull()))
                                     .list()
                                     .getItems()
                                     .stream()
@@ -149,13 +146,14 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
                                         if (lastRefresh != null) {
                                             try {
                                                 var refreshTime = Long.parseLong(lastRefresh);
+                                                var now = Instant.now();
                                                 LOGGER.log(
-                                                        Level.FINEST,
-                                                        () -> getQualifiedName(pod) + " last refreshed at "
-                                                                + refreshTime);
-                                                return Duration.between(
-                                                                        Instant.ofEpochMilli(refreshTime),
-                                                                        Instant.now())
+                                                        Level.FINE,
+                                                        () -> getQualifiedName(pod) + " refresh diff = "
+                                                                + (now.toEpochMilli() - refreshTime) + ", timeout is "
+                                                                + gc.getDurationTimeout()
+                                                                        .toMillis());
+                                                return Duration.between(Instant.ofEpochMilli(refreshTime), now)
                                                                 .compareTo(gc.getDurationTimeout())
                                                         > 0;
                                             } catch (NumberFormatException e) {
@@ -193,7 +191,7 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(1);
+            return TimeUnit.SECONDS.toMillis(RECURRENCE_PERIOD);
         }
     }
 }

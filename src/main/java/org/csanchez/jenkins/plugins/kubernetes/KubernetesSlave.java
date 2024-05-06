@@ -27,12 +27,10 @@ import hudson.slaves.RetentionStrategy;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Locale;
@@ -87,8 +85,6 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @CheckForNull
     private transient Pod pod;
-
-    private long lastRefresh;
 
     @NonNull
     public PodTemplate getTemplate() throws IllegalStateException {
@@ -544,37 +540,25 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     public void annotateTtl(TaskListener listener) {
-        var kubernetesCloud = getKubernetesCloud();
-        Optional.ofNullable(kubernetesCloud.getGarbageCollection()).ifPresent(gc -> {
-            var ns = getNamespace();
-            var name = getPodName();
-            var l = Instant.now();
-            if (lastRefresh == 0
-                    || Duration.between(Instant.ofEpochMilli(lastRefresh), Instant.now())
-                                    .compareTo(gc.getDurationTimeout().dividedBy(2))
-                            > 0) {
+        try {
+            var kubernetesCloud = getKubernetesCloud();
+            Optional.ofNullable(kubernetesCloud.getGarbageCollection()).ifPresent(gc -> {
+                var ns = getNamespace();
+                var name = getPodName();
+                var l = Instant.now();
                 try {
                     kubernetesCloud
                             .connect()
                             .pods()
                             .inNamespace(ns)
                             .withName(name)
-                            .edit(p -> {
-                                if (p == null) return null;
-                                return new PodBuilder(p)
-                                        .editMetadata()
-                                        .addToAnnotations(
-                                                GarbageCollection.ANNOTATION_LAST_REFRESH,
-                                                String.valueOf(l.toEpochMilli()))
-                                        .endMetadata()
-                                        .build();
-                            });
+                            .patch("{\"metadata\":{\"annotations\":{\"" + GarbageCollection.ANNOTATION_LAST_REFRESH
+                                    + "\":\"" + l.toEpochMilli() + "\"}}}");
                 } catch (KubernetesAuthException e) {
                     e.printStackTrace(listener.error("Failed to authenticate to Kubernetes cluster"));
                 } catch (IOException e) {
                     e.printStackTrace(listener.error("Failed to connect to Kubernetes cluster"));
                 }
-                lastRefresh = l.toEpochMilli();
                 listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
                 LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
                 try {
@@ -582,10 +566,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e, () -> "Failed to save");
                 }
-            } else {
-                LOGGER.log(Level.FINEST, () -> "Not refreshing agent pod " + ns + "/" + name + " yet");
-            }
-        });
+            });
+        } catch (RuntimeException e) {
+            e.printStackTrace(listener.error("Failed to annotate agent pod with TTL"));
+        }
     }
 
     /**

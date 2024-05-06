@@ -168,9 +168,6 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     }
 
     public void annotateTtl(TaskListener listener) {
-        if (!isOnline()) {
-            return;
-        }
         Optional.ofNullable(getNode()).ifPresent(ks -> ks.annotateTtl(listener));
     }
 

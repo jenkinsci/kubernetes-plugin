@@ -99,7 +99,7 @@ public class PodTemplateBuilder {
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
-    public static final String LABEL_KUBERNETES_INSTANCE = "kubernetes.jenkins.io/instance";
+    public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -234,7 +234,7 @@ public class PodTemplateBuilder {
             metadataBuilder.withLabels(labels);
         }
         if (cloud != null) {
-            metadataBuilder.addToLabels(LABEL_KUBERNETES_INSTANCE, sanitizeLabel(cloud.getJenkinsUrlOrNull()));
+            metadataBuilder.addToLabels(LABEL_KUBERNETES_CONTROLLER, sanitizeLabel(cloud.getJenkinsUrlOrNull()));
         }
 
         Map<String, String> annotations = getAnnotationsMap(template.getAnnotations());
