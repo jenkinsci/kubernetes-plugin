@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +91,24 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
     @NonNull
     public Set<String> getNamespaceSet() {
         return namespaceSet == null ? Set.of() : namespaceSet;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GarbageCollection that = (GarbageCollection) o;
+        return timeout == that.timeout && Objects.equals(namespaces, that.namespaces);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(namespaces, timeout);
+    }
+
+    @Override
+    public String toString() {
+        return "GarbageCollection{" + "namespaces='" + namespaces + '\'' + ", timeout=" + timeout + '}';
     }
 
     @Extension

@@ -779,6 +779,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 && Objects.equals(getPodLabels(), that.getPodLabels())
                 && Objects.equals(podRetention, that.podRetention)
                 && Objects.equals(waitForPodSec, that.waitForPodSec)
+                && Objects.equals(garbageCollection, that.garbageCollection)
                 && useJenkinsProxy == that.useJenkinsProxy;
     }
 
@@ -806,7 +807,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 usageRestricted,
                 maxRequestsPerHost,
                 podRetention,
-                useJenkinsProxy);
+                useJenkinsProxy,
+                garbageCollection);
     }
 
     public Integer getWaitForPodSec() {
@@ -1080,7 +1082,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 + waitForPodSec + ", podRetention="
                 + podRetention + ", useJenkinsProxy="
                 + useJenkinsProxy + ", templates="
-                + templates + '}';
+                + templates + ", garbageCollection="
+                + garbageCollection + '}';
     }
 
     private Object readResolve() {
