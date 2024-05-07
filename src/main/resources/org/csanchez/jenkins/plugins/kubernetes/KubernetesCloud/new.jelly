@@ -20,7 +20,7 @@ THE SOFTWARE.
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
   <l:layout permission="${app.SYSTEM_READ}" title="${%New pod template}">
-    <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}"/>
+    <j:set var="readOnlyMode" value="${!app.hasPermission(app.MANAGE)}"/>
     <l:breadcrumb title="${%New pod template }"/>
     <st:include page="sidepanel.jelly" it="${it}"/>
     <l:main-panel>
@@ -30,15 +30,15 @@ THE SOFTWARE.
 
         <j:set var="descriptor" value="${it.templateDescriptor}"/>
         <st:include class="${descriptor.clazz}" page="config.jelly"/>
-        <l:isAdmin>
+        <l:hasAdministerOrManage>
           <f:bottomButtonBar>
             <f:submit value="${%Create}"/>
           </f:bottomButtonBar>
-        </l:isAdmin>
+        </l:hasAdministerOrManage>
       </f:form>
-      <l:isAdmin>
+      <:l:hasAdministerOrManage>
         <st:adjunct includes="lib.form.confirm"/>
-      </l:isAdmin>
+      </:l:hasAdministerOrManage>
     </l:main-panel>
   </l:layout>
 </j:jelly>

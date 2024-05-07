@@ -29,12 +29,12 @@ THE SOFTWARE.
         <j:choose>
             <j:when test="${not empty it.templates}">
                 <l:app-bar title="${it.name} - ${%Pod templates}">
-                    <l:isAdmin>
+                    <l:hasAdministerOrManage>
                         <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
                             <l:icon src="symbol-add"/>
                             ${%Add a pod template}
                         </a>
-                    </l:isAdmin>
+                    </l:hasAdministerOrManage>
                 </l:app-bar>
                 <table id="templates" class="jenkins-table sortable">
                     <thead>
