@@ -13,6 +13,7 @@ import hudson.model.Node;
 import hudson.model.Saveable;
 import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
+import hudson.security.Permission;
 import hudson.slaves.NodeProperty;
 import hudson.util.FormApply;
 import hudson.util.XStream2;
@@ -646,7 +647,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @POST
     public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup owner) throws IOException {
         Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.ADMINISTER);
+        j.checkPermission(Jenkins.MANAGE);
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
@@ -660,7 +661,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup owner)
             throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.ADMINISTER);
+        j.checkPermission(Jenkins.MANAGE);
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
@@ -1054,6 +1055,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         static final String[] STRING_FIELDS = {
             "activeDeadlineSeconds", "idleMinutes", "instanceCap", "slaveConnectTimeout",
         };
+
+        @NonNull
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return Jenkins.MANAGE;
+        }
 
         public DescriptorImpl() {
             for (String field : STRING_FIELDS) {
