@@ -449,7 +449,6 @@ public class PodTemplateStep extends Step implements Serializable {
         public ListBoxModel doFillCloudItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("—any—", "");
-            // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
             if (!Jenkins.get().hasPermission(Jenkins.MANAGE)) {
                 return result;
             }
@@ -463,7 +462,6 @@ public class PodTemplateStep extends Step implements Serializable {
             ListBoxModel result = new ListBoxModel();
             result.add("—Default inheritance—", "<default>");
             result.add("—Disable inheritance—", " ");
-            // TODO track use of SYSTEM_READ and/or MANAGE in GlobalCloudConfiguration
             if (!Jenkins.get().hasPermission(Jenkins.MANAGE)) {
                 return result;
             }
