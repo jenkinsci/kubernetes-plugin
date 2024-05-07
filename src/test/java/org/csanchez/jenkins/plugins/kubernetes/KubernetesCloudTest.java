@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -208,8 +209,8 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        ArrayList<String> objectProperties = new ArrayList<>(Arrays.asList(
-                "templates", "podRetention", "podLabels", "labels", "serverCertificate", "garbageCollection"));
+        var objectProperties =
+                Set.of("templates", "podRetention", "podLabels", "labels", "serverCertificate", "garbageCollection");
         for (String property : PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);
