@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Queue;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.slaves.AbstractCloudComputer;
@@ -18,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -163,6 +165,10 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
     public ACL getACL() {
         final ACL base = super.getACL();
         return new KubernetesComputerACL(base);
+    }
+
+    public void annotateTtl(TaskListener listener) {
+        Optional.ofNullable(getNode()).ifPresent(ks -> ks.annotateTtl(listener));
     }
 
     /**

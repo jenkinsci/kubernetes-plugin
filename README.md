@@ -77,6 +77,20 @@ adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
 ![image](images/cloud-configuration.png)
 
+
+### Garbage collection (beta)
+
+In some exceptional cases, agent pods can be left behind, with no declared Jenkins agent in the controller. They will try to reconnect over and over, until something deletes them.
+
+The plugin provides a garbage collection mechanism to clean up these pods. As it has been introduced recently,
+and generates extra load on the Kubernetes API server, it is disabled by default.
+
+Feel free to enable it and provide feedback about this functionality.
+
+![image](images/garbage-collection.png)
+
+## Static pod templates
+
 In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
 spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
 For your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the

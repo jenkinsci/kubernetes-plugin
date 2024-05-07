@@ -295,6 +295,7 @@
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <hudson.slaves.NodeProvisioner.recurrencePeriod>3000</hudson.slaves.NodeProvisioner.recurrencePeriod>
+            <org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod>5</org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod>
             <org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>60000</org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>

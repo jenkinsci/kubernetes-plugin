@@ -767,7 +767,10 @@ public class PodTemplateUtils {
      * @return        the sanitized and validated label
      * @throws AssertionError if the generated label is not valid
      */
-    public static String sanitizeLabel(String input) {
+    public static String sanitizeLabel(@CheckForNull String input) {
+        if (input == null) {
+            return null;
+        }
         int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
         String label;
         if (input.length() > max) {

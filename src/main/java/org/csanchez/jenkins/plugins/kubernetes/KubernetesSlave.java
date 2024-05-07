@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
@@ -273,7 +274,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     public Optional<Pod> getPod() {
-        return pod == null ? Optional.empty() : Optional.of(pod);
+        return Optional.ofNullable(pod);
     }
 
     /**
@@ -536,6 +537,39 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     public static Builder builder() {
         return new Builder();
+    }
+
+    public void annotateTtl(TaskListener listener) {
+        try {
+            var kubernetesCloud = getKubernetesCloud();
+            Optional.ofNullable(kubernetesCloud.getGarbageCollection()).ifPresent(gc -> {
+                var ns = getNamespace();
+                var name = getPodName();
+                var l = Instant.now();
+                try {
+                    kubernetesCloud
+                            .connect()
+                            .pods()
+                            .inNamespace(ns)
+                            .withName(name)
+                            .patch("{\"metadata\":{\"annotations\":{\"" + GarbageCollection.ANNOTATION_LAST_REFRESH
+                                    + "\":\"" + l.toEpochMilli() + "\"}}}");
+                } catch (KubernetesAuthException e) {
+                    e.printStackTrace(listener.error("Failed to authenticate to Kubernetes cluster"));
+                } catch (IOException e) {
+                    e.printStackTrace(listener.error("Failed to connect to Kubernetes cluster"));
+                }
+                listener.getLogger().println("Annotated agent pod " + ns + "/" + name + " with TTL");
+                LOGGER.log(Level.FINE, () -> "Annotated agent pod " + ns + "/" + name + " with TTL");
+                try {
+                    save();
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, e, () -> "Failed to save");
+                }
+            });
+        } catch (RuntimeException e) {
+            e.printStackTrace(listener.error("Failed to annotate agent pod with TTL"));
+        }
     }
 
     /**

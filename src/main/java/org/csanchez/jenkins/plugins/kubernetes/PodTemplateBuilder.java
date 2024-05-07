@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -97,6 +98,8 @@ public class PodTemplateBuilder {
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
+
+    public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -229,6 +232,9 @@ public class PodTemplateBuilder {
         labels.putAll(template.getLabelsMap());
         if (!labels.isEmpty()) {
             metadataBuilder.withLabels(labels);
+        }
+        if (cloud != null) {
+            metadataBuilder.addToLabels(LABEL_KUBERNETES_CONTROLLER, sanitizeLabel(cloud.getJenkinsUrlOrNull()));
         }
 
         Map<String, String> annotations = getAnnotationsMap(template.getAnnotations());
@@ -618,6 +624,7 @@ public class PodTemplateBuilder {
                 builder.put(podAnnotation.getKey(), substituteEnv(podAnnotation.getValue()));
             }
         }
+        builder.put(GarbageCollection.ANNOTATION_LAST_REFRESH, String.valueOf(System.currentTimeMillis()));
         return Collections.unmodifiableMap(builder);
     }
 
