@@ -81,7 +81,6 @@ public class JenkinsRuleNonLocalhost extends JenkinsRule {
         context.addBean(new NoListenerConfiguration(context));
         JettyWebSocketServletContainerInitializer.configure(context, null);
         server.setHandler(context);
-        context.setMimeTypes(MIME_TYPES);
         context.getSecurityHandler().setLoginService(configureUserRealm());
         context.setResourceBase(WarExploder.getExplodedDir().getPath());
 
