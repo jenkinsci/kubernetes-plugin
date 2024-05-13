@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
+cd $(dirname $0)
 
 export PATH=$WORKSPACE_TMP:$PATH
 if [ \! -x "$WORKSPACE_TMP/kind" ]
@@ -15,17 +16,12 @@ fi
 
 export cluster=ci$RANDOM
 export KUBECONFIG="$WORKSPACE_TMP/kubeconfig-$cluster"
-m2=$(dirname $(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout))
-cat >"$WORKSPACE_TMP/kind.yaml" <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraMounts:
-  - hostPath: $m2
-    containerPath: /m2
-EOF
-kind create cluster --name $cluster --config "$WORKSPACE_TMP/kind.yaml" --wait 5m
+if ${MOUNT_M2:-false}
+then
+  ./kind-mount-m2.sh
+else
+  kind create cluster --name $cluster --wait 5m
+fi
 function cleanup() {
     kind export logs --name $cluster "$WORKSPACE_TMP/kindlogs" || :
     kind delete cluster --name $cluster || :
@@ -34,15 +30,7 @@ function cleanup() {
 trap cleanup EXIT
 kubectl cluster-info
 
-PRE_LOAD_IMAGES=()
-PRE_LOAD_IMAGES+=($(grep -e image: test-in-k8s.yaml | cut -d ':' -f 2- | xargs))
-PRE_LOAD_IMAGES+=($(grep -h --include="*.groovy" -e "^\s*image: .*$" -R src/test/resources | sed -e "s/^[[:space:]]*image: //" | sort | uniq | grep -v "windows" | grep -v "nonexistent" | grep -v "invalid" | xargs))
-PRE_LOAD_IMAGES+=($(grep -e FROM src/main/resources/org/csanchez/jenkins/plugins/kubernetes/Dockerfile | cut -d ' ' -f 2-))
-for image in "${PRE_LOAD_IMAGES[@]}"
-do
-  docker pull "$image"
-  kind load docker-image "$image" --name $cluster
-done
+./kind-preload.sh
 
 ./test-in-k8s.sh "$@"
 rm -rf "$WORKSPACE_TMP/surefire-reports"

@@ -26,8 +26,7 @@ spec:
       mountPath: /root/.m2
   volumes:
   - name: m2
-    hostPath:
-      path: /m2
+    @M2_VOLUME@
   nodeSelector:
     kubernetes.io/os: linux
 ---
