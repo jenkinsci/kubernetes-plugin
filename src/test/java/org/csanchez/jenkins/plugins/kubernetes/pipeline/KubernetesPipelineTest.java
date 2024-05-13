@@ -33,6 +33,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deleteP
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.oneOf;
@@ -55,6 +56,7 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -773,28 +775,26 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void dynamicPVCWorkspaceVolume() throws Exception {
-        assumePvcAccess();
-        var client = cloud.connect();
-        var podSize = client.pods().list().getItems().size();
-        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await("The number of pods should be the same as before building")
-                .until(() -> client.pods().list().getItems(), hasSize(podSize));
-        await("The number of PVCs should be the same as before building")
-                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
+        dynamicPVC();
     }
 
     @Test
     public void dynamicPVCVolume() throws Exception {
+        dynamicPVC();
+    }
+
+    private void dynamicPVC() throws Exception {
         assumePvcAccess();
         var client = cloud.connect();
-        var podSize = client.pods().list().getItems().size();
-        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
+        var pods = client.pods().list().getItems();
+        var pvcs = client.persistentVolumeClaims().list().getItems();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await("The number of pods should be the same as before building")
-                .until(() -> client.pods().list().getItems(), hasSize(podSize));
-        await("The number of PVCs should be the same as before building")
-                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
+        await("The pods should be the same as before building")
+                .timeout(Duration.ofMinutes(1))
+                .until(() -> client.pods().list().getItems(), equalTo(pods));
+        await("The PVCs should be the same as before building")
+                .timeout(Duration.ofMinutes(1))
+                .until(() -> client.persistentVolumeClaims().list().getItems(), equalTo(pvcs));
     }
 
     private void assumePvcAccess() throws KubernetesAuthException, IOException {
