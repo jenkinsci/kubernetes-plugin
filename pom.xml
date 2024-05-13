@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.76</version>
+    <version>4.82</version>
     <relativePath />
   </parent>
 
@@ -46,9 +46,9 @@
     <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.version>2.426.1</jenkins.version>
+    <jenkins.version>2.426.3</jenkins.version>
     <bom>2.426.x</bom>
-    <bom.version>2571.vede9dc5a_2e23</bom.version>
+    <bom.version>2857.v01a_0144eb_20b_</bom.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -69,8 +69,8 @@
       <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>mockwebserver</artifactId>
-        <version>4.9.3</version>
-        <!-- should be aligned with the version provided by okhttp-api-plugin -->
+        <!-- transitive dep of io.fabric8:kubernetes-server-mock, needs alignment with okhttp-api -->
+        <version>4.11.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -157,7 +157,7 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-server-mock</artifactId>
-      <version>6.8.1</version>
+      <version>6.10.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -173,7 +173,7 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>4.2.0</version>
+      <version>4.2.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -295,6 +295,7 @@
           <systemPropertyVariables>
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <hudson.slaves.NodeProvisioner.recurrencePeriod>3000</hudson.slaves.NodeProvisioner.recurrencePeriod>
+            <org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod>5</org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod>
             <org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>60000</org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>
             <!-- listen in this interface for connections from kubernetes pods -->
             <connectorHost>${connectorHost}</connectorHost>
@@ -316,6 +317,34 @@
             <org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>true</org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>
           </systemProperties>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-okhttp-consistency</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireSameVersions>
+                  <dependencies>
+                    <dependency>com.squareup.okhttp3:mockwebserver</dependency>
+                    <dependency>com.squareup.okhttp3:okhttp:jar</dependency>
+                    <dependency>com.squareup.okhttp3:logging-interceptor</dependency>
+                  </dependencies>
+                </requireSameVersions>
+                <requireSameVersions>
+                  <dependencies>
+                    <dependency>io.fabric8:kubernetes-server-mock</dependency>
+                    <dependency>io.fabric8:kubernetes-client</dependency>
+                  </dependencies>
+                </requireSameVersions>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

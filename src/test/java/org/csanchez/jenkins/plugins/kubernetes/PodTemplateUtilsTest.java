@@ -24,12 +24,29 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substitute;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.unwrap;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.validateLabel;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import hudson.model.Node;
 import hudson.tools.ToolLocationNodeProperty;
@@ -898,15 +915,10 @@ public class PodTemplateUtilsTest {
 
     @Test
     public void decimalParsing() throws IOException {
-        try {
-            DISABLE_OCTAL_MODES = true;
-            var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/decimal.yaml");
-            assertNotNull(fileStream);
-            var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
-            checkParsed(pod);
-        } finally {
-            DISABLE_OCTAL_MODES = false;
-        }
+        var fileStream = getClass().getResourceAsStream(getClass().getSimpleName() + "/decimal.yaml");
+        assertNotNull(fileStream);
+        var pod = parseFromYaml(IOUtils.toString(fileStream, StandardCharsets.UTF_8));
+        checkParsed(pod);
     }
 
     private static void checkParsed(Pod pod) {
@@ -936,5 +948,38 @@ public class PodTemplateUtilsTest {
                         .getItems()
                         .get(0)
                         .getMode());
+    }
+
+    @Test
+    @Issue("JENKINS-72886")
+    public void shouldIgnoreContainerEmptyArgs() {
+        Container parent = new Container();
+        parent.setArgs(List.of("arg1", "arg2"));
+        parent.setCommand(List.of("parent command"));
+        Container child = new Container();
+        Container result = combine(parent, child);
+        assertEquals(List.of("arg1", "arg2"), result.getArgs());
+        assertEquals(List.of("parent command"), result.getCommand());
+    }
+
+    @Test
+    public void shouldSanitizeJenkinsLabel() {
+        assertEquals("foo", sanitizeLabel("foo"));
+        assertEquals("foo_bar__3", sanitizeLabel("foo bar #3"));
+        assertEquals("This_Thing", sanitizeLabel("This/Thing"));
+        assertEquals("xwhatever", sanitizeLabel("/whatever"));
+        assertEquals(
+                "xprolix-for-the-sixty-three-character-limit-in-kubernetes",
+                sanitizeLabel("way-way-way-too-prolix-for-the-sixty-three-character-limit-in-kubernetes"));
+        assertEquals("label1", sanitizeLabel("label1"));
+        assertEquals("label1_label2", sanitizeLabel("label1 label2"));
+        assertEquals(
+                "bel2_verylooooooooooooooooooooooooooooonglabelover63chars",
+                sanitizeLabel("label1 label2 verylooooooooooooooooooooooooooooonglabelover63chars"));
+        assertEquals("xfoo_bar", sanitizeLabel(":foo:bar"));
+        assertEquals("xfoo_barx", sanitizeLabel(":foo:bar:"));
+        assertEquals(
+                "ylooooooooooooooooooooooooooooonglabelendinginunderscorex",
+                sanitizeLabel("label1 label2 verylooooooooooooooooooooooooooooonglabelendinginunderscore_"));
     }
 }

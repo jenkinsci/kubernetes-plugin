@@ -3,6 +3,13 @@ package org.csanchez.jenkins.plugins.kubernetes;
  * A group of pod templates that can be saved together.
  */
 public interface PodTemplateGroup {
+
+    /**
+     * Add the template to the group.
+     * @param podTemplate the template to add
+     */
+    void addTemplate(PodTemplate podTemplate);
+
     /**
      * Replaces the old template with the new template.
      * @param oldTemplate the old template to replace

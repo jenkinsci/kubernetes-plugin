@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
@@ -86,7 +87,10 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String yaml;
 
-    private YamlMergeStrategy yamlMergeStrategy = YamlMergeStrategy.defaultStrategy();
+    private YamlMergeStrategy yamlMergeStrategy;
+
+    @CheckForNull
+    private Boolean inheritYamlMergeStrategy;
 
     @CheckForNull
     private PodRetention podRetention;
@@ -359,6 +363,15 @@ public class PodTemplateStep extends Step implements Serializable {
     public void setPodRetention(@CheckForNull PodRetention podRetention) {
         this.podRetention =
                 (podRetention == null || podRetention.equals(DescriptorImpl.defaultPodRetention)) ? null : podRetention;
+    }
+
+    public boolean isInheritYamlMergeStrategy() {
+        return Optional.ofNullable(inheritYamlMergeStrategy).orElse(false);
+    }
+
+    @DataBoundSetter
+    public void setInheritYamlMergeStrategy(boolean inheritYamlMergeStrategy) {
+        this.inheritYamlMergeStrategy = inheritYamlMergeStrategy;
     }
 
     boolean isShowRawYamlSet() {

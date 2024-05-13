@@ -9,7 +9,6 @@ jenkins:
           - hostNetwork: false
             label: "java"
             name: "default-java"
-            yamlMergeStrategy: "override"
             instanceCap: 10
             slaveConnectTimeout: 123
             idleMinutes: 5

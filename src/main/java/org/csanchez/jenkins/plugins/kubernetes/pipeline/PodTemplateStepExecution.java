@@ -41,6 +41,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     private static final long serialVersionUID = -6139090518333729333L;
 
     private static final String NAME_FORMAT = "%s-%s";
+    public static final String POD_ANNOTATION_BUILD_URL = "buildUrl";
+    public static final String POD_ANNOTATION_RUN_URL = "runUrl";
 
     private static /* almost final */ boolean VERBOSE =
             Boolean.parseBoolean(System.getProperty(PodTemplateStepExecution.class.getName() + ".verbose"));
@@ -70,9 +72,15 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         PodTemplateContext podTemplateContext = getContext().get(PodTemplateContext.class);
         String parentTemplates = podTemplateContext != null ? podTemplateContext.getName() : null;
 
-        String label = step.getLabel();
-        if (label == null) {
-            label = labelify(run.getExternalizableId());
+        String label;
+        String podTemplateLabel = step.getLabel();
+        if (podTemplateLabel == null) {
+            var sanitized = PodTemplateUtils.sanitizeLabel(run.getExternalizableId()) + "-"
+                    + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+            assert PodTemplateUtils.validateLabel(sanitized) : sanitized;
+            label = sanitized;
+        } else {
+            label = podTemplateLabel;
         }
 
         // Let's generate a random name based on the user specified to make sure that we don't have
@@ -118,10 +126,11 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         newTemplate.setListener(listener);
         newTemplate.setYamlMergeStrategy(step.getYamlMergeStrategy());
         if (run != null) {
+            newTemplate.setInheritYamlMergeStrategy(step.isInheritYamlMergeStrategy());
             String url = cloud.getJenkinsUrlOrNull();
             if (url != null) {
-                newTemplate.getAnnotations().add(new PodAnnotation("buildUrl", url + run.getUrl()));
-                newTemplate.getAnnotations().add(new PodAnnotation("runUrl", run.getUrl()));
+                newTemplate.getAnnotations().add(new PodAnnotation(POD_ANNOTATION_BUILD_URL, url + run.getUrl()));
+                newTemplate.getAnnotations().add(new PodAnnotation(POD_ANNOTATION_RUN_URL, run.getUrl()));
             }
         }
         newTemplate.setImagePullSecrets(step.getImagePullSecrets().stream()
@@ -187,17 +196,6 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             cloud = (KubernetesCloud) cl;
         }
         return cloud;
-    }
-
-    static String labelify(String input) {
-        int max = /* Kubernetes limit */ 63 - /* hyphen */ 1 - /* suffix */ 5;
-        if (input.length() > max) {
-            input = input.substring(input.length() - max);
-        }
-        input = input.replaceAll("[^_a-zA-Z0-9-]", "_").replaceFirst("^[^a-zA-Z0-9]", "x");
-        String label = input + "-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
-        assert PodTemplateUtils.validateLabel(label) : label;
-        return label;
     }
 
     /**

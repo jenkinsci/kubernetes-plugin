@@ -33,6 +33,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deleteP
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.oneOf;
@@ -41,7 +42,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.*;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeNotNull;
 
 import hudson.model.Computer;
 import hudson.model.Label;
@@ -54,16 +56,20 @@ import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
+import org.csanchez.jenkins.plugins.kubernetes.GarbageCollection;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
@@ -81,6 +87,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -389,15 +396,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         /* Varies according to agent image:
         r.assertLogContains("JNLP_JAVA_HOME = /usr/local/openjdk-8\n", b);
         */
-        r.assertLogContains("JAVA7_HOME = /usr/lib/jvm/java-1.7-openjdk/jre\n", b);
-        r.assertLogContains("JAVA8_HOME = /usr/lib/jvm/java-1.8-openjdk/jre\n", b);
+        r.assertLogContains("JAVA17_HOME = /opt/java/openjdk\n", b);
+        r.assertLogContains("JAVA21_HOME = /opt/java/openjdk\n", b);
 
         // check that we are not filtering too much
         r.assertLogContains("INSIDE_JAVA_HOME_X = java-home-x\n", b);
         r.assertLogContains("OUTSIDE_JAVA_HOME_X = java-home-x\n", b);
         r.assertLogContains("JNLP_JAVA_HOME_X = java-home-x\n", b);
-        r.assertLogContains("JAVA7_HOME_X = java-home-x\n", b);
-        r.assertLogContains("JAVA8_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA17_HOME_X = java-home-x\n", b);
+        r.assertLogContains("JAVA21_HOME_X = java-home-x\n", b);
     }
 
     @Test
@@ -768,28 +775,26 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void dynamicPVCWorkspaceVolume() throws Exception {
-        assumePvcAccess();
-        var client = cloud.connect();
-        var podSize = client.pods().list().getItems().size();
-        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await("The number of pods should be the same as before building")
-                .until(() -> client.pods().list().getItems(), hasSize(podSize));
-        await("The number of PVCs should be the same as before building")
-                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
+        dynamicPVC();
     }
 
     @Test
     public void dynamicPVCVolume() throws Exception {
+        dynamicPVC();
+    }
+
+    private void dynamicPVC() throws Exception {
         assumePvcAccess();
         var client = cloud.connect();
-        var podSize = client.pods().list().getItems().size();
-        var pvcSize = client.persistentVolumeClaims().list().getItems().size();
+        var pods = client.pods().list().getItems();
+        var pvcs = client.persistentVolumeClaims().list().getItems();
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        await("The number of pods should be the same as before building")
-                .until(() -> client.pods().list().getItems(), hasSize(podSize));
-        await("The number of PVCs should be the same as before building")
-                .until(() -> client.persistentVolumeClaims().list().getItems(), hasSize(pvcSize));
+        await("The pods should be the same as before building")
+                .timeout(Duration.ofMinutes(1))
+                .until(() -> client.pods().list().getItems(), equalTo(pods));
+        await("The PVCs should be the same as before building")
+                .timeout(Duration.ofMinutes(1))
+                .until(() -> client.persistentVolumeClaims().list().getItems(), equalTo(pvcs));
     }
 
     private void assumePvcAccess() throws KubernetesAuthException, IOException {
@@ -843,5 +848,42 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         String msg = "unexpected build status; build log was:\n------\n" + r.getLog(run) + "\n------\n";
         MatcherAssert.assertThat(msg, run.getResult(), Matchers.is(oneOf(status)));
         return run;
+    }
+
+    @Test
+    public void cancelOnlyRelevantQueueItem() throws Exception {
+        r.waitForMessage("cancelled pod item by now", b);
+        r.createOnlineSlave(Label.get("special-agent"));
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("ran on special agent", b);
+    }
+
+    @Test
+    public void garbageCollection() throws Exception {
+        // Pod exists, need to kill the build, delete the agent without deleting the pod.
+        // Wait for the timeout to expire and check that the pod is deleted.
+        var garbageCollection = new GarbageCollection();
+        // Considering org.csanchez.jenkins.plugins.kubernetes.GarbageCollection.recurrencePeriod=5, this leaves 3 ticks
+        garbageCollection.setTimeout(15);
+        cloud.setGarbageCollection(garbageCollection);
+        r.jenkins.save();
+        r.waitForMessage("Running on remote agent", b);
+        Pod pod = null;
+        for (var c : r.jenkins.getComputers()) {
+            if (c instanceof KubernetesComputer) {
+                var node = (KubernetesSlave) c.getNode();
+                pod = node.getPod().get();
+                Assert.assertNotNull(pod);
+                b.doKill();
+                r.jenkins.removeNode(node);
+                break;
+            }
+        }
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        final var finalPod = pod;
+        var client = cloud.connect();
+        assertNotNull(client.resource(finalPod).get());
+        await().timeout(1, TimeUnit.MINUTES)
+                .until(() -> client.resource(finalPod).get() == null);
     }
 }
