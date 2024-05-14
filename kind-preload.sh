@@ -8,7 +8,7 @@ PRE_LOAD_IMAGES+=($(grep -h --include="*.groovy" -e "^\s*image: .*$" -R src/test
 PRE_LOAD_IMAGES+=($(grep -e FROM src/main/resources/org/csanchez/jenkins/plugins/kubernetes/Dockerfile | cut -d ' ' -f 2-))
 if [[ -v cluster ]]
 then
-  name_arg='--name $cluster'
+  name_arg="--name $cluster"
 else
   name_arg=
 fi
