@@ -45,7 +45,8 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
     private int timeout;
 
     private static Long RECURRENCE_PERIOD = SystemProperties.getLong(
-            GarbageCollection.class.getName() + ".recurrencePeriod", TimeUnit.MINUTES.toSeconds(1));
+            GarbageCollection.class.getName() + ".recurrencePeriod",
+            Main.isUnitTest ? 5 : TimeUnit.MINUTES.toSeconds(1));
 
     @DataBoundConstructor
     public GarbageCollection() {}
