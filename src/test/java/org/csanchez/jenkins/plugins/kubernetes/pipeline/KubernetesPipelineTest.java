@@ -32,10 +32,12 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeW
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.oneOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -45,6 +47,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeNotNull;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import hudson.model.Label;
 import hudson.model.Result;
@@ -62,6 +65,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,12 +75,12 @@ import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.GarbageCollection;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.MetricNames;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.htmlunit.html.DomNodeUtil;
 import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlPage;
@@ -786,15 +790,38 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     private void dynamicPVC() throws Exception {
         assumePvcAccess();
         var client = cloud.connect();
-        var pods = client.pods().list().getItems();
-        var pvcs = client.persistentVolumeClaims().list().getItems();
+        SemaphoreStep.waitForStart("before/1", b);
+        var pods = getPodNames(client);
+        assertThat(pods, empty());
+        var pvcs = getPvcNames(client);
+        SemaphoreStep.success("before/1", null);
+        SemaphoreStep.waitForStart("pod/1", b);
+        assertThat(getPodNames(client), hasSize(1));
+        assertThat(getPvcNames(client), hasSize(1));
+        SemaphoreStep.success("pod/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         await("The pods should be the same as before building")
                 .timeout(Duration.ofMinutes(1))
-                .until(() -> client.pods().list().getItems(), equalTo(pods));
+                .until(() -> getPodNames(client), equalTo(pods));
         await("The PVCs should be the same as before building")
                 .timeout(Duration.ofMinutes(1))
-                .until(() -> client.persistentVolumeClaims().list().getItems(), equalTo(pvcs));
+                .until(() -> getPvcNames(client), equalTo(pvcs));
+    }
+
+    private @NonNull Set<String> getPvcNames(KubernetesClient client) {
+        return client.persistentVolumeClaims().withLabels(getTestLabels()).list().getItems().stream()
+                .map(pvc -> pvc.getMetadata().getName())
+                .collect(Collectors.toSet());
+    }
+
+    private @NonNull Set<String> getPodNames(KubernetesClient client) {
+        return client.pods().withLabels(getTestLabels()).list().getItems().stream()
+                .map(pod -> pod.getMetadata().getName())
+                .collect(Collectors.toSet());
+    }
+
+    private @NonNull Map<String, String> getTestLabels() {
+        return KubernetesTestUtil.getLabels(cloud, this, name);
     }
 
     private void assumePvcAccess() throws KubernetesAuthException, IOException {
@@ -846,7 +873,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             }
         }
         String msg = "unexpected build status; build log was:\n------\n" + r.getLog(run) + "\n------\n";
-        MatcherAssert.assertThat(msg, run.getResult(), Matchers.is(oneOf(status)));
+        MatcherAssert.assertThat(msg, run.getResult(), is(oneOf(status)));
         return run;
     }
 
