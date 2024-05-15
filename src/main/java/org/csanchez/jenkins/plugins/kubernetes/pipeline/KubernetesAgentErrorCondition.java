@@ -16,6 +16,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
@@ -23,7 +25,6 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.model.labels.LabelAtom;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -55,19 +56,15 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesAgentErrorCondition.class.getName());
 
-    private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS = new HashSet<>();
-
-    static {
-        IGNORED_CONTAINER_TERMINATION_REASONS.add("OOMKilled");
-        IGNORED_CONTAINER_TERMINATION_REASONS.add("Completed");
-        IGNORED_CONTAINER_TERMINATION_REASONS.add("DeadlineExceeded");
-    }
+    private static final Set<String> IGNORED_CONTAINER_TERMINATION_REASONS =
+            Set.of("OOMKilled", "Completed", "DeadlineExceeded");
 
     private boolean handleNonKubernetes;
 
     @DataBoundConstructor
     public KubernetesAgentErrorCondition() {}
 
+    @SuppressWarnings("unused") // jelly/stapler
     public boolean isHandleNonKubernetes() {
         return handleNonKubernetes;
     }
@@ -78,7 +75,8 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
     }
 
     @Override
-    public boolean test(Throwable t, StepContext context) throws IOException, InterruptedException {
+    public boolean test(@NonNull Throwable t, @CheckForNull StepContext context)
+            throws IOException, InterruptedException {
         if (context == null) {
             LOGGER.fine("Cannot check error without context");
             return handleNonKubernetes;
@@ -97,7 +95,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
             }
             return handleNonKubernetes;
         }
-        FlowNode origin = _origin instanceof BlockEndNode ? ((BlockEndNode) _origin).getStartNode() : _origin;
+        FlowNode origin = _origin instanceof BlockEndNode ? ((BlockEndNode<?>) _origin).getStartNode() : _origin;
         LOGGER.fine(() -> "Found origin " + origin + " " + origin.getDisplayFunctionName());
         LinearBlockHoppingScanner scanner = new LinearBlockHoppingScanner();
         scanner.setup(origin);
@@ -130,7 +128,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 }
                 Set<String> terminationReasons =
                         ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
-                if (terminationReasons.stream().anyMatch(r -> IGNORED_CONTAINER_TERMINATION_REASONS.contains(r))) {
+                if (terminationReasons.stream().anyMatch(IGNORED_CONTAINER_TERMINATION_REASONS::contains)) {
                     listener.getLogger()
                             .println("Ignored termination reason(s) for " + node + " for purposes of retry: "
                                     + terminationReasons);
@@ -162,6 +160,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
     public static final class DescriptorImpl extends ErrorConditionDescriptor {
 
         @Override
+        @NonNull
         public String getDisplayName() {
             return "Kubernetes agent errors";
         }
