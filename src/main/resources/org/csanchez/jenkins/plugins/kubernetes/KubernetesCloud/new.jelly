@@ -36,9 +36,9 @@ THE SOFTWARE.
           </f:bottomButtonBar>
         </l:hasAdministerOrManage>
       </f:form>
-      <:l:hasAdministerOrManage>
+      <l:hasAdministerOrManage>
         <st:adjunct includes="lib.form.confirm"/>
-      </:l:hasAdministerOrManage>
+      </l:hasAdministerOrManage>
     </l:main-panel>
   </l:layout>
 </j:jelly>
