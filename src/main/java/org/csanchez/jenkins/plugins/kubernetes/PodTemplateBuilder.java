@@ -61,6 +61,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,6 +74,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
@@ -135,6 +137,11 @@ public class PodTemplateBuilder {
             System.getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultMemoryLimit");
     static final String DEFAULT_JNLP_CONTAINER_CPU_LIMIT =
             System.getProperty(PodTemplateStepExecution.class.getName() + ".defaultContainer.defaultCpuLimit");
+
+    private static final boolean USE_REMOTING_OPTS =
+            SystemProperties.getBoolean(PodTemplateBuilder.class.getName() + ".useRemotingOpts");
+    private static final String EXTRA_REMOTING_OPTS =
+            SystemProperties.getString(PodTemplateBuilder.class.getName() + ".extraRemotingOpts");
 
     private static final String JNLPMAC_REF = "\\$\\{computer.jnlpmac\\}";
     private static final String NAME_REF = "\\$\\{computer.name\\}";
@@ -405,7 +412,7 @@ public class PodTemplateBuilder {
         return envVarsMap;
     }
 
-    private Map<String, EnvVar> jnlpEnvVars(String workingDir) {
+    private Map<String, EnvVar> jnlpEnvVars(@CheckForNull String workingDir) {
         if (workingDir == null) {
             workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
         }
@@ -413,44 +420,94 @@ public class PodTemplateBuilder {
         HashMap<String, String> env = new HashMap<>();
 
         if (agent != null) {
-            SlaveComputer computer = agent.getComputer();
-            if (computer != null) {
-                // Add some default env vars for Jenkins
-                env.put("JENKINS_SECRET", computer.getJnlpMac());
-                // JENKINS_AGENT_NAME is default in jnlp-slave
-                // JENKINS_NAME only here for backwords compatability
-                env.put("JENKINS_NAME", computer.getName());
-                env.put("JENKINS_AGENT_NAME", computer.getName());
+            if (USE_REMOTING_OPTS) {
+                contributeRemotingOptions(workingDir, env);
             } else {
-                LOGGER.log(Level.INFO, "Computer is null for agent: {0}", agent.getNodeName());
-            }
-
-            env.put("JENKINS_AGENT_WORKDIR", workingDir);
-
-            KubernetesCloud cloud = agent.getKubernetesCloud();
-
-            if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
-                env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
-            }
-
-            if (!cloud.isDirectConnection()) {
-                env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
-                if (cloud.isWebSocket()) {
-                    env.put("JENKINS_WEB_SOCKET", "true");
+                // TODO: legacy, remove when we require a minimum version of inbound agent containing
+                // https://github.com/jenkinsci/docker-agent/pull/809
+                SlaveComputer computer = agent.getComputer();
+                if (computer != null) {
+                    // Add some default env vars for Jenkins
+                    env.put("JENKINS_SECRET", computer.getJnlpMac());
+                    // JENKINS_AGENT_NAME is default in jnlp-slave
+                    // JENKINS_NAME only here for backwords compatability
+                    env.put("JENKINS_NAME", computer.getName());
+                    env.put("JENKINS_AGENT_NAME", computer.getName());
+                } else {
+                    LOGGER.log(Level.INFO, "Computer is null for agent: {0}", agent.getNodeName());
                 }
-            } else {
-                TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
-                String host = tcpSlaveAgentListener.getAdvertisedHost();
-                int port = tcpSlaveAgentListener.getAdvertisedPort();
-                env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
-                env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
-                env.put("JENKINS_INSTANCE_IDENTITY", tcpSlaveAgentListener.getIdentityPublicKey());
+
+                env.put("JENKINS_AGENT_WORKDIR", workingDir);
+
+                KubernetesCloud cloud = agent.getKubernetesCloud();
+
+                if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
+                    env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
+                }
+
+                if (!cloud.isDirectConnection()) {
+                    env.put("JENKINS_URL", cloud.getJenkinsUrlOrDie());
+                    if (cloud.isWebSocket()) {
+                        env.put("JENKINS_WEB_SOCKET", "true");
+                    }
+                } else {
+                    TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
+                    String host = tcpSlaveAgentListener.getAdvertisedHost();
+                    int port = tcpSlaveAgentListener.getAdvertisedPort();
+                    env.put("JENKINS_DIRECT_CONNECTION", host + ":" + port);
+                    env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
+                    env.put("JENKINS_INSTANCE_IDENTITY", tcpSlaveAgentListener.getIdentityPublicKey());
+                }
             }
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         env.entrySet().forEach(item -> envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null)));
         return envVarsMap;
+    }
+
+    private void contributeRemotingOptions(@NonNull String workingDir, @NonNull Map<String, String> env) {
+        SlaveComputer computer = agent.getComputer();
+        var remotingOptions = new ArrayList<String>();
+        if (computer != null) {
+            remotingOptions.add("-secret");
+            remotingOptions.add(computer.getJnlpMac());
+            remotingOptions.add("-name");
+            remotingOptions.add(computer.getName());
+        } else {
+            LOGGER.log(Level.INFO, "Computer is null for agent: {0}", agent.getNodeName());
+        }
+
+        remotingOptions.add("-workDir");
+        remotingOptions.add(workingDir);
+
+        KubernetesCloud cloud = agent.getKubernetesCloud();
+
+        if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
+            remotingOptions.add("-tunnel");
+            remotingOptions.add(cloud.getJenkinsTunnel());
+        }
+
+        if (!cloud.isDirectConnection()) {
+            remotingOptions.add("-url");
+            remotingOptions.add(cloud.getJenkinsUrlOrDie());
+            if (cloud.isWebSocket()) {
+                remotingOptions.add("-webSocket");
+            }
+        } else {
+            TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
+            remotingOptions.add("-direct");
+            remotingOptions.add(
+                    tcpSlaveAgentListener.getAdvertisedHost() + ":" + tcpSlaveAgentListener.getAdvertisedPort());
+            remotingOptions.add("-protocols");
+            remotingOptions.add("JNLP4-connect");
+            remotingOptions.add("-instanceIdentity");
+            remotingOptions.add(tcpSlaveAgentListener.getIdentityPublicKey());
+        }
+        if (EXTRA_REMOTING_OPTS != null) {
+            remotingOptions.addAll(Arrays.asList(EXTRA_REMOTING_OPTS.split(" ")));
+        }
+        env.put("REMOTING_OPTS", String.join(" ", remotingOptions));
     }
 
     private Container createContainer(
