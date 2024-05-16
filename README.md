@@ -77,6 +77,20 @@ adequate communication from Jenkins to the Kubernetes cluster, as seen below
 
 ![image](images/cloud-configuration.png)
 
+
+### Garbage collection (beta)
+
+In some exceptional cases, agent pods can be left behind, with no declared Jenkins agent in the controller. They will try to reconnect over and over, until something deletes them.
+
+The plugin provides a garbage collection mechanism to clean up these pods. As it has been introduced recently,
+and generates extra load on the Kubernetes API server, it is disabled by default.
+
+Feel free to enable it and provide feedback about this functionality.
+
+![image](images/garbage-collection.png)
+
+## Static pod templates
+
 In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
 spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
 For your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the
@@ -992,11 +1006,29 @@ Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins fold
 
 ## Running Kubernetes Integration Tests
 
-Please note that the system you run `mvn` on needs to be reachable from the cluster.
+### Integration tests with Kind (recommended)
+
+```bash
+export MOUNT_M2=true
+./kind-mount-m2.sh
+./kind-preload.sh
+./test-in-k8s.sh -Dtest=KubernetesPipelineTest#runInPod
+kind delete cluster
+```
+
+### Integration tests in a remote cluster
+
+Set up your `$KUBECONFIG` as usual, then
+
+```bash
+./test-in-k8s.sh -Dtest=KubernetesPipelineTest#runInPod
+```
+
+### Integration tests with Minikube
+
+The system you run `mvn` on needs to be reachable from the cluster.
 If you see the agents happen to connect to the wrong host, see you can use
 `jenkins.host.address` as mentioned above.
-
-### Integration Tests with Minikube
 
 For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
 Tests will detect it and run a set of integration tests in a new namespace.
@@ -1020,7 +1052,7 @@ system property to the (host-only or NAT) IP of your host:
 
     mvn clean install -Djenkins.host.address=192.168.99.1
 
-### Integration Tests with Microk8s
+### Integration tests with Microk8s
 
 If [Microk8s](https://microk8s.io/) is running and is the default context in your `~/.kube/config`,
 just run as
@@ -1040,14 +1072,6 @@ Or to verify the networking inside a pod:
 
 ```bash
 kubectl run --rm --image=praqma/network-multitool --restart=Never --attach sh ip route | fgrep 'default via'
-```
-
-### Integration Tests in a Different Cluster
-
-Try
-
-```bash
-bash test-in-k8s.sh
 ```
 
 # Docker image

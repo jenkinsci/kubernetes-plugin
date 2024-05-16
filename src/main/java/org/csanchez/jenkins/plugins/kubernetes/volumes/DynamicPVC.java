@@ -46,6 +46,7 @@ public interface DynamicPVC extends ProvisionedVolume {
         PersistentVolumeClaim pvc = new PersistentVolumeClaimBuilder()
                 .withNewMetadata()
                 .withName(pvcName)
+                .withLabels(podMetaData.getLabels())
                 .withOwnerReferences(ownerReference)
                 .endMetadata()
                 .withNewSpec()
