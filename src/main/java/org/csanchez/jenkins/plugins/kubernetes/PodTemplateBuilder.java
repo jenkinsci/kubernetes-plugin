@@ -102,6 +102,8 @@ public class PodTemplateBuilder {
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
+    private static final String NO_RECONNECT_AFTER_TIMEOUT =
+            SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -458,6 +460,7 @@ public class PodTemplateBuilder {
                     env.put("JENKINS_PROTOCOLS", "JNLP4-connect");
                     env.put("JENKINS_INSTANCE_IDENTITY", tcpSlaveAgentListener.getIdentityPublicKey());
                 }
+                env.put("REMOTING_OPTS", "-noReconnectAfter " + NO_RECONNECT_AFTER_TIMEOUT);
             }
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
@@ -504,6 +507,8 @@ public class PodTemplateBuilder {
             remotingOptions.add("-instanceIdentity");
             remotingOptions.add(tcpSlaveAgentListener.getIdentityPublicKey());
         }
+        remotingOptions.add("-noReconnectAfter");
+        remotingOptions.add(NO_RECONNECT_AFTER_TIMEOUT);
         if (EXTRA_REMOTING_OPTS != null) {
             remotingOptions.addAll(Arrays.asList(EXTRA_REMOTING_OPTS.split(" ")));
         }
