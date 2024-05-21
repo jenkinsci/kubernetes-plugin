@@ -630,7 +630,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void computerCantBeConfigured() throws Exception {
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy()
-                .grant(Jenkins.ADMINISTER)
+                .grant(Jenkins.MANAGE)
                 .everywhere()
                 .to("admin"));
         SemaphoreStep.waitForStart("pod/1", b);
