@@ -24,10 +24,10 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
-  <l:task icon="symbol-terminal icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${app.ADMINISTER}"/>
-  <l:task icon="symbol-terminal icon-md" href="${rootURL}/${it.url}podLog" title="${%Pod Log}" permission="${app.ADMINISTER}"/>
-  <l:task icon="symbol-list icon-md" href="${rootURL}/${it.url}events" title="${%Events}" permission="${app.ADMINISTER}"/>
+  <l:task icon="symbol-terminal icon-md" href="${rootURL}/${it.url}log" title="${%Log}" permission="${app.MANAGE}"/>
+  <l:task icon="symbol-terminal icon-md" href="${rootURL}/${it.url}podLog" title="${%Pod Log}" permission="${app.MANAGE}"/>
+  <l:task icon="symbol-list icon-md" href="${rootURL}/${it.url}events" title="${%Events}" permission="${app.MANAGE}"/>
   <j:if test="${it.channel!=null}">
-    <l:task icon="symbol-computer icon-md" href="${rootURL}/${it.url}systemInfo" title="${%System Information}" permission="${app.ADMINISTER}"/>
+    <l:task icon="symbol-computer icon-md" href="${rootURL}/${it.url}systemInfo" title="${%System Information}" permission="${app.MANAGE}"/>
   </j:if>
 </j:jelly>

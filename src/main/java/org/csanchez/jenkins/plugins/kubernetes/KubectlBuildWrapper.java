@@ -147,9 +147,7 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
 
         public ListBoxModel doFillCredentialsIdItems(
                 @AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
-            if (item == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
-                    : !item.hasPermission(Item.EXTENDED_READ)) {
+            if (item == null ? !Jenkins.get().hasPermission(Jenkins.MANAGE) : !item.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
             StandardListBoxModel result = new StandardListBoxModel();

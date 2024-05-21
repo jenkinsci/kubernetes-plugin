@@ -23,8 +23,8 @@ THE SOFTWARE.
     <l:side-panel>
         <l:tasks>
             <l:task href="" icon="symbol-settings"
-                    title="${app.hasPermission(app.ADMINISTER) ? '%Configure' : '%View Configuration'}"/>
-            <l:delete permission="${app.ADMINISTER}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
+                    title="${app.hasPermission(app.MANAGE) ? '%Configure' : '%View Configuration'}"/>
+            <l:delete permission="${app.MANAGE}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
             <t:actions />
         </l:tasks>
     </l:side-panel>

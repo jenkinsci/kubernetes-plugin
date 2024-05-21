@@ -25,8 +25,8 @@ THE SOFTWARE.
             <l:task contextMenu="false" href="." icon="symbol-computer" title="${%Status}"/>
             <l:task href="templates" icon="symbol-details" title="${%Pod Templates}"/>
             <l:task href="configure" icon="symbol-settings"
-                    title="${app.hasPermission(app.ADMINISTER) ? '%Configure' : '%View Configuration'}"/>
-            <l:delete permission="${app.ADMINISTER}" title="${%Delete Cloud}" message="${%delete.cloud(it.displayName)}"/>
+                    title="${app.hasPermission(app.MANAGE) ? '%Configure' : '%View Configuration'}"/>
+            <l:delete permission="${app.MANAGE}" title="${%Delete Cloud}" message="${%delete.cloud(it.displayName)}"/>
             <t:actions />
         </l:tasks>
         <j:forEach var="action" items="${it.allActions}">

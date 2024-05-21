@@ -1,10 +1,12 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.security.Permission;
 import hudson.util.FormValidation;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -319,6 +321,11 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         @Override
         public String getDisplayName() {
             return "Container Template";
+        }
+
+        @NonNull
+        public Permission getRequiredGlobalConfigPagePermission() {
+            return Jenkins.MANAGE;
         }
 
         @SuppressWarnings("unused") // Used by jelly

@@ -832,7 +832,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public HttpResponse doCreate(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.ADMINISTER);
+        j.checkPermission(Jenkins.MANAGE);
         PodTemplate newTemplate = getTemplateDescriptor().newInstance(req, req.getSubmittedForm());
         addTemplate(newTemplate);
         j.save();
@@ -873,7 +873,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 @QueryParameter int readTimeout,
                 @QueryParameter boolean useJenkinsProxy)
                 throws Exception {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
 
             if (StringUtils.isBlank(name)) return FormValidation.error("name is required");
 
@@ -913,7 +913,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(
                 @AncestorInPath ItemGroup context, @QueryParameter String serverUrl) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(
