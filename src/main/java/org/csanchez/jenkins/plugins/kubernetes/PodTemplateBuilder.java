@@ -101,7 +101,7 @@ public class PodTemplateBuilder {
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
-    private static final String NO_RECONNECT_AFTER_TIMEOUT =
+    static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
