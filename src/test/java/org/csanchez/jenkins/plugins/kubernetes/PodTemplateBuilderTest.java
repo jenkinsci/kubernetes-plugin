@@ -451,8 +451,8 @@ public class PodTemplateBuilderTest {
             if ("jnlp".equals(c.getName())) {
                 validateJnlpContainer(c, slave, directConnection);
             } else {
-                assertThat(
-                        c.getEnv().stream().map(EnvVar::getName).collect(toList()), everyItem(not(is(in(exclusions)))));
+                List<EnvVar> env = c.getEnv();
+                assertThat(env.stream().map(EnvVar::getName).collect(toList()), everyItem(not(isIn(exclusions))));
             }
         }
     }
