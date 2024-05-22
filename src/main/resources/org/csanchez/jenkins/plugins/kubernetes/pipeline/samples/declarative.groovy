@@ -27,6 +27,7 @@ spec:
             //     sh 'hostname'
             // }
             defaultContainer 'shell'
+            retries 2
         }
     }
     stages {
