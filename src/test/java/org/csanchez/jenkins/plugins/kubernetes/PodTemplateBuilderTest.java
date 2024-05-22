@@ -480,6 +480,7 @@ public class PodTemplateBuilderTest {
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));
+            envVars.add(new EnvVar("REMOTING_OPTS", "-noReconnectAfter " + NO_RECONNECT_AFTER_TIMEOUT, null));
         } else {
             assertThat(jnlp.getArgs(), empty());
         }
