@@ -111,8 +111,9 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
 
         String cloudName = node.getCloudName();
-        final PodTemplate template = node.getTemplate();
+
         try {
+            PodTemplate template = node.getTemplate();
             KubernetesCloud cloud = node.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
             Pod pod = template.build(node);
@@ -279,7 +280,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             setProblem(ex);
             Functions.printStackTrace(ex, node.getRunListener().error("Failed to launch " + node.getPodName()));
             LOGGER.log(
-                    Level.WARNING, String.format("Error in provisioning; agent=%s, template=%s", node, template), ex);
+                    Level.WARNING,
+                    String.format("Error in provisioning; agent=%s, template=%s", node, node.getTemplateId()),
+                    ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             try {
                 node.terminate();
