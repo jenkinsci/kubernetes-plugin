@@ -2,8 +2,7 @@
  * Runs a build on a Windows pod.
  * Tested in EKS: https://docs.aws.amazon.com/eks/latest/userguide/windows-support.html
  */
-retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
-    podTemplate(yaml: '''
+podTemplate(yaml: '''
 apiVersion: v1
 kind: Pod
 spec:
@@ -20,6 +19,7 @@ spec:
   nodeSelector:
     kubernetes.io/os: windows
 ''') {
+    retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
         node(POD_LABEL) {
             container('shell') {
                 powershell 'Get-ChildItem Env: | Sort Name'

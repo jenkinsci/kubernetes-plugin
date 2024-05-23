@@ -1,8 +1,8 @@
 // Build a Maven project using the standard image and Scripted syntax.
 // Rather than inline YAML, you could use: yaml: readTrusted('jenkins-pod.yaml')
 // Or, to avoid YAML: containers: [containerTemplate(name: 'maven', image: 'maven:3.6.3-jdk-8', command: 'sleep', args: 'infinity')]
-retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
-    podTemplate(yaml: '''
+
+podTemplate(yaml: '''
 apiVersion: v1
 kind: Pod
 spec:
@@ -15,6 +15,7 @@ spec:
     args:
     - infinity
 ''') {
+    retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
         node(POD_LABEL) {
             // or, for example: git 'https://github.com/jglick/simple-maven-project-with-tests'
             writeFile file: 'pom.xml', text: '''
