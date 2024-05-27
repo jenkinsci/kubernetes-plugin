@@ -26,7 +26,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
 import org.junit.Rule;
 import org.junit.Test;
