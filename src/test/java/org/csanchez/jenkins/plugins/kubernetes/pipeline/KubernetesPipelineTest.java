@@ -913,4 +913,21 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         await().timeout(1, TimeUnit.MINUTES)
                 .until(() -> client.resource(finalPod).get() == null);
     }
+
+    @Test
+    public void handleEviction() throws Exception {
+        SemaphoreStep.waitForStart("pod/1", b);
+        var client = cloud.connect();
+        var pod = client.pods()
+                .withLabels(getLabels(cloud, this, name))
+                .list()
+                .getItems()
+                .get(0);
+        client.pods().resource(pod).evict();
+        r.waitForMessage("Pod was evicted by the Kubernetes Eviction API", b);
+        SemaphoreStep.success("pod/1", null);
+        SemaphoreStep.waitForStart("pod/2", b);
+        SemaphoreStep.success("pod/2", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+    }
 }

@@ -486,16 +486,28 @@ public class Reaper extends ComputerListener {
                 TaskListener runListener = node.getRunListener();
                 String reason = pod.getStatus().getReason();
                 String message = pod.getStatus().getMessage();
-                LOGGER.info(
-                        () -> ns + "/" + name + " Pod just failed. Removing the corresponding Jenkins agent. Reason: "
-                                + reason + ", Message: " + message);
-                runListener
-                        .getLogger()
-                        .printf("%s/%s Pod just failed (Reason: %s, Message: %s)%n", ns, name, reason, message);
+                StringBuilder sb = new StringBuilder();
+                sb.append(ns).append("/").append(name).append(" Pod just failed.");
+                List<String> details = new ArrayList<>();
                 if (reason != null) {
+                    details.add("Reason: " + reason);
                     terminationReasons.add(reason);
                 }
-
+                if (message != null) {
+                    details.add("Message: " + message);
+                }
+                if (!details.isEmpty()) {
+                    sb.append(" ").append(String.join(", ", details)).append(".");
+                }
+                var evictionCondition = pod.getStatus().getConditions().stream()
+                        .filter(c -> "EvictionByEvictionAPI".equals(c.getReason()))
+                        .findFirst();
+                if (evictionCondition.isPresent()) {
+                    sb.append(" Pod was evicted by the Kubernetes Eviction API.");
+                    terminationReasons.add(evictionCondition.get().getReason());
+                }
+                LOGGER.info(() -> sb + " Removing corresponding node " + node.getNodeName() + " from Jenkins.");
+                runListener.getLogger().println(sb);
                 logLastLinesThenTerminateNode(node, pod, runListener);
                 disconnectComputer(node, new PodOfflineCause(Messages._PodOfflineCause_PodFailed(reason, message)));
             }
