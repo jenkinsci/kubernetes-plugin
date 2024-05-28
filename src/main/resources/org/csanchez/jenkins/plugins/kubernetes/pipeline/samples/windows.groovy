@@ -19,9 +19,11 @@ spec:
   nodeSelector:
     kubernetes.io/os: windows
 ''') {
-    node(POD_LABEL) {
-        container('shell') {
-            powershell 'Get-ChildItem Env: | Sort Name'
+    retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
+        node(POD_LABEL) {
+            container('shell') {
+                powershell 'Get-ChildItem Env: | Sort Name'
+            }
         }
     }
 }
