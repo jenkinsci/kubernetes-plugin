@@ -3,9 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeKubernetes;
 
 import org.apache.commons.lang.StringUtils;
-import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.CreateWorkflowJobThenScheduleRun;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.RunId;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.SetupCloud;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -35,8 +32,6 @@ public abstract class AbstractKubernetesPipelineRJRTest {
         }
     }
 
-    protected RunId runId;
-
     private SetupCloud setup;
 
     public AbstractKubernetesPipelineRJRTest(SetupCloud setup) {
@@ -52,7 +47,5 @@ public abstract class AbstractKubernetesPipelineRJRTest {
     public void setUp() throws Throwable {
         rjr.startJenkins();
         rjr.runRemotely(setup);
-        runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
-                KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
     }
 }
