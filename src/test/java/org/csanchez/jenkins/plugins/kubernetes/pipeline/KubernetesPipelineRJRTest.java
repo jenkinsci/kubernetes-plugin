@@ -7,7 +7,6 @@ import java.net.UnknownHostException;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.AssertBuildLogMessage;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.AssertBuildStatusSuccess;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.CreateWorkflowJobThenScheduleRun;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.CreateWorkflowJobThenScheduleTask;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.RunId;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.SetupCloud;
@@ -20,8 +19,7 @@ public class KubernetesPipelineRJRTest extends AbstractKubernetesPipelineRJRTest
 
     @Test
     public void basicPipeline() throws Throwable {
-        RunId runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
-                KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
+        RunId runId = createWorkflowJobThenScheduleRun();
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }
 

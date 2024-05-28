@@ -16,8 +16,7 @@ public class KubernetesPipelineWebsocketRJRTest extends AbstractKubernetesPipeli
 
     @Test
     public void basicPipeline() throws Throwable {
-        RunId runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
-                KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
+        RunId runId = createWorkflowJobThenScheduleRun();
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }
 }

@@ -32,8 +32,7 @@ public final class KubernetesDeclarativeAgentRJRTest extends AbstractKubernetesP
 
     @Test
     public void declarative() throws Throwable {
-        RunId runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
-                KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
+        RunId runId = createWorkflowJobThenScheduleRun();
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }
 }
