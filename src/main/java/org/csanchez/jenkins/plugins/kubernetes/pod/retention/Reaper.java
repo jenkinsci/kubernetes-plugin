@@ -437,31 +437,39 @@ public class Reaper extends ComputerListener {
 
             List<ContainerStatus> terminatedContainers = PodUtils.getTerminatedContainers(pod);
             if (!terminatedContainers.isEmpty()) {
-                String ns = pod.getMetadata().getNamespace();
-                String name = pod.getMetadata().getName();
-                TaskListener runListener = node.getRunListener();
                 List<String> containers = new ArrayList<>();
                 terminatedContainers.forEach(c -> {
                     ContainerStateTerminated t = c.getState().getTerminated();
                     String containerName = c.getName();
                     containers.add(containerName);
-                    LOGGER.info(() -> ns + "/" + name + " Container " + containerName
-                            + " was just terminated, so removing the corresponding Jenkins agent");
                     String reason = t.getReason();
-                    runListener
-                            .getLogger()
-                            .printf(
-                                    "%s/%s Container %s was terminated (Exit Code: %d, Reason: %s)%n",
-                                    ns, name, containerName, t.getExitCode(), reason);
                     if (reason != null) {
                         terminationReasons.add(reason);
                     }
                 });
-
-                logLastLinesThenTerminateNode(node, pod, runListener);
-                PodUtils.cancelQueueItemFor(pod, "ContainerError");
-                disconnectComputer(
+                String reason = pod.getStatus().getReason();
+                String message = pod.getStatus().getMessage();
+                var sb = new StringBuilder()
+                        .append(pod.getMetadata().getNamespace())
+                        .append("/")
+                        .append(pod.getMetadata().getName());
+                if (containers.size() > 1) {
+                    sb.append(" Containers ")
+                            .append(String.join(",", containers))
+                            .append(" have been terminated.");
+                } else {
+                    sb.append(" Container ")
+                            .append(String.join(",", containers))
+                            .append(" has been terminated.");
+                }
+                logAndCleanUp(
                         node,
+                        pod,
+                        terminationReasons,
+                        reason,
+                        message,
+                        sb,
+                        node.getRunListener(),
                         new PodOfflineCause(Messages._PodOfflineCause_ContainerFailed("ContainerError", containers)));
             }
         }
@@ -481,37 +489,58 @@ public class Reaper extends ComputerListener {
             }
 
             if ("Failed".equals(pod.getStatus().getPhase())) {
-                String ns = pod.getMetadata().getNamespace();
-                String name = pod.getMetadata().getName();
-                TaskListener runListener = node.getRunListener();
                 String reason = pod.getStatus().getReason();
                 String message = pod.getStatus().getMessage();
-                StringBuilder sb = new StringBuilder();
-                sb.append(ns).append("/").append(name).append(" Pod just failed.");
-                List<String> details = new ArrayList<>();
-                if (reason != null) {
-                    details.add("Reason: " + reason);
-                    terminationReasons.add(reason);
-                }
-                if (message != null) {
-                    details.add("Message: " + message);
-                }
-                if (!details.isEmpty()) {
-                    sb.append(" ").append(String.join(", ", details)).append(".");
-                }
-                var evictionCondition = pod.getStatus().getConditions().stream()
-                        .filter(c -> "EvictionByEvictionAPI".equals(c.getReason()))
-                        .findFirst();
-                if (evictionCondition.isPresent()) {
-                    sb.append(" Pod was evicted by the Kubernetes Eviction API.");
-                    terminationReasons.add(evictionCondition.get().getReason());
-                }
-                LOGGER.info(() -> sb + " Removing corresponding node " + node.getNodeName() + " from Jenkins.");
-                runListener.getLogger().println(sb);
-                logLastLinesThenTerminateNode(node, pod, runListener);
-                disconnectComputer(node, new PodOfflineCause(Messages._PodOfflineCause_PodFailed(reason, message)));
+                logAndCleanUp(
+                        node,
+                        pod,
+                        terminationReasons,
+                        reason,
+                        message,
+                        new StringBuilder()
+                                .append(pod.getMetadata().getNamespace())
+                                .append("/")
+                                .append(pod.getMetadata().getName())
+                                .append(" Pod just failed."),
+                        node.getRunListener(),
+                        new PodOfflineCause(Messages._PodOfflineCause_PodFailed(reason, message)));
             }
         }
+    }
+
+    private static void logAndCleanUp(
+            KubernetesSlave node,
+            Pod pod,
+            Set<String> terminationReasons,
+            String reason,
+            String message,
+            StringBuilder sb,
+            TaskListener runListener,
+            PodOfflineCause cause)
+            throws IOException, InterruptedException {
+        List<String> details = new ArrayList<>();
+        if (reason != null) {
+            details.add("Reason: " + reason);
+            terminationReasons.add(reason);
+        }
+        if (message != null) {
+            details.add("Message: " + message);
+        }
+        if (!details.isEmpty()) {
+            sb.append(" ").append(String.join(", ", details)).append(".");
+        }
+        var evictionCondition = pod.getStatus().getConditions().stream()
+                .filter(c -> "EvictionByEvictionAPI".equals(c.getReason()))
+                .findFirst();
+        if (evictionCondition.isPresent()) {
+            sb.append(" Pod was evicted by the Kubernetes Eviction API.");
+            terminationReasons.add(evictionCondition.get().getReason());
+        }
+        LOGGER.info(() -> sb + " Removing corresponding node " + node.getNodeName() + " from Jenkins.");
+        runListener.getLogger().println(sb);
+        logLastLinesThenTerminateNode(node, pod, runListener);
+        PodUtils.cancelQueueItemFor(pod, "PodFailure");
+        disconnectComputer(node, cause);
     }
 
     private static void logLastLinesThenTerminateNode(KubernetesSlave node, Pod pod, TaskListener runListener)
