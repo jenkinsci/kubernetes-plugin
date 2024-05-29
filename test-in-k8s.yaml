@@ -69,7 +69,7 @@ rules:
   verbs: ["watch"]
 - apiGroups: [""]
   resources: ["nodes"]
-  verbs: ["list"]
+  verbs: ["list","get","patch","update"] # KubernetesPipelineRJRTest.restartDuringPodLaunch
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["create","delete","get","list","patch","update","watch"]

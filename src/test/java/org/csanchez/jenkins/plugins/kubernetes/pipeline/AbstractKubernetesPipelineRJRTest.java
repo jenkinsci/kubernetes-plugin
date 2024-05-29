@@ -35,8 +35,6 @@ public abstract class AbstractKubernetesPipelineRJRTest {
         }
     }
 
-    protected RunId runId;
-
     private SetupCloud setup;
 
     public AbstractKubernetesPipelineRJRTest(SetupCloud setup) {
@@ -52,7 +50,10 @@ public abstract class AbstractKubernetesPipelineRJRTest {
     public void setUp() throws Throwable {
         rjr.startJenkins();
         rjr.runRemotely(setup);
-        runId = rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
+    }
+
+    protected RunId createWorkflowJobThenScheduleRun() throws Throwable {
+        return rjr.runRemotely(new CreateWorkflowJobThenScheduleRun(
                 KubernetesTestUtil.loadPipelineScript(getClass(), name.getMethodName() + ".groovy")));
     }
 }
