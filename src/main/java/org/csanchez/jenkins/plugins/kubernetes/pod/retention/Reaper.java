@@ -456,11 +456,11 @@ public class Reaper extends ComputerListener {
                 if (containers.size() > 1) {
                     sb.append(" Containers ")
                             .append(String.join(",", containers))
-                            .append(" have been terminated.");
+                            .append(" were terminated.");
                 } else {
                     sb.append(" Container ")
                             .append(String.join(",", containers))
-                            .append(" has been terminated.");
+                            .append(" was terminated.");
                 }
                 logAndCleanUp(
                         node,
