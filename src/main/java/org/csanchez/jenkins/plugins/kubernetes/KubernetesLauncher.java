@@ -31,7 +31,9 @@ import static java.util.logging.Level.WARNING;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Functions;
+import hudson.model.Descriptor;
 import hudson.model.TaskListener;
+import hudson.slaves.ComputerLauncher;
 import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -373,4 +375,12 @@ public class KubernetesLauncher extends JNLPLauncher {
     public void setProblem(@CheckForNull Throwable problem) {
         this.problem = problem;
     }
+
+    @Override
+    public Descriptor<ComputerLauncher> getDescriptor() {
+        return new DescriptorImpl();
+    }
+
+    // Only there to avoid throwing unnecessary exceptions. KubernetesLauncher is never instantiated via UI.
+    private static class DescriptorImpl extends Descriptor<ComputerLauncher> {}
 }
