@@ -5,12 +5,12 @@ cd $(dirname $0)
 export PATH=$WORKSPACE_TMP:$PATH
 if [ \! -x "$WORKSPACE_TMP/kind" ]
 then
-    curl -sLo "$WORKSPACE_TMP/kind" https://github.com/kubernetes-sigs/kind/releases/download/v0.17.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-amd64
+    curl -sLo "$WORKSPACE_TMP/kind" https://github.com/kubernetes-sigs/kind/releases/download/v0.23.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-amd64
     chmod +x "$WORKSPACE_TMP/kind"
 fi
 if [ \! -x "$WORKSPACE_TMP/kubectl" ]
 then
-    curl -sLo "$WORKSPACE_TMP/kubectl" https://storage.googleapis.com/kubernetes-release/release/v1.25.4/bin/$(uname | tr '[:upper:]' '[:lower:]')/amd64/kubectl
+    curl -sLo "$WORKSPACE_TMP/kubectl" https://storage.googleapis.com/kubernetes-release/release/v1.30.1/bin/$(uname | tr '[:upper:]' '[:lower:]')/amd64/kubectl
     chmod +x "$WORKSPACE_TMP/kubectl"
 fi
 

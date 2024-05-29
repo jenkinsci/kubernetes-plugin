@@ -107,6 +107,8 @@ import org.jvnet.hudson.test.MockAuthorizationStrategy;
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesPipelineTest.class.getName());
+    public static final String POD_DEADLINE_EXCEEDED_MESSAGE =
+            "Pod just failed. Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline.";
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -575,9 +577,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void podDeadlineExceeded() throws Exception {
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage(
-                "Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)",
-                b);
+        r.waitForMessage(POD_DEADLINE_EXCEEDED_MESSAGE, b);
     }
 
     @Test
@@ -587,9 +587,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         podTemplate.setActiveDeadlineSeconds(30);
         cloud.addTemplate(podTemplate);
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.waitForMessage(
-                "Pod just failed (Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline)",
-                b);
+        r.waitForMessage(POD_DEADLINE_EXCEEDED_MESSAGE, b);
         r.waitForMessage("---Logs---", b);
     }
 
@@ -912,5 +910,22 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         assertNotNull(client.resource(finalPod).get());
         await().timeout(1, TimeUnit.MINUTES)
                 .until(() -> client.resource(finalPod).get() == null);
+    }
+
+    @Test
+    public void handleEviction() throws Exception {
+        SemaphoreStep.waitForStart("pod/1", b);
+        var client = cloud.connect();
+        var pod = client.pods()
+                .withLabels(getLabels(cloud, this, name))
+                .list()
+                .getItems()
+                .get(0);
+        client.pods().resource(pod).evict();
+        r.waitForMessage("Pod was evicted by the Kubernetes Eviction API", b);
+        SemaphoreStep.success("pod/1", null);
+        SemaphoreStep.waitForStart("pod/2", b);
+        SemaphoreStep.success("pod/2", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
     }
 }
