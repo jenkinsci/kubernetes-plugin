@@ -5,6 +5,8 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.slaves.Cloud;
+import java.util.List;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
@@ -26,6 +28,14 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     @Override
     public Cloud reconfigure(@NonNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
         return DescriptorImpl.class.cast(getDescriptor()).newInstance(req, form);
+    }
+
+    @NonNull
+    @Override
+    public List<PodTemplate> getTemplates() {
+        return super.getTemplates().stream()
+                .peek(podTemplate -> podTemplate.setReadonlyFromUi(true))
+                .collect(Collectors.toList());
     }
 
     @Extension

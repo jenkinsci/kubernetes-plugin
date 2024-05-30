@@ -190,6 +190,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     private transient List<String> yamls;
 
+    private transient boolean readonlyFromUi;
+
     @NonNull
     public String getId() {
         return id;
@@ -1048,6 +1050,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @Override
     public void save() {}
+
+    public boolean isReadonlyFromUi() {
+        return readonlyFromUi;
+    }
+
+    public void setReadonlyFromUi(boolean readonlyFromUi) {
+        this.readonlyFromUi = readonlyFromUi;
+    }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<PodTemplate> {

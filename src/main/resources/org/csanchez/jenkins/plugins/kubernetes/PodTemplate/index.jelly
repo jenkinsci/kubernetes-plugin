@@ -34,9 +34,11 @@ THE SOFTWARE.
         <st:include it="${instance}" page="config.jelly"/>
 
         <l:hasAdministerOrManage>
-          <f:bottomButtonBar>
-            <f:submit value="${%Save}"/>
-          </f:bottomButtonBar>
+          <j:if test="${instance.readonlyFromUi != true}">
+            <f:bottomButtonBar>
+              <f:submit value="${%Save}"/>
+            </f:bottomButtonBar>
+          </j:if>
         </l:hasAdministerOrManage>
       </f:form>
       <l:hasAdministerOrManage>
