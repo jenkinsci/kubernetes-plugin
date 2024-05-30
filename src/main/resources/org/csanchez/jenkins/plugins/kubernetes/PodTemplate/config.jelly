@@ -21,12 +21,6 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-  <link type="text/css" rel="stylesheet" href="${resURL}/plugin/kubernetes/css/custom-style.css"/>
-
-  <j:if test="${instance.readonlyFromUi == true}">
-    <f:description>This Pod template is associated with a <strong>non-configurable</strong> cloud setup.</f:description>
-  </j:if>
-  <div class="${instance.readonlyFromUi == true ? 'readonly-block' : ''}">
     <f:invisibleEntry>
       <input type="hidden" name="_.id" value="${instance.id}"/>
     </f:invisibleEntry>
@@ -135,6 +129,5 @@ THE SOFTWARE.
     <f:dropdownDescriptorSelector title="${%Workspace Volume}" field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
 
     <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
-  </div>
 
 </j:jelly>

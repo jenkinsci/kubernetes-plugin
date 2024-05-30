@@ -29,6 +29,10 @@ THE SOFTWARE.
       <f:form method="post" action="configSubmit" name="config" class="jenkins-form">
         <j:set var="instance" value="${it}"/>
         <j:set var="descriptor" value="${instance.descriptor}"/>
+        <j:set var="readOnlyMode" value="${instance.readonlyFromUi == true}"/>
+        <j:if test="${instance.readonlyFromUi == true}">
+          <f:description>This Pod template is associated with a <strong>non-configurable</strong> cloud setup.</f:description>
+        </j:if>
 
         <!-- main body of the configuration -->
         <st:include it="${instance}" page="config.jelly"/>
