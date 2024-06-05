@@ -132,6 +132,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                 newTemplate.getAnnotations().add(new PodAnnotation(POD_ANNOTATION_BUILD_URL, url + run.getUrl()));
                 newTemplate.getAnnotations().add(new PodAnnotation(POD_ANNOTATION_RUN_URL, run.getUrl()));
             }
+            newTemplate.setRun(run);
         }
         newTemplate.setImagePullSecrets(step.getImagePullSecrets().stream()
                 .map(x -> new PodImagePullSecret(x))
@@ -240,6 +241,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             KubernetesCloud cloud = resolveCloud(cloudName);
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
+            newTemplate.setRun(getContext().get(Run.class));
             LOGGER.log(Level.FINE, "Re-registering template with id=" + newTemplate.getId() + " after resume");
             if (VERBOSE) {
                 listener.getLogger()

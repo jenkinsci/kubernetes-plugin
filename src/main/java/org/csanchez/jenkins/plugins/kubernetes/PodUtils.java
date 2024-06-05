@@ -102,13 +102,20 @@ public final class PodUtils {
             LOGGER.log(Level.FINE, () -> "Pod " + podDisplayName + " .metadata.labels is null");
             return;
         }
-        var jenkinsLabel = labels.get(PodTemplate.JENKINS_LABEL);
+        cancelQueueItemFor(runUrl, labels.get(PodTemplate.JENKINS_LABEL), reason, podDisplayName);
+    }
+
+    public static void cancelQueueItemFor(
+            @NonNull String runUrl,
+            @NonNull String label,
+            @CheckForNull String reason,
+            @CheckForNull String podDisplayName) {
         var queue = Jenkins.get().getQueue();
         Arrays.stream(queue.getItems())
                 .filter(item -> item.getTask().getUrl().equals(runUrl))
                 .filter(item -> Optional.ofNullable(item.getAssignedLabel())
                         .map(Label::getName)
-                        .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(jenkinsLabel))
+                        .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(label))
                         .orElse(false))
                 .findFirst()
                 .ifPresentOrElse(
@@ -119,7 +126,11 @@ public final class PodUtils {
                                             + (!StringUtils.isBlank(reason) ? "due to " + reason : ""));
                             queue.cancel(item);
                         },
-                        () -> LOGGER.log(Level.FINE, () -> "No queue item found for pod " + podDisplayName));
+                        () -> {
+                            if (podDisplayName != null) {
+                                LOGGER.log(Level.FINE, () -> "No queue item found for pod " + podDisplayName);
+                            }
+                        });
     }
 
     @CheckForNull

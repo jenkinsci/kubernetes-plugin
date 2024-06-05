@@ -32,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Functions;
 import hudson.model.Descriptor;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.slaves.JNLPLauncher;
@@ -54,6 +55,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
+import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -117,7 +119,20 @@ public class KubernetesLauncher extends JNLPLauncher {
             PodTemplate template = node.getTemplate();
             KubernetesCloud cloud = node.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
-            Pod pod = template.build(node);
+            Pod pod;
+            try {
+                pod = template.build(node);
+            } catch (PodDecoratorException e) {
+                Run<?, ?> run = template.getRun();
+                if (run != null) {
+                    template.getListener().getLogger().println("Failed to build pod definition : " + e.getMessage());
+                    PodUtils.cancelQueueItemFor(run.getUrl(), template.getLabel(), e.getMessage(), null);
+                }
+                e.printStackTrace(listener.fatalError("Failed to build pod definition"));
+                setProblem(e);
+                terminateOrLog(node);
+                return;
+            }
             node.assignPod(pod);
 
             String podName = pod.getMetadata().getName();
@@ -305,12 +320,16 @@ public class KubernetesLauncher extends JNLPLauncher {
                     String.format("Error in provisioning; agent=%s, template=%s", node, node.getTemplateId()),
                     ex);
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
-            try {
-                node.terminate();
-            } catch (IOException | InterruptedException e) {
-                LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
-            }
+            terminateOrLog(node);
             throw new RuntimeException(ex);
+        }
+    }
+
+    private static void terminateOrLog(KubernetesSlave node) {
+        try {
+            node.terminate();
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.WARNING, "Unable to remove Jenkins node", e);
         }
     }
 
