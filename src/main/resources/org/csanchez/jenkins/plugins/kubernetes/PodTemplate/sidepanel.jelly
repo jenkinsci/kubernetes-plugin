@@ -24,7 +24,9 @@ THE SOFTWARE.
         <l:tasks>
             <l:task href="" icon="symbol-settings"
                     title="${app.hasPermission(app.MANAGE) ? '%Configure' : '%View Configuration'}"/>
-            <l:delete permission="${app.MANAGE}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
+            <j:if test="${!it.readonlyFromUi}">
+                <l:delete permission="${app.MANAGE}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
+            </j:if>
             <t:actions />
         </l:tasks>
     </l:side-panel>
