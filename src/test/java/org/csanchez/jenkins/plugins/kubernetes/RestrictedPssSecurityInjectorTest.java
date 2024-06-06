@@ -25,4 +25,9 @@ public class RestrictedPssSecurityInjectorTest extends AbstractGoldenFileTest {
     public void multiContainer() throws IOException {
         test("multiContainer");
     }
+
+    @Test
+    public void existingSecurityContext() throws IOException {
+        test("existingSecurityContext");
+    }
 }

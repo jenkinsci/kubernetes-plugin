@@ -28,18 +28,14 @@ spec:
       requests:
         cpu: "1"
         memory: "768Mi"
-    volumeMounts:
-    - mountPath: "/home/jenkins/agent"
-      name: "workspace-volume"
-      readOnly: false
-  - args:
-    - "infinity"
-    command:
-    - "sleep"
-    image: "maven"
-    name: "maven"
     securityContext:
-      runAsUser: 1000
+      allowPrivilegeEscalation: true
+      capabilities:
+        drop:
+        - "ALL"
+      runAsNonRoot: true
+      seccompProfile:
+        type: "Localhost"
     volumeMounts:
     - mountPath: "/home/jenkins/agent"
       name: "workspace-volume"
