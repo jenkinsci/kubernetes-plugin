@@ -1,0 +1,42 @@
+---
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  name: "simple"
+  namespace: "jenkins"
+spec:
+  containers:
+  - env:
+    - name: "JENKINS_SECRET"
+      value: "my-little-secret"
+    - name: "JENKINS_AGENT_NAME"
+      value: "my-lovely-agent"
+    - name: "REMOTING_OPTS"
+      value: "-noReconnectAfter 1d"
+    - name: "JENKINS_NAME"
+      value: "my-lovely-agent"
+    - name: "JENKINS_AGENT_WORKDIR"
+      value: "/home/jenkins/agent"
+    - name: "JENKINS_URL"
+      value: "http://localhost/"
+    image: "jenkins/inbound-agent"
+    name: "jnlp"
+    resources:
+      limits:
+        cpu: "1"
+        memory: "768Mi"
+      requests:
+        cpu: "1"
+        memory: "768Mi"
+    securityContext:
+      allowPrivilegeEscalation: true
+      seccompProfile:
+        type: "Localhost"
+    volumeMounts:
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  volumes:
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"

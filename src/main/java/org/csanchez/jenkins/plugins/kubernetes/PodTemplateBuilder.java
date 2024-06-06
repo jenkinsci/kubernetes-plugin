@@ -33,7 +33,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substitut
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.Extension;
 import hudson.TcpSlaveAgentListener;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
@@ -51,7 +50,6 @@ import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
-import io.fabric8.kubernetes.api.model.SecurityContextBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
@@ -670,60 +668,5 @@ public class PodTemplateBuilder {
             }
         }
         return Collections.unmodifiableList(builder);
-    }
-
-    /**
-     * <p>
-     * {@link PodDecorator} allowing to inject in {@code jnlp} containers definition a {@code securityContext} definition allowing to use the
-     * {@code restricted} <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standard</a>.
-     * </p>
-     * <p>
-     * See <a href="https://issues.jenkins.io/browse/JENKINS-71639">JENKINS-71639</a> for more details.
-     * </p>
-     */
-    @Extension
-    public static class RestrictedPssSecurityContextInjector implements PodDecorator {
-
-        @NonNull
-        @Override
-        public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
-            if (kubernetesCloud.isRestrictedPssSecurityContext()) {
-                Optional<Container> maybeJNLP = pod.getSpec().getContainers().stream()
-                        .filter(container -> JNLP_NAME.equals(container.getName()))
-                        .findFirst();
-
-                maybeJNLP.ifPresentOrElse(
-                        jnlp -> {
-                            SecurityContextBuilder securityContextBuilder = null;
-                            if (jnlp.getSecurityContext() != null) {
-                                LOGGER.info(
-                                        () ->
-                                                "Updating the existing JNLP container Security Context due to the configured restricted PSP injection");
-                                securityContextBuilder = new SecurityContextBuilder(jnlp.getSecurityContext());
-                            } else {
-                                LOGGER.fine(
-                                        () ->
-                                                "Injecting restricted PSP configuration in the JNLP container security context");
-                                securityContextBuilder = new SecurityContextBuilder();
-                            }
-                            jnlp.setSecurityContext(
-                                    securityContextBuilder //
-                                            .withAllowPrivilegeEscalation(false) //
-                                            .withNewCapabilities() //
-                                            .withDrop("ALL") //
-                                            .endCapabilities() //
-                                            .withRunAsNonRoot() //
-                                            .editOrNewSeccompProfile() //
-                                            .withType("RuntimeDefault") //
-                                            .endSeccompProfile() //
-                                            .build()); //
-                        },
-                        () -> {
-                            throw new IllegalStateException(
-                                    "Cannot find the jnlp container when trying configuring its securityContext for restricted PSS.");
-                        });
-            }
-            return pod;
-        }
     }
 }
