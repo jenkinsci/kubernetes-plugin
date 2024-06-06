@@ -4,6 +4,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
@@ -221,7 +222,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         this.namespace = namespace;
     }
 
-    @NonNull
+    @Nullable
     public String getNamespace() {
         return namespace;
     }
@@ -423,7 +424,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
         listener.getLogger().println(msg);
     }
 
-    private void deleteSlavePod(TaskListener listener, KubernetesClient client) throws IOException {
+    private void deleteSlavePod(TaskListener listener, KubernetesClient client) {
+        if (getNamespace() == null) {
+            return;
+        }
         try {
             boolean deleted = client.pods()
                             .inNamespace(getNamespace())

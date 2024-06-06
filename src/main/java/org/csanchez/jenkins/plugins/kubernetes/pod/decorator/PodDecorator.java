@@ -11,8 +11,15 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
  */
 public interface PodDecorator extends ExtensionPoint {
 
+    /**
+     * Goes through all the {@link PodDecorator} extensions and decorates the pod.
+     * @param kubernetesCloud The cloud this pod will be scheduled as context.
+     * @param pod the initial pod definition before decoration.
+     * @return The modified pod definition.
+     * @throws PodDecoratorException Should any of the decorators fail to decorate the pod.
+     */
     @NonNull
-    static Pod decorateAll(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
+    static Pod decorateAll(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) throws PodDecoratorException {
         for (PodDecorator decorator : ExtensionList.lookup(PodDecorator.class)) {
             pod = decorator.decorate(kubernetesCloud, pod);
         }
