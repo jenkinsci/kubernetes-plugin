@@ -74,15 +74,16 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
 
     @Override
     public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws FormException {
-        if (form == null) {
-            return null;
-        }
-
         // ignore modifications silently and return the unmodified object if the user
         // does not have the ADMINISTER Permission
         if (!userHasAdministerPermission()) {
             return this;
         }
+
+        if (form == null) {
+            return null;
+        }
+
         // Backwards compatibility: this method was expecting a set of entries PREFIX_USAGE_PERMISSION+cloudName -->
         // true | false
         // Now we're getting a set of permitted cloud names inside permittedClouds entry
