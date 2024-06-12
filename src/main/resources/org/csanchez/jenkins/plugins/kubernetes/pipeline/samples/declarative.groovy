@@ -21,6 +21,9 @@ spec:
     - sleep
     args:
     - infinity
+    securityContext:
+      # ubuntu runs as root by default, it is recommended or even mandatory in some environments (such as pod security admission "restricted") to run as a non-root user.
+      runAsUser: 1000
 '''
             // Can also wrap individual steps:
             // container('shell') {

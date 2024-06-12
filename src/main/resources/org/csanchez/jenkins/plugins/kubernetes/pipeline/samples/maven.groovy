@@ -13,6 +13,9 @@ spec:
     - sleep
     args:
     - infinity
+    securityContext:
+      # maven runs as root by default, it is recommended or even mandatory in some environments (such as pod security admission "restricted") to run as a non-root user.
+      runAsUser: 1000
 ''') {
     retry(count: 2, conditions: [kubernetesAgent(), nonresumable()]) {
         node(POD_LABEL) {
@@ -28,7 +31,7 @@ spec:
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.18.1</version>
+                <version>3.2.5</version>
             </plugin>
         </plugins>
     </build>
@@ -36,14 +39,13 @@ spec:
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
 </project>
         '''
@@ -55,7 +57,8 @@ public class SomeTest {
 }
         '''
             container('maven') {
-                sh 'mvn -B -ntp -Dmaven.test.failure.ignore verify'
+                // Maven needs write access to $HOME/.m2, which it doesn't have in the maven image because only root is a real user.
+                sh 'HOME=$WORKSPACE_TMP/maven mvn -B -ntp -Dmaven.test.failure.ignore verify'
             }
             junit '**/target/surefire-reports/TEST-*.xml'
             archiveArtifacts '**/target/*.jar'
