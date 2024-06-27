@@ -24,7 +24,6 @@ import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
-import hudson.security.AccessDeniedException3;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormApply;
@@ -961,7 +960,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 @QueryParameter boolean value,
                 @QueryParameter String jenkinsUrl,
                 @QueryParameter boolean webSocket) {
-            checkPermission(owner);
+            if (!hasPermission(owner)) {
+                return FormValidation.ok();
+            }
             if (!webSocket) {
                 TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
                 if (tcpSlaveAgentListener == null) {
@@ -999,24 +1000,26 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             return FormValidation.ok();
         }
 
-        private static void checkPermission(AccessControlled owner) {
+        private static boolean hasPermission(AccessControlled owner) {
             if (owner instanceof Jenkins) {
-                owner.checkPermission(Jenkins.ADMINISTER);
+                // Regular cloud
+                return owner.hasPermission(Jenkins.ADMINISTER);
             } else if (owner instanceof Item) {
-                owner.checkPermission(Item.CONFIGURE);
+                // Shared cloud (CloudBees CI)
+                return owner.hasPermission(Item.CONFIGURE);
             } else {
                 LOGGER.log(
                         Level.WARNING,
                         () -> "Unsupported owner type " + (owner == null ? "null" : owner.getClass()) + " (url: "
                                 + Stapler.getCurrentRequest().getOriginalRequestURI()
                                 + "). Please report this issue to the plugin maintainers.");
-                throw new AccessDeniedException3(Jenkins.getAuthentication2(), Jenkins.ADMINISTER);
+                return false;
             }
         }
 
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doCheckJenkinsUrl(
-                @QueryParameter String value, @QueryParameter boolean directConnection) {
+        public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection)
+                throws IOException, ServletException {
             try {
                 if (!isEmpty(value)) new URL(value);
             } catch (MalformedURLException e) {
@@ -1032,7 +1035,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 @QueryParameter boolean webSocket,
                 @QueryParameter boolean directConnection,
                 @QueryParameter String jenkinsTunnel) {
-            checkPermission(owner);
+            if (!hasPermission(owner)) {
+                return FormValidation.ok();
+            }
             if (webSocket) {
                 if (!WebSockets.isSupported()) {
                     return FormValidation.error("WebSocket support is not enabled in this Jenkins installation");
