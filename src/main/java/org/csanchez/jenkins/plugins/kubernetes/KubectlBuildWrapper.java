@@ -38,6 +38,7 @@ import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
@@ -145,6 +146,8 @@ public class KubectlBuildWrapper extends SimpleBuildWrapper {
             return "Setup Kubernetes CLI (kubectl)";
         }
 
+        @SuppressWarnings("unused") // called by stapler
+        @RequirePOST
         public ListBoxModel doFillCredentialsIdItems(
                 @AncestorInPath Item item, @QueryParameter String serverUrl, @QueryParameter String credentialsId) {
             if (item == null ? !Jenkins.get().hasPermission(Jenkins.MANAGE) : !item.hasPermission(Item.EXTENDED_READ)) {

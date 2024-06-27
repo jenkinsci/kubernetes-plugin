@@ -19,9 +19,12 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.security.ACL;
+import hudson.security.AccessControlled;
+import hudson.security.AccessDeniedException3;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormApply;
@@ -69,6 +72,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -951,9 +955,13 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @SuppressWarnings("unused") // used by jelly
+        @RequirePOST
         public FormValidation doCheckDirectConnection(
-                @QueryParameter boolean value, @QueryParameter String jenkinsUrl, @QueryParameter boolean webSocket)
-                throws IOException, ServletException {
+                @AncestorInPath AccessControlled owner,
+                @QueryParameter boolean value,
+                @QueryParameter String jenkinsUrl,
+                @QueryParameter boolean webSocket) {
+            checkPermission(owner);
             if (!webSocket) {
                 TcpSlaveAgentListener tcpSlaveAgentListener = Jenkins.get().getTcpSlaveAgentListener();
                 if (tcpSlaveAgentListener == null) {
@@ -991,9 +999,24 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             return FormValidation.ok();
         }
 
+        private static void checkPermission(AccessControlled owner) {
+            if (owner instanceof Jenkins) {
+                owner.checkPermission(Jenkins.ADMINISTER);
+            } else if (owner instanceof Item) {
+                owner.checkPermission(Item.CONFIGURE);
+            } else {
+                LOGGER.log(
+                        Level.WARNING,
+                        () -> "Unsupported owner type " + (owner == null ? "null" : owner.getClass()) + " (url: "
+                                + Stapler.getCurrentRequest().getOriginalRequestURI()
+                                + "). Please report this issue to the plugin maintainers.");
+                throw new AccessDeniedException3(Jenkins.getAuthentication2(), Jenkins.ADMINISTER);
+            }
+        }
+
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection)
-                throws IOException, ServletException {
+        public FormValidation doCheckJenkinsUrl(
+                @QueryParameter String value, @QueryParameter boolean directConnection) {
             try {
                 if (!isEmpty(value)) new URL(value);
             } catch (MalformedURLException e) {
@@ -1002,10 +1025,14 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             return FormValidation.ok();
         }
 
+        @SuppressWarnings("unused") // used by jelly
+        @RequirePOST
         public FormValidation doCheckWebSocket(
+                @AncestorInPath AccessControlled owner,
                 @QueryParameter boolean webSocket,
                 @QueryParameter boolean directConnection,
                 @QueryParameter String jenkinsTunnel) {
+            checkPermission(owner);
             if (webSocket) {
                 if (!WebSockets.isSupported()) {
                     return FormValidation.error("WebSocket support is not enabled in this Jenkins installation");
