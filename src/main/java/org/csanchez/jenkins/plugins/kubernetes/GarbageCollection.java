@@ -13,6 +13,7 @@ import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -195,6 +196,8 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
                                         client.resource(pod).delete();
                                     });
                         }
+                    } catch (KubernetesClientException e) {
+                        LOGGER.log(Level.WARNING, "Unexpected error while calling Kubernetes API", e);
                     } catch (KubernetesAuthException e) {
                         LOGGER.log(Level.WARNING, "Error authenticating to Kubernetes", e);
                     } catch (IOException e) {
