@@ -16,6 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -60,6 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.util.Listeners;
+import jenkins.util.SystemProperties;
 import jenkins.util.Timer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -574,6 +576,15 @@ public class Reaper extends ComputerListener {
     @Extension
     public static class TerminateAgentOnImagePullBackOff implements Listener {
 
+        public static long BACKOFF_EVENTS_LIMIT =
+                SystemProperties.getInteger(Reaper.class.getName() + ".backoffEventsLimit", 3);
+
+        public static final String IMAGE_PULL_BACK_OFF = "ImagePullBackOff";
+
+        // For each pod with at least 1 backoff, keep track of the first backoff event for 15 minutes.
+        private Cache<String, Integer> ttlCache =
+                Caffeine.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).build();
+
         @Override
         public void onEvent(
                 @NonNull Watcher.Action action,
@@ -594,19 +605,28 @@ public class Reaper extends ComputerListener {
 
             if (!backOffContainers.isEmpty()) {
                 List<String> images = new ArrayList<>();
-                backOffContainers.forEach(cs -> {
-                    images.add(cs.getImage());
+                backOffContainers.forEach(cs -> images.add(cs.getImage()));
+                var podUid = pod.getMetadata().getUid();
+                var backOffNumber = ttlCache.get(podUid, k -> 0);
+                ttlCache.put(podUid, ++backOffNumber);
+                if (backOffNumber >= BACKOFF_EVENTS_LIMIT) {
+                    var imagesString = String.join(",", images);
                     node.getRunListener()
-                            .error("Unable to pull Docker image \"" + cs.getImage()
+                            .error("Unable to pull container image \"" + imagesString
                                     + "\". Check if image tag name is spelled correctly.");
-                });
-
-                terminationReasons.add("ImagePullBackOff");
-                PodUtils.cancelQueueItemFor(pod, "ImagePullBackOff");
-                node.terminate();
-                disconnectComputer(
-                        node,
-                        new PodOfflineCause(Messages._PodOfflineCause_ImagePullBackoff("ImagePullBackOff", images)));
+                    terminationReasons.add(IMAGE_PULL_BACK_OFF);
+                    PodUtils.cancelQueueItemFor(pod, IMAGE_PULL_BACK_OFF);
+                    node.terminate();
+                    disconnectComputer(
+                            node,
+                            new PodOfflineCause(
+                                    Messages._PodOfflineCause_ImagePullBackoff(IMAGE_PULL_BACK_OFF, images)));
+                } else {
+                    node.getRunListener()
+                            .error("Image pull backoff detected, waiting for image to be available. Will wait for "
+                                    + (BACKOFF_EVENTS_LIMIT - backOffNumber)
+                                    + " more events before terminating the node.");
+                }
             }
         }
     }
