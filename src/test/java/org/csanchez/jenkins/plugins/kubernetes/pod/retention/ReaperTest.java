@@ -44,6 +44,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
@@ -605,12 +606,17 @@ public class ReaperTest {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = withContainerImagePullBackoff(createPod(node));
+        Reaper.TerminateAgentOnImagePullBackOff.BACKOFF_EVENTS_LIMIT = 2;
 
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
                 .withPath(watchPodsPath)
                 .andUpgradeToWebSocket()
                 .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node123, "BOOKMARK"))
                 .waitFor(EVENT_WAIT_PERIOD_MS)
                 .andEmit(new WatchEvent(node123, "MODIFIED"))
                 .waitFor(EVENT_WAIT_PERIOD_MS)
@@ -680,6 +686,7 @@ public class ReaperTest {
                 .withNewMetadata()
                 .withName(node.getPodName())
                 .withNamespace(node.getNamespace())
+                .withUid(UUID.randomUUID().toString())
                 .endMetadata()
                 .withNewSpec()
                 .endSpec()
