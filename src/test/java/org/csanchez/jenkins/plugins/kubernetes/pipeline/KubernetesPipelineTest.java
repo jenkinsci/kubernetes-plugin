@@ -83,6 +83,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
+import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.hamcrest.MatcherAssert;
 import org.htmlunit.html.DomNodeUtil;
 import org.htmlunit.html.HtmlElement;
@@ -847,7 +848,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     public void invalidImageGetsCancelled() throws Exception {
+        Reaper.TerminateAgentOnImagePullBackOff.BACKOFF_EVENTS_LIMIT = 2;
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("Image pull backoff detected, waiting for image to be available.", b);
         r.assertLogContains("Queue task was cancelled", b);
     }
 
