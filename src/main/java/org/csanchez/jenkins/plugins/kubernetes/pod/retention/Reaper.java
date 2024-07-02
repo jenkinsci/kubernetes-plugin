@@ -576,6 +576,9 @@ public class Reaper extends ComputerListener {
     @Extension
     public static class TerminateAgentOnImagePullBackOff implements Listener {
 
+        @SuppressFBWarnings(
+                value = "MS_SHOULD_BE_FINAL",
+                justification = "Allow tests or groovy console to change the value")
         public static long BACKOFF_EVENTS_LIMIT =
                 SystemProperties.getInteger(Reaper.class.getName() + ".backoffEventsLimit", 3);
 
