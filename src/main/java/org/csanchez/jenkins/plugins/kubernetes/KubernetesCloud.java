@@ -33,6 +33,8 @@ import hudson.util.XStream2;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -40,6 +42,13 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.DSAPublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -55,6 +64,7 @@ import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.security.FIPS140;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -285,6 +295,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
+        if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
+        }
         this.skipTlsVerify = skipTlsVerify;
     }
 
@@ -650,6 +663,30 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return Collections.emptyList();
     }
 
+    private static void checkServerCertificateFIPS(String serverCertificate) {
+        try {
+            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+            X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(new ByteArrayInputStream(serverCertificate.getBytes(UTF_8)));
+            PublicKey publicKey = certificate.getPublicKey();
+            if (publicKey instanceof RSAPublicKey) {
+                if (((RSAPublicKey)publicKey).getModulus().bitLength() < 2048) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
+                }
+            } else if (publicKey instanceof DSAPublicKey) {
+                if (((DSAPublicKey)publicKey).getParams().getP().bitLength() < 2048) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
+                }
+            } else if (publicKey instanceof ECPublicKey) {
+                if (((ECPublicKey)publicKey).getParams().getCurve().getField().getFieldSize() < 224) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySizeEC());
+                }
+            }
+
+        }catch (CertificateException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
     @Override
     public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate) {
         this.removeTemplate(oldTemplate);
@@ -910,6 +947,26 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 LOGGER.log(Level.FINE, String.format("Error testing connection %s", serverUrl), e);
                 return FormValidation.error("Error testing connection %s: %s", serverUrl, e.getMessage());
             }
+        }
+
+        @RequirePOST
+        public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
+            if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
+                return FormValidation.error(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
+            if (FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(serverCertificate)){
+                try {
+                    checkServerCertificateFIPS(serverCertificate);
+                } catch (RuntimeException ex) {
+                    return FormValidation.error(ex, Messages.KubernetesCloud_serverCertificateIsNotApprovedInFIPSMode(ex.getLocalizedMessage()));
+                }
+            }
+            return FormValidation.ok();
         }
 
         @RequirePOST
