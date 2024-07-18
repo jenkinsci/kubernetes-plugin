@@ -277,6 +277,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerUrl(@NonNull String serverUrl) {
+        checkKubernetesUrlFIPS(serverUrl);
         this.serverUrl = Util.fixEmpty(serverUrl);
     }
 
@@ -286,6 +287,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerCertificate(String serverCertificate) {
+        checkServerCertificateFIPS(serverCertificate);
         this.serverCertificate = Util.fixEmpty(serverCertificate);
     }
 
@@ -663,26 +665,42 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return Collections.emptyList();
     }
 
+    private static void checkKubernetesUrlFIPS(String url) {
+        if (!FIPS140.useCompliantAlgorithms() || StringUtils.isBlank(url)) {
+            return;
+        }
+        if (!url.startsWith("https:")) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_kubernetesServerUrlIsNotSecure());
+        }
+    }
+
     private static void checkServerCertificateFIPS(String serverCertificate) {
+        if (!FIPS140.useCompliantAlgorithms()) {
+            return;
+        }
+        if (StringUtils.isBlank(serverCertificate)) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeyEmpty());
+        }
         try {
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-            X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(new ByteArrayInputStream(serverCertificate.getBytes(UTF_8)));
+            X509Certificate certificate = (X509Certificate)
+                    certificateFactory.generateCertificate(new ByteArrayInputStream(serverCertificate.getBytes(UTF_8)));
             PublicKey publicKey = certificate.getPublicKey();
             if (publicKey instanceof RSAPublicKey) {
-                if (((RSAPublicKey)publicKey).getModulus().bitLength() < 2048) {
+                if (((RSAPublicKey) publicKey).getModulus().bitLength() < 2048) {
                     throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
                 }
             } else if (publicKey instanceof DSAPublicKey) {
-                if (((DSAPublicKey)publicKey).getParams().getP().bitLength() < 2048) {
+                if (((DSAPublicKey) publicKey).getParams().getP().bitLength() < 2048) {
                     throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
                 }
             } else if (publicKey instanceof ECPublicKey) {
-                if (((ECPublicKey)publicKey).getParams().getCurve().getField().getFieldSize() < 224) {
+                if (((ECPublicKey) publicKey).getParams().getCurve().getField().getFieldSize() < 224) {
                     throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySizeEC());
                 }
             }
 
-        }catch (CertificateException ex) {
+        } catch (CertificateException ex) {
             throw new IllegalStateException(ex);
         }
     }
@@ -951,6 +969,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
         @RequirePOST
         public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
             if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
                 return FormValidation.error(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
             }
@@ -959,12 +978,22 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
         @RequirePOST
         public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
-            if (FIPS140.useCompliantAlgorithms() && StringUtils.isNotBlank(serverCertificate)){
-                try {
-                    checkServerCertificateFIPS(serverCertificate);
-                } catch (RuntimeException ex) {
-                    return FormValidation.error(ex, Messages.KubernetesCloud_serverCertificateIsNotApprovedInFIPSMode(ex.getLocalizedMessage()));
-                }
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            try {
+                checkServerCertificateFIPS(serverCertificate);
+            } catch (RuntimeException ex) {
+                return FormValidation.error(ex, ex.getLocalizedMessage());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            try {
+                checkKubernetesUrlFIPS(serverUrl);
+            } catch (RuntimeException ex) {
+                return FormValidation.error(ex.getLocalizedMessage());
             }
             return FormValidation.ok();
         }
@@ -1177,6 +1206,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     private Object readResolve() {
         if ((serverCertificate != null) && !serverCertificate.trim().startsWith("-----BEGIN CERTIFICATE-----")) {
+            checkServerCertificateFIPS(serverCertificate);
             serverCertificate = new String(Base64.getDecoder().decode(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(
                     Level.INFO, "Upgraded Kubernetes server certificate key: {0}", serverCertificate.substring(0, 80));
