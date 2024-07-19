@@ -1,0 +1,173 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>2.426.3</version>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+  <securityRealm class="hudson.security.SecurityRealm$None"/>
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <workspaceDir>${JENKINS_HOME}/workspace/${ITEM_FULL_NAME}</workspaceDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+  <jdks/>
+  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+  <clouds>
+    <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@999999-SNAPSHOT">
+      <name>with-skip-tls</name>
+      <templates/>
+      <serverUrl>https://example.org</serverUrl>
+      <useJenkinsProxy>false</useJenkinsProxy>
+      <serverCertificate>-----BEGIN CERTIFICATE-----
+MIIBzzCCAX6gAwIBAgIUMxqDFkKRXOeP325owDz02IZomgUwCgYIKoZIzj0EAwIw
+RTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yNDA3MTgxNTQ5MDVaFw0yNDA4MTcx
+NTQ5MDVaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYD
+VQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwUjAUBgcqhkjOPQIBBgkrJAMD
+AggBAQYDOgAEOuIfMAfhqilO6Q1VxiAjuQnTkpFH2MYcyFjyG9O2OG71KFuB4hC8
+r6NSSxVCx88TjKzcnm/u/HijUzBRMB0GA1UdDgQWBBQtPSBGTPqBRJQOVhf/c8Xh
+5s0aOjAfBgNVHSMEGDAWgBQtPSBGTPqBRJQOVhf/c8Xh5s0aOjAPBgNVHRMBAf8E
+BTADAQH/MAoGCCqGSM49BAMCAz8AMDwCHAOWGI94ia/Ck3JgqIPFCGZUqR8uh9vC
+ovacsJACHC8VSwu0hEqevytqT7HH9E/DCMYORANJBZz5GyY=
+-----END CERTIFICATE-----
+</serverCertificate>
+      <skipTlsVerify>true</skipTlsVerify>
+      <addMasterProxyEnvVars>false</addMasterProxyEnvVars>
+      <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
+      <restrictedPssSecurityContext>false</restrictedPssSecurityContext>
+      <webSocket>false</webSocket>
+      <directConnection>false</directConnection>
+      <containerCap>10</containerCap>
+      <retentionTimeout>5</retentionTimeout>
+      <connectTimeout>5</connectTimeout>
+      <readTimeout>15</readTimeout>
+      <podLabels/>
+      <usageRestricted>false</usageRestricted>
+      <maxRequestsPerHost>32</maxRequestsPerHost>
+      <waitForPodSec>600</waitForPodSec>
+      <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
+    </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
+    <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@999999-SNAPSHOT">
+      <name>with-http-endpoint</name>
+      <templates/>
+      <serverUrl>http://example.org</serverUrl>
+      <useJenkinsProxy>false</useJenkinsProxy>
+      <serverCertificate>-----BEGIN CERTIFICATE-----
+MIIBzzCCAX6gAwIBAgIUMxqDFkKRXOeP325owDz02IZomgUwCgYIKoZIzj0EAwIw
+RTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yNDA3MTgxNTQ5MDVaFw0yNDA4MTcx
+NTQ5MDVaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYD
+VQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwUjAUBgcqhkjOPQIBBgkrJAMD
+AggBAQYDOgAEOuIfMAfhqilO6Q1VxiAjuQnTkpFH2MYcyFjyG9O2OG71KFuB4hC8
+r6NSSxVCx88TjKzcnm/u/HijUzBRMB0GA1UdDgQWBBQtPSBGTPqBRJQOVhf/c8Xh
+5s0aOjAfBgNVHSMEGDAWgBQtPSBGTPqBRJQOVhf/c8Xh5s0aOjAPBgNVHRMBAf8E
+BTADAQH/MAoGCCqGSM49BAMCAz8AMDwCHAOWGI94ia/Ck3JgqIPFCGZUqR8uh9vC
+ovacsJACHC8VSwu0hEqevytqT7HH9E/DCMYORANJBZz5GyY=
+-----END CERTIFICATE-----
+</serverCertificate>
+      <skipTlsVerify>false</skipTlsVerify>
+      <addMasterProxyEnvVars>false</addMasterProxyEnvVars>
+      <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
+      <restrictedPssSecurityContext>false</restrictedPssSecurityContext>
+      <webSocket>false</webSocket>
+      <directConnection>false</directConnection>
+      <containerCap>10</containerCap>
+      <retentionTimeout>5</retentionTimeout>
+      <connectTimeout>5</connectTimeout>
+      <readTimeout>15</readTimeout>
+      <podLabels/>
+      <usageRestricted>false</usageRestricted>
+      <maxRequestsPerHost>32</maxRequestsPerHost>
+      <waitForPodSec>600</waitForPodSec>
+      <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
+    </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
+    <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@999999-SNAPSHOT">
+      <name>with-invalid-cert</name>
+      <templates/>
+      <serverUrl>https://example.org</serverUrl>
+      <useJenkinsProxy>false</useJenkinsProxy>
+      <serverCertificate>-----BEGIN CERTIFICATE-----
+MIIBwDCCAXagAwIBAgIUOwG28vjFm4KoiGieHrBRgzhrzGAwCgYIKoZIzj0EAwIw
+RTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yNDA3MTgxNTQ4MzBaFw0yNDA4MTcx
+NTQ4MzBaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYD
+VQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwSjAUBgcqhkjOPQIBBgkrJAMD
+AggBAQQDMgAEpFiVE3YkcIaJVP9DsLIZE620gyX23AxQahhWjywp8hp+DKO4voH3
+HlKfdeDEZ5nfo1MwUTAdBgNVHQ4EFgQUCQxoboqlb8uG3RrOqtk4Dxil4xwwHwYD
+VR0jBBgwFoAUCQxoboqlb8uG3RrOqtk4Dxil4xwwDwYDVR0TAQH/BAUwAwEB/zAK
+BggqhkjOPQQDAgM4ADA1AhkAiI0732BOdYpjG1EgZ2y1Y1W9qLjgKLH7AhgwSQbA
+qPWq3wYiP1gZsVMavRL9K1ggspE=
+-----END CERTIFICATE-----
+</serverCertificate>
+      <skipTlsVerify>false</skipTlsVerify>
+      <addMasterProxyEnvVars>false</addMasterProxyEnvVars>
+      <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
+      <restrictedPssSecurityContext>false</restrictedPssSecurityContext>
+      <webSocket>false</webSocket>
+      <directConnection>false</directConnection>
+      <containerCap>10</containerCap>
+      <retentionTimeout>5</retentionTimeout>
+      <connectTimeout>5</connectTimeout>
+      <readTimeout>15</readTimeout>
+      <podLabels/>
+      <usageRestricted>false</usageRestricted>
+      <maxRequestsPerHost>32</maxRequestsPerHost>
+      <waitForPodSec>600</waitForPodSec>
+      <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
+    </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
+    <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@999999-SNAPSHOT">
+      <name>compliant-cloud</name>
+      <templates/>
+      <serverUrl>https://example.org</serverUrl>
+      <useJenkinsProxy>false</useJenkinsProxy>
+      <serverCertificate>-----BEGIN CERTIFICATE-----
+MIIBzzCCAX6gAwIBAgIUMxqDFkKRXOeP325owDz02IZomgUwCgYIKoZIzj0EAwIw
+RTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGElu
+dGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yNDA3MTgxNTQ5MDVaFw0yNDA4MTcx
+NTQ5MDVaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYD
+VQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwUjAUBgcqhkjOPQIBBgkrJAMD
+AggBAQYDOgAEOuIfMAfhqilO6Q1VxiAjuQnTkpFH2MYcyFjyG9O2OG71KFuB4hC8
+r6NSSxVCx88TjKzcnm/u/HijUzBRMB0GA1UdDgQWBBQtPSBGTPqBRJQOVhf/c8Xh
+5s0aOjAfBgNVHSMEGDAWgBQtPSBGTPqBRJQOVhf/c8Xh5s0aOjAPBgNVHRMBAf8E
+BTADAQH/MAoGCCqGSM49BAMCAz8AMDwCHAOWGI94ia/Ck3JgqIPFCGZUqR8uh9vC
+ovacsJACHC8VSwu0hEqevytqT7HH9E/DCMYORANJBZz5GyY=
+-----END CERTIFICATE-----
+</serverCertificate>
+      <skipTlsVerify>false</skipTlsVerify>
+      <addMasterProxyEnvVars>false</addMasterProxyEnvVars>
+      <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
+      <restrictedPssSecurityContext>false</restrictedPssSecurityContext>
+      <webSocket>false</webSocket>
+      <directConnection>false</directConnection>
+      <containerCap>10</containerCap>
+      <retentionTimeout>5</retentionTimeout>
+      <connectTimeout>5</connectTimeout>
+      <readTimeout>15</readTimeout>
+      <podLabels/>
+      <usageRestricted>false</usageRestricted>
+      <maxRequestsPerHost>32</maxRequestsPerHost>
+      <waitForPodSec>600</waitForPodSec>
+      <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
+    </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
+  </clouds>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>all</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+  </views>
+  <primaryView>all</primaryView>
+  <slaveAgentPort>0</slaveAgentPort>
+  <label></label>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
+  </crumbIssuer>
+  <nodeProperties/>
+  <globalNodeProperties/>
+  <nodeRenameMigrationNeeded>false</nodeRenameMigrationNeeded>
+</hudson>

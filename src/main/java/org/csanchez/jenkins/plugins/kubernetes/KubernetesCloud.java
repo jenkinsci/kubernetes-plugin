@@ -33,7 +33,6 @@ import hudson.util.XStream2;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -42,9 +41,8 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
@@ -60,6 +58,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -296,9 +295,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
-        if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
-            throw new IllegalArgumentException(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
-        }
+        checkSkipTlsVerify(skipTlsVerify);
         this.skipTlsVerify = skipTlsVerify;
     }
 
@@ -673,6 +670,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
     }
 
+    private static void checkSkipTlsVerify(boolean skipTlsVerify) {
+        if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
+        }
+    }
+
     private static void checkServerCertificateFIPS(String serverCertificate) {
         if (!FIPS140.useCompliantAlgorithms()) {
             return;
@@ -681,10 +684,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeyEmpty());
         }
         try {
-            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-            X509Certificate certificate = (X509Certificate)
-                    certificateFactory.generateCertificate(new ByteArrayInputStream(serverCertificate.getBytes(UTF_8)));
-            PublicKey publicKey = certificate.getPublicKey();
+            PEMEncodable pem = PEMEncodable.decode(serverCertificate);
+            Certificate cert = pem.toCertificate();
+            if (cert == null) {
+                throw new IllegalArgumentException("No certificate found in PEM");
+            }
+            PublicKey publicKey = cert.getPublicKey();
             if (publicKey instanceof RSAPublicKey) {
                 if (((RSAPublicKey) publicKey).getModulus().bitLength() < 2048) {
                     throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
@@ -699,8 +704,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 }
             }
 
-        } catch (CertificateException ex) {
-            throw new IllegalStateException(ex);
+        } catch (UnrecoverableKeyException | IOException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -967,15 +972,19 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
-            if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
-                return FormValidation.error(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
+            try {
+                checkSkipTlsVerify(skipTlsVerify);
+            } catch (IllegalArgumentException ex) {
+                return FormValidation.error(ex, ex.getLocalizedMessage());
             }
             return FormValidation.ok();
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
@@ -987,6 +996,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
         public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
@@ -1205,11 +1215,15 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     private Object readResolve() {
         if ((serverCertificate != null) && !serverCertificate.trim().startsWith("-----BEGIN CERTIFICATE-----")) {
-            checkServerCertificateFIPS(serverCertificate);
             serverCertificate = new String(Base64.getDecoder().decode(serverCertificate.getBytes(UTF_8)), UTF_8);
             LOGGER.log(
                     Level.INFO, "Upgraded Kubernetes server certificate key: {0}", serverCertificate.substring(0, 80));
         }
+
+        // FIPS checks if in FIPS mode
+        checkServerCertificateFIPS(serverCertificate);
+        checkKubernetesUrlFIPS(serverUrl);
+        checkSkipTlsVerify(skipTlsVerify);
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
