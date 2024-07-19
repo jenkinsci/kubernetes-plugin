@@ -66,6 +66,7 @@ import jenkins.security.FIPS140;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -704,7 +705,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 }
             }
 
-        } catch (UnrecoverableKeyException | IOException e) {
+        } catch (DecoderException | UnrecoverableKeyException | IOException e) {
+            // TODO: DecoderException could be removed once jdk11 support is removed
             throw new IllegalArgumentException(e);
         }
     }

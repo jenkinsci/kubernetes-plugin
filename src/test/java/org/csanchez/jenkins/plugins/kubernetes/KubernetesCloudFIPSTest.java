@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
+import hudson.ExtensionList;
 import io.jenkins.cli.shaded.org.apache.commons.io.FileUtils;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -51,6 +52,39 @@ public class KubernetesCloudFIPSTest {
         assertThat("with-skip-tls is not loaded", r.jenkins.getCloud("with-skip-tls"), nullValue());
         assertThat("with-http-endpoint is not loaded", r.jenkins.getCloud("with-http-endpoint"), nullValue());
         assertThat("with-invalid-cert is not loaded", r.jenkins.getCloud("with-invalid-cert"), nullValue());
+    }
+
+    @Test
+    @Issue("BEE-73460")
+    public void formValidationTest() throws IOException {
+        ExtensionList<KubernetesCloud.DescriptorImpl> descriptors =
+                ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
+        KubernetesCloud.DescriptorImpl descriptor = descriptors.stream()
+                .filter(d -> d.getClass().isAssignableFrom(KubernetesCloud.DescriptorImpl.class))
+                .findFirst()
+                .orElseGet(KubernetesCloud.DescriptorImpl::new);
+        assertThat(
+                "Valid url doesn't raise error",
+                descriptor.doCheckServerUrl("https://eample.org").getMessage(),
+                nullValue());
+        assertThat(
+                "Invalid url raises error",
+                descriptor.doCheckServerUrl("http://eample.org").getMessage(),
+                notNullValue());
+        assertThat(
+                "Valid cert doesn't raise error",
+                descriptor.doCheckServerCertificate(getCert("rsa2048")).getMessage(),
+                nullValue());
+        assertThat(
+                "Invalid cert raises error",
+                descriptor.doCheckServerCertificate(getCert("rsa1024")).getMessage(),
+                notNullValue());
+        assertThat(
+                "No TLS skip doesn't raise error",
+                descriptor.doCheckSkipTlsVerify(false).getMessage(),
+                nullValue());
+        assertThat(
+                "TLS skip raises error", descriptor.doCheckSkipTlsVerify(true).getMessage(), notNullValue());
     }
 
     private String getCert(String alg) throws IOException {
