@@ -974,7 +974,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
-        @SuppressWarnings("unused") // used by jelly
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"}) // used by jelly and already fixed jenkins security scan warning
         public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
@@ -986,7 +986,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
-        @SuppressWarnings("unused") // used by jelly
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"}) // used by jelly and already fixed jenkins security scan warning
         public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
