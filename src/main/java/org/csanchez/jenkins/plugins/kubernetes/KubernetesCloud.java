@@ -66,7 +66,6 @@ import jenkins.security.FIPS140;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.bouncycastle.util.encoders.DecoderException;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -705,9 +704,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 }
             }
 
-        } catch (DecoderException | UnrecoverableKeyException | IOException e) {
-            // TODO: DecoderException could be removed once jdk11 support is removed
-            throw new IllegalArgumentException(e);
+        } catch (RuntimeException | UnrecoverableKeyException | IOException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
@@ -974,7 +972,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
-        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"}) // used by jelly and already fixed jenkins security scan warning
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
+        }) // used by jelly and already fixed jenkins security scan warning
         public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
@@ -986,7 +985,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
-        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"}) // used by jelly and already fixed jenkins security scan warning
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
+        }) // used by jelly and already fixed jenkins security scan warning
         public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
