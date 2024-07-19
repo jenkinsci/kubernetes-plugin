@@ -688,7 +688,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             PEMEncodable pem = PEMEncodable.decode(serverCertificate);
             Certificate cert = pem.toCertificate();
             if (cert == null) {
-                throw new IllegalArgumentException("No certificate found in PEM");
+                throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateNotACertificate());
             }
             PublicKey publicKey = cert.getPublicKey();
             if (publicKey instanceof RSAPublicKey) {
