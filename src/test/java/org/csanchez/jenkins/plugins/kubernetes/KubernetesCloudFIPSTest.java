@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
@@ -35,12 +36,23 @@ public class KubernetesCloudFIPSTest {
         cloud.setSkipTlsVerify(false);
         assertThrows(IllegalArgumentException.class, () -> cloud.setServerUrl("http://example.org"));
         cloud.setServerUrl("https://example.org");
-        assertThrows(IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("not-a-cert")));
-        assertThrows(IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("rsa1024")));
+        assertThrows(
+                "Invalid certificates throw exception",
+                IllegalArgumentException.class,
+                () -> cloud.setServerCertificate(getCert("not-a-cert")));
+        Throwable exception = exception = assertThrows(
+                "Invalid length", IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("rsa1024")));
+        assertThat(exception.getLocalizedMessage(), containsString("2048"));
         cloud.setServerCertificate(getCert("rsa2048"));
-        assertThrows(IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("dsa1024")));
+        exception = assertThrows(
+                "invalid length", IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("dsa1024")));
+        assertThat(exception.getLocalizedMessage(), containsString("2048"));
         cloud.setServerCertificate(getCert("dsa2048"));
-        assertThrows(IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("ecdsa192")));
+        exception = assertThrows(
+                "Invalid field size",
+                IllegalArgumentException.class,
+                () -> cloud.setServerCertificate(getCert("ecdsa192")));
+        assertThat(exception.getLocalizedMessage(), containsString("224"));
         cloud.setServerCertificate(getCert("ecdsa224"));
     }
 
