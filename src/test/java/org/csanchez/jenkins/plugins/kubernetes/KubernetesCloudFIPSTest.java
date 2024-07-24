@@ -29,7 +29,7 @@ public class KubernetesCloudFIPSTest {
     public JenkinsRule r = new JenkinsRule();
 
     @Test
-    @Issue("BEE-73460")
+    @Issue("JENKINS-73460")
     public void onlyFipsCompliantValuesAreAcceptedTest() throws IOException {
         KubernetesCloud cloud = new KubernetesCloud("test-cloud");
         assertThrows(IllegalArgumentException.class, () -> cloud.setSkipTlsVerify(true));
