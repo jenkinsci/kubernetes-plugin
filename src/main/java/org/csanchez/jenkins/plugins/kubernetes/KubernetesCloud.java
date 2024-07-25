@@ -275,7 +275,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerUrl(@NonNull String serverUrl) {
-        checkKubernetesUrlFIPS(serverUrl);
+        ensureKubernetesUrlInFipsMode(serverUrl);
         this.serverUrl = Util.fixEmpty(serverUrl);
     }
 
@@ -285,7 +285,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerCertificate(String serverCertificate) {
-        checkServerCertificateFIPS(serverCertificate);
+        ensureServerCertificateInFipsMode(serverCertificate);
         this.serverCertificate = Util.fixEmpty(serverCertificate);
     }
 
@@ -295,7 +295,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
-        checkSkipTlsVerify(skipTlsVerify);
+        ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
         this.skipTlsVerify = skipTlsVerify;
     }
 
@@ -661,7 +661,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return Collections.emptyList();
     }
 
-    private static void checkKubernetesUrlFIPS(String url) {
+    /**
+     * Checks if URL is using HTTPS, required in FIPS mode
+     * Continues if URL is secure or not in FIPS mode, throws an {@link IllegalArgumentException} if not.
+     * @param url Kubernetes server URL
+     */
+    private static void ensureKubernetesUrlInFipsMode(String url) {
         if (!FIPS140.useCompliantAlgorithms() || StringUtils.isBlank(url)) {
             return;
         }
@@ -670,13 +675,30 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
     }
 
-    private static void checkSkipTlsVerify(boolean skipTlsVerify) {
+    /**
+     * Checks if TLS verification is being skipped, which is not allowed in FIPS mode
+     * Continues if not being skipped or not in FIPS mode, throws an {@link IllegalArgumentException} if not.
+     * @param skipTlsVerify value to check
+     */
+    private static void ensureSkipTlsVerifyInFipsMode(boolean skipTlsVerify) {
         if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
             throw new IllegalArgumentException(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
         }
     }
 
-    private static void checkServerCertificateFIPS(String serverCertificate) {
+    /**
+     * Checks if server certificate is allowed if FIPS mode.
+     * Allowed certificates use a public key with the following algorithms and sizes:
+     * <ul>
+     *     <li>DSA with key size >= 2048</li>
+     *     <li>RSA with key size >= 2048</li>
+     *     <li>Elliptic curve (ED25519) with field size >= 224</li>
+     * </ul>
+     * If certificate is valid and allowed or not in FIPS mode method will just exit.
+     * If not it will throw an {@link IllegalArgumentException}.
+     * @param serverCertificate String containing the certificate PEM.
+     */
+    private static void ensureServerCertificateInFipsMode(String serverCertificate) {
         if (!FIPS140.useCompliantAlgorithms()) {
             return;
         }
@@ -703,7 +725,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                     throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySizeEC());
                 }
             }
-
         } catch (RuntimeException | UnrecoverableKeyException | IOException e) {
             throw new IllegalArgumentException(e.getMessage(), e);
         }
@@ -977,7 +998,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
-                checkSkipTlsVerify(skipTlsVerify);
+                ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
             } catch (IllegalArgumentException ex) {
                 return FormValidation.error(ex, ex.getLocalizedMessage());
             }
@@ -990,8 +1011,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
-                checkServerCertificateFIPS(serverCertificate);
-            } catch (RuntimeException ex) {
+                ensureServerCertificateInFipsMode(serverCertificate);
+            } catch (IllegalArgumentException ex) {
                 return FormValidation.error(ex, ex.getLocalizedMessage());
             }
             return FormValidation.ok();
@@ -1002,8 +1023,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
             Jenkins.get().checkPermission(Jenkins.MANAGE);
             try {
-                checkKubernetesUrlFIPS(serverUrl);
-            } catch (RuntimeException ex) {
+                ensureKubernetesUrlInFipsMode(serverUrl);
+            } catch (IllegalArgumentException ex) {
                 return FormValidation.error(ex.getLocalizedMessage());
             }
             return FormValidation.ok();
@@ -1223,9 +1244,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         // FIPS checks if in FIPS mode
-        checkServerCertificateFIPS(serverCertificate);
-        checkKubernetesUrlFIPS(serverUrl);
-        checkSkipTlsVerify(skipTlsVerify);
+        ensureServerCertificateInFipsMode(serverCertificate);
+        ensureKubernetesUrlInFipsMode(serverUrl);
+        ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;

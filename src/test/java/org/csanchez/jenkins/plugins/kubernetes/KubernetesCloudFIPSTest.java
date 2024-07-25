@@ -40,7 +40,7 @@ public class KubernetesCloudFIPSTest {
                 "Invalid certificates throw exception",
                 IllegalArgumentException.class,
                 () -> cloud.setServerCertificate(getCert("not-a-cert")));
-        Throwable exception = exception = assertThrows(
+        Throwable exception = assertThrows(
                 "Invalid length", IllegalArgumentException.class, () -> cloud.setServerCertificate(getCert("rsa1024")));
         assertThat(exception.getLocalizedMessage(), containsString("2048"));
         cloud.setServerCertificate(getCert("rsa2048"));
