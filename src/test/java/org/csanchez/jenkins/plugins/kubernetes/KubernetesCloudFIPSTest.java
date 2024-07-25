@@ -57,7 +57,7 @@ public class KubernetesCloudFIPSTest {
     }
 
     @Test
-    @Issue("BEE-73460")
+    @Issue("JENKINS-73460")
     @LocalData
     public void nonCompliantCloudsAreCleanedTest() {
         assertThat("compliant-cloud is loaded", r.jenkins.getCloud("compliant-cloud"), notNullValue());
@@ -67,7 +67,7 @@ public class KubernetesCloudFIPSTest {
     }
 
     @Test
-    @Issue("BEE-73460")
+    @Issue("JENKINS-73460")
     public void formValidationTest() throws IOException {
         ExtensionList<KubernetesCloud.DescriptorImpl> descriptors =
                 ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
