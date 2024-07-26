@@ -14,6 +14,7 @@ import hudson.Util;
 import hudson.model.Label;
 import hudson.model.Node;
 import hudson.slaves.NodeProperty;
+import io.fabric8.kubernetes.api.model.Capabilities;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvFromSource;
@@ -184,6 +185,7 @@ public class PodTemplateUtils {
                 : (parent.getSecurityContext() != null
                         ? parent.getSecurityContext().getRunAsGroup()
                         : null);
+        Capabilities capabilities = combineCapabilities(parent, template);
         String imagePullPolicy = isNullOrEmpty(template.getImagePullPolicy())
                 ? parent.getImagePullPolicy()
                 : template.getImagePullPolicy();
@@ -219,12 +221,13 @@ public class PodTemplateUtils {
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
                 .withVolumeMounts(new ArrayList<>(volumeMounts.values()));
-        if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null) {
+        if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null || capabilities != null) {
             containerBuilder = containerBuilder
-                    .withNewSecurityContext()
+                    .withNewSecurityContextLike(parent.getSecurityContext())
                     .withPrivileged(privileged)
                     .withRunAsUser(runAsUser)
                     .withRunAsGroup(runAsGroup)
+                    .withCapabilities(capabilities)
                     .endSecurityContext();
         }
         return containerBuilder.build();
@@ -243,6 +246,41 @@ public class PodTemplateUtils {
                 .collect(
                         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1) // v2 (parent) loses
                         );
+    }
+
+    private static Capabilities combineCapabilities(Container parent, Container template) {
+        Capabilities parentCapabilities = parent.getSecurityContext() != null
+                ? parent.getSecurityContext().getCapabilities()
+                : null;
+        Capabilities templateCapabilities = template.getSecurityContext() != null
+                ? template.getSecurityContext().getCapabilities()
+                : null;
+        if (parentCapabilities == null && templateCapabilities == null) {
+            return null;
+        }
+        if (parentCapabilities == null) {
+            return templateCapabilities;
+        }
+        if (templateCapabilities == null) {
+            return parentCapabilities;
+        }
+        Capabilities combined = new Capabilities();
+        combined.setAdd(combineCapabilities(parentCapabilities, templateCapabilities, Capabilities::getAdd));
+        combined.setDrop(combineCapabilities(parentCapabilities, templateCapabilities, Capabilities::getDrop));
+        return combined;
+    }
+
+    private static List<String> combineCapabilities(
+            Capabilities parentCapabilities,
+            Capabilities templateCapabilities,
+            Function<Capabilities, List<String>> capabilitiesListFunction) {
+        List<String> parentCapabilitiesList = capabilitiesListFunction.apply(parentCapabilities);
+        List<String> templateCapabilitiesList = capabilitiesListFunction.apply(templateCapabilities);
+        // override: template capabilities win
+        if (templateCapabilitiesList != null) {
+            return templateCapabilitiesList;
+        }
+        return parentCapabilitiesList;
     }
 
     /**

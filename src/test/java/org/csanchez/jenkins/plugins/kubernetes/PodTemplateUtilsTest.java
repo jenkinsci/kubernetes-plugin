@@ -984,6 +984,94 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void shouldCombineCapabilities() {
+        Container container1 = containerBuilder()
+                .withNewSecurityContext()
+                .withNewCapabilities()
+                .addToAdd("TO_ADD")
+                .withDrop((List<String>) null)
+                .endCapabilities()
+                .withRunAsUser(1000L)
+                .endSecurityContext()
+                .build();
+        Container container2 = containerBuilder()
+                .withNewSecurityContext()
+                .withNewCapabilities()
+                .addToDrop("TO_DROP")
+                .withAdd((List<String>) null)
+                .endCapabilities()
+                .endSecurityContext()
+                .build();
+        Container container3 = containerBuilder().build();
+
+        Container result = combine(container1, container3);
+        assertNotNull(result.getSecurityContext());
+        assertNotNull(result.getSecurityContext().getCapabilities());
+        assertTrue(result.getSecurityContext().getCapabilities().getAdd().contains("TO_ADD"));
+
+        result = combine(container3, container1);
+        assertNotNull(result.getSecurityContext());
+        assertNotNull(result.getSecurityContext().getCapabilities());
+        assertTrue(result.getSecurityContext().getCapabilities().getAdd().contains("TO_ADD"));
+
+        result = combine(container2, container3);
+        assertNotNull(result.getSecurityContext());
+        assertNotNull(result.getSecurityContext().getCapabilities());
+        assertTrue(result.getSecurityContext().getCapabilities().getDrop().contains("TO_DROP"));
+
+        result = combine(container1, container2);
+        assertNotNull(result.getSecurityContext());
+        assertNotNull(result.getSecurityContext().getCapabilities());
+        assertTrue(result.getSecurityContext().getCapabilities().getAdd().contains("TO_ADD"));
+        assertTrue(result.getSecurityContext().getCapabilities().getDrop().contains("TO_DROP"));
+    }
+
+    @Test
+    public void shouldOverrideCapabilitiesWithTemplate() {
+        Container container1 = containerBuilder()
+                .withNewSecurityContext()
+                .withNewCapabilities()
+                .addToAdd("CONTAINER1_ADD")
+                .addToDrop("CONTAINER1_DROP")
+                .endCapabilities()
+                .endSecurityContext()
+                .build();
+        Container container2 = containerBuilder()
+                .withNewSecurityContext()
+                .withNewCapabilities()
+                .addToAdd("CONTAINER2_ADD")
+                .addToDrop("CONTAINER2_DROP")
+                .endCapabilities()
+                .endSecurityContext()
+                .build();
+
+        Container result = combine(container1, container2);
+        assertNotNull(result.getSecurityContext());
+        assertNotNull(result.getSecurityContext().getCapabilities());
+        assertTrue(result.getSecurityContext().getCapabilities().getAdd().contains("CONTAINER2_ADD"));
+        assertTrue(result.getSecurityContext().getCapabilities().getDrop().contains("CONTAINER2_DROP"));
+    }
+
+    @Test
+    public void shouldRetainNullsWhenCombiningCapabilities() {
+
+        Container container1 = new ContainerBuilder().build();
+        Container container2 = new ContainerBuilder().build();
+        Container container3 = new ContainerBuilder()
+                .withNewSecurityContext()
+                .withPrivileged()
+                .endSecurityContext()
+                .build();
+
+        Container result = combine(container1, container2);
+        assertNull(result.getSecurityContext());
+
+        result = combine(container2, container3);
+        assertNotNull(result.getSecurityContext());
+        assertNull(result.getSecurityContext().getCapabilities());
+    }
+
+    @Test
     public void shouldOverrideShareProcessNamespaceIfSpecified() {
         Pod parent1 = new PodBuilder()
                 .withNewMetadata()
