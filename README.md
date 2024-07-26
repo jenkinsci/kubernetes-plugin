@@ -1006,72 +1006,24 @@ Run `mvn clean install` and copy `target/kubernetes.hpi` to Jenkins plugins fold
 
 ## Running Kubernetes Integration Tests
 
-### Integration tests with Kind (recommended)
+Set up your `$KUBECONFIG` however you like, for example
 
 ```bash
-export MOUNT_M2=true
-./kind-mount-m2.sh
-./kind-preload.sh
-./test-in-k8s.sh -Dtest=KubernetesPipelineTest#runInPod
-kind delete cluster
+kind create cluster
 ```
 
-### Integration tests in a remote cluster
-
-Set up your `$KUBECONFIG` as usual, then
+then
 
 ```bash
-./test-in-k8s.sh -Dtest=KubernetesPipelineTest#runInPod
+kubectl krew install tunnel # as needed; install Krew first
+kubectl tunnel expose jenkins 8000:8000 8001:8001 &
+mvn test -Djenkins.host.address=jenkins.default -Dport=8000 -DslaveAgentPort=8001 -Dtest=KubernetesPipelineTest#runInPod
 ```
 
-### Integration tests with Minikube
-
-The system you run `mvn` on needs to be reachable from the cluster.
-If you see the agents happen to connect to the wrong host, see you can use
-`jenkins.host.address` as mentioned above.
-
-For integration tests install and start [minikube](https://github.com/kubernetes/minikube).
-Tests will detect it and run a set of integration tests in a new namespace.
-
-Some integration tests run a local jenkins, so the host that runs them needs
-to be accessible from the kubernetes cluster.
-By default Jenkins will listen on `192.168.64.1` interface only, for security reasons.
-If your minikube is not running in that network, pass `connectorHost` to maven, ie.
-
-    mvn clean install -DconnectorHost=$(minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/')
-
-If you don't mind others in your network being able to use your test jenkins you could just use this:
-
-    mvn clean install -DconnectorHost=0.0.0.0
-
-Then your test jenkins will listen on all ip addresses so that the build pods will be able to connect from the pods in your minikube VM to your host.  
-
-If your minikube is running in a VM (e.g. on virtualbox) and the host running `mvn`
-does not have a public hostname for the VM to access, you can set the `jenkins.host.address`
-system property to the (host-only or NAT) IP of your host:
-
-    mvn clean install -Djenkins.host.address=192.168.99.1
-
-### Integration tests with Microk8s
-
-If [Microk8s](https://microk8s.io/) is running and is the default context in your `~/.kube/config`,
-just run as
-
-    mvn clean install -Pmicrok8s
-
-This assumes that from a pod, the host system is accessible as IP address `10.1.1.1`.
-It might be some variant such as `10.1.37.1`,
-in which case you would need to set `-DconnectorHost=… -Djenkins.host.address=…` instead.
-To see the actual address, try:
+You can also run interactively after setting up the tunnel:
 
 ```bash
-ifdata -pa cni0
-```
-
-Or to verify the networking inside a pod:
-
-```bash
-kubectl run --rm --image=praqma/network-multitool --restart=Never --attach sh ip route | fgrep 'default via'
+mvn hpi:run -Djenkins.host.address=jenkins.default -Dport=8000 -Djenkins.model.Jenkins.slaveAgentPort=8001
 ```
 
 # Docker image

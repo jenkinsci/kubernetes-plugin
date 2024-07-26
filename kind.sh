@@ -2,6 +2,8 @@
 set -euxo pipefail
 cd $(dirname $0)
 
+: ${WORKSPACE_TMP:=/tmp}
+
 export PATH=$WORKSPACE_TMP:$PATH
 if [ \! -x "$WORKSPACE_TMP/kind" ]
 then
@@ -13,18 +15,22 @@ then
     curl -sLo "$WORKSPACE_TMP/kubectl" https://storage.googleapis.com/kubernetes-release/release/v1.30.1/bin/$(uname | tr '[:upper:]' '[:lower:]')/amd64/kubectl
     chmod +x "$WORKSPACE_TMP/kubectl"
 fi
+if [ \! -x "$WORKSPACE_TMP/ktunnel" ]
+then
+    (cd "$WORKSPACE_TMP"; curl -sL https://github.com/omrikiei/ktunnel/releases/download/v1.6.1/ktunnel_1.6.1_Linux_x86_64.tar.gz | tar xvfz - ktunnel)
+fi
 
 export cluster=ci$RANDOM
 export KUBECONFIG="$WORKSPACE_TMP/kubeconfig-$cluster"
-if ${MOUNT_M2:-false}
-then
-  ./kind-mount-m2.sh
-else
-  kind create cluster --name $cluster --wait 5m
-fi
+kind create cluster --name $cluster --wait 5m
 function cleanup() {
-    kind export logs --name $cluster "$WORKSPACE_TMP/kindlogs" || :
-    kind delete cluster --name $cluster || :
+    set +e
+    if [ -v ktunnel_pid ]
+    then
+        kill $ktunnel_pid
+    fi
+    kind export logs --name $cluster "$WORKSPACE_TMP/kindlogs"
+    kind delete cluster --name $cluster
     rm "$KUBECONFIG"
 }
 trap cleanup EXIT
@@ -32,6 +38,15 @@ kubectl cluster-info
 
 ./kind-preload.sh
 
-./test-in-k8s.sh "$@"
-rm -rf "$WORKSPACE_TMP/surefire-reports"
-kubectl cp jenkins:/checkout/target/surefire-reports "$WORKSPACE_TMP/surefire-reports"
+ktunnel expose jenkins 8000:8000 8001:8001 &
+ktunnel_pid=$!
+
+mvn \
+    -B \
+    -ntp \
+    -Djenkins.host.address=jenkins.default \
+    -Dport=8000 \
+    -DslaveAgentPort=8001 \
+    -Dmaven.test.failure.ignore \
+    verify \
+    "$@"

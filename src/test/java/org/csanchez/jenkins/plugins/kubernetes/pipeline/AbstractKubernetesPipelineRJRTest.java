@@ -23,11 +23,6 @@ public abstract class AbstractKubernetesPipelineRJRTest {
 
     {
         rjr = new RealJenkinsRule();
-        String connectorHost = System.getProperty("connectorHost");
-        if (StringUtils.isNotBlank(connectorHost)) {
-            System.err.println("Listening on host address: " + connectorHost);
-            rjr.withHttpListenAddress(connectorHost);
-        }
         String port = System.getProperty("port");
         if (StringUtils.isNotBlank(port)) {
             System.err.println("Overriding port using system property: " + port);
