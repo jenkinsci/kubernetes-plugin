@@ -1020,6 +1020,13 @@ kubectl tunnel expose jenkins 8000:8000 8001:8001 &
 mvn test -Djenkins.host.address=jenkins.default -Dport=8000 -DslaveAgentPort=8001 -Dtest=KubernetesPipelineTest#runInPod
 ```
 
+Alternately, you can run everything like in CI:
+
+```bash
+export KIND_PRELOAD=true # optionally
+./kind.sh -Dtest=KubernetesPipelineTest#runInPod
+```
+
 You can also run interactively after setting up the tunnel:
 
 ```bash

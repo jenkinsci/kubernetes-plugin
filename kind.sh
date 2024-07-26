@@ -36,7 +36,10 @@ function cleanup() {
 trap cleanup EXIT
 kubectl cluster-info
 
-./kind-preload.sh
+if ${KIND_PRELOAD:-false}
+then
+   ./kind-preload.sh
+fi
 
 ktunnel expose jenkins 8000:8000 8001:8001 &
 ktunnel_pid=$!
