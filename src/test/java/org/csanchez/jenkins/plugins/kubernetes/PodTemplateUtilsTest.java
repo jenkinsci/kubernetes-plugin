@@ -982,4 +982,49 @@ public class PodTemplateUtilsTest {
                 "ylooooooooooooooooooooooooooooonglabelendinginunderscorex",
                 sanitizeLabel("label1 label2 verylooooooooooooooooooooooooooooonglabelendinginunderscore_"));
     }
+
+    @Test
+    public void shouldOverrideShareProcessNamespaceIfSpecified() {
+        Pod parent1 = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .endSpec()
+                .build();
+
+        Pod parent2 = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withShareProcessNamespace()
+                .endSpec()
+                .build();
+
+        Pod child1 = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withShareProcessNamespace(false)
+                .endSpec()
+                .build();
+
+        Pod child2 = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .endSpec()
+                .build();
+
+        Pod result1 = combine(parent1, child1);
+        assertFalse(result1.getSpec().getShareProcessNamespace());
+
+        Pod result2 = combine(parent1, child2);
+        assertNull(result2.getSpec().getShareProcessNamespace());
+
+        Pod result3 = combine(parent2, child1);
+        assertFalse(result3.getSpec().getShareProcessNamespace());
+
+        Pod result4 = combine(parent2, child2);
+        assertTrue(result4.getSpec().getShareProcessNamespace());
+    }
 }

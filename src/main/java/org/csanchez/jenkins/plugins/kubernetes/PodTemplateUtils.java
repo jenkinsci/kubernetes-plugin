@@ -293,6 +293,10 @@ public class PodTemplateUtils {
                 ? template.getSpec().getHostNetwork()
                 : parent.getSpec().getHostNetwork();
 
+        Boolean shareProcessNamespace = template.getSpec().getShareProcessNamespace() != null
+                ? template.getSpec().getShareProcessNamespace()
+                : parent.getSpec().getShareProcessNamespace();
+
         Map<String, String> podAnnotations = mergeMaps(
                 parent.getMetadata().getAnnotations(), template.getMetadata().getAnnotations());
         Map<String, String> podLabels = mergeMaps(
@@ -346,6 +350,7 @@ public class PodTemplateUtils {
                 .withServiceAccountName(serviceAccountName) //
                 .withSchedulerName(schedulerName)
                 .withHostNetwork(hostNetwork) //
+                .withShareProcessNamespace(shareProcessNamespace) //
                 .withContainers(combinedContainers) //
                 .withInitContainers(combinedInitContainers) //
                 .withVolumes(combinedVolumes) //
