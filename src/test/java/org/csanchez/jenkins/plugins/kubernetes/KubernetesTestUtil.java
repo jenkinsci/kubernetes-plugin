@@ -135,6 +135,7 @@ public class KubernetesTestUtil {
         URL nonLocalhostUrl = new URL(url.getProtocol(), hostAddress, url.getPort(), url.getFile());
         cloud.setJenkinsUrl(nonLocalhostUrl.toString());
 
+        // TODO could just use standard jenkins.model.Jenkins.slaveAgentPort and skip this code (also in SetupCloud):
         Integer slaveAgentPort = Integer.getInteger("slaveAgentPort");
         if (slaveAgentPort != null) {
             Jenkins.get().setSlaveAgentPort(slaveAgentPort);

@@ -16,6 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import hudson.TcpSlaveAgentListener;
 import java.util.logging.Level;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
@@ -23,6 +24,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class DirectConnectionTest extends AbstractKubernetesPipelineTest {
+
+    static {
+        System.setProperty(
+                TcpSlaveAgentListener.class.getName() + ".hostName", System.getProperty("jenkins.host.address"));
+    }
 
     @Before
     public void setUp() throws Exception {

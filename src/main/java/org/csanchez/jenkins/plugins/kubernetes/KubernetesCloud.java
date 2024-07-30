@@ -55,6 +55,7 @@ import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.util.SystemProperties;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -1171,7 +1172,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             if (hostAddress != null
                     && jenkins.clouds.getAll(KubernetesCloud.class).isEmpty()) {
                 KubernetesCloud cloud = new KubernetesCloud("kubernetes");
-                cloud.setJenkinsUrl("http://" + hostAddress + ":8080/jenkins/");
+                cloud.setJenkinsUrl(
+                        "http://" + hostAddress + ":" + SystemProperties.getInteger("port", 8080) + "/jenkins/");
                 jenkins.clouds.add(cloud);
             }
         }

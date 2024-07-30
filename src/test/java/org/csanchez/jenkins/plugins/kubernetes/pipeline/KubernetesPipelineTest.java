@@ -105,7 +105,6 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
@@ -436,7 +435,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("The value of WILL.NOT is ", b);
     }
 
-    private void assertEnvVars(JenkinsRuleNonLocalhost r2, WorkflowRun b) throws Exception {
+    private void assertEnvVars(JenkinsRule r2, WorkflowRun b) throws Exception {
         r.assertLogNotContains(POD_ENV_VAR_FROM_SECRET_VALUE, b);
         r.assertLogNotContains(CONTAINER_ENV_VAR_FROM_SECRET_VALUE, b);
 

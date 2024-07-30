@@ -27,9 +27,7 @@ stage('Tests') {
                         writeFile file: (split.includes ? "$WORKSPACE_TMP/includes.txt" : "$WORKSPACE_TMP/excludes.txt"), text: split.list.join("\n")
                         writeFile file: (split.includes ? "$WORKSPACE_TMP/excludes.txt" : "$WORKSPACE_TMP/includes.txt"), text: ''
                         sh './kind.sh -Dsurefire.includesFile="$WORKSPACE_TMP/includes.txt" -Dsurefire.excludesFile="$WORKSPACE_TMP/excludes.txt"'
-                        dir(env.WORKSPACE_TMP) {
-                            junit 'surefire-reports/*.xml'
-                        }
+                        junit 'target/surefire-reports/*.xml'
                     } finally {
                         dir(env.WORKSPACE_TMP) {
                             if (fileExists('kindlogs/docker-info.txt')) {
