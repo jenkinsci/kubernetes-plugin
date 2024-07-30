@@ -38,6 +38,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -68,6 +69,18 @@ public class KubernetesSlaveTest {
         assertRegex(
                 KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)),
                 ("jenkins-agent-[0-9a-z]{5}"));
+    }
+
+    @Test
+    public void testProvisioningActivityId() throws Descriptor.FormException, IOException {
+        PodTemplate pt = new PodTemplate("x");
+        pt.setName("Template");
+        KubernetesSlave slave = new KubernetesSlave("Node", pt, "bar", "Cloud", "", null, null);
+        ProvisioningActivity.Id id = slave.getId();
+        assertNotNull(id);
+        assertEquals(id.getCloudName(), "Cloud");
+        assertEquals(id.getTemplateName(), "Template");
+        assertEquals(id.getNodeName(), "Node");
     }
 
     @Test
