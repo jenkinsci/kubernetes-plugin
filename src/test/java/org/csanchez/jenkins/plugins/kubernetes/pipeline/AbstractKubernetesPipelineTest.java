@@ -62,7 +62,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 
 public abstract class AbstractKubernetesPipelineTest {
@@ -76,7 +76,7 @@ public abstract class AbstractKubernetesPipelineTest {
     protected KubernetesCloud cloud;
 
     @Rule
-    public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
+    public JenkinsRule r = new JenkinsRule();
 
     @Rule
     public LoggerRule logs = new LoggerRule()

@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -62,8 +63,8 @@ import org.junit.rules.TestName;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.LoggerRule;
-import org.jvnet.hudson.test.RestartableJenkinsNonLocalhostRule;
 
 public class RestartPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
@@ -74,7 +75,7 @@ public class RestartPipelineTest {
     protected KubernetesCloud cloud;
 
     @Rule
-    public RestartableJenkinsNonLocalhostRule story = new RestartableJenkinsNonLocalhostRule(44000);
+    public JenkinsSessionRule story = new JenkinsSessionRule();
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -133,13 +134,13 @@ public class RestartPipelineTest {
 
         setupHost(cloud);
 
-        story.j.jenkins.clouds.add(cloud);
+        Jenkins.get().clouds.add(cloud);
     }
 
     public void configureAgentListener() throws IOException {
         // Take random port and fix it, to be the same after Jenkins restart
-        int fixedPort = story.j.jenkins.getTcpSlaveAgentListener().getAdvertisedPort();
-        story.j.jenkins.setSlaveAgentPort(fixedPort);
+        int fixedPort = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
+        Jenkins.get().setSlaveAgentPort(fixedPort);
     }
 
     protected String loadPipelineScript(String name) {
@@ -151,7 +152,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void nullLabelSupportsRestart() {
+    public void nullLabelSupportsRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -179,7 +180,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void runInPodWithRestartWithMultipleContainerCalls() throws Exception {
+    public void runInPodWithRestartWithMultipleContainerCalls() throws Exception, Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -200,7 +201,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void runInPodWithRestartWithLongSleep() throws Exception {
+    public void runInPodWithRestartWithLongSleep() throws Exception, Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -221,7 +222,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void windowsRestart() throws Exception {
+    public void windowsRestart() throws Throwable {
         assumeWindows(WINDOWS_1809_BUILD);
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
@@ -243,7 +244,7 @@ public class RestartPipelineTest {
 
     @Issue("JENKINS-49707")
     @Test
-    public void terminatedPodAfterRestart() throws Exception {
+    public void terminatedPodAfterRestart() throws Exception, Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -268,7 +269,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void taskListenerAfterRestart() {
+    public void taskListenerAfterRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -295,7 +296,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void taskListenerAfterRestart_multipleLabels() {
+    public void taskListenerAfterRestart_multipleLabels() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -329,7 +330,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void getContainerLogWithRestart() throws Exception {
+    public void getContainerLogWithRestart() throws Exception, Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
