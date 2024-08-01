@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.84</version>
+    <version>4.86</version>
     <relativePath />
   </parent>
 
@@ -41,9 +41,6 @@
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <!-- in minikube
-    minikube ip | sed -e 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1.1/' -->
-    <connectorHost />
     <jenkins.host.address />
     <slaveAgentPort />
     <jenkins.version>2.426.3</jenkins.version>
@@ -295,8 +292,6 @@
             <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
             <hudson.slaves.NodeProvisioner.recurrencePeriod>3000</hudson.slaves.NodeProvisioner.recurrencePeriod>
             <org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>60000</org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>
-            <!-- listen in this interface for connections from kubernetes pods -->
-            <connectorHost>${connectorHost}</connectorHost>
             <!-- have pods connect to this address for Jenkins -->
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
             <slaveAgentPort>${slaveAgentPort}</slaveAgentPort>
@@ -312,6 +307,7 @@
             <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
             <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
             <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
+            <port>${port}</port>
             <org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>true</org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>
           </systemProperties>
         </configuration>
@@ -346,29 +342,5 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>docker</id>
-      <properties>
-        <connectorHost>192.168.1.27</connectorHost>
-        <jenkins.host.address>192.168.1.27</jenkins.host.address>
-      </properties>
-    </profile>
-    <profile>
-      <id>microk8s</id>
-      <properties>
-        <connectorHost>10.1.1.1</connectorHost>
-        <jenkins.host.address>10.1.1.1</jenkins.host.address>
-      </properties>
-    </profile>
-    <profile>
-      <id>docker-desktop</id>
-      <properties>
-        <connectorHost>127.0.0.1</connectorHost>
-        <jenkins.host.address>host.docker.internal</jenkins.host.address>
-      </properties>
-    </profile>
-  </profiles>
 
 </project>

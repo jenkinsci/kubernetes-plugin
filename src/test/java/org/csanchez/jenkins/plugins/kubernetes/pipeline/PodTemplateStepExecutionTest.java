@@ -38,12 +38,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRuleNonLocalhost;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class PodTemplateStepExecutionTest {
 
     @Rule
-    public JenkinsRuleNonLocalhost r = new JenkinsRuleNonLocalhost();
+    public JenkinsRule r = new JenkinsRule();
 
     protected KubernetesCloud cloud;
 
