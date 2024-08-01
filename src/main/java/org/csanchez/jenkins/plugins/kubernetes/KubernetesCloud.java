@@ -40,6 +40,12 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.PublicKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.interfaces.DSAPublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -52,9 +58,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
+import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
+import jenkins.security.FIPS140;
 import jenkins.util.SystemProperties;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
@@ -268,6 +276,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerUrl(@NonNull String serverUrl) {
+        ensureKubernetesUrlInFipsMode(serverUrl);
         this.serverUrl = Util.fixEmpty(serverUrl);
     }
 
@@ -277,6 +286,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setServerCertificate(String serverCertificate) {
+        ensureServerCertificateInFipsMode(serverCertificate);
         this.serverCertificate = Util.fixEmpty(serverCertificate);
     }
 
@@ -286,6 +296,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @DataBoundSetter
     public void setSkipTlsVerify(boolean skipTlsVerify) {
+        ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
         this.skipTlsVerify = skipTlsVerify;
     }
 
@@ -651,6 +662,75 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return Collections.emptyList();
     }
 
+    /**
+     * Checks if URL is using HTTPS, required in FIPS mode
+     * Continues if URL is secure or not in FIPS mode, throws an {@link IllegalArgumentException} if not.
+     * @param url Kubernetes server URL
+     */
+    private static void ensureKubernetesUrlInFipsMode(String url) {
+        if (!FIPS140.useCompliantAlgorithms() || StringUtils.isBlank(url)) {
+            return;
+        }
+        if (!url.startsWith("https:")) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_kubernetesServerUrlIsNotSecure());
+        }
+    }
+
+    /**
+     * Checks if TLS verification is being skipped, which is not allowed in FIPS mode
+     * Continues if not being skipped or not in FIPS mode, throws an {@link IllegalArgumentException} if not.
+     * @param skipTlsVerify value to check
+     */
+    private static void ensureSkipTlsVerifyInFipsMode(boolean skipTlsVerify) {
+        if (FIPS140.useCompliantAlgorithms() && skipTlsVerify) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_skipTlsVerifyNotAllowedInFIPSMode());
+        }
+    }
+
+    /**
+     * Checks if server certificate is allowed if FIPS mode.
+     * Allowed certificates use a public key with the following algorithms and sizes:
+     * <ul>
+     *     <li>DSA with key size >= 2048</li>
+     *     <li>RSA with key size >= 2048</li>
+     *     <li>Elliptic curve (ED25519) with field size >= 224</li>
+     * </ul>
+     * If certificate is valid and allowed or not in FIPS mode method will just exit.
+     * If not it will throw an {@link IllegalArgumentException}.
+     * @param serverCertificate String containing the certificate PEM.
+     */
+    private static void ensureServerCertificateInFipsMode(String serverCertificate) {
+        if (!FIPS140.useCompliantAlgorithms()) {
+            return;
+        }
+        if (StringUtils.isBlank(serverCertificate)) {
+            throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeyEmpty());
+        }
+        try {
+            PEMEncodable pem = PEMEncodable.decode(serverCertificate);
+            Certificate cert = pem.toCertificate();
+            if (cert == null) {
+                throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateNotACertificate());
+            }
+            PublicKey publicKey = cert.getPublicKey();
+            if (publicKey instanceof RSAPublicKey) {
+                if (((RSAPublicKey) publicKey).getModulus().bitLength() < 2048) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
+                }
+            } else if (publicKey instanceof DSAPublicKey) {
+                if (((DSAPublicKey) publicKey).getParams().getP().bitLength() < 2048) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySize());
+                }
+            } else if (publicKey instanceof ECPublicKey) {
+                if (((ECPublicKey) publicKey).getParams().getCurve().getField().getFieldSize() < 224) {
+                    throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeySizeEC());
+                }
+            }
+        } catch (RuntimeException | UnrecoverableKeyException | IOException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
     @Override
     public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate) {
         this.removeTemplate(oldTemplate);
@@ -914,6 +994,44 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @RequirePOST
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
+        }) // used by jelly and already fixed jenkins security scan warning
+        public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            try {
+                ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
+            } catch (IllegalArgumentException ex) {
+                return FormValidation.error(ex, ex.getLocalizedMessage());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
+        }) // used by jelly and already fixed jenkins security scan warning
+        public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            try {
+                ensureServerCertificateInFipsMode(serverCertificate);
+            } catch (IllegalArgumentException ex) {
+                return FormValidation.error(ex, ex.getLocalizedMessage());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        @SuppressWarnings("unused") // used by jelly
+        public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
+            try {
+                ensureKubernetesUrlInFipsMode(serverUrl);
+            } catch (IllegalArgumentException ex) {
+                return FormValidation.error(ex.getLocalizedMessage());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(
                 @AncestorInPath ItemGroup context, @QueryParameter String serverUrl) {
@@ -1125,6 +1243,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             LOGGER.log(
                     Level.INFO, "Upgraded Kubernetes server certificate key: {0}", serverCertificate.substring(0, 80));
         }
+
+        // FIPS checks if in FIPS mode
+        ensureServerCertificateInFipsMode(serverCertificate);
+        ensureKubernetesUrlInFipsMode(serverUrl);
+        ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
 
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
