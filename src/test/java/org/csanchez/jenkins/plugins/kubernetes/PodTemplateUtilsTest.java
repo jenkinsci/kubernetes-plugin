@@ -421,6 +421,47 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void childShouldOverrideParentActiveDeadlineSeconds() {
+        Pod parentPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withActiveDeadlineSeconds(1L)
+                .endSpec()
+                .build();
+        Pod childPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withActiveDeadlineSeconds(2L)
+                .endSpec()
+                .build();
+
+        Pod combinedPod = combine(parentPod, childPod);
+        assertEquals(combinedPod.getSpec().getActiveDeadlineSeconds(), Long.valueOf(2L));
+    }
+
+    @Test
+    public void shouldCombineActiveDeadlineSeconds() {
+        Pod parentPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withActiveDeadlineSeconds(1L)
+                .endSpec()
+                .build();
+        Pod childPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .endSpec()
+                .build();
+
+        Pod combinedPod = combine(parentPod, childPod);
+        assertEquals(combinedPod.getSpec().getActiveDeadlineSeconds(), Long.valueOf(1L));
+    }
+
+    @Test
     public void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
