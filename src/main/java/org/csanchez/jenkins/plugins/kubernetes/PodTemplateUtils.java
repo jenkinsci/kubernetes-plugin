@@ -327,6 +327,9 @@ public class PodTemplateUtils {
                 ? parent.getSpec().getSchedulerName()
                 : template.getSpec().getSchedulerName();
 
+        Long activeDeadlineSeconds = template.getSpec().getActiveDeadlineSeconds() != null
+                ? template.getSpec().getActiveDeadlineSeconds()
+                : parent.getSpec().getActiveDeadlineSeconds();
         Boolean hostNetwork = template.getSpec().getHostNetwork() != null
                 ? template.getSpec().getHostNetwork()
                 : parent.getSpec().getHostNetwork();
@@ -387,6 +390,7 @@ public class PodTemplateUtils {
                 .withServiceAccount(serviceAccount) //
                 .withServiceAccountName(serviceAccountName) //
                 .withSchedulerName(schedulerName)
+                .withActiveDeadlineSeconds(activeDeadlineSeconds) //
                 .withHostNetwork(hostNetwork) //
                 .withShareProcessNamespace(shareProcessNamespace) //
                 .withContainers(combinedContainers) //
