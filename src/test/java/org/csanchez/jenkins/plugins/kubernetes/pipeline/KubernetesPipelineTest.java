@@ -951,4 +951,15 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
             throw new PodDecoratorException("I always fail");
         }
     }
+
+    @Test
+    public void imageWithoutAgent() throws Exception {
+        r.assertBuildStatus(Result.SUCCESS, r.waitForCompletion(b));
+    }
+
+    @Test
+    public void imageWithoutAgentNoJava() throws Exception {
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("java: not found", b);
+    }
 }

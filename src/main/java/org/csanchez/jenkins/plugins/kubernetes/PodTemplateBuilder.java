@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
@@ -51,6 +52,7 @@ import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
+import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
@@ -124,7 +126,7 @@ public class PodTemplateBuilder {
     }
 
     @Restricted(NoExternalUse.class)
-    static final String DEFAULT_JNLP_IMAGE =
+    static final String DEFAULT_AGENT_IMAGE =
             System.getProperty(PodTemplateStepExecution.class.getName() + ".defaultImage", defaultImageName);
 
     static final String DEFAULT_JNLP_CONTAINER_MEMORY_REQUEST = System.getProperty(
@@ -309,39 +311,87 @@ public class PodTemplateBuilder {
             }
         }
 
-        // default jnlp container
-        Optional<Container> jnlpOpt = pod.getSpec().getContainers().stream()
-                .filter(c -> JNLP_NAME.equals(c.getName()))
+        // default agent container
+        String agentContainerName = StringUtils.defaultString(template.getAgentContainer(), JNLP_NAME);
+        Optional<Container> agentOpt = pod.getSpec().getContainers().stream()
+                .filter(c -> agentContainerName.equals(c.getName()))
                 .findFirst();
-        Container jnlp = jnlpOpt.orElse(new ContainerBuilder()
-                .withName(JNLP_NAME)
-                .withVolumeMounts(volumeMounts
-                        .values()
-                        .toArray(new VolumeMount[volumeMounts.values().size()]))
+        Container agentContainer = agentOpt.orElse(new ContainerBuilder()
+                .withName(agentContainerName)
+                .withVolumeMounts(volumeMounts.values().toArray(new VolumeMount[0]))
                 .build());
-        if (!jnlpOpt.isPresent()) {
-            pod.getSpec().getContainers().add(jnlp);
+        if (agentOpt.isEmpty()) {
+            pod.getSpec().getContainers().add(agentContainer);
         }
+        var workingDir = agentContainer.getWorkingDir();
         pod.getSpec().getContainers().stream()
                 .filter(c -> c.getWorkingDir() == null)
-                .forEach(c -> c.setWorkingDir(jnlp.getWorkingDir()));
-        if (StringUtils.isBlank(jnlp.getImage())) {
-            String jnlpImage = DEFAULT_JNLP_IMAGE;
+                .forEach(c -> c.setWorkingDir(workingDir));
+        if (StringUtils.isBlank(agentContainer.getImage())) {
+            String agentImage = DEFAULT_AGENT_IMAGE;
             if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
-                jnlpImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + jnlpImage;
+                agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
             } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
-                jnlpImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + jnlpImage;
+                agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
             }
-            jnlp.setImage(jnlpImage);
+            agentContainer.setImage(agentImage);
+        }
+        if (template.isAgentInjection()) {
+            var agentVolumeMountBuilder =
+                    new VolumeMountBuilder().withName("jenkins-agent").withMountPath("/jenkins-agent");
+            var oldInitContainers = pod.getSpec().getInitContainers();
+            var jenkinsAgentInitContainer = new ContainerBuilder()
+                    .withName("set-up-jenkins-agent")
+                    .withImage(DEFAULT_AGENT_IMAGE)
+                    .withCommand(
+                            "/bin/sh",
+                            "-c",
+                            "cp $(command -v jenkins-agent) /jenkins-agent/jenkins-agent;"
+                                    + "cp /usr/share/jenkins/agent.jar /jenkins-agent/agent.jar;"
+                                    + "sed -i 's!-jar .*agent.jar!-jar /jenkins-agent\\/agent.jar!' /jenkins-agent/jenkins-agent")
+                    .withVolumeMounts(agentVolumeMountBuilder.build())
+                    .build();
+            if (oldInitContainers != null) {
+                var newInitContainers = new ArrayList<>(oldInitContainers);
+                newInitContainers.add(jenkinsAgentInitContainer);
+                pod.getSpec().setInitContainers(newInitContainers);
+            } else {
+                pod.getSpec().setInitContainers(List.of(jenkinsAgentInitContainer));
+            }
+            var oldVolumes = pod.getSpec().getVolumes();
+            var jenkinsAgentSharedVolume = new VolumeBuilder()
+                    .withName("jenkins-agent")
+                    .withNewEmptyDir()
+                    .and()
+                    .build();
+            if (oldVolumes != null) {
+                var newVolumes = new ArrayList<>(oldVolumes);
+                newVolumes.add(jenkinsAgentSharedVolume);
+                pod.getSpec().setVolumes(newVolumes);
+            } else {
+                pod.getSpec().setVolumes(List.of(jenkinsAgentSharedVolume));
+            }
+            var existingVolumeMounts = agentContainer.getVolumeMounts();
+            if (existingVolumeMounts != null) {
+                var newVolumeMounts = new ArrayList<>(existingVolumeMounts);
+                newVolumeMounts.add(agentVolumeMountBuilder.withReadOnly().build());
+                agentContainer.setVolumeMounts(newVolumeMounts);
+            } else {
+                agentContainer.setVolumeMounts(
+                        List.of(agentVolumeMountBuilder.withReadOnly().build()));
+            }
+            agentContainer.setWorkingDir("/home/jenkins/agent");
+            agentContainer.setCommand(List.of("/jenkins-agent/jenkins-agent"));
+            agentContainer.setArgs(List.of());
         }
         Map<String, EnvVar> envVars = new HashMap<>();
-        envVars.putAll(jnlpEnvVars(jnlp.getWorkingDir()));
+        envVars.putAll(agentEnvVars(workingDir));
         envVars.putAll(defaultEnvVars(template.getEnvVars()));
-        Optional.ofNullable(jnlp.getEnv()).ifPresent(jnlpEnv -> {
-            jnlpEnv.forEach(var -> envVars.put(var.getName(), var));
+        Optional.ofNullable(agentContainer.getEnv()).ifPresent(agentEnv -> {
+            agentEnv.forEach(var -> envVars.put(var.getName(), var));
         });
-        jnlp.setEnv(new ArrayList<>(envVars.values()));
-        if (jnlp.getResources() == null) {
+        agentContainer.setEnv(new ArrayList<>(envVars.values()));
+        if (agentContainer.getResources() == null) {
 
             Map<String, Quantity> reqMap = new HashMap<>();
             Map<String, Quantity> limMap = new HashMap<>();
@@ -361,7 +411,7 @@ public class PodTemplateBuilder {
                     .withLimits(limMap)
                     .build();
 
-            jnlp.setResources(reqs);
+            agentContainer.setResources(reqs);
         }
         if (cloud != null) {
             pod = PodDecorator.decorateAll(cloud, pod);
@@ -406,9 +456,9 @@ public class PodTemplateBuilder {
         return envVarsMap;
     }
 
-    private Map<String, EnvVar> jnlpEnvVars(String workingDir) {
+    private Map<String, EnvVar> agentEnvVars(String workingDir) {
         if (workingDir == null) {
-            workingDir = ContainerTemplate.DEFAULT_WORKING_DIR;
+            workingDir = DEFAULT_WORKING_DIR;
         }
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
@@ -462,7 +512,7 @@ public class PodTemplateBuilder {
         Map<String, EnvVar> envVarsMap = new HashMap<>();
         String workingDir = substituteEnv(containerTemplate.getWorkingDir());
         if (JNLP_NAME.equals(containerTemplate.getName())) {
-            envVarsMap.putAll(jnlpEnvVars(workingDir));
+            envVarsMap.putAll(agentEnvVars(workingDir));
         }
         envVarsMap.putAll(defaultEnvVars(globalEnvVars));
 
@@ -541,7 +591,7 @@ public class PodTemplateBuilder {
     private VolumeMount getDefaultVolumeMount(@CheckForNull String workingDir) {
         String wd = workingDir;
         if (wd == null) {
-            wd = ContainerTemplate.DEFAULT_WORKING_DIR;
+            wd = DEFAULT_WORKING_DIR;
             LOGGER.log(Level.FINE, "Container workingDir is null, defaulting to {0}", wd);
         }
         return new VolumeMountBuilder()

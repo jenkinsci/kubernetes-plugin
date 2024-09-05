@@ -26,6 +26,14 @@
     <f:select default="${descriptor.defaultInheritFrom}"/>
   </f:entry>
 
+  <f:entry field="agentContainer" title="${%Name of the container that will run the Jenkins agent}">
+    <f:textbox/>
+  </f:entry>
+
+  <f:entry field="agentInjection" title="${%Inject Jenkins agent in agent container}">
+    <f:checkbox/>
+  </f:entry>
+
   <f:entry field="containers" title="${%Containers}" description="${%Containers in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="Add Container"
                                     deleteCaption="Delete Container" />

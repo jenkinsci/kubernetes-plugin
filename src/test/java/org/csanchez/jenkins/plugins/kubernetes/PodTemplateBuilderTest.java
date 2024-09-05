@@ -202,7 +202,7 @@ public class PodTemplateBuilderTest {
 
         assertEquals("busybox", containers.get("busybox").getImage());
         assertEquals(
-                jnlpregistry + "/" + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+                jnlpregistry + "/" + DEFAULT_AGENT_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
@@ -220,7 +220,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals(jnlpregistry + DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertEquals(jnlpregistry + DEFAULT_AGENT_IMAGE, containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
 
@@ -240,7 +240,7 @@ public class PodTemplateBuilderTest {
 
         assertEquals("busybox", containers.get("busybox").getImage());
         assertEquals(
-                DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_JNLP_IMAGE,
+                DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_AGENT_IMAGE,
                 containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
@@ -261,7 +261,7 @@ public class PodTemplateBuilderTest {
 
         assertEquals("busybox", containers.get("busybox").getImage());
         assertEquals(
-                DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + DEFAULT_JNLP_IMAGE,
+                DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + DEFAULT_AGENT_IMAGE,
                 containers.get("jnlp").getImage());
         assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
     }
@@ -387,7 +387,7 @@ public class PodTemplateBuilderTest {
         assertEquals(2, containers.size());
 
         assertEquals("busybox", containers.get("busybox").getImage());
-        assertEquals(DEFAULT_JNLP_IMAGE, containers.get("jnlp").getImage());
+        assertEquals(DEFAULT_AGENT_IMAGE, containers.get("jnlp").getImage());
 
         // check volumes and volume mounts
         Map<String, Volume> volumes =

@@ -101,6 +101,12 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     @CheckForNull
     private String supplementalGroups;
 
+    @CheckForNull
+    private String agentContainer;
+
+    @CheckForNull
+    private Boolean agentInjection;
+
     @DataBoundConstructor
     public KubernetesDeclarativeAgent() {}
 
@@ -350,6 +356,26 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         return this.supplementalGroups;
     }
 
+    @CheckForNull
+    public String getAgentContainer() {
+        return agentContainer;
+    }
+
+    @DataBoundSetter
+    public void setAgentContainer(@CheckForNull String agentContainer) {
+        this.agentContainer = agentContainer;
+    }
+
+    @CheckForNull
+    public boolean isAgentInjection() {
+        return agentInjection;
+    }
+
+    @DataBoundSetter
+    public void setAgentInjection(boolean agentInjection) {
+        this.agentInjection = agentInjection;
+    }
+
     public Map<String, Object> getAsArgs() {
         Map<String, Object> argMap = new TreeMap<>();
 
@@ -422,6 +448,10 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (!StringUtils.isEmpty(supplementalGroups)) {
             argMap.put("supplementalGroups", supplementalGroups);
         }
+        if (!StringUtils.isEmpty(agentContainer)) {
+            argMap.put("agentContainer", agentContainer);
+        }
+        argMap.put("agentInjection", agentInjection);
 
         return argMap;
     }
@@ -443,7 +473,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
             "serviceAccount",
             "nodeSelector",
             "workingDir",
-            "workspaceVolume"
+            "workspaceVolume",
+            "agentContainer",
+            "agentInjection"
         };
 
         public DescriptorImpl() {
