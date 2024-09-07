@@ -188,6 +188,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private Long terminationGracePeriodSeconds;
 
+    private Long fsGroup;
+
     /**
      * Persisted yaml fragment
      */
@@ -912,6 +914,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this.terminationGracePeriodSeconds = terminationGracePeriodSeconds;
     }
 
+    public Long getFsGroup() {
+        return fsGroup;
+    }
+
+    public void setFsGroup(Long fsGroup) {
+        this.fsGroup = fsGroup;
+    }
+
     protected Object readResolve() {
         if (containers == null) {
             // upgrading from 0.8
@@ -1135,6 +1145,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 + (!privileged ? "" : ", privileged=" + privileged)
                 + (runAsUser == null ? "" : ", runAsUser=" + runAsUser)
                 + (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup)
+                + (fsGroup == null ? "": " ,runAsUser=" + runAsUser)
                 + (!isHostNetwork() ? "" : ", hostNetwork=" + hostNetwork)
                 + (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage)
                 + (command == null ? "" : ", command='" + command + '\'')
