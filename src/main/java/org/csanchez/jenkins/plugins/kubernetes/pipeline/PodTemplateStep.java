@@ -106,6 +106,9 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String supplementalGroups;
 
+    @CheckForNull
+    private String fsGroup;
+
     @DataBoundConstructor
     public PodTemplateStep() {}
 
@@ -415,6 +418,16 @@ public class PodTemplateStep extends Step implements Serializable {
         this.supplementalGroups = Util.fixEmpty(supplementalGroups);
     }
 
+    @CheckForNull
+    public String getFsGroup() {
+        return this.fsGroup;
+    }
+
+    @DataBoundSetter
+    public void setFsGroup(String fsGroup) {
+        this.fsGroup = fsGroup;
+    }
+
     @Extension
     public static class DescriptorImpl extends StepDescriptor {
 
@@ -436,7 +449,8 @@ public class PodTemplateStep extends Step implements Serializable {
             "serviceAccount",
             "nodeSelector",
             "workingDir",
-            "workspaceVolume"
+            "workspaceVolume",
+            "fsGroup"
         };
 
         public DescriptorImpl() {
