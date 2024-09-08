@@ -1145,7 +1145,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 + (!privileged ? "" : ", privileged=" + privileged)
                 + (runAsUser == null ? "" : ", runAsUser=" + runAsUser)
                 + (runAsGroup == null ? "" : ", runAsGroup=" + runAsGroup)
-                + (fsGroup == null ? "": " ,runAsUser=" + runAsUser)
+                + (fsGroup == null ? "" : " ,runAsUser=" + runAsUser)
                 + (!isHostNetwork() ? "" : ", hostNetwork=" + hostNetwork)
                 + (!alwaysPullImage ? "" : ", alwaysPullImage=" + alwaysPullImage)
                 + (command == null ? "" : ", command='" + command + '\'')
