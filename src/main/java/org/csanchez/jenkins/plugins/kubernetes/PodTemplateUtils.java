@@ -495,7 +495,7 @@ public class PodTemplateUtils {
         podTemplate.setServiceAccount(h.resolve(PodTemplate::getServiceAccount, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setSchedulerName(h.resolve(PodTemplate::getSchedulerName, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setPodRetention(template.getPodRetention());
-        podTemplate.setShowRawYaml(h.resolve(PodTemplate::isShowRawYaml, v -> template.isShowRawYamlSet()));
+        podTemplate.setShowRawYaml(h.resolve(PodTemplate::isShowRawYaml, v -> v));
         podTemplate.setRunAsUser(h.resolve(PodTemplate::getRunAsUser, Objects::isNull));
         podTemplate.setRunAsGroup(h.resolve(PodTemplate::getRunAsGroup, Objects::isNull));
         podTemplate.setSupplementalGroups(h.resolve(PodTemplate::getSupplementalGroups, Objects::isNull));

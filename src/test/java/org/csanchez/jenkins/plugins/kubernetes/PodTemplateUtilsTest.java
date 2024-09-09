@@ -256,6 +256,7 @@ public class PodTemplateUtilsTest {
         parent.setYaml("Yaml");
         parent.setAgentContainer("agentContainer");
         parent.setAgentInjection(true);
+        parent.setShowRawYaml(false);
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
@@ -272,6 +273,7 @@ public class PodTemplateUtilsTest {
         assertThat(result.getYamls(), contains("Yaml", "Yaml2"));
         assertThat(result.getAgentContainer(), is("agentContainer"));
         assertThat(result.isAgentInjection(), is(true));
+        assertThat(result.isShowRawYaml(), is(false));
     }
 
     @Test
