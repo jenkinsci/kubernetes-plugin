@@ -435,6 +435,22 @@ public class PodTemplateUtils {
                                                     .getSecurityContext()
                                                     .getRunAsGroup()
                                             : null))
+                    .withFsGroup(
+                            template.getSpec().getSecurityContext() != null
+                                            && template.getSpec()
+                                                            .getSecurityContext()
+                                                            .getFsGroup()
+                                                    != null
+                                    ? template.getSpec().getSecurityContext().getFsGroup()
+                                    : (parent.getSpec().getSecurityContext() != null
+                                                    && parent.getSpec()
+                                                                    .getSecurityContext()
+                                                                    .getFsGroup()
+                                                            != null
+                                            ? parent.getSpec()
+                                                    .getSecurityContext()
+                                                    .getFsGroup()
+                                            : null))
                     .endSecurityContext();
         }
 

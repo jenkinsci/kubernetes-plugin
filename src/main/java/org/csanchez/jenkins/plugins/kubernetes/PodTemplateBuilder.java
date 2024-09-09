@@ -279,7 +279,8 @@ public class PodTemplateBuilder {
         Long runAsUser = template.getRunAsUserAsLong();
         Long runAsGroup = template.getRunAsGroupAsLong();
         String supplementalGroups = template.getSupplementalGroups();
-        if (runAsUser != null || runAsGroup != null || supplementalGroups != null) {
+        Long fsGroup = template.getFsGroup();
+        if (runAsUser != null || runAsGroup != null || supplementalGroups != null || fsGroup != null) {
             var securityContext = builder.editOrNewSecurityContext();
             if (runAsUser != null) {
                 securityContext.withRunAsUser(runAsUser);
@@ -289,6 +290,9 @@ public class PodTemplateBuilder {
             }
             if (supplementalGroups != null) {
                 securityContext.withSupplementalGroups(parseSupplementalGroupList(supplementalGroups));
+            }
+            if (fsGroup != null) {
+                securityContext.withFsGroup(fsGroup);
             }
             securityContext.endSecurityContext();
         }

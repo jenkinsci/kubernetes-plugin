@@ -147,6 +147,10 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
             newTemplate.setActiveDeadlineSeconds(step.getActiveDeadlineSeconds());
         }
 
+        if (step.getFsGroup() != null) {
+            newTemplate.setFsGroup(Long.valueOf(step.getFsGroup()));
+        }
+
         for (ContainerTemplate container : newTemplate.getContainers()) {
             if (!PodTemplateUtils.validateContainerName(container.getName())) {
                 throw new AbortException(Messages.RFC1123_error(container.getName()));

@@ -130,4 +130,8 @@ THE SOFTWARE.
 
   <f:descriptorList title="${%Node Properties}" descriptors="${h.getNodePropertyDescriptors(descriptor.clazz)}" field="nodeProperties" />
 
+  <f:entry field="fsGroup" title="${%FS Group ID}">
+    <f:textbox/>
+  </f:entry>
+
 </j:jelly>

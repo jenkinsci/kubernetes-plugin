@@ -83,5 +83,8 @@
         <f:entry field="workspaceVolume" title="${%Workspace Volume}">
             <f:dropdownDescriptorSelector field="workspaceVolume" default="${descriptor.defaultWorkspaceVolume}"/>
         </f:entry>
+        <f:entry field="fsGroup" title="${%FS Group ID}">
+          <f:textbox/>
+        </f:entry>
 	</f:advanced>
 </j:jelly>
