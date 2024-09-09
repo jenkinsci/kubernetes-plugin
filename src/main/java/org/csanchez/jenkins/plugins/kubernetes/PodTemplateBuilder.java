@@ -42,6 +42,7 @@ import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -103,6 +104,9 @@ public class PodTemplateBuilder {
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
+    private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
+    private static final String JENKINS_AGENT_AGENT_JAR = "/jenkins-agent/agent.jar";
+    private static final String JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION = "/jenkins-agent/jenkins-agent";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -336,6 +340,12 @@ public class PodTemplateBuilder {
             }
             agentContainer.setImage(agentImage);
         }
+        Map<String, EnvVar> envVars = new HashMap<>();
+        envVars.putAll(agentEnvVars(workingDir));
+        envVars.putAll(defaultEnvVars(template.getEnvVars()));
+        Optional.ofNullable(agentContainer.getEnv()).ifPresent(agentEnv -> {
+            agentEnv.forEach(var -> envVars.put(var.getName(), var));
+        });
         if (template.isAgentInjection()) {
             var agentVolumeMountBuilder =
                     new VolumeMountBuilder().withName("jenkins-agent").withMountPath("/jenkins-agent");
@@ -346,9 +356,8 @@ public class PodTemplateBuilder {
                     .withCommand(
                             "/bin/sh",
                             "-c",
-                            "cp $(command -v jenkins-agent) /jenkins-agent/jenkins-agent;"
-                                    + "cp /usr/share/jenkins/agent.jar /jenkins-agent/agent.jar;"
-                                    + "sed -i 's!-jar .*agent.jar!-jar /jenkins-agent\\/agent.jar!' /jenkins-agent/jenkins-agent")
+                            "cp $(command -v jenkins-agent) " + JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION + ";"
+                                    + "cp /usr/share/jenkins/agent.jar " + JENKINS_AGENT_AGENT_JAR)
                     .withVolumeMounts(agentVolumeMountBuilder.build())
                     .build();
             if (oldInitContainers != null) {
@@ -380,16 +389,16 @@ public class PodTemplateBuilder {
                 agentContainer.setVolumeMounts(
                         List.of(agentVolumeMountBuilder.withReadOnly().build()));
             }
-            agentContainer.setWorkingDir("/home/jenkins/agent");
-            agentContainer.setCommand(List.of("/jenkins-agent/jenkins-agent"));
+            agentContainer.setWorkingDir(DEFAULT_WORKING_DIR);
+            agentContainer.setCommand(List.of(JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION));
             agentContainer.setArgs(List.of());
+            envVars.put(
+                    JENKINS_AGENT_FILE_ENVVAR,
+                    new EnvVarBuilder()
+                            .withName(JENKINS_AGENT_FILE_ENVVAR)
+                            .withValue(JENKINS_AGENT_AGENT_JAR)
+                            .build());
         }
-        Map<String, EnvVar> envVars = new HashMap<>();
-        envVars.putAll(agentEnvVars(workingDir));
-        envVars.putAll(defaultEnvVars(template.getEnvVars()));
-        Optional.ofNullable(agentContainer.getEnv()).ifPresent(agentEnv -> {
-            agentEnv.forEach(var -> envVars.put(var.getName(), var));
-        });
         agentContainer.setEnv(new ArrayList<>(envVars.values()));
         if (agentContainer.getResources() == null) {
 
