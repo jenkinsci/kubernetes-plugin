@@ -190,7 +190,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String agentContainer;
 
-    private Boolean agentInjection;
+    private boolean agentInjection;
 
     /**
      * Persisted yaml fragment
@@ -650,10 +650,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setAgentContainer(@CheckForNull String agentContainer) {
         this.agentContainer = Util.fixEmpty(agentContainer);
-    }
-
-    public boolean isAgentInjectionSet() {
-        return agentInjection != null;
     }
 
     public boolean isAgentInjection() {

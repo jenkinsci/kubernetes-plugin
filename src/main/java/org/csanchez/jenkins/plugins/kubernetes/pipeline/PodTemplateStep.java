@@ -109,7 +109,7 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String agentContainer;
 
-    private Boolean agentInjection;
+    private boolean agentInjection;
 
     @DataBoundConstructor
     public PodTemplateStep() {}
@@ -165,10 +165,6 @@ public class PodTemplateStep extends Step implements Serializable {
         } else {
             this.inheritFrom = inheritFrom;
         }
-    }
-
-    public boolean isAgentInjectionSet() {
-        return agentInjection != null;
     }
 
     public boolean isAgentInjection() {

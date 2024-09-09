@@ -105,7 +105,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     private String agentContainer;
 
     @CheckForNull
-    private Boolean agentInjection;
+    private boolean agentInjection;
 
     @DataBoundConstructor
     public KubernetesDeclarativeAgent() {}
@@ -451,7 +451,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (!StringUtils.isEmpty(agentContainer)) {
             argMap.put("agentContainer", agentContainer);
         }
-        argMap.put("agentInjection", agentInjection);
+        if (agentInjection) {
+            argMap.put("agentInjection", agentInjection);
+        }
 
         return argMap;
     }

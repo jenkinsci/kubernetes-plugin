@@ -141,9 +141,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         if (step.isShowRawYamlSet()) {
             newTemplate.setShowRawYaml(step.isShowRawYaml());
         }
-        if (step.isAgentInjectionSet()) {
-            newTemplate.setAgentInjection(step.isAgentInjection());
-        }
+        newTemplate.setAgentInjection(step.isAgentInjection());
         newTemplate.setAgentContainer(step.getAgentContainer());
         newTemplate.setPodRetention(step.getPodRetention());
 

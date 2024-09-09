@@ -1,8 +1,8 @@
 <p>This option lets you provide a container image that does not extend the Jenkins agent image.</p>
 
-<p>The provided container image must have <code>java</code> installed (using a version compatible with the current Jenkins version).</p>
+<p>The provided container image must have a (headless) JRE installed (using a version compatible with the current Jenkins version).</p>
 
-<p>The agent will use the java installation designated by the <code>JENKINS_JAVA_BIN</code> environment variable, or the one in <code>PATH</code> if undefined.</p>
+<p>The agent will use the Java installation designated by the <code>JENKINS_JAVA_BIN</code> environment variable, or the one in <code>PATH</code> if undefined.</p>
 
 <p>Enabling this option will override the command and arguments defined in the agent container.</p>
 
