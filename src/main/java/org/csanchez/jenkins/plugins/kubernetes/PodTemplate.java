@@ -642,7 +642,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return capOnlyOnAlivePods;
     }
 
-    @NonNull
+    @CheckForNull
     public String getAgentContainer() {
         return agentContainer;
     }
