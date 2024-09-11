@@ -185,7 +185,12 @@ spec:
 Multiple containers can be defined for the agent pod, with shared resources, like mounts. Ports in each container can
 be accessed as in any Kubernetes pod, by using `localhost`.
 
-The `container` step allows executing commands into each container.
+One container must run the Jenkins agent. If unspecified, a container named `jnlp` will be created with the inbound-agent image.
+The Jenkins agent requires a JRE to run, so you can avoid the extra container by providing a name using the `agentContainer`.
+To get the Jenkins agent injected, you will also need to set `agentInjection` to `true`, and leave the command and argument fields empty for this container.
+The container specified by `agentContainer` will be the one where shell steps (or any other step running remote commands on the agent) will run on.
+
+To execute commands in another container part of the pod (different from the one running the Jenkins agent), you can use the `container` step.
 
 **Note**
 ---
@@ -194,8 +199,11 @@ It is recommended to use the same uid across the different containers part of th
 ---
 
 ```groovy
-podTemplate(containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.8.1-jdk-8', command: 'sleep', args: '99d'),
+podTemplate(
+  agentContainer: 'maven',
+  agentInjection: true,
+  containers: [
+    containerTemplate(name: 'maven', image: 'maven:3.9.9-eclipse-temurin-17'),
     containerTemplate(name: 'golang', image: 'golang:1.16.5', command: 'sleep', args: '99d')
   ]) {
 
@@ -229,17 +237,16 @@ podTemplate(containers: [
 or
 
 ```groovy
-podTemplate(yaml: '''
+podTemplate(
+  agentContainer: 'maven',
+  agentInjection: true,
+  yaml: '''
     apiVersion: v1
     kind: Pod
     spec:
       containers:
       - name: maven
-        image: maven:3.8.1-jdk-8
-        command:
-        - sleep
-        args:
-        - 99d
+        image: maven:3.9.9-eclipse-temurin-17
       - name: golang
         image: golang:1.16.5
         command:
@@ -269,7 +276,6 @@ podTemplate(yaml: '''
         }
       }
     }
-
   }
 }
 ```
