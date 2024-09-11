@@ -188,6 +188,10 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private Long terminationGracePeriodSeconds;
 
+    private String agentContainer;
+
+    private boolean agentInjection;
+
     /**
      * Persisted yaml fragment
      */
@@ -636,6 +640,25 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @Deprecated
     public boolean isCapOnlyOnAlivePods() {
         return capOnlyOnAlivePods;
+    }
+
+    @CheckForNull
+    public String getAgentContainer() {
+        return agentContainer;
+    }
+
+    @DataBoundSetter
+    public void setAgentContainer(@CheckForNull String agentContainer) {
+        this.agentContainer = Util.fixEmpty(agentContainer);
+    }
+
+    public boolean isAgentInjection() {
+        return agentInjection;
+    }
+
+    @DataBoundSetter
+    public void setAgentInjection(boolean agentInjection) {
+        this.agentInjection = agentInjection;
     }
 
     public List<TemplateEnvVar> getEnvVars() {
@@ -1173,6 +1196,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 + (nodeProperties == null || nodeProperties.isEmpty() ? "" : ", nodeProperties=" + nodeProperties)
                 + (yamls == null || yamls.isEmpty() ? "" : ", yamls=" + yamls)
                 + (!unwrapped ? "" : ", unwrapped=" + unwrapped)
+                + (agentContainer == null ? "" : ", agentContainer='" + agentContainer + '\'')
+                + (!agentInjection ? "" : ", agentInjection=" + agentInjection)
                 + '}';
     }
 }

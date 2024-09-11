@@ -106,6 +106,11 @@ public class PodTemplateStep extends Step implements Serializable {
     @CheckForNull
     private String supplementalGroups;
 
+    @CheckForNull
+    private String agentContainer;
+
+    private boolean agentInjection;
+
     @DataBoundConstructor
     public PodTemplateStep() {}
 
@@ -160,6 +165,25 @@ public class PodTemplateStep extends Step implements Serializable {
         } else {
             this.inheritFrom = inheritFrom;
         }
+    }
+
+    public boolean isAgentInjection() {
+        return agentInjection;
+    }
+
+    @DataBoundSetter
+    public void setAgentInjection(boolean agentInjection) {
+        this.agentInjection = agentInjection;
+    }
+
+    @CheckForNull
+    public String getAgentContainer() {
+        return agentContainer;
+    }
+
+    @DataBoundSetter
+    public void setAgentContainer(@CheckForNull String agentContainer) {
+        this.agentContainer = Util.fixEmpty(agentContainer);
     }
 
     public List<ContainerTemplate> getContainers() {
@@ -436,7 +460,9 @@ public class PodTemplateStep extends Step implements Serializable {
             "serviceAccount",
             "nodeSelector",
             "workingDir",
-            "workspaceVolume"
+            "workspaceVolume",
+            "agentContainer",
+            "agentInjection"
         };
 
         public DescriptorImpl() {

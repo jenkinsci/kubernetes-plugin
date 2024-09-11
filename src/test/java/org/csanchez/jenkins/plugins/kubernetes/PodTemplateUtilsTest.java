@@ -254,6 +254,9 @@ public class PodTemplateUtilsTest {
         parent.setNodeSelector("key:value");
         parent.setImagePullSecrets(asList(SECRET_1));
         parent.setYaml("Yaml");
+        parent.setAgentContainer("agentContainer");
+        parent.setAgentInjection(true);
+        parent.setShowRawYaml(false);
 
         PodTemplate template1 = new PodTemplate();
         template1.setName("template1");
@@ -268,6 +271,9 @@ public class PodTemplateUtilsTest {
         assertEquals("key:value", result.getNodeSelector());
         assertThat(result.getYamls(), hasSize(2));
         assertThat(result.getYamls(), contains("Yaml", "Yaml2"));
+        assertThat(result.getAgentContainer(), is("agentContainer"));
+        assertThat(result.isAgentInjection(), is(true));
+        assertThat(result.isShowRawYaml(), is(false));
     }
 
     @Test

@@ -2,32 +2,27 @@
  * This pipeline describes a multi container job, running Maven and Golang builds
  */
 
-podTemplate(yaml: '''
-              apiVersion: v1
-              kind: Pod
-              spec:
-                containers:
-                - name: maven
-                  image: maven:3.8.1-jdk-8
-                  command:
-                  - sleep
-                  args:
-                  - 99d
-                - name: golang
-                  image: golang:1.16.5
-                  command:
-                  - sleep
-                  args:
-                  - 99d
+podTemplate(agentContainer: 'maven',
+            agentInjection: true,
+            yaml: '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: maven
+    image: maven:3.9.9-eclipse-temurin-17
+  - name: golang
+    image: golang:1.23.1-bookworm
+    command:
+    - sleep
+    args:
+    - 99d
 '''
   ) {
-
   node(POD_LABEL) {
     stage('Build a Maven project') {
       git 'https://github.com/jenkinsci/kubernetes-plugin.git'
-      container('maven') {
-        sh 'mvn -B -ntp clean package -DskipTests'
-      }
+      sh 'mvn -B -ntp clean package -DskipTests'
     }
     stage('Build a Golang project') {
       git url: 'https://github.com/hashicorp/terraform.git', branch: 'main'

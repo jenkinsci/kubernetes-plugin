@@ -4,7 +4,6 @@ import static hudson.Util.replaceMacro;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -46,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -81,70 +81,38 @@ public class PodTemplateUtils {
             return template;
         }
 
-        String name = template.getName();
-        String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        boolean privileged = template.isPrivileged()
-                ? template.isPrivileged()
-                : (parent.isPrivileged() ? parent.isPrivileged() : false);
-        String runAsUser = template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser();
-        String runAsGroup = template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup();
-        boolean alwaysPullImage = template.isAlwaysPullImage()
-                ? template.isAlwaysPullImage()
-                : (parent.isAlwaysPullImage() ? parent.isAlwaysPullImage() : false);
-        String workingDir = isNullOrEmpty(template.getWorkingDir())
-                ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
-                : template.getWorkingDir();
-        String command = isNullOrEmpty(template.getCommand()) ? parent.getCommand() : template.getCommand();
-        String args = isNullOrEmpty(template.getArgs()) ? parent.getArgs() : template.getArgs();
-        boolean ttyEnabled = template.isTtyEnabled()
-                ? template.isTtyEnabled()
-                : (parent.isTtyEnabled() ? parent.isTtyEnabled() : false);
-        String resourceRequestCpu = isNullOrEmpty(template.getResourceRequestCpu())
-                ? parent.getResourceRequestCpu()
-                : template.getResourceRequestCpu();
-        String resourceRequestMemory = isNullOrEmpty(template.getResourceRequestMemory())
-                ? parent.getResourceRequestMemory()
-                : template.getResourceRequestMemory();
-        String resourceRequestEphemeralStorage = isNullOrEmpty(template.getResourceRequestEphemeralStorage())
-                ? parent.getResourceRequestEphemeralStorage()
-                : template.getResourceRequestEphemeralStorage();
-        String resourceLimitCpu = isNullOrEmpty(template.getResourceLimitCpu())
-                ? parent.getResourceLimitCpu()
-                : template.getResourceLimitCpu();
-        String resourceLimitMemory = isNullOrEmpty(template.getResourceLimitMemory())
-                ? parent.getResourceLimitMemory()
-                : template.getResourceLimitMemory();
-        String resourceLimitEphemeralStorage = isNullOrEmpty(template.getResourceLimitEphemeralStorage())
-                ? parent.getResourceLimitEphemeralStorage()
-                : template.getResourceLimitEphemeralStorage();
-        String shell = isNullOrEmpty(template.getShell()) ? parent.getShell() : template.getShell();
         Map<String, PortMapping> ports =
                 parent.getPorts().stream().collect(Collectors.toMap(PortMapping::getName, Function.identity()));
-        template.getPorts().stream().forEach(p -> ports.put(p.getName(), p));
-        ContainerLivenessProbe livenessProbe =
-                template.getLivenessProbe() != null ? template.getLivenessProbe() : parent.getLivenessProbe();
+        template.getPorts().forEach(p -> ports.put(p.getName(), p));
 
-        ContainerTemplate combined = new ContainerTemplate(image);
-        combined.setName(name);
-        combined.setImage(image);
-        combined.setAlwaysPullImage(alwaysPullImage);
-        combined.setCommand(command);
-        combined.setArgs(args);
-        combined.setTtyEnabled(ttyEnabled);
-        combined.setResourceLimitCpu(resourceLimitCpu);
-        combined.setResourceLimitMemory(resourceLimitMemory);
-        combined.setResourceLimitEphemeralStorage(resourceLimitEphemeralStorage);
-        combined.setResourceRequestCpu(resourceRequestCpu);
-        combined.setResourceRequestMemory(resourceRequestMemory);
-        combined.setResourceRequestEphemeralStorage(resourceRequestEphemeralStorage);
-        combined.setShell(shell);
-        combined.setWorkingDir(workingDir);
-        combined.setPrivileged(privileged);
-        combined.setRunAsUser(runAsUser);
-        combined.setRunAsGroup(runAsGroup);
+        var h = new HierarchyResolver<>(parent, template);
+        ContainerTemplate combined = new ContainerTemplate(
+                template.getName(), h.resolve(ContainerTemplate::getImage, PodTemplateUtils::isNullOrEmpty));
+
+        combined.setAlwaysPullImage(h.resolve(ContainerTemplate::isAlwaysPullImage, v -> !v));
+        combined.setCommand(h.resolve(ContainerTemplate::getCommand, PodTemplateUtils::isNullOrEmpty));
+        combined.setArgs(h.resolve(ContainerTemplate::getArgs, PodTemplateUtils::isNullOrEmpty));
+        combined.setTtyEnabled(h.resolve(ContainerTemplate::isTtyEnabled, v -> !v));
+        combined.setResourceLimitCpu(
+                h.resolve(ContainerTemplate::getResourceLimitCpu, PodTemplateUtils::isNullOrEmpty));
+        combined.setResourceLimitMemory(
+                h.resolve(ContainerTemplate::getResourceLimitMemory, PodTemplateUtils::isNullOrEmpty));
+        combined.setResourceLimitEphemeralStorage(
+                h.resolve(ContainerTemplate::getResourceLimitEphemeralStorage, PodTemplateUtils::isNullOrEmpty));
+        combined.setResourceRequestCpu(
+                h.resolve(ContainerTemplate::getResourceRequestCpu, PodTemplateUtils::isNullOrEmpty));
+        combined.setResourceRequestMemory(
+                h.resolve(ContainerTemplate::getResourceRequestMemory, PodTemplateUtils::isNullOrEmpty));
+        combined.setResourceRequestEphemeralStorage(
+                h.resolve(ContainerTemplate::getResourceRequestEphemeralStorage, PodTemplateUtils::isNullOrEmpty));
+        combined.setShell(h.resolve(ContainerTemplate::getShell, PodTemplateUtils::isNullOrEmpty));
+        combined.setWorkingDir(h.resolve(ContainerTemplate::getWorkingDir, PodTemplateUtils::isNullOrEmpty));
+        combined.setPrivileged(h.resolve(ContainerTemplate::isPrivileged, v -> !v));
+        combined.setRunAsUser(h.resolve(ContainerTemplate::getRunAsUser, Objects::isNull));
+        combined.setRunAsGroup(h.resolve(ContainerTemplate::getRunAsGroup, Objects::isNull));
         combined.setEnvVars(combineEnvVars(parent, template));
         combined.setPorts(new ArrayList<>(ports.values()));
-        combined.setLivenessProbe(livenessProbe);
+        combined.setLivenessProbe(h.resolve(ContainerTemplate::getLivenessProbe, Objects::isNull));
         return combined;
     }
 
@@ -164,70 +132,61 @@ public class PodTemplateUtils {
         if (parent == null) {
             return template;
         }
+        var h = new HierarchyResolver<>(parent, template);
 
-        String name = template.getName();
-        String image = isNullOrEmpty(template.getImage()) ? parent.getImage() : template.getImage();
-        Boolean privileged = template.getSecurityContext() != null
-                        && template.getSecurityContext().getPrivileged() != null
-                ? template.getSecurityContext().getPrivileged()
-                : (parent.getSecurityContext() != null
-                        ? parent.getSecurityContext().getPrivileged()
-                        : Boolean.FALSE);
-        Long runAsUser = template.getSecurityContext() != null
-                        && template.getSecurityContext().getRunAsUser() != null
-                ? template.getSecurityContext().getRunAsUser()
-                : (parent.getSecurityContext() != null
-                        ? parent.getSecurityContext().getRunAsUser()
-                        : null);
-        Long runAsGroup = template.getSecurityContext() != null
-                        && template.getSecurityContext().getRunAsGroup() != null
-                ? template.getSecurityContext().getRunAsGroup()
-                : (parent.getSecurityContext() != null
-                        ? parent.getSecurityContext().getRunAsGroup()
-                        : null);
-        Capabilities capabilities = combineCapabilities(parent, template);
-        String imagePullPolicy = isNullOrEmpty(template.getImagePullPolicy())
-                ? parent.getImagePullPolicy()
-                : template.getImagePullPolicy();
-        String workingDir = isNullOrEmpty(template.getWorkingDir())
-                ? (isNullOrEmpty(parent.getWorkingDir()) ? DEFAULT_WORKING_DIR : parent.getWorkingDir())
-                : template.getWorkingDir();
-        List<String> command =
-                template.getCommand() == null || template.getCommand().isEmpty()
-                        ? parent.getCommand()
-                        : template.getCommand();
-        List<String> args =
-                template.getArgs() == null || template.getArgs().isEmpty() ? parent.getArgs() : template.getArgs();
-        Boolean tty = template.getTty() != null ? template.getTty() : parent.getTty();
-        Map<String, Quantity> requests = combineResources(parent, template, ResourceRequirements::getRequests);
-        Map<String, Quantity> limits = combineResources(parent, template, ResourceRequirements::getLimits);
-
+        Boolean privileged;
+        Long runAsUser;
+        Long runAsGroup;
+        if (template.getSecurityContext() != null) {
+            if (parent.getSecurityContext() != null) {
+                privileged = h.resolve(c -> c.getSecurityContext().getPrivileged(), Objects::isNull);
+                runAsUser = h.resolve(c -> c.getSecurityContext().getRunAsUser(), Objects::isNull);
+                runAsGroup = h.resolve(c -> c.getSecurityContext().getRunAsGroup(), Objects::isNull);
+            } else {
+                privileged = template.getSecurityContext().getPrivileged();
+                runAsUser = template.getSecurityContext().getRunAsUser();
+                runAsGroup = template.getSecurityContext().getRunAsGroup();
+            }
+        } else {
+            if (parent.getSecurityContext() != null) {
+                privileged = parent.getSecurityContext().getPrivileged();
+                runAsUser = parent.getSecurityContext().getRunAsUser();
+                runAsGroup = parent.getSecurityContext().getRunAsGroup();
+            } else {
+                privileged = Boolean.FALSE;
+                runAsUser = null;
+                runAsGroup = null;
+            }
+        }
         Map<String, VolumeMount> volumeMounts = parent.getVolumeMounts().stream()
                 .collect(Collectors.toMap(VolumeMount::getMountPath, Function.identity()));
-        template.getVolumeMounts().stream().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
+        template.getVolumeMounts().forEach(vm -> volumeMounts.put(vm.getMountPath(), vm));
 
         ContainerBuilder containerBuilder = new ContainerBuilder(parent) //
-                .withImage(image) //
-                .withName(name) //
-                .withImagePullPolicy(imagePullPolicy) //
-                .withCommand(command) //
-                .withWorkingDir(workingDir) //
-                .withArgs(args) //
-                .withTty(tty) //
+                .withImage(h.resolve(Container::getImage, PodTemplateUtils::isNullOrEmpty)) //
+                .withName(template.getName()) //
+                .withImagePullPolicy(h.resolve(Container::getImagePullPolicy, PodTemplateUtils::isNullOrEmpty)) //
+                .withCommand(h.resolve(Container::getCommand, PodTemplateUtils::isNullOrEmpty)) //
+                .withWorkingDir(h.resolve(Container::getWorkingDir, PodTemplateUtils::isNullOrEmpty)) //
+                .withArgs(h.resolve(Container::getArgs, PodTemplateUtils::isNullOrEmpty)) //
+                .withTty(h.resolve(Container::getTty, Objects::isNull)) //
                 .withNewResources() //
-                .withRequests(Collections.unmodifiableMap(new HashMap<>(requests))) //
-                .withLimits(Collections.unmodifiableMap(new HashMap<>(limits))) //
+                .withRequests(Map.copyOf(combineResources(parent, template, ResourceRequirements::getRequests))) //
+                .withLimits(Map.copyOf(combineResources(parent, template, ResourceRequirements::getLimits))) //
                 .endResources() //
                 .withEnv(combineEnvVars(parent, template)) //
                 .withEnvFrom(combinedEnvFromSources(parent, template))
-                .withVolumeMounts(new ArrayList<>(volumeMounts.values()));
-        if ((privileged != null && privileged) || runAsUser != null || runAsGroup != null || capabilities != null) {
+                .withVolumeMounts(List.copyOf(volumeMounts.values()));
+        if ((privileged != null && privileged)
+                || runAsUser != null
+                || runAsGroup != null
+                || combineCapabilities(parent, template) != null) {
             containerBuilder = containerBuilder
                     .withNewSecurityContextLike(parent.getSecurityContext())
                     .withPrivileged(privileged)
                     .withRunAsUser(runAsUser)
                     .withRunAsGroup(runAsGroup)
-                    .withCapabilities(capabilities)
+                    .withCapabilities(combineCapabilities(parent, template))
                     .endSecurityContext();
         }
         return containerBuilder.build();
@@ -317,26 +276,7 @@ public class PodTemplateUtils {
 
         Map<String, String> nodeSelector =
                 mergeMaps(parent.getSpec().getNodeSelector(), template.getSpec().getNodeSelector());
-        String serviceAccount = isNullOrEmpty(template.getSpec().getServiceAccount())
-                ? parent.getSpec().getServiceAccount()
-                : template.getSpec().getServiceAccount();
-        String serviceAccountName = isNullOrEmpty(template.getSpec().getServiceAccountName())
-                ? parent.getSpec().getServiceAccountName()
-                : template.getSpec().getServiceAccountName();
-        String schedulerName = isNullOrEmpty(template.getSpec().getSchedulerName())
-                ? parent.getSpec().getSchedulerName()
-                : template.getSpec().getSchedulerName();
-
-        Long activeDeadlineSeconds = template.getSpec().getActiveDeadlineSeconds() != null
-                ? template.getSpec().getActiveDeadlineSeconds()
-                : parent.getSpec().getActiveDeadlineSeconds();
-        Boolean hostNetwork = template.getSpec().getHostNetwork() != null
-                ? template.getSpec().getHostNetwork()
-                : parent.getSpec().getHostNetwork();
-
-        Boolean shareProcessNamespace = template.getSpec().getShareProcessNamespace() != null
-                ? template.getSpec().getShareProcessNamespace()
-                : parent.getSpec().getShareProcessNamespace();
+        var h = new HierarchyResolver<>(parent.getSpec(), template.getSpec());
 
         Map<String, String> podAnnotations = mergeMaps(
                 parent.getMetadata().getAnnotations(), template.getMetadata().getAnnotations());
@@ -387,12 +327,12 @@ public class PodTemplateUtils {
                 .endMetadata() //
                 .withNewSpecLike(parent.getSpec()) //
                 .withNodeSelector(nodeSelector) //
-                .withServiceAccount(serviceAccount) //
-                .withServiceAccountName(serviceAccountName) //
-                .withSchedulerName(schedulerName)
-                .withActiveDeadlineSeconds(activeDeadlineSeconds) //
-                .withHostNetwork(hostNetwork) //
-                .withShareProcessNamespace(shareProcessNamespace) //
+                .withServiceAccount(h.resolve(PodSpec::getServiceAccount, PodTemplateUtils::isNullOrEmpty)) //
+                .withServiceAccountName(h.resolve(PodSpec::getServiceAccountName, PodTemplateUtils::isNullOrEmpty)) //
+                .withSchedulerName(h.resolve(PodSpec::getSchedulerName, PodTemplateUtils::isNullOrEmpty))
+                .withActiveDeadlineSeconds(h.resolve(PodSpec::getActiveDeadlineSeconds, Objects::isNull)) //
+                .withHostNetwork(h.resolve(PodSpec::getHostNetwork, Objects::isNull)) //
+                .withShareProcessNamespace(h.resolve(PodSpec::getShareProcessNamespace, Objects::isNull)) //
                 .withContainers(combinedContainers) //
                 .withInitContainers(combinedInitContainers) //
                 .withVolumes(combinedVolumes) //
@@ -487,19 +427,10 @@ public class PodTemplateUtils {
             return template;
         }
 
-        LOGGER.log(Level.FINEST, "Combining pod templates, parent: {0}", parent);
-        LOGGER.log(Level.FINEST, "Combining pod templates, template: {0}", template);
+        LOGGER.log(Level.FINEST, () -> "Combining pod templates, parent: " + parent + ", template: " + template);
 
         String name = template.getName();
         String label = template.getLabel();
-        String nodeSelector =
-                isNullOrEmpty(template.getNodeSelector()) ? parent.getNodeSelector() : template.getNodeSelector();
-        String serviceAccount =
-                isNullOrEmpty(template.getServiceAccount()) ? parent.getServiceAccount() : template.getServiceAccount();
-        String schedulerName =
-                isNullOrEmpty(template.getSchedulerName()) ? parent.getSchedulerName() : template.getSchedulerName();
-        Node.Mode nodeUsageMode =
-                template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode();
 
         Set<PodAnnotation> podAnnotations = new LinkedHashSet<>();
         podAnnotations.addAll(template.getAnnotations());
@@ -514,16 +445,16 @@ public class PodTemplateUtils {
 
         // Containers
         Map<String, ContainerTemplate> parentContainers =
-                parent.getContainers().stream().collect(toMap(c -> c.getName(), c -> c));
+                parent.getContainers().stream().collect(toMap(ContainerTemplate::getName, c -> c));
         combinedContainers.putAll(parentContainers);
         combinedContainers.putAll(template.getContainers().stream()
-                .collect(toMap(c -> c.getName(), c -> combine(parentContainers.get(c.getName()), c))));
+                .collect(toMap(ContainerTemplate::getName, c -> combine(parentContainers.get(c.getName()), c))));
 
         // Volumes
         Map<String, PodVolume> parentVolumes =
-                parent.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v));
+                parent.getVolumes().stream().collect(toMap(PodVolume::getMountPath, v -> v));
         combinedVolumes.putAll(parentVolumes);
-        combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(v -> v.getMountPath(), v -> v)));
+        combinedVolumes.putAll(template.getVolumes().stream().collect(toMap(PodVolume::getMountPath, v -> v)));
 
         WorkspaceVolume workspaceVolume =
                 WorkspaceVolume.merge(parent.getWorkspaceVolume(), template.getWorkspaceVolume());
@@ -533,13 +464,13 @@ public class PodTemplateUtils {
         nodeProperties.addAll(template.getNodeProperties());
 
         PodTemplate podTemplate = new PodTemplate(template.getId());
+        var h = new HierarchyResolver<>(parent, template);
         podTemplate.setName(name);
-        podTemplate.setNamespace(
-                !isNullOrEmpty(template.getNamespace()) ? template.getNamespace() : parent.getNamespace());
+        podTemplate.setNamespace(h.resolve(PodTemplate::getNamespace, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setLabel(label);
-        podTemplate.setNodeSelector(nodeSelector);
-        podTemplate.setServiceAccount(serviceAccount);
-        podTemplate.setSchedulerName(schedulerName);
+        podTemplate.setNodeSelector(h.resolve(PodTemplate::getNodeSelector, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setServiceAccount(h.resolve(PodTemplate::getServiceAccount, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setSchedulerName(h.resolve(PodTemplate::getSchedulerName, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
@@ -547,50 +478,29 @@ public class PodTemplateUtils {
         podTemplate.setImagePullSecrets(new ArrayList<>(imagePullSecrets));
         podTemplate.setAnnotations(new ArrayList<>(podAnnotations));
         podTemplate.setNodeProperties(nodeProperties);
-        podTemplate.setNodeUsageMode(nodeUsageMode);
-        podTemplate.setYamlMergeStrategy(
-                template.getYamlMergeStrategy() == null && parent.isInheritYamlMergeStrategy()
-                        ? parent.getYamlMergeStrategy()
-                        : template.getYamlMergeStrategy());
+        podTemplate.setNodeUsageMode(
+                template.getNodeUsageMode() == null ? parent.getNodeUsageMode() : template.getNodeUsageMode());
+        podTemplate.setYamlMergeStrategy(h.resolve(
+                PodTemplate::getYamlMergeStrategy,
+                childValue -> childValue == null && parent.isInheritYamlMergeStrategy()));
         podTemplate.setInheritYamlMergeStrategy(parent.isInheritYamlMergeStrategy());
-        podTemplate.setInheritFrom(
-                !isNullOrEmpty(template.getInheritFrom()) ? template.getInheritFrom() : parent.getInheritFrom());
-
-        podTemplate.setInstanceCap(
-                template.getInstanceCap() != Integer.MAX_VALUE ? template.getInstanceCap() : parent.getInstanceCap());
-
-        podTemplate.setSlaveConnectTimeout(
-                template.getSlaveConnectTimeout() != PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT
-                        ? template.getSlaveConnectTimeout()
-                        : parent.getSlaveConnectTimeout());
-
-        podTemplate.setIdleMinutes(
-                template.getIdleMinutes() != 0 ? template.getIdleMinutes() : parent.getIdleMinutes());
-
+        podTemplate.setInheritFrom(h.resolve(PodTemplate::getInheritFrom, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setInstanceCap(h.resolve(PodTemplate::getInstanceCap, i -> Objects.equals(i, Integer.MAX_VALUE)));
+        podTemplate.setSlaveConnectTimeout(h.resolve(
+                PodTemplate::getSlaveConnectTimeout,
+                i -> Objects.equals(i, PodTemplate.DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT)));
+        podTemplate.setIdleMinutes(h.resolve(PodTemplate::getIdleMinutes, i -> Objects.equals(i, 0)));
         podTemplate.setActiveDeadlineSeconds(
-                template.getActiveDeadlineSeconds() != 0
-                        ? template.getActiveDeadlineSeconds()
-                        : parent.getActiveDeadlineSeconds());
-
-        podTemplate.setServiceAccount(
-                !isNullOrEmpty(template.getServiceAccount())
-                        ? template.getServiceAccount()
-                        : parent.getServiceAccount());
-
-        podTemplate.setSchedulerName(
-                !isNullOrEmpty(template.getSchedulerName()) ? template.getSchedulerName() : parent.getSchedulerName());
-
+                h.resolve(PodTemplate::getActiveDeadlineSeconds, i -> Objects.equals(i, 0)));
+        podTemplate.setServiceAccount(h.resolve(PodTemplate::getServiceAccount, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setSchedulerName(h.resolve(PodTemplate::getSchedulerName, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setPodRetention(template.getPodRetention());
-        podTemplate.setShowRawYaml(template.isShowRawYamlSet() ? template.isShowRawYaml() : parent.isShowRawYaml());
-
-        podTemplate.setRunAsUser(template.getRunAsUser() != null ? template.getRunAsUser() : parent.getRunAsUser());
-        podTemplate.setRunAsGroup(template.getRunAsGroup() != null ? template.getRunAsGroup() : parent.getRunAsGroup());
-
-        podTemplate.setSupplementalGroups(
-                template.getSupplementalGroups() != null
-                        ? template.getSupplementalGroups()
-                        : parent.getSupplementalGroups());
-
+        podTemplate.setShowRawYaml(h.resolve(PodTemplate::isShowRawYaml, v -> v));
+        podTemplate.setRunAsUser(h.resolve(PodTemplate::getRunAsUser, Objects::isNull));
+        podTemplate.setRunAsGroup(h.resolve(PodTemplate::getRunAsGroup, Objects::isNull));
+        podTemplate.setSupplementalGroups(h.resolve(PodTemplate::getSupplementalGroups, Objects::isNull));
+        podTemplate.setAgentContainer(h.resolve(PodTemplate::getAgentContainer, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setAgentInjection(h.resolve(PodTemplate::isAgentInjection, v -> !v));
         if (template.isHostNetworkSet()) {
             podTemplate.setHostNetwork(template.isHostNetwork());
         } else if (parent.isHostNetworkSet()) {
@@ -604,6 +514,33 @@ public class PodTemplateUtils {
 
         LOGGER.log(Level.FINEST, "Pod templates combined: {0}", podTemplate);
         return podTemplate;
+    }
+
+    /**
+     * Helps to resolve structure fields according to hierarchy.
+     */
+    private static class HierarchyResolver<P> {
+        private final P parent;
+        private final P child;
+
+        HierarchyResolver(P parent, P child) {
+            this.parent = parent;
+            this.child = child;
+        }
+
+        /**
+         * <p>Resolves a pod template field according to hierarchy.
+         * <p>If the child pod template uses a non-default value, then it is used.
+         * <p>Otherwise the parent value is used.
+         * @param getter the getter function to obtain the field value
+         * @param isDefaultValue A function to determine if the value is the default value
+         * @return The value for the field taking into account the hierarchy.
+         * @param <T> The field type
+         */
+        <T> T resolve(Function<P, T> getter, Predicate<T> isDefaultValue) {
+            var childValue = getter.apply(child);
+            return !isDefaultValue.test(childValue) ? childValue : getter.apply(parent);
+        }
     }
 
     /**
@@ -906,7 +843,11 @@ public class PodTemplateUtils {
     }
 
     public static boolean isNullOrEmpty(@Nullable String string) {
-        return string == null || string.length() == 0;
+        return string == null || string.isEmpty();
+    }
+
+    public static boolean isNullOrEmpty(@Nullable List<?> list) {
+        return list == null || list.isEmpty();
     }
 
     public static @Nullable String emptyToNull(@Nullable String string) {

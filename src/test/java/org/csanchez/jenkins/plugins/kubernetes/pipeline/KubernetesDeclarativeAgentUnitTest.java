@@ -51,6 +51,8 @@ public class KubernetesDeclarativeAgentUnitTest {
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setIdleMinutes(1);
         instance.setInheritFrom("inheritFrom");
+        instance.setAgentContainer("agentContainer");
+        instance.setAgentInjection(true);
         Map<String, Object> args = instance.getAsArgs();
 
         assertThat(args.get("cloud"), equalTo("cloud"));
@@ -60,6 +62,8 @@ public class KubernetesDeclarativeAgentUnitTest {
         assertThat(args.get("workspaceVolume"), equalTo(workspaceVolume));
         assertThat(args.get("idleMinutes"), equalTo(1));
         assertThat(args.get("inheritFrom"), equalTo("inheritFrom"));
+        assertThat(args.get("agentContainer"), equalTo("agentContainer"));
+        assertThat(args.get("agentInjection"), equalTo(true));
     }
 
     @Test

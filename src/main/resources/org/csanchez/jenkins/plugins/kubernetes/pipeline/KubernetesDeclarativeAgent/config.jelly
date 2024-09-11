@@ -12,6 +12,12 @@
   <f:entry field="inheritFrom" title="${%Pod template to inherit from}">
     <f:select/>
   </f:entry>
+  <f:entry field="agentContainer" title="${%Name of the container that will run the Jenkins agent}">
+    <f:textbox/>
+  </f:entry>
+  <f:entry field="agentInjection" title="${%Inject Jenkins agent in agent container}">
+    <f:checkbox/>
+  </f:entry>
 
   <f:entry field="yaml" title="${%Raw YAML for the Pod}">
     <f:textarea/>
