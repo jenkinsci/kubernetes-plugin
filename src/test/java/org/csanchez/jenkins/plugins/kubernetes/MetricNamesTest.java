@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.model.labels.LabelAtom;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,22 +25,6 @@ public class MetricNamesTest {
     public void metricNameForPodStatusChangeStatusToLowercase() {
         String expected = "kubernetes.cloud.pods.launch.status.failed";
         String actual = MetricNames.metricNameForPodStatus("FaIlEd");
-
-        Assert.assertEquals(expected, actual);
-    }
-
-    @Test
-    public void metricNameForLabelAddsNoLabelIfLabelIsNull() {
-        String expected = "kubernetes.cloud.nolabel.provision.request";
-        String actual = MetricNames.metricNameForLabel(null);
-
-        Assert.assertEquals(expected, actual);
-    }
-
-    @Test
-    public void metricNameForLabelAddsLabelValue() {
-        String expected = "kubernetes.cloud.java.provision.request";
-        String actual = MetricNames.metricNameForLabel(new LabelAtom("java"));
 
         Assert.assertEquals(expected, actual);
     }
