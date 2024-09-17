@@ -150,6 +150,27 @@ ovacsJACHC8VSwu0hEqevytqT7HH9E/DCMYORANJBZz5GyY=
       <waitForPodSec>600</waitForPodSec>
       <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
     </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
+    <org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud plugin="kubernetes@999999-SNAPSHOT">
+        <name>no-certificate-compliant-cloud</name>
+        <templates/>
+        <serverUrl>https://example.org</serverUrl>
+        <useJenkinsProxy>false</useJenkinsProxy>
+        <skipTlsVerify>false</skipTlsVerify>
+        <addMasterProxyEnvVars>false</addMasterProxyEnvVars>
+        <capOnlyOnAlivePods>false</capOnlyOnAlivePods>
+        <restrictedPssSecurityContext>false</restrictedPssSecurityContext>
+        <webSocket>false</webSocket>
+        <directConnection>false</directConnection>
+        <containerCap>10</containerCap>
+        <retentionTimeout>5</retentionTimeout>
+        <connectTimeout>5</connectTimeout>
+        <readTimeout>15</readTimeout>
+        <podLabels/>
+        <usageRestricted>false</usageRestricted>
+        <maxRequestsPerHost>32</maxRequestsPerHost>
+        <waitForPodSec>600</waitForPodSec>
+        <podRetention class="org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never"/>
+    </org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud>
   </clouds>
   <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
   <views>

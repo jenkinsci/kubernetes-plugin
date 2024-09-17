@@ -61,6 +61,10 @@ public class KubernetesCloudFIPSTest {
     @LocalData
     public void nonCompliantCloudsAreCleanedTest() {
         assertThat("compliant-cloud is loaded", r.jenkins.getCloud("compliant-cloud"), notNullValue());
+        assertThat(
+                "no certificate is a valid cloud",
+                r.jenkins.getCloud("no-certificate-compliant-cloud"),
+                notNullValue());
         assertThat("with-skip-tls is not loaded", r.jenkins.getCloud("with-skip-tls"), nullValue());
         assertThat("with-http-endpoint is not loaded", r.jenkins.getCloud("with-http-endpoint"), nullValue());
         assertThat("with-invalid-cert is not loaded", r.jenkins.getCloud("with-invalid-cert"), nullValue());
