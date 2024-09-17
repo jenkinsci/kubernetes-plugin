@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.model.Label;
 import java.util.Locale;
 
 public class MetricNames {
@@ -20,10 +19,5 @@ public class MetricNames {
     public static String metricNameForPodStatus(String status) {
         String formattedStatus = status == null ? "null" : status.toLowerCase(Locale.getDefault());
         return PREFIX + ".pods.launch.status." + formattedStatus;
-    }
-
-    public static String metricNameForLabel(Label label) {
-        String labelText = (label == null) ? "nolabel" : label.getDisplayName();
-        return String.format("%s.%s.provision.request", PREFIX, labelText);
     }
 }

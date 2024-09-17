@@ -252,10 +252,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 emptyIterable());
 
         assertTrue(Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).getCount() > 0);
-        assertTrue(Metrics.metricRegistry()
-                        .meter(MetricNames.metricNameForLabel(Label.parseExpression("runInPod")))
-                        .getCount()
-                > 0);
     }
 
     @Test

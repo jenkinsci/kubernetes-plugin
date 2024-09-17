@@ -2,7 +2,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isEmpty;
-import static org.csanchez.jenkins.plugins.kubernetes.MetricNames.metricNameForLabel;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -599,7 +598,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             @NonNull final Cloud.CloudState state, final int excessWorkload) {
         var limitRegistrationResults = new LimitRegistrationResults(this);
         try {
-            Metrics.metricRegistry().meter(metricNameForLabel(state.getLabel())).mark(excessWorkload);
             Label label = state.getLabel();
             // Planned nodes, will be launched on the next round of NodeProvisioner
             int plannedCapacity = state.getAdditionalPlannedCapacity();
