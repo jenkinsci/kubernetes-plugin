@@ -702,7 +702,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             return;
         }
         if (StringUtils.isBlank(serverCertificate)) {
-            throw new IllegalArgumentException(Messages.KubernetesCloud_serverCertificateKeyEmpty());
+            return; // JENKINS-73789, no certificate is accepted
         }
         try {
             PEMEncodable pem = PEMEncodable.decode(serverCertificate);
