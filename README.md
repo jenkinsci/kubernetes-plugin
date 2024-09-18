@@ -96,11 +96,9 @@ spin up the agent pod. The Jenkins agent runs by default in a container named `j
 
 You may use it, use a different agent container name and/or provide your own container image.
 
-To avoid drift between the Jenkins controller and your agent, we recommend *not* to include the agent JAR in your image, but instead use the *agent injection* checkbox.
+To avoid drift between the Jenkins controller and your agent, we recommend *not* to include the agent JAR in your image, but instead use the *Inject Jenkins agent in agent container* checkbox.
 
-We require a JRE in the provided container image that is compatible with the Jenkins controller version.
-
-For your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com).
+The provided container image must have a JRE installed that is compatible with the Java version required by the Jenkins controller.
 
 In the ‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
 Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
