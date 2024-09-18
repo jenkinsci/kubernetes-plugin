@@ -436,7 +436,7 @@ kind: Pod
 spec:
   containers:
   - name: maven
-    image: maven:3.8.1-jdk-8
+    image: maven:3.9.9-eclipse-temurin-17
     command:
     - sleep
     args:
@@ -471,29 +471,27 @@ See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod
 ## Overview
 
 A pod template may or may not inherit from an existing template.
-This means that the pod template will inherit node selector, service account, image pull secrets, container templates
-and volumes from the template it inherits from.
 
-**yaml** is merged according to the value of `yamlMergeStrategy`.
+Depending on fields, the inheritance behaviour can vary. For simple values (strings), the child template will override the parent template. However for complex values (lists, maps), the child template will merge with the parent template.
 
-**Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
-
-**Container templates** that are added to the podTemplate, that has a matching containerTemplate (a container template
+* **yaml** is merged according to the value of `yamlMergeStrategy` specified in the child pod template.
+* **Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
+* **Container templates** that are added to the podTemplate, that has a matching containerTemplate (a container template
 with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
 If no matching container template is found, the template is added as is.
-
-**Volume** inheritance works exactly as **Container templates**.
-
-**Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
+* **Volume** inheritance works exactly as **Container templates**.
+* **Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
 
 In the example below, we will inherit from a pod template we created previously, and will just override the version of
-`maven` so that it uses jdk-11 instead:
+`maven` so that it uses Java 21 instead:
 
-![image](images/mypod.png)
+![image](images/mypod-1-general.png)
+![image](images/mypod-2-golang.png)
+![image](images/mypod-3-maven.png)
 
 ```groovy
 podTemplate(inheritFrom: 'mypod', containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.8.1-jdk-11')
+    containerTemplate(name: 'maven', image: 'maven:3.9.9-eclipse-temurin-21')
   ]) {
   node(POD_LABEL) {
     …
@@ -512,7 +510,7 @@ pipeline {
       spec:
         containers:
         - name: maven
-          image: maven:3.8.1-jdk-11
+          image: maven:3.9.9-eclipse-temurin-21
 '''
       …
     }
@@ -529,22 +527,22 @@ Also, the `golang` container will be added as defined in the 'parent' template.
 
 ## Multiple Pod template inheritance
 
-Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will
+Field `inheritFrom` may refer a single pod template or multiple separated by space. In the later case each template will
 be processed in the order they appear in the list *(later items overriding earlier ones)*.
 In any case if the referenced template is not found it will be ignored.
 
 
 ## Nesting Pod templates
 
-Field `inheritFrom` provides an easy way to compose podTemplates that have been pre-configured. In many cases it would
-be useful to define and compose podTemplates directly in the pipeline using groovy.
+Field `inheritFrom` provides an easy way to compose pod templates that have been pre-configured. In many cases it would
+be useful to define and compose pod templates directly in the pipeline using groovy.
 This is made possible via nesting. You can nest multiple pod templates together in order to compose a single one.
 
 The example below composes two different pod templates in order to create one with maven and docker capabilities.
 
 ```groovy
-podTemplate(containers: [containerTemplate(image: 'docker', name: 'docker', command: 'cat', ttyEnabled: true)]) {
-    podTemplate(containers: [containerTemplate(image: 'maven', name: 'maven', command: 'cat', ttyEnabled: true)]) {
+podTemplate(containers: [containerTemplate(image: 'docker', name: 'docker', command: 'sleep', args: '99d')]) {
+    podTemplate(containers: [containerTemplate(image: 'maven', name: 'maven', command: 'sleep', args: '99d')]) {
       node(POD_LABEL) { // gets a pod with both docker and maven
         …
       }
@@ -627,7 +625,7 @@ pipeline {
         spec:
           containers:
           - name: maven
-            image: maven:alpine
+            image: maven:3.9.9-eclipse-temurin-17
             command:
             - cat
             tty: true
@@ -680,7 +678,7 @@ pipeline {
       //cloud 'kubernetes'
       containerTemplate {
         name 'maven'
-        image 'maven:3.8.1-jdk-8'
+        image 'maven:3.9.9-eclipse-temurin-17'
         command 'sleep'
         args '99d'
       }
@@ -769,7 +767,7 @@ pipeline {
                     spec:
                     containers:
                     - name: maven
-                      image: maven:3.8.1-jdk-8
+                      image: maven:3.9.9-eclipse-temurin-17
                       command:
                       - sleep
                       args:
@@ -938,7 +936,7 @@ spec:
     runAsUser: 1000 # default UID of jenkins user in agent image
   containers:
   - name: maven
-    image: maven:3.8.1-jdk-8
+    image: maven:3.9.9-eclipse-temurin-17
     command:
     - cat
     tty: true
