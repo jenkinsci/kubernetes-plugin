@@ -92,9 +92,15 @@ Feel free to enable it and provide feedback about this functionality.
 ## Static pod templates
 
 In addition to that, in the **Kubernetes Pod Template** section, we need to configure the image that will be used to 
-spin up the agent pod. We do not recommend overriding the `jnlp` container except under unusual circumstances. 
-For your agent, you can use the default Jenkins agent image available in [Docker Hub](https://hub.docker.com). In the
-‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
+spin up the agent pod. The Jenkins agent runs by default in a container named `jnlp` (historical name, kept for backward compatibility).
+
+You may use it, use a different agent container name and/or provide your own container image.
+
+To avoid drift between the Jenkins controller and your agent, we recommend *not* to include the agent JAR in your image, but instead use the *Inject Jenkins agent in agent container* checkbox.
+
+The provided container image must have a JRE installed that is compatible with the Java version required by the Jenkins controller.
+
+In the ‘Kubernetes Pod Template’ section you need to specify the following (the rest of the configuration is up to you):
 Kubernetes Pod Template Name - can be any and will be shown as a prefix for unique generated agent’ names, which will 
 be run automatically during builds
 Docker image - the docker image name that will be used as a reference to spin up a new Jenkins agent, as seen below
@@ -115,9 +121,13 @@ use this cloud configuration you will need to add it in the jobs folder's config
 # Usage
 ## Overview
 
-The Kubernetes plugin allocates Jenkins agents in Kubernetes pods. Within these pods, there is always one special
-container `jnlp` that is running the Jenkins agent. Other containers can run arbitrary processes of your choosing,
-and it is possible to run commands dynamically in any container in the agent pod. 
+The Kubernetes plugin allocates Jenkins agents in Kubernetes pods.
+
+Within these pods, there is always one special container that is running the Jenkins agent.
+
+Its name defaults to `jnlp`, but you can override the name with one of your choosing in pod template configuration.
+
+Other containers can run arbitrary processes of your choosing, and it is possible to run commands dynamically in any container in the agent pod using the `container` step (pipeline only). 
 
 ## Using a label
 
@@ -146,10 +156,9 @@ podTemplate {
 }
 ```
 
-Commands will be executed by default in the `jnlp` container, where the Jenkins agent is running.
-(The `jnlp` name is historical and is retained for compatibility.)
+Commands will be executed by default in the designated agent container, where the Jenkins agent is running.
 
-This will run in the `jnlp` container:
+This will run in the agent container:
 ```groovy
 podTemplate {
     node(POD_LABEL) {
@@ -162,7 +171,7 @@ podTemplate {
 
 Find more examples in the [examples dir](examples).
 
-The default jnlp agent image used can be customized by adding it to the template
+The default agent image used can be customized by adding it to the template
 
 ```groovy
 containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent', args: '${computer.jnlpmac} ${computer.name}'),
@@ -427,7 +436,7 @@ kind: Pod
 spec:
   containers:
   - name: maven
-    image: maven:3.8.1-jdk-8
+    image: maven:3.9.9-eclipse-temurin-17
     command:
     - sleep
     args:
@@ -462,29 +471,27 @@ See [Defining a liveness command](https://kubernetes.io/docs/tasks/configure-pod
 ## Overview
 
 A pod template may or may not inherit from an existing template.
-This means that the pod template will inherit node selector, service account, image pull secrets, container templates
-and volumes from the template it inherits from.
 
-**yaml** is merged according to the value of `yamlMergeStrategy`.
+Depending on fields, the inheritance behaviour can vary. For simple values (strings), the child template will override the parent template. However for complex values (lists, maps), the child template will merge with the parent template.
 
-**Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
-
-**Container templates** that are added to the podTemplate, that has a matching containerTemplate (a container template
+* **yaml** is merged according to the value of `yamlMergeStrategy` specified in the child pod template.
+* **Service account** and **Node selector** when are overridden completely substitute any possible value found on the 'parent'.
+* **Container templates** that are added to the podTemplate, that has a matching containerTemplate (a container template
 with the same name) in the 'parent' template, will inherit the configuration of the parent containerTemplate.
 If no matching container template is found, the template is added as is.
-
-**Volume** inheritance works exactly as **Container templates**.
-
-**Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
+* **Volume** inheritance works exactly as **Container templates**.
+* **Image Pull Secrets** are combined (all secrets defined both on 'parent' and 'current' template are used).
 
 In the example below, we will inherit from a pod template we created previously, and will just override the version of
-`maven` so that it uses jdk-11 instead:
+`maven` so that it uses Java 21 instead:
 
-![image](images/mypod.png)
+![image](images/mypod-1-general.png)
+![image](images/mypod-2-golang.png)
+![image](images/mypod-3-maven.png)
 
 ```groovy
 podTemplate(inheritFrom: 'mypod', containers: [
-    containerTemplate(name: 'maven', image: 'maven:3.8.1-jdk-11')
+    containerTemplate(name: 'maven', image: 'maven:3.9.9-eclipse-temurin-21')
   ]) {
   node(POD_LABEL) {
     …
@@ -503,7 +510,7 @@ pipeline {
       spec:
         containers:
         - name: maven
-          image: maven:3.8.1-jdk-11
+          image: maven:3.9.9-eclipse-temurin-21
 '''
       …
     }
@@ -520,22 +527,22 @@ Also, the `golang` container will be added as defined in the 'parent' template.
 
 ## Multiple Pod template inheritance
 
-Field `inheritFrom` may refer a single podTemplate or multiple separated by space. In the later case each template will
+Field `inheritFrom` may refer a single pod template or multiple separated by space. In the later case each template will
 be processed in the order they appear in the list *(later items overriding earlier ones)*.
 In any case if the referenced template is not found it will be ignored.
 
 
 ## Nesting Pod templates
 
-Field `inheritFrom` provides an easy way to compose podTemplates that have been pre-configured. In many cases it would
-be useful to define and compose podTemplates directly in the pipeline using groovy.
+Field `inheritFrom` provides an easy way to compose pod templates that have been pre-configured. In many cases it would
+be useful to define and compose pod templates directly in the pipeline using groovy.
 This is made possible via nesting. You can nest multiple pod templates together in order to compose a single one.
 
 The example below composes two different pod templates in order to create one with maven and docker capabilities.
 
 ```groovy
-podTemplate(containers: [containerTemplate(image: 'docker', name: 'docker', command: 'cat', ttyEnabled: true)]) {
-    podTemplate(containers: [containerTemplate(image: 'maven', name: 'maven', command: 'cat', ttyEnabled: true)]) {
+podTemplate(containers: [containerTemplate(image: 'docker', name: 'docker', command: 'sleep', args: '99d')]) {
+    podTemplate(containers: [containerTemplate(image: 'maven', name: 'maven', command: 'sleep', args: '99d')]) {
       node(POD_LABEL) { // gets a pod with both docker and maven
         …
       }
@@ -618,7 +625,7 @@ pipeline {
         spec:
           containers:
           - name: maven
-            image: maven:alpine
+            image: maven:3.9.9-eclipse-temurin-17
             command:
             - cat
             tty: true
@@ -671,7 +678,7 @@ pipeline {
       //cloud 'kubernetes'
       containerTemplate {
         name 'maven'
-        image 'maven:3.8.1-jdk-8'
+        image 'maven:3.9.9-eclipse-temurin-17'
         command 'sleep'
         args '99d'
       }
@@ -684,7 +691,7 @@ pipeline {
 ```
 
 Run steps within a container by default. Steps will be nested within an implicit `container(name) {...}` block instead
-of being executed in the jnlp container.
+of being executed in the agent container.
 
 ```groovy
 pipeline {
@@ -760,7 +767,7 @@ pipeline {
                     spec:
                     containers:
                     - name: maven
-                      image: maven:3.8.1-jdk-8
+                      image: maven:3.9.9-eclipse-temurin-17
                       command:
                       - sleep
                       args:
@@ -822,7 +829,7 @@ OpenShift runs containers using a _random_ UID that is overriding what is specif
 For this reason, you may end up with the following warning in your build
 
 ```
-[WARNING] HOME is set to / in the jnlp container. You may encounter troubles when using tools or ssh client. This usually happens if the uid doesnt have any entry in /etc/passwd. Please add a user to your Dockerfile or set the HOME environment variable to a valid directory in the pod template definition.
+[WARNING] HOME is set to / in the agent container. You may encounter troubles when using tools or ssh client. This usually happens if the uid doesnt have any entry in /etc/passwd. Please add a user to your Dockerfile or set the HOME environment variable to a valid directory in the pod template definition.
 ```
 
 At the moment the jenkinsci agent image is not built for OpenShift and will issue this warning.
@@ -846,18 +853,6 @@ beta.kubernetes.io/os=linux
 
 You can run pods on Windows if your cluster has Windows nodes.
 See the [example](src/main/resources/org/csanchez/jenkins/plugins/kubernetes/pipeline/samples/windows.groovy).
-
-# Constraints
-
-Multiple containers can be defined in a pod.
-One of them is automatically created with name `jnlp`, and runs the Jenkins JNLP agent service, with args `${computer.jnlpmac} ${computer.name}`,
-and will be the container acting as Jenkins agent.
-
-Other containers must run a long running process, so the container does not exit. If the default entrypoint or command
-just runs something and exit then it should be overridden with something like `cat` with `ttyEnabled: true`.
-
-**WARNING**
-If you want to provide your own Docker image for the inbound agent, you **must** name the container `jnlp` so it overrides the default one. Failing to do so will result in two agents trying to concurrently connect to the controller.
 
 # Configuration on minikube
 
@@ -931,7 +926,7 @@ touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt
 touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
 touch: /home/jenkins/agent/workspace/thejob@tmp/durable-e0b7cd27/jenkins-log.txt: Permission denied
 ```
-Usually this happens when UID of the user in `jnlp` container differs from the one in another container(s). 
+Usually this happens when UID of the user in agent container differs from the one in another container(s). 
 All containers you use should have the same UID of the user, also this can be achieved by setting `securityContext`:
 ```yaml
 apiVersion: v1
@@ -941,7 +936,7 @@ spec:
     runAsUser: 1000 # default UID of jenkins user in agent image
   containers:
   - name: maven
-    image: maven:3.8.1-jdk-8
+    image: maven:3.9.9-eclipse-temurin-17
     command:
     - cat
     tty: true
@@ -967,7 +962,7 @@ RUN keytool -noprompt -storepass changeit -cacerts \
 USER jenkins
 ```
 
-Then, use it as the `jnlp` container for the pod template as usual. No command or args need to be specified.
+Then, use it as the agent container for the pod template as usual. No command or args need to be specified.
 
 > **Notes:**
 >
