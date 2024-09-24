@@ -10,6 +10,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ProxyConfiguration;
 import hudson.Util;
+import hudson.model.ItemGroup;
 import hudson.security.ACL;
 import hudson.util.Secret;
 import io.fabric8.kubernetes.client.Config;
@@ -117,10 +118,35 @@ public class KubernetesFactoryAdapter {
             int maxRequestsPerHost,
             boolean useJenkinsProxy)
             throws KubernetesAuthException {
+        this(
+                serviceAddress,
+                namespace,
+                caCertData,
+                credentialsId,
+                Jenkins.get(),
+                skipTlsVerify,
+                connectTimeout,
+                readTimeout,
+                maxRequestsPerHost,
+                useJenkinsProxy);
+    }
+
+    public KubernetesFactoryAdapter(
+            String serviceAddress,
+            String namespace,
+            @CheckForNull String caCertData,
+            @CheckForNull String credentialsId,
+            @NonNull ItemGroup context,
+            boolean skipTlsVerify,
+            int connectTimeout,
+            int readTimeout,
+            int maxRequestsPerHost,
+            boolean useJenkinsProxy)
+            throws KubernetesAuthException {
         this.serviceAddress = serviceAddress;
         this.namespace = namespace;
         this.caCertData = decodeBase64IfNeeded(caCertData);
-        this.auth = AuthenticationTokens.convert(KubernetesAuth.class, resolveCredentials(credentialsId));
+        this.auth = AuthenticationTokens.convert(KubernetesAuth.class, resolveCredentials(credentialsId, context));
         this.skipTlsVerify = skipTlsVerify;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
@@ -248,16 +274,18 @@ public class KubernetesFactoryAdapter {
     }
 
     @CheckForNull
-    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId)
+    private static StandardCredentials resolveCredentials(@CheckForNull String credentialsId, @NonNull ItemGroup owner)
             throws KubernetesAuthException {
         if (credentialsId == null) {
             return null;
         }
+
         StandardCredentials c = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentialsInItemGroup(
-                        StandardCredentials.class, Jenkins.get(), ACL.SYSTEM2, Collections.emptyList()),
+                        StandardCredentials.class, owner, ACL.SYSTEM2, Collections.emptyList()),
                 CredentialsMatchers.allOf(
                         AuthenticationTokens.matcher(KubernetesAuth.class), CredentialsMatchers.withId(credentialsId)));
+
         if (c == null) {
             throw new KubernetesAuthException("No credentials found with id " + credentialsId);
         }
