@@ -1133,7 +1133,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         private static boolean hasPermission(AccessControlled owner) {
             if (owner instanceof Jenkins) {
                 // Regular cloud
-                return owner.hasPermission(Jenkins.MANAGE);
+                return owner.hasPermission(Jenkins.ADMINISTER);
             } else if (owner instanceof Item) {
                 // Shared cloud (CloudBees CI)
                 return owner.hasPermission(Item.CONFIGURE);
@@ -1150,7 +1150,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         private static void checkPermission(AccessControlled owner) {
             if (owner instanceof Jenkins) {
                 // Regular cloud
-                owner.checkPermission(Jenkins.MANAGE);
+                owner.checkPermission(Jenkins.ADMINISTER);
             } else if (owner instanceof Item) {
                 // Shared cloud (CloudBees CI)
                 owner.checkPermission(Item.CONFIGURE);
