@@ -22,7 +22,7 @@ For that some environment variables are automatically injected:
 * `JENKINS_NAME` : the name of the Jenkins agent (Deprecated. Only here for backwards compatibility)
 
 Tested with [`jenkins/inbound-agent`](https://hub.docker.com/r/jenkins/inbound-agent),
-see the [Docker image source code](https://github.com/jenkinsci/docker-inbound-agent).
+see the [Docker image source code](https://github.com/jenkinsci/docker-agent).
 
 It is not required to run the Jenkins controller inside Kubernetes.
 
