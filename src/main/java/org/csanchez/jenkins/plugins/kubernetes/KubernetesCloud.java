@@ -945,6 +945,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public FormValidation doTestConnection(
+                @AncestorInPath ItemGroup owner,
                 @QueryParameter String name,
                 @QueryParameter String serverUrl,
                 @QueryParameter String credentialsId,
@@ -953,9 +954,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 @QueryParameter String namespace,
                 @QueryParameter int connectionTimeout,
                 @QueryParameter int readTimeout,
-                @QueryParameter boolean useJenkinsProxy)
-                throws Exception {
-            Jenkins.get().checkPermission(Jenkins.MANAGE);
+                @QueryParameter boolean useJenkinsProxy) {
+
+            AccessControlled _context = (owner instanceof AccessControlled ? (AccessControlled) owner : Jenkins.get());
+
+            checkPermission(_context);
 
             if (StringUtils.isBlank(name)) return FormValidation.error("name is required");
 
@@ -964,6 +967,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                             namespace,
                             Util.fixEmpty(serverCertificate),
                             Util.fixEmpty(credentialsId),
+                            owner,
                             skipTlsVerify,
                             connectionTimeout,
                             readTimeout,
@@ -994,8 +998,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
         }) // used by jelly and already fixed jenkins security scan warning
-        public FormValidation doCheckSkipTlsVerify(@QueryParameter boolean skipTlsVerify) {
-            Jenkins.get().checkPermission(Jenkins.MANAGE);
+        public FormValidation doCheckSkipTlsVerify(
+                @AncestorInPath AccessControlled owner, @QueryParameter boolean skipTlsVerify) {
+            if (!hasPermission(owner)) {
+                return FormValidation.ok();
+            }
             try {
                 ensureSkipTlsVerifyInFipsMode(skipTlsVerify);
             } catch (IllegalArgumentException ex) {
@@ -1007,8 +1014,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings({"unused", "lgtm[jenkins/csrf]"
         }) // used by jelly and already fixed jenkins security scan warning
-        public FormValidation doCheckServerCertificate(@QueryParameter String serverCertificate) {
-            Jenkins.get().checkPermission(Jenkins.MANAGE);
+        public FormValidation doCheckServerCertificate(
+                @AncestorInPath AccessControlled owner, @QueryParameter String serverCertificate) {
+            if (!hasPermission(owner)) {
+                return FormValidation.ok();
+            }
             try {
                 ensureServerCertificateInFipsMode(serverCertificate);
             } catch (IllegalArgumentException ex) {
@@ -1019,8 +1029,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
-        public FormValidation doCheckServerUrl(@QueryParameter String serverUrl) {
-            Jenkins.get().checkPermission(Jenkins.MANAGE);
+        public FormValidation doCheckServerUrl(
+                @AncestorInPath AccessControlled owner, @QueryParameter String serverUrl) {
+            if (!hasPermission(owner)) {
+                return FormValidation.ok();
+            }
             try {
                 ensureKubernetesUrlInFipsMode(serverUrl);
             } catch (IllegalArgumentException ex) {
@@ -1032,13 +1045,13 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(
-                @AncestorInPath ItemGroup context, @QueryParameter String serverUrl) {
-            Jenkins.get().checkPermission(Jenkins.MANAGE);
+                @AncestorInPath ItemGroup owner, @QueryParameter String serverUrl) {
+            checkPermission((owner instanceof AccessControlled ? (AccessControlled) owner : Jenkins.get()));
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
             result.includeMatchingAs(
                     ACL.SYSTEM,
-                    context,
+                    owner,
                     StandardCredentials.class,
                     serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build() : Collections.EMPTY_LIST,
                     CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
@@ -1131,6 +1144,21 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                                 + Stapler.getCurrentRequest().getOriginalRequestURI()
                                 + "). Please report this issue to the plugin maintainers.");
                 return false;
+            }
+        }
+
+        private static void checkPermission(AccessControlled owner) {
+            if (owner instanceof Jenkins) {
+                // Regular cloud
+                owner.checkPermission(Jenkins.ADMINISTER);
+            } else if (owner instanceof Item) {
+                // Shared cloud (CloudBees CI)
+                owner.checkPermission(Item.CONFIGURE);
+            } else {
+                throw new IllegalArgumentException(
+                        "Unsupported owner type " + (owner == null ? "null" : owner.getClass()) + " (url: "
+                                + Stapler.getCurrentRequest().getOriginalRequestURI()
+                                + "). Please report this issue to the plugin maintainers.");
             }
         }
 
