@@ -331,13 +331,13 @@ public class PodTemplateBuilder {
         pod.getSpec().getContainers().stream()
                 .filter(c -> c.getWorkingDir() == null)
                 .forEach(c -> c.setWorkingDir(workingDir));
+        String agentImage = DEFAULT_AGENT_IMAGE;
+        if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
+            agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
+        } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+            agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
+        }
         if (StringUtils.isBlank(agentContainer.getImage())) {
-            String agentImage = DEFAULT_AGENT_IMAGE;
-            if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
-                agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
-            } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
-                agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
-            }
             agentContainer.setImage(agentImage);
         }
         Map<String, EnvVar> envVars = new HashMap<>();
@@ -352,7 +352,7 @@ public class PodTemplateBuilder {
             var oldInitContainers = pod.getSpec().getInitContainers();
             var jenkinsAgentInitContainer = new ContainerBuilder()
                     .withName("set-up-jenkins-agent")
-                    .withImage(DEFAULT_AGENT_IMAGE)
+                    .withImage(agentImage)
                     .withCommand(
                             "/bin/sh",
                             "-c",
