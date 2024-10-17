@@ -267,6 +267,34 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    @TestCaseName("{method}(directConnection={0})")
+    @Parameters({"true", "false"})
+    public void testValidateDockerRegistryPrefixOverrideForInitContainer(boolean directConnection) throws Exception {
+        cloud.setDirectConnection(directConnection);
+        DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX = "jenkins.docker.com/docker-hub";
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        template.setAgentContainer("busybox");
+        template.setAgentInjection(true);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        // check containers
+        Map<String, Container> containers = toContainerMap(pod);
+        assertEquals(1, containers.size());
+        Map<String, Container> initContainers = toInitContainerMap(pod);
+        assertEquals(1, initContainers.size());
+
+        assertEquals("busybox", containers.get("busybox").getImage());
+        assertEquals(
+                List.of("/jenkins-agent/jenkins-agent"),
+                containers.get("busybox").getCommand());
+        assertEquals(
+                DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX + "/" + DEFAULT_AGENT_IMAGE,
+                initContainers.get("set-up-jenkins-agent").getImage());
+        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
@@ -986,6 +1014,11 @@ public class PodTemplateBuilderTest {
 
     private Map<String, Container> toContainerMap(Pod pod) {
         return pod.getSpec().getContainers().stream()
+                .collect(Collectors.toMap(Container::getName, Function.identity()));
+    }
+
+    private Map<String, Container> toInitContainerMap(Pod pod) {
+        return pod.getSpec().getInitContainers().stream()
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
     }
 
