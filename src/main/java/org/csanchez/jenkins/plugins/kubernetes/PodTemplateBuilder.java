@@ -105,8 +105,7 @@ public class PodTemplateBuilder {
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
-    private static final String JENKINS_AGENT_AGENT_JAR = "/jenkins-agent/agent.jar";
-    private static final String JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION = "/jenkins-agent/jenkins-agent";
+    private static final String JENKINS_AGENT = "/jenkins-agent";
 
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
@@ -356,8 +355,8 @@ public class PodTemplateBuilder {
                     .withCommand(
                             "/bin/sh",
                             "-c",
-                            "cp $(command -v jenkins-agent) " + JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION + ";"
-                                    + "cp /usr/share/jenkins/agent.jar " + JENKINS_AGENT_AGENT_JAR)
+                            "cp $(command -v jenkins-agent) " + JENKINS_AGENT + "/jenkins-agent" + ";"
+                                    + "cp -R /usr/share/jenkins/. " + JENKINS_AGENT)
                     .withVolumeMounts(agentVolumeMountBuilder.build())
                     .build();
             if (oldInitContainers != null) {
@@ -390,13 +389,13 @@ public class PodTemplateBuilder {
                         List.of(agentVolumeMountBuilder.withReadOnly().build()));
             }
             agentContainer.setWorkingDir(DEFAULT_WORKING_DIR);
-            agentContainer.setCommand(List.of(JENKINS_AGENT_LAUNCHER_SCRIPT_LOCATION));
+            agentContainer.setCommand(List.of(JENKINS_AGENT + "/jenkins-agent"));
             agentContainer.setArgs(List.of());
             envVars.put(
                     JENKINS_AGENT_FILE_ENVVAR,
                     new EnvVarBuilder()
                             .withName(JENKINS_AGENT_FILE_ENVVAR)
-                            .withValue(JENKINS_AGENT_AGENT_JAR)
+                            .withValue(JENKINS_AGENT + "/agent.jar")
                             .build());
         }
         agentContainer.setEnv(new ArrayList<>(envVars.values()));
