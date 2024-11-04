@@ -128,7 +128,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
                 }
                 Set<String> terminationReasons =
                         ExtensionList.lookupSingleton(Reaper.class).terminationReasons(node);
-                if (terminationReasons.stream().allMatch(IGNORED_CONTAINER_TERMINATION_REASONS::contains)) {
+                if (!terminationReasons.isEmpty() && terminationReasons.stream().allMatch(IGNORED_CONTAINER_TERMINATION_REASONS::contains)) {
                     listener.getLogger()
                             .println("Ignored termination reason(s) for " + node + " for purposes of retry: "
                                     + terminationReasons);
