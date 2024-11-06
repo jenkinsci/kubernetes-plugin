@@ -45,6 +45,7 @@ public class CasCTest extends RoundTripAbstractTest {
         assertEquals(5, podTemplate.getIdleMinutes());
         assertEquals(66, podTemplate.getActiveDeadlineSeconds());
         assertNull(podTemplate.getYamlMergeStrategy());
+        assertFalse(podTemplate.isInheritYamlMergeStrategy());
         assertThat(podTemplate.getResolvedYamlMergeStrategy(), isA(Overrides.class));
         podTemplate = templates.get(1);
         assertFalse(podTemplate.isHostNetwork());
