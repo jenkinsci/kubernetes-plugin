@@ -22,6 +22,7 @@ jenkins:
                 requestsSize: "1"
                 storageClassName: "hostpath"
             yamlMergeStrategy: "override"
+            inheritYamlMergeStrategy: false
           - containers:
               - args: "cat"
                 command: "/bin/sh -c"
