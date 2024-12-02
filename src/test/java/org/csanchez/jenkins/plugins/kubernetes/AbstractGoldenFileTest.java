@@ -27,10 +27,10 @@ abstract class AbstractGoldenFileTest {
     protected void test(String name) throws IOException {
         var beforeYAML = loadFileAsStream(name + "-before.yaml");
         var before = Serialization.unmarshal(beforeYAML, Pod.class);
-        assertEquals(name + "-before.yaml is not normalized", beforeYAML, Serialization.asYaml(before));
+        assertEquals(name + "-before.yaml is not normalized", Serialization.asYaml(before), beforeYAML);
         var afterYAML = loadFileAsStream(name + "-after.yaml");
         var after = decorator.decorate(cloud, before);
-        assertEquals(name + "-after.yaml processed", afterYAML, Serialization.asYaml(after));
+        assertEquals(name + "-after.yaml processed", Serialization.asYaml(after), afterYAML);
     }
 
     @NonNull
