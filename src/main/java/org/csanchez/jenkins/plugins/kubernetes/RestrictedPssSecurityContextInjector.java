@@ -1,8 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.CapabilitiesBuilder;
+import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.SeccompProfileBuilder;
 import io.fabric8.kubernetes.api.model.SecurityContext;
@@ -45,35 +47,41 @@ public class RestrictedPssSecurityContextInjector implements PodDecorator {
                 LOGGER.warning("No spec found in the pod, skipping the security context update");
                 return pod;
             }
-            var containers = spec.getContainers();
-            if (containers != null) {
-                for (var container : containers) {
-                    var securityContext = container.getSecurityContext();
-                    if (securityContext == null) {
-                        securityContext = new SecurityContext();
-                        container.setSecurityContext(securityContext);
-                    }
-                    if (securityContext.getAllowPrivilegeEscalation() == null) {
-                        securityContext.setAllowPrivilegeEscalation(false);
-                    }
-                    if (securityContext.getRunAsNonRoot() == null) {
-                        securityContext.setRunAsNonRoot(true);
-                    }
-                    var seccompProfile = securityContext.getSeccompProfile();
-                    if (seccompProfile == null) {
-                        securityContext.setSeccompProfile(new SeccompProfileBuilder()
-                                .withType(SECCOMP_RUNTIME_DEFAULT)
-                                .build());
-                    }
-                    var capabilities = securityContext.getCapabilities();
-                    if (capabilities == null) {
-                        securityContext.setCapabilities(new CapabilitiesBuilder()
-                                .withDrop(List.of(CAPABILITIES_ALL))
-                                .build());
-                    }
-                }
-            }
+            secure(spec.getInitContainers());
+            secure(spec.getContainers());
         }
         return pod;
+    }
+
+    private static void secure(@CheckForNull List<Container> containers) {
+        if (containers != null) {
+            containers.forEach(RestrictedPssSecurityContextInjector::secure);
+        }
+    }
+
+    private static void secure(@NonNull Container container) {
+        var securityContext = container.getSecurityContext();
+        if (securityContext == null) {
+            securityContext = new SecurityContext();
+            container.setSecurityContext(securityContext);
+        }
+        if (securityContext.getAllowPrivilegeEscalation() == null) {
+            securityContext.setAllowPrivilegeEscalation(false);
+        }
+        if (securityContext.getRunAsNonRoot() == null) {
+            securityContext.setRunAsNonRoot(true);
+        }
+        var seccompProfile = securityContext.getSeccompProfile();
+        if (seccompProfile == null) {
+            securityContext.setSeccompProfile(new SeccompProfileBuilder()
+                    .withType(SECCOMP_RUNTIME_DEFAULT)
+                    .build());
+        }
+        var capabilities = securityContext.getCapabilities();
+        if (capabilities == null) {
+            securityContext.setCapabilities(new CapabilitiesBuilder()
+                    .withDrop(List.of(CAPABILITIES_ALL))
+                    .build());
+        }
     }
 }

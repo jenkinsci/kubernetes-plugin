@@ -1,0 +1,52 @@
+---
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  name: "simple"
+  namespace: "jenkins"
+spec:
+  containers:
+  - env:
+    - name: "JENKINS_SECRET"
+      value: "my-little-secret"
+    - name: "JENKINS_AGENT_NAME"
+      value: "my-lovely-agent"
+    - name: "REMOTING_OPTS"
+      value: "-noReconnectAfter 1d"
+    - name: "JENKINS_NAME"
+      value: "my-lovely-agent"
+    - name: "JENKINS_AGENT_WORKDIR"
+      value: "/home/jenkins/agent"
+    - name: "JENKINS_URL"
+      value: "http://localhost/"
+    image: "jenkins/inbound-agent"
+    name: "maven"
+    resources:
+      limits:
+        cpu: "1"
+        memory: "768Mi"
+      requests:
+        cpu: "1"
+        memory: "768Mi"
+    volumeMounts:
+    - mountPath: "/jenkins-agent"
+      name: "jenkins-agent"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  initContainers:
+  - command:
+    - "/bin/sh"
+    - "-c"
+    - "cp $(command -v jenkins-agent) /jenkins-agent/jenkins-agent;cp /usr/share/jenkins/agent.jar\
+      \ /jenkins-agent/agent.jar;sed -i 's!-jar .*agent.jar!-jar /jenkins-agent\\\
+      /agent.jar!' /jenkins-agent/jenkins-agent"
+    image: "jenkins/inbound-agent:3261.v9c670a_4748a_9-1"
+    name: "set-up-jenkins-agent"
+    volumeMounts:
+    - mountPath: "/jenkins-agent"
+      name: "jenkins-agent"
+  volumes:
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"

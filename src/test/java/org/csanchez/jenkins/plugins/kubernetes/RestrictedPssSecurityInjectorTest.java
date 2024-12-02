@@ -30,4 +30,9 @@ public class RestrictedPssSecurityInjectorTest extends AbstractGoldenFileTest {
     public void existingSecurityContext() throws IOException {
         test("existingSecurityContext");
     }
+
+    @Test
+    public void agentInjection() throws IOException {
+        test("agentInjection");
+    }
 }
