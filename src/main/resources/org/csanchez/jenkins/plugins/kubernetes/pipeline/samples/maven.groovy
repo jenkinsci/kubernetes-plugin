@@ -12,6 +12,11 @@ spec:
   - name: maven
     # In a real Jenkinsfile, it is recommended to pin to a specific version and use Dependabot or Renovate to bump it.
     image: maven:latest
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "512Mi"
     command:
     - sleep
     args:
