@@ -168,7 +168,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * namespace -> informer
      * Use to watch pod events per namespace.
      */
-    private final transient Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
+    private transient Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -1305,6 +1305,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
         if (containerCap != null && containerCap == 0) {
             containerCap = null;
+        }
+        if (informers == null) {
+            informers = new ConcurrentHashMap<>();
         }
         return this;
     }
