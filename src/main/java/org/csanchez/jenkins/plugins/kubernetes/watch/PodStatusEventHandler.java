@@ -36,7 +36,7 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
                 ((KubernetesSlave) found.get())
                         .getRunListener()
                         .getLogger()
-                        .println("[PodInfo] " + pod.getMetadata().getName() + sb);
+                        .println("[PodInfo] " + pod.getMetadata().getNamespace() + "/" + pod.getMetadata().getName() + sb);
             }
         } else {
             LOGGER.fine(() -> "Event received for non-existent node: ["
