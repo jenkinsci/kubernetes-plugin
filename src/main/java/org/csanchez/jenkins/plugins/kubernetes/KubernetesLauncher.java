@@ -42,6 +42,7 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +50,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,6 +59,7 @@ import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
+import org.csanchez.jenkins.plugins.kubernetes.watch.PodStatusEventHandler;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -72,6 +75,9 @@ public class KubernetesLauncher extends JNLPLauncher {
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
     private volatile boolean launched = false;
+
+    // namespace -> informer
+    private static final Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     /**
      * Provisioning exception if any.
@@ -144,6 +150,15 @@ public class KubernetesLauncher extends JNLPLauncher {
                     .findFirst()
                     .orElse(null);
             node.setNamespace(namespace);
+
+            // register a namespace informer (if not registered yet) show relevant pod events in build logs
+            if (informers.get(namespace) == null) {
+                SharedIndexInformer<Pod> inform = client.pods()
+                        .inNamespace(namespace)
+                        .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+                LOGGER.info("Registered informer to watch events on namespace: " + namespace);
+                informers.put(namespace, inform);
+            }
 
             // if the controller was interrupted after creating the pod but before it connected back, then
             // the pod might already exist and the creating logic must be skipped.
