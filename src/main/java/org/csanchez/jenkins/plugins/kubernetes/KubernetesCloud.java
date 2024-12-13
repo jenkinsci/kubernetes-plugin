@@ -29,6 +29,7 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.XStream2;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
@@ -53,9 +54,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
+
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.metrics.api.Metrics;
@@ -160,6 +164,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @CheckForNull
     private GarbageCollection garbageCollection;
+
+    /**
+     * namespace -> informer
+     * Use to watch pod events per namespace.
+     */
+    private final Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -920,6 +930,10 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         j.save();
         // take the user back.
         return FormApply.success("templates");
+    }
+
+    public Map<String, SharedIndexInformer<Pod>> getInformers() {
+        return informers;
     }
 
     @Extension

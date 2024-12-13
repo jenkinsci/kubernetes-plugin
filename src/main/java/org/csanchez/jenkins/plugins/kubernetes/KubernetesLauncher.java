@@ -27,6 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -48,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,9 +77,6 @@ public class KubernetesLauncher extends JNLPLauncher {
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
     private volatile boolean launched = false;
-
-    // namespace -> informer
-    private static final Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     /**
      * Provisioning exception if any.
@@ -152,11 +151,18 @@ public class KubernetesLauncher extends JNLPLauncher {
             node.setNamespace(namespace);
 
             // register a namespace informer (if not registered yet) show relevant pod events in build logs
+            Map<String, SharedIndexInformer<Pod>> informers = node.getKubernetesCloud().getInformers();
             if (informers.get(namespace) == null) {
+                Map<String, String> labelsFilter = new HashMap<>(node.getKubernetesCloud().getPodLabelsMap());
+                String jenkinsUrlLabel = sanitizeLabel(cloud.getJenkinsUrlOrNull());
+                if (jenkinsUrlLabel != null) {
+                    labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+                }
                 SharedIndexInformer<Pod> inform = client.pods()
                         .inNamespace(namespace)
+                        .withLabels(labelsFilter)
                         .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
-                LOGGER.info("Registered informer to watch events on namespace: " + namespace);
+                LOGGER.info(String.format("Registered informer to watch pod events on namespace [%s], with labels [%s]", namespace, labelsFilter));
                 informers.put(namespace, inform);
             }
 
