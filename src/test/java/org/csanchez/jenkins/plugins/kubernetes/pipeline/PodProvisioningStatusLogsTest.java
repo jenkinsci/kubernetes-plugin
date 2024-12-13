@@ -1,9 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.junit.Assert.assertNotNull;
+
 import hudson.model.Result;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
 
 public class PodProvisioningStatusLogsTest extends AbstractKubernetesPipelineTest {
 

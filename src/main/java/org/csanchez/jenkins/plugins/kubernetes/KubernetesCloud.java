@@ -33,6 +33,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -58,8 +59,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
-
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.bouncycastle.api.PEMEncodable;
 import jenkins.metrics.api.Metrics;

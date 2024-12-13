@@ -29,7 +29,9 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
         if (found.isPresent()) {
             final StringBuilder sb = new StringBuilder();
             pod.getStatus().getContainerStatuses().forEach(s -> sb.append(formatContainerStatus(s)));
-            pod.getStatus().getConditions().forEach(c -> sb.append(formatPodStatus(c, pod.getStatus().getPhase())));
+            pod.getStatus()
+                    .getConditions()
+                    .forEach(c -> sb.append(formatPodStatus(c, pod.getStatus().getPhase())));
             if (!sb.toString().isEmpty()) {
                 ((KubernetesSlave) found.get())
                         .getRunListener()
@@ -67,8 +69,7 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
         if (state.getWaiting() != null) {
             String message = state.getWaiting().getMessage();
             sb.append(String.format(
-                    " waiting [%s] %s",
-                    state.getWaiting().getReason(), message != null ? message : "No message"));
+                    " waiting [%s] %s", state.getWaiting().getReason(), message != null ? message : "No message"));
         }
         return sb.toString();
     }
