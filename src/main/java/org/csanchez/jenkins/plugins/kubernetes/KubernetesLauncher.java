@@ -149,25 +149,8 @@ public class KubernetesLauncher extends JNLPLauncher {
                     .orElse(null);
             node.setNamespace(namespace);
 
-            // register a namespace informer (if not registered yet) show relevant pod events in build logs
-            Map<String, SharedIndexInformer<Pod>> informers =
-                    node.getKubernetesCloud().getInformers();
-            if (informers.get(namespace) == null) {
-                Map<String, String> labelsFilter =
-                        new HashMap<>(node.getKubernetesCloud().getPodLabelsMap());
-                String jenkinsUrlLabel = sanitizeLabel(cloud.getJenkinsUrlOrNull());
-                if (jenkinsUrlLabel != null) {
-                    labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
-                }
-                SharedIndexInformer<Pod> inform = client.pods()
-                        .inNamespace(namespace)
-                        .withLabels(labelsFilter)
-                        .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
-                LOGGER.info(String.format(
-                        "Registered informer to watch pod events on namespace [%s], with labels [%s]",
-                        namespace, labelsFilter));
-                informers.put(namespace, inform);
-            }
+            // register a namespace informer (if not registered yet) to show relevant pod events in build logs
+            cloud.registerPodInformer(node, client, namespace);
 
             // if the controller was interrupted after creating the pod but before it connected back, then
             // the pod might already exist and the creating logic must be skipped.

@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isEmpty;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -51,11 +52,13 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -72,6 +75,7 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.watch.PodStatusEventHandler;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -931,10 +935,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return FormApply.success("templates");
     }
 
-    public Map<String, SharedIndexInformer<Pod>> getInformers() {
-        return informers;
-    }
-
     @Extension
     public static class DescriptorImpl extends Descriptor<Cloud> {
         @Override
@@ -1318,6 +1318,31 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         var newInstance = (KubernetesCloud) super.reconfigure(req, form);
         newInstance.setTemplates(this.templates);
         return newInstance;
+    }
+
+    public void registerPodInformer(KubernetesSlave node, KubernetesClient client, String namespace) {
+        if (informers.get(namespace) == null) {
+            synchronized (this) {
+                // sync recheck
+                if (informers.get(namespace) != null) {
+                    return;
+                }
+                Map<String, String> labelsFilter =
+                        new HashMap<>(node.getKubernetesCloud().getPodLabelsMap());
+                String jenkinsUrlLabel = sanitizeLabel(this.getJenkinsUrlOrNull());
+                if (jenkinsUrlLabel != null) {
+                    labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+                }
+                SharedIndexInformer<Pod> inform = client.pods()
+                        .inNamespace(namespace)
+                        .withLabels(labelsFilter)
+                        .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+                LOGGER.info(String.format(
+                        "Registered informer to watch pod events on namespace [%s], with labels [%s]",
+                        namespace, labelsFilter));
+                informers.put(namespace, inform);
+            }
+        }
     }
 
     @Extension
