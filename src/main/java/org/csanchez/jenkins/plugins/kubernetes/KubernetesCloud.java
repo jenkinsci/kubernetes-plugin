@@ -1326,11 +1326,13 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             try {
                 client = connect();
             } catch (KubernetesAuthException | IOException e) {
-                LOGGER.log(Level.WARNING, "Cannot connect to K8s cloud. Pod events will not be available in build logs.", e);
+                LOGGER.log(
+                        Level.WARNING,
+                        "Cannot connect to K8s cloud. Pod events will not be available in build logs.",
+                        e);
                 return null;
             }
-            Map<String, String> labelsFilter =
-                    new HashMap<>(getPodLabelsMap());
+            Map<String, String> labelsFilter = new HashMap<>(getPodLabelsMap());
             String jenkinsUrlLabel = sanitizeLabel(getJenkinsUrlOrNull());
             if (jenkinsUrlLabel != null) {
                 labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);

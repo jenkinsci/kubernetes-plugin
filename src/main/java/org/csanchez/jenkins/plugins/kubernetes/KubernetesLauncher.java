@@ -27,7 +27,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -43,13 +42,11 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +57,6 @@ import jenkins.metrics.api.Metrics;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
-import org.csanchez.jenkins.plugins.kubernetes.watch.PodStatusEventHandler;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
