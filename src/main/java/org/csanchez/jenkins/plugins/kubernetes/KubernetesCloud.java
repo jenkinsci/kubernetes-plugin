@@ -1320,29 +1320,30 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         return newInstance;
     }
 
-    public void registerPodInformer(KubernetesSlave node, KubernetesClient client, String namespace) {
-        if (informers.get(namespace) == null) {
-            synchronized (this) {
-                // sync recheck
-                if (informers.get(namespace) != null) {
-                    return;
-                }
-                Map<String, String> labelsFilter =
-                        new HashMap<>(node.getKubernetesCloud().getPodLabelsMap());
-                String jenkinsUrlLabel = sanitizeLabel(this.getJenkinsUrlOrNull());
-                if (jenkinsUrlLabel != null) {
-                    labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
-                }
-                SharedIndexInformer<Pod> inform = client.pods()
-                        .inNamespace(namespace)
-                        .withLabels(labelsFilter)
-                        .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
-                LOGGER.info(String.format(
-                        "Registered informer to watch pod events on namespace [%s], with labels [%s]",
-                        namespace, labelsFilter));
-                informers.put(namespace, inform);
+    public void registerPodInformer(KubernetesSlave node) {
+        informers.computeIfAbsent(namespace, (n) -> {
+            KubernetesClient client;
+            try {
+                client = connect();
+            } catch (KubernetesAuthException | IOException e) {
+                LOGGER.log(Level.WARNING, "Cannot connect to K8s cloud. Pod events will not be available in build logs.", e);
+                return null;
             }
-        }
+            Map<String, String> labelsFilter =
+                    new HashMap<>(getPodLabelsMap());
+            String jenkinsUrlLabel = sanitizeLabel(getJenkinsUrlOrNull());
+            if (jenkinsUrlLabel != null) {
+                labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+            }
+            SharedIndexInformer<Pod> inform = client.pods()
+                    .inNamespace(node.getNamespace())
+                    .withLabels(labelsFilter)
+                    .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+            LOGGER.info(String.format(
+                    "Registered informer to watch pod events on namespace [%s], with labels [%s] on cloud [%s]",
+                    namespace, labelsFilter, name));
+            return inform;
+        });
     }
 
     @Extension

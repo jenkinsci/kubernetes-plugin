@@ -150,7 +150,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             node.setNamespace(namespace);
 
             // register a namespace informer (if not registered yet) to show relevant pod events in build logs
-            cloud.registerPodInformer(node, client, namespace);
+            cloud.registerPodInformer(node);
 
             // if the controller was interrupted after creating the pod but before it connected back, then
             // the pod might already exist and the creating logic must be skipped.
