@@ -1321,7 +1321,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     }
 
     public void registerPodInformer(KubernetesSlave node) {
-        informers.computeIfAbsent(namespace, (n) -> {
+        informers.computeIfAbsent(node.getNamespace(), (n) -> {
             KubernetesClient client;
             try {
                 client = connect();
