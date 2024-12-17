@@ -31,7 +31,7 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
             pod.getStatus().getContainerStatuses().forEach(s -> sb.append(formatContainerStatus(s)));
             pod.getStatus()
                     .getConditions()
-                    .forEach(c -> sb.append(formatPodStatus(c, pod.getStatus().getPhase())));
+                    .forEach(c -> sb.append(formatPodStatus(c, pod.getStatus().getPhase(), sb)));
             if (!sb.toString().isEmpty()) {
                 ((KubernetesSlave) found.get())
                         .getRunListener()
@@ -45,12 +45,13 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
         }
     }
 
-    private String formatPodStatus(PodCondition c, String phase) {
+    private String formatPodStatus(PodCondition c, String phase, StringBuilder sb) {
         if (c.getReason() == null) {
             // not interesting
             return "";
         }
-        return String.format("%n\tPod [%s][%s] %s", phase, c.getReason(), c.getMessage());
+        String formatted = String.format("%n\tPod [%s][%s] %s", phase, c.getReason(), c.getMessage());
+        return sb.indexOf(formatted) == -1 ? formatted : "";
     }
 
     private String formatContainerStatus(ContainerStatus s) {
