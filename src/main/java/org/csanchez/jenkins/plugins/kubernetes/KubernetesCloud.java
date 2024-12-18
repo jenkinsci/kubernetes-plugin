@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang.StringUtils.isEmpty;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -29,9 +30,11 @@ import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.XStream2;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
+import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -49,10 +52,13 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -69,6 +75,7 @@ import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
+import org.csanchez.jenkins.plugins.kubernetes.watch.PodStatusEventHandler;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -160,6 +167,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @CheckForNull
     private GarbageCollection garbageCollection;
+
+    /**
+     * namespace -> informer
+     * Use to watch pod events per namespace.
+     */
+    private transient Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -1293,6 +1306,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (containerCap != null && containerCap == 0) {
             containerCap = null;
         }
+        if (informers == null) {
+            informers = new ConcurrentHashMap<>();
+        }
         return this;
     }
 
@@ -1302,6 +1318,34 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         var newInstance = (KubernetesCloud) super.reconfigure(req, form);
         newInstance.setTemplates(this.templates);
         return newInstance;
+    }
+
+    public void registerPodInformer(KubernetesSlave node) {
+        informers.computeIfAbsent(node.getNamespace(), (n) -> {
+            KubernetesClient client;
+            try {
+                client = connect();
+            } catch (KubernetesAuthException | IOException e) {
+                LOGGER.log(
+                        Level.WARNING,
+                        "Cannot connect to K8s cloud. Pod events will not be available in build logs.",
+                        e);
+                return null;
+            }
+            Map<String, String> labelsFilter = new HashMap<>(getPodLabelsMap());
+            String jenkinsUrlLabel = sanitizeLabel(getJenkinsUrlOrNull());
+            if (jenkinsUrlLabel != null) {
+                labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+            }
+            SharedIndexInformer<Pod> inform = client.pods()
+                    .inNamespace(node.getNamespace())
+                    .withLabels(labelsFilter)
+                    .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+            LOGGER.info(String.format(
+                    "Registered informer to watch pod events on namespace [%s], with labels [%s] on cloud [%s]",
+                    namespace, labelsFilter, name));
+            return inform;
+        });
     }
 
     @Extension
