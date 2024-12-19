@@ -172,7 +172,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * namespace -> informer
      * Use to watch pod events per namespace.
      */
-    private transient Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
+    private transient volatile Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -1306,9 +1306,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (containerCap != null && containerCap == 0) {
             containerCap = null;
         }
-        if (informers == null) {
-            informers = new ConcurrentHashMap<>();
-        }
         return this;
     }
 
@@ -1321,6 +1318,15 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     }
 
     public void registerPodInformer(KubernetesSlave node) {
+        // even having readResolve initializing informers is not enough, there are some special cases where XStream will
+        // not call it, so let us make sure it is initialized before using
+        if (informers == null) {
+            synchronized (this) {
+                if (informers == null) {
+                    informers = new ConcurrentHashMap<>();
+                }
+            }
+        }
         informers.computeIfAbsent(node.getNamespace(), (n) -> {
             KubernetesClient client;
             try {
