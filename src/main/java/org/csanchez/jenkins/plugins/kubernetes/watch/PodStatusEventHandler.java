@@ -50,7 +50,9 @@ public class PodStatusEventHandler implements ResourceEventHandler<Pod> {
             // not interesting
             return "";
         }
-        String formatted = String.format("%n\tPod [%s][%s] %s", phase, c.getReason(), c.getMessage());
+        String message = c.getMessage();
+        String formatted =
+                String.format("%n\tPod [%s][%s] %s", phase, c.getReason(), message != null ? message : "No message");
         return sb.indexOf(formatted) == -1 ? formatted : "";
     }
 
