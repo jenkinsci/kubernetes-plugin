@@ -49,6 +49,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     private String cloud;
 
     @CheckForNull
+    private String credentialsId;
+
+    @CheckForNull
     private String inheritFrom;
 
     private int idleMinutes;
@@ -148,6 +151,15 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     @DataBoundSetter
     public void setCloud(String cloud) {
         this.cloud = Util.fixEmpty(cloud);
+    }
+
+    public String getCredentialsId() {
+        return credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(String credentialsId) {
+        this.credentialsId = Util.fixEmpty(credentialsId);
     }
 
     public int getIdleMinutes() {
@@ -415,6 +427,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (!StringUtils.isEmpty(cloud)) {
             argMap.put("cloud", cloud);
         }
+        if (!StringUtils.isEmpty(credentialsId)) {
+            argMap.put("credentialsId", credentialsId);
+        }
         if (idleMinutes != 0) {
             argMap.put("idleMinutes", idleMinutes);
         }
@@ -481,7 +496,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         };
 
         public DescriptorImpl() {
-            for (String field : new String[] {"cloud", "label"}) {
+            for (String field : new String[] {"cloud", "credentialsId", "label"}) {
                 addHelpFileRedirect(field, PodTemplateStep.class, field);
             }
             for (String field : POD_TEMPLATE_FIELDS) {

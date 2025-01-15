@@ -44,6 +44,9 @@ public class PodTemplateStep extends Step implements Serializable {
     private String cloud;
 
     @CheckForNull
+    private String credentialsId;
+
+    @CheckForNull
     private String inheritFrom;
 
     @CheckForNull
@@ -151,6 +154,16 @@ public class PodTemplateStep extends Step implements Serializable {
     @DataBoundSetter
     public void setCloud(@CheckForNull String cloud) {
         this.cloud = Util.fixEmpty(cloud);
+    }
+
+    @CheckForNull
+    public String getCredentialsId() {
+        return credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(@CheckForNull String credentialsId) {
+        this.credentialsId = credentialsId;
     }
 
     @CheckForNull

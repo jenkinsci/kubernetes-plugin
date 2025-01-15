@@ -38,8 +38,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.properties.FolderCredentialsProvider;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.Domain;
 import hudson.ProxyConfiguration;
 import hudson.util.Secret;
 import io.fabric8.kubernetes.client.Config;
@@ -172,6 +177,34 @@ public class KubernetesFactoryAdapterTest {
     }
 
     @Test
+    @Issue("JENKINS-73872")
+    public void autoConfigWithAuthAndParent() throws Exception {
+        System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
+
+        // Create folder and store a credential in it
+        Folder folder = j.jenkins.createProject(Folder.class, "folder001");
+        StringCredentialsImpl tokenCredential = new StringCredentialsImpl(
+                CredentialsScope.GLOBAL, "sa-token", "some credentials", Secret.fromString("sa-token"));
+        getFolderStore(folder).addCredentials(Domain.global(), tokenCredential);
+
+        // Then directly instantiate KubernetesFactoryAdapter with given runtime credential and folder
+        // credential is automatically resolved when class is instantiated without Exceptions
+        KubernetesFactoryAdapter factory =
+                new KubernetesFactoryAdapter(null, null, null, "sa-token", folder, false, 15, 5, 12, true);
+        KubernetesClient client = factory.createClient();
+
+        assertEquals("test-namespace", client.getNamespace());
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] {NO_PROXY}, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertFalse(client.getConfiguration().getAutoConfigure());
+        assertEquals(KUBERNETES_MASTER_URL, client.getConfiguration().getMasterUrl());
+        assertEquals("sa-token", client.getConfiguration().getOauthToken());
+    }
+
+    @Test
     @Issue("JENKINS-70563")
     public void jenkinsProxyConfiguration() throws KubernetesAuthException {
 
@@ -227,5 +260,17 @@ public class KubernetesFactoryAdapterTest {
             assertArrayEquals(new String[] {".acme.com"}, configuration.getNoProxy());
             assertEquals("http://proxy.com:123", configuration.getHttpsProxy());
         }
+    }
+
+    private CredentialsStore getFolderStore(Folder f) {
+        Iterable<CredentialsStore> stores = CredentialsProvider.lookupStores(f);
+        CredentialsStore folderStore = null;
+        for (CredentialsStore s : stores) {
+            if (s.getProvider() instanceof FolderCredentialsProvider && s.getContext() == f) {
+                folderStore = s;
+                break;
+            }
+        }
+        return folderStore;
     }
 }

@@ -41,6 +41,7 @@ public class KubernetesDeclarativeAgentUnitTest {
     @Test
     public void serialization() throws Exception {
         instance.setCloud("cloud");
+        instance.setCredentialsId("credentialsId");
         instance.setLabel("label");
         instance.setYaml("yaml");
         instance.setYamlMergeStrategy(new Merge());
@@ -58,6 +59,7 @@ public class KubernetesDeclarativeAgentUnitTest {
         assertThat(args.get("cloud"), equalTo("cloud"));
         assertThat(args.get("label"), equalTo("label"));
         assertThat(args.get("yaml"), equalTo("yaml"));
+        assertThat(args.get("credentialsId"), equalTo("credentialsId"));
         assertThat(args.get("yamlMergeStrategy"), isA(Merge.class));
         assertThat(args.get("workspaceVolume"), equalTo(workspaceVolume));
         assertThat(args.get("idleMinutes"), equalTo(1));
@@ -74,6 +76,7 @@ public class KubernetesDeclarativeAgentUnitTest {
     @Test
     public void complexGenerator() throws Exception {
         instance.setCloud("cloud");
+        instance.setCredentialsId("credentialsId");
         instance.setYaml("yaml");
         instance.setYamlMergeStrategy(new Merge());
         DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume();
@@ -87,6 +90,7 @@ public class KubernetesDeclarativeAgentUnitTest {
                 directive,
                 "agent {\n" + "  kubernetes {\n"
                         + "    cloud 'cloud'\n"
+                        + "    credentialsId 'credentialsId'\n"
                         + "    inheritFrom 'inheritFrom'\n"
                         + "    podRetention never()\n"
                         + "    workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')\n"

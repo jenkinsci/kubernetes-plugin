@@ -63,6 +63,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     @Override
     public boolean start() throws Exception {
         KubernetesCloud cloud = resolveCloud(cloudName);
+        setRuntimeCredentialsId(cloud);
 
         Run<?, ?> run = getContext().get(Run.class);
         if (cloud.isUsageRestricted()) {
@@ -241,6 +242,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
     public void onResume() {
         try {
             KubernetesCloud cloud = resolveCloud(cloudName);
+            setRuntimeCredentialsId(cloud);
             TaskListener listener = getContext().get(TaskListener.class);
             newTemplate.setListener(listener);
             newTemplate.setRun(getContext().get(Run.class));
@@ -287,6 +289,26 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
                         e,
                         () -> "Unable to resolve cloud for " + podTemplate.getName()
                                 + ". Maybe the cloud was removed while running the build?");
+            }
+        }
+    }
+
+    private void setRuntimeCredentialsId(KubernetesCloud cloud) {
+        String credentialsId = this.step.getCredentialsId();
+        if (credentialsId != null) {
+            LOGGER.log(
+                    Level.INFO,
+                    "Custom credentialsId '" + credentialsId
+                            + "' configured through pipeline. Overriding global cloud credential");
+            cloud.setCredentialsId(credentialsId);
+            // Set folder as runtime context
+            try {
+                Run<?, ?> run = getContext().get(Run.class);
+                Job<?, ?> job = run.getParent(); // Return the associated Job for this Build
+                ItemGroup<?> parent = job.getParent(); // Get the Parent of the Job (which might be a Folder)
+                cloud.setRuntimeOwner(parent);
+            } catch (IOException | InterruptedException e) {
+                LOGGER.log(Level.WARNING, e, () -> "Unable to resolve folder context for this job");
             }
         }
     }

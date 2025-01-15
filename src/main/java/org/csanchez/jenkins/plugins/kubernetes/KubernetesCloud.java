@@ -146,6 +146,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @CheckForNull
     private String credentialsId;
 
+    private ItemGroup runtimeOwner;
     private Integer containerCap;
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
@@ -453,6 +454,19 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = Util.fixEmpty(credentialsId);
+    }
+
+    // No DataBoundSetter as this property is only optionally used during job execution
+    public void setRuntimeOwner(ItemGroup runtimeOwner) {
+        this.runtimeOwner = runtimeOwner;
+    }
+
+    public ItemGroup getRuntimeOwner() {
+        return runtimeOwner != null ? runtimeOwner : Jenkins.get();
+    }
+
+    public String getRuntimeOwnerStr() {
+        return runtimeOwner == null ? "" : runtimeOwner.getFullName();
     }
 
     public int getContainerCap() {
@@ -1248,6 +1262,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @Override
     public String toString() {
+        String runtimeOwner = this.getRuntimeOwner().getFullName();
         return "KubernetesCloud{name=" + name + ", defaultsProviderTemplate='"
                 + defaultsProviderTemplate + '\'' + ", serverUrl='"
                 + serverUrl + '\'' + ", serverCertificate='"
@@ -1259,7 +1274,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 + jnlpregistry + '\'' + ", jenkinsUrl='"
                 + jenkinsUrl + '\'' + ", jenkinsTunnel='"
                 + jenkinsTunnel + '\'' + ", credentialsId='"
-                + credentialsId + '\'' + ", webSocket="
+                + credentialsId + '\'' + ", runtimeOwner='"
+                + runtimeOwner + '\'' + ", webSocket="
                 + webSocket + ", containerCap="
                 + containerCap + ", retentionTimeout="
                 + retentionTimeout + ", connectTimeout="

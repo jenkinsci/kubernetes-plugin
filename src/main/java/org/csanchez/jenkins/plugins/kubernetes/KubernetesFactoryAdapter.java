@@ -21,6 +21,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
@@ -279,6 +280,7 @@ public class KubernetesFactoryAdapter {
         if (credentialsId == null) {
             return null;
         }
+        LOGGER.log(Level.INFO, "Resolving credential " + credentialsId + " on itemgroup " + owner.getFullName());
 
         StandardCredentials c = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentialsInItemGroup(

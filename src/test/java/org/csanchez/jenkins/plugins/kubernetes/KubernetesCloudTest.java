@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import hudson.model.ItemGroup;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -228,6 +229,8 @@ public class KubernetesCloudTest {
                     PropertyUtils.setProperty(cloud, property, Integer.valueOf(RandomUtils.nextInt()));
                 } else if (propertyType == boolean.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextBoolean());
+                } else if (propertyType == ItemGroup.class) {
+                    PropertyUtils.setProperty(cloud, property, null);
                 } else if (!objectProperties.contains(property)) {
                     fail("Unhandled field in copy constructor: " + property);
                 }
