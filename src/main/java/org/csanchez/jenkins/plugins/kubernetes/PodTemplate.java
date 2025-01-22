@@ -20,6 +20,7 @@ import hudson.util.FormApply;
 import hudson.util.XStream2;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringReader;
@@ -37,7 +38,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -54,7 +54,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.verb.POST;
 
 /**
@@ -691,7 +691,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @POST
-    public HttpResponse doConfigSubmit(StaplerRequest req, @AncestorInPath PodTemplateGroup owner)
+    public HttpResponse doConfigSubmit(StaplerRequest2 req, @AncestorInPath PodTemplateGroup owner)
             throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
         j.checkPermission(Jenkins.MANAGE);
@@ -705,7 +705,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         return FormApply.success(owner.getPodTemplateGroupUrl());
     }
 
-    private PodTemplate reconfigure(@NonNull final StaplerRequest req, JSONObject form)
+    private PodTemplate reconfigure(@NonNull final StaplerRequest2 req, JSONObject form)
             throws Descriptor.FormException {
         if (form == null) {
             return null;

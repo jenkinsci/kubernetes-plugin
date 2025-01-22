@@ -37,11 +37,9 @@ import hudson.util.DescribableList;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.jenkins.plugins.kubernetes.NoDelayProvisionerStrategy;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
@@ -118,12 +116,8 @@ public abstract class AbstractKubernetesPipelineTest {
      * to the method name within the pipeline definition.
      *
      * @return The scheduled pipeline run
-     * @throws IOException If something gets wrong when creating the pipeline job
-     * @throws ExecutionException If something went wrong while retrieving the run object
-     * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
      */
-    protected final WorkflowRun createJobThenScheduleRun()
-            throws IOException, ExecutionException, InterruptedException {
+    protected final WorkflowRun createJobThenScheduleRun() throws Exception {
         return createJobThenScheduleRun(null);
     }
 
@@ -136,12 +130,8 @@ public abstract class AbstractKubernetesPipelineTest {
      *
      * @param env an environment map to resolve in the pipeline script
      * @return The scheduled pipeline run
-     * @throws IOException If something gets wrong when creating the pipeline job
-     * @throws ExecutionException If something went wrong while retrieving the run object
-     * @throws InterruptedException If the thread gets interrupted while waiting for the run to start
      */
-    protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env)
-            throws IOException, ExecutionException, InterruptedException {
+    protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env) throws Exception {
         b = createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName(), env);
         p = b.getParent();
         return b;

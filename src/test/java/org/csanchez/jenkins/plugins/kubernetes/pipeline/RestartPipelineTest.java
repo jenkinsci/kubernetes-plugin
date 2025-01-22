@@ -35,7 +35,6 @@ import hudson.slaves.JNLPLauncher;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -352,8 +351,7 @@ public class RestartPipelineTest {
         });
     }
 
-    private WorkflowRun getPipelineJobThenScheduleRun(JenkinsRule r)
-            throws InterruptedException, ExecutionException, IOException {
+    private WorkflowRun getPipelineJobThenScheduleRun(JenkinsRule r) throws Exception {
         return createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName());
     }
 }

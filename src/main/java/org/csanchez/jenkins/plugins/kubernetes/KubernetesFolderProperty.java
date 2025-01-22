@@ -27,7 +27,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Provides folder level Kubernetes configuration.
@@ -73,7 +73,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
     }
 
     @Override
-    public AbstractFolderProperty<?> reconfigure(StaplerRequest req, JSONObject form) throws FormException {
+    public AbstractFolderProperty<?> reconfigure(StaplerRequest2 req, JSONObject form) throws FormException {
         // ignore modifications silently and return the unmodified object if the user
         // does not have the ADMINISTER Permission
         if (!userHasAdministerPermission()) {
@@ -200,7 +200,7 @@ public class KubernetesFolderProperty extends AbstractFolderProperty<AbstractFol
         @SuppressWarnings("unused") // Used by jelly
         @Restricted(DoNotUse.class)
         public List<UsagePermission> getEffectivePermissions() {
-            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest()
+            Set<String> inheritedClouds = getInheritedClouds(Stapler.getCurrentRequest2()
                     .findAncestorObject(AbstractFolder.class)
                     .getParent());
             List<UsagePermission> ps = getUsageRestrictedKubernetesClouds().stream()

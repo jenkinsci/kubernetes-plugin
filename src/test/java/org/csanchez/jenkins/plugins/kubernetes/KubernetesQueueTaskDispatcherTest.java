@@ -19,6 +19,7 @@ import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -59,14 +60,14 @@ public class KubernetesQueueTaskDispatcherTest {
         JSONObject json1 = new JSONObject();
         json1.element("usage-permission-A", true);
         json1.element("usage-permission-B", false);
-        folderA.addProperty(property1.reconfigure(null, json1));
+        folderA.addProperty(property1.reconfigure((StaplerRequest2) null, json1));
 
         KubernetesFolderProperty property2 = new KubernetesFolderProperty();
         folderB.addProperty(property2);
         JSONObject json2 = new JSONObject();
         json2.element("usage-permission-A", false);
         json2.element("usage-permission-B", true);
-        folderB.addProperty(property2.reconfigure(null, json2));
+        folderB.addProperty(property2.reconfigure((StaplerRequest2) null, json2));
 
         slaveA = new KubernetesSlave(
                 "A", new PodTemplate(), "testA", "A", "dockerA", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
