@@ -49,7 +49,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -293,13 +292,12 @@ public class KubernetesTestUtil {
     }
 
     public static WorkflowRun createPipelineJobThenScheduleRun(JenkinsRule r, Class cls, String methodName)
-            throws InterruptedException, ExecutionException, IOException {
+            throws Exception {
         return createPipelineJobThenScheduleRun(r, cls, methodName, null);
     }
 
     public static WorkflowRun createPipelineJobThenScheduleRun(
-            JenkinsRule r, Class cls, String methodName, Map<String, String> env)
-            throws IOException, ExecutionException, InterruptedException {
+            JenkinsRule r, Class cls, String methodName, Map<String, String> env) throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, generateProjectName(methodName));
         p.setDefinition(new CpsFlowDefinition(loadPipelineDefinition(cls, methodName, env), true));
         return p.scheduleBuild2(0).waitForStart();

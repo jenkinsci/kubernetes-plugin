@@ -6,7 +6,7 @@ properties([
 
 def splits
 stage('Determine splits') {
-    node('maven-11') {
+    node('maven-17') {
         checkout scm
         splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
     }
@@ -51,9 +51,9 @@ stage('Tests') {
             }
         }
     }
-    branches['jdk11'] = {
+    branches['jdk17'] = {
         retry(count: 3, conditions: [kubernetesAgent(handleNonKubernetes: true), nonresumable()]) {
-            node('maven-11') {
+            node('maven-17') {
                 timeout(60) {
                     checkout scm
                     sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'

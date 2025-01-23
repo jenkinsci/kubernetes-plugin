@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     public NonConfigurableKubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
@@ -26,7 +26,7 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     public void removeTemplate(PodTemplate template) {}
 
     @Override
-    public Cloud reconfigure(@NonNull StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+    public Cloud reconfigure(@NonNull StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
         return DescriptorImpl.class.cast(getDescriptor()).newInstance(req, form);
     }
 
@@ -54,12 +54,12 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
         }
 
         @Override
-        public boolean configure(StaplerRequest request, JSONObject object) throws Descriptor.FormException {
+        public boolean configure(StaplerRequest2 request, JSONObject object) throws Descriptor.FormException {
             return true;
         }
 
         @Override
-        public Cloud newInstance(StaplerRequest req, JSONObject formData) throws Descriptor.FormException {
+        public Cloud newInstance(StaplerRequest2 req, JSONObject formData) throws Descriptor.FormException {
             if (req != null) {
                 // We prevent the cloud reconfiguration from the web UI
                 String cloudName = req.getParameter("cloudName");

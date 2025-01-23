@@ -2,6 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Descriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -16,7 +17,8 @@ public class OpenShiftBearerTokenCredentialImpl
 
     @DataBoundConstructor
     public OpenShiftBearerTokenCredentialImpl(
-            CredentialsScope scope, String id, String description, String username, String password) {
+            CredentialsScope scope, String id, String description, String username, String password)
+            throws Descriptor.FormException {
         super(scope, id, description, username, password);
     }
 }
