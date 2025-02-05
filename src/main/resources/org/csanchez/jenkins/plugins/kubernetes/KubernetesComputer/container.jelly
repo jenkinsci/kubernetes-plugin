@@ -31,7 +31,7 @@ THE SOFTWARE.
       <div id="spinner">
         <l:progressAnimation />
       </div>
-      <t:progressiveText href="containerLog?containerId=${request.getParameter('name')}" idref="out" spinner="spinner" />
+      <t:progressiveText href="containerLog?containerId=${request2.getParameter('name')}" idref="out" spinner="spinner" />
     </l:main-panel>
   </l:layout>
 </j:jelly>
