@@ -22,7 +22,7 @@ THE SOFTWARE.
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <!-- with empty type attribute, takes full width space, works only because core doesn't provide a CSS "app-page-body-" -->
     <l:layout title="${it.name} - ${%Pod templates}"
-              type="${request.hasParameter('expand') ? 'full-screen' : 'two-column'}">
+              type="${request2.hasParameter('expand') ? 'full-screen' : 'two-column'}">
       <st:include page="sidepanel.jelly"/>
 
       <l:main-panel>
