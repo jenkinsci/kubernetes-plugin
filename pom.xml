@@ -46,7 +46,7 @@
     <jenkins.baseline>2.479</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <!-- TODO until in BOM -->
-    <pipeline-model-definition.version>2.2234.v4a_b_13b_8cd590</pipeline-model-definition.version>
+    <pipeline-model-definition.version>2.2236.va_b_88ceec798f</pipeline-model-definition.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
