@@ -519,7 +519,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         }
     }
 
-    @Extension
+    @Extension(optional = true)
     public static final class Compat implements CompatibilityLoader {
         @Override
         public URL loadGroovySource(String clazz) {
