@@ -3,7 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Label;
@@ -519,7 +518,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         }
     }
 
-    @Extension(optional = true)
+    @OptionalExtension(requirePlugins = "pipeline-model-extensions")
     public static final class Compat implements CompatibilityLoader {
         @Override
         public URL loadGroovySource(String clazz) {
