@@ -7,6 +7,7 @@ import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Label;
 import hudson.util.ListBoxModel;
+import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.DeclarativeAgentDescriptor;
 import org.jenkinsci.plugins.pipeline.modeldefinition.agent.RetryableDeclarativeAgent;
+import org.jenkinsci.plugins.pipeline.modeldefinition.parser.CompatibilityLoader;
 import org.jenkinsci.plugins.variant.OptionalExtension;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -513,6 +515,16 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
 
         public WorkspaceVolume getDefaultWorkspaceVolume() {
             return WorkspaceVolume.getDefault();
+        }
+    }
+
+    @OptionalExtension(requirePlugins = "pipeline-model-extensions")
+    public static final class Compat implements CompatibilityLoader {
+        @Override
+        public URL loadGroovySource(String clazz) {
+            return "org.csanchez.jenkins.plugins.kubernetes.pipeline.KubernetesDeclarativeAgentScript".equals(clazz)
+                    ? KubernetesDeclarativeAgent.class.getResource("KubernetesDeclarativeAgentScript-old.groovy")
+                    : null;
         }
     }
 }
