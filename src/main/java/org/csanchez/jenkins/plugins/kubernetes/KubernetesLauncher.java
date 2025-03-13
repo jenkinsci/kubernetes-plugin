@@ -328,7 +328,7 @@ public class KubernetesLauncher extends JNLPLauncher {
         }
         
         // Save the node outside the synchronized block to avoid deadlocks
-        if (launchComplete && node != null) {
+        if (launchComplete) {
             try {
                 // We need to persist the "launched" setting...
                 node.save();
