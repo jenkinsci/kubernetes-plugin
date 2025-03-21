@@ -47,11 +47,11 @@ THE SOFTWARE.
                     <j:forEach var="template" items="${it.templates}">
                         <tr id="template_${template.id}">
                         <td>
-                            <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">${template.name}</a>
+                            <a href="${it.getCloudUrl(request2,app,cloud)}template/${template.id}" class="jenkins-table__button">${template.name}</a>
                         </td>
                         <td class="jenkins-table__cell--tight">
                             <div class="jenkins-table__cell__button-wrapper">
-                                <a href="${it.getCloudUrl(request,app,cloud)}template/${template.id}" class="jenkins-table__button">
+                                <a href="${it.getCloudUrl(request2,app,cloud)}template/${template.id}" class="jenkins-table__button">
                                     <l:icon src="symbol-settings"/>
                                 </a>
                             </div>
