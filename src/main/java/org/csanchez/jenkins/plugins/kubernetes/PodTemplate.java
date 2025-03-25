@@ -2,7 +2,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -258,11 +257,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         recomputeLabelDerivedFields();
     }
 
-    @SuppressFBWarnings(
-            value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
-            justification = "Warning raised for the call to unmarshal. Ignoring as"
-                    + " it would require too many changes and uncertain "
-                    + "impact.")
     public PodTemplate(PodTemplate from) {
         XStream2 xs = new XStream2();
         xs.unmarshal(XStream2.getDefaultDriver().createReader(new StringReader(xs.toXML(from))), this);
@@ -276,10 +270,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         this(null, image, volumes);
     }
 
-    @SuppressFBWarnings(
-            value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
-            justification = "Warning raised for calling the getContainers method. As "
-                    + "this current method is deprecated anyway, it is " + "probably safer to not change it.")
     @Deprecated
     PodTemplate(String name, String image, List<? extends PodVolume> volumes) {
         this(name, volumes, Collections.emptyList());
@@ -367,9 +357,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @Deprecated
-    @SuppressFBWarnings(
-            value = "NM_CONFUSING",
-            justification = "Naming confusion with a getRemoteFS method, but the current one is deprecated.")
     public String getRemoteFs() {
         return getFirstContainer().map(ContainerTemplate::getWorkingDir).orElse(ContainerTemplate.DEFAULT_WORKING_DIR);
     }
@@ -851,7 +838,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     @NonNull
-    public List<ContainerTemplate> getContainers() {
+    public final List<ContainerTemplate> getContainers() {
         if (containers == null) {
             return Collections.emptyList();
         }

@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.BulkChange;
 import hudson.model.Run;
 import java.io.IOException;
@@ -31,7 +30,6 @@ public class PodTemplateAction extends AbstractInvisibleRunAction2 {
     }
 
     @Deprecated
-    @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
     public void push(String template) throws IOException {
         if (run == null) {
             LOGGER.warning("run is null, cannot push");

@@ -10,7 +10,6 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Main;
 import hudson.TcpSlaveAgentListener;
@@ -188,11 +187,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * @param source Source Kubernetes cloud implementation
      * @since 0.13
      */
-    @SuppressFBWarnings(
-            value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
-            justification = "Problem raised for calling unmarshal. Ignoring the "
-                    + "warning cause it leads to too many changes, with "
-                    + "unclear impact.")
     public KubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
         super(name);
         XStream2 xs = new XStream2();
@@ -592,7 +586,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      *
      * @return Kubernetes client.
      */
-    @SuppressFBWarnings({"IS2_INCONSISTENT_SYNC", "DC_DOUBLECHECK"})
     public KubernetesClient connect() throws KubernetesAuthException, IOException {
 
         LOGGER.log(Level.FINEST, "Building connection to Kubernetes {0} URL {1} namespace {2}", new String[] {
