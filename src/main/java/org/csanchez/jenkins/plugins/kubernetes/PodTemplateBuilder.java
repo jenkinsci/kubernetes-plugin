@@ -33,7 +33,6 @@ import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substitut
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.TcpSlaveAgentListener;
 import hudson.Util;
 import hudson.slaves.SlaveComputer;
@@ -107,7 +106,6 @@ public class PodTemplateBuilder {
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
     private static final String JENKINS_AGENT = "/jenkins-agent";
 
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "tests")
     @Restricted(NoExternalUse.class)
     static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX =
             System.getProperty(PodTemplateStepExecution.class.getName() + ".dockerRegistryPrefix");
