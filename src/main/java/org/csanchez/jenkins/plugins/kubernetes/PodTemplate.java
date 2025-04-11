@@ -678,14 +678,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
      */
     @POST
     public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup owner) throws IOException {
-        Jenkins j = Jenkins.get();
         if (owner == null) {
-            j.checkPermission(Jenkins.MANAGE);
             throw new IllegalStateException("Cloud could not be found");
-        } else {
-            owner.checkManagePermission();
         }
+        owner.checkManagePermission();
         owner.removeTemplate(this);
+        Jenkins j = Jenkins.get();
         j.save();
         // take the user back.
         return new HttpRedirect(owner.getPodTemplateGroupUrl());
@@ -694,15 +692,13 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @POST
     public HttpResponse doConfigSubmit(StaplerRequest2 req, @AncestorInPath PodTemplateGroup owner)
             throws IOException, ServletException, Descriptor.FormException {
-        Jenkins j = Jenkins.get();
         if (owner == null) {
-            j.checkPermission(Jenkins.MANAGE);
             throw new IllegalStateException("Cloud could not be found");
-        } else {
-            owner.checkManagePermission();
         }
+        owner.checkManagePermission();
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
         owner.replaceTemplate(this, newTemplate);
+        Jenkins j = Jenkins.get();
         j.save();
         // take the user back.
         return FormApply.success(owner.getPodTemplateGroupUrl());
