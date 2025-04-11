@@ -668,7 +668,9 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         StaplerRequest2 request = Stapler.getCurrentRequest2();
         if (request != null) {
             PodTemplateGroup groupFromRequest = request.findAncestorObject(PodTemplateGroup.class);
-            return groupFromRequest.hasManagePermission();
+            if(groupFromRequest!=null) {
+                return groupFromRequest.hasManagePermission();
+            };
         }
         return Jenkins.get().hasPermission(Jenkins.MANAGE);
     }
@@ -681,7 +683,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        owner.checkManagePermission();
         owner.removeTemplate(this);
         Jenkins j = Jenkins.get();
         j.save();
@@ -695,7 +696,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
-        owner.checkManagePermission();
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
         owner.replaceTemplate(this, newTemplate);
         Jenkins j = Jenkins.get();

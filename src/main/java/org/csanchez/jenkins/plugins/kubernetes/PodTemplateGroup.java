@@ -1,5 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.security.Permission;
 import org.springframework.security.access.AccessDeniedException;
 
 /**
@@ -29,6 +30,7 @@ public interface PodTemplateGroup {
      */
     String getPodTemplateGroupUrl();
 
+    Permission getManagePermission();
     /**
      * @return if the current Authentication has permissions to add / replace / remove templates.
      */

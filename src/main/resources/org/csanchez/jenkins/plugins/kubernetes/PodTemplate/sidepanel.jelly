@@ -26,7 +26,7 @@ THE SOFTWARE.
             <l:task href="" icon="symbol-settings"
                     title="${canManageTemplate ? '%Configure' : '%View Configuration'}"/>
             <j:if test="${!it.readonlyFromUi}">
-                <l:delete permission="${it.CONFIGURE}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
+                <l:delete permission="${it.getManagePermission()}" title="${%Delete Pod Template}" message="${%delete.template(it.name)}"/>
             </j:if>
             <t:actions />
         </l:tasks>

@@ -23,6 +23,7 @@ import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
+import hudson.security.Permission;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormApply;
@@ -738,18 +739,24 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @Override
     public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate) {
+        this.checkManagePermission();
         this.removeTemplate(oldTemplate);
         this.addTemplate(newTemplate);
     }
 
     @Override
     public boolean hasManagePermission() {
-        return Jenkins.get().hasPermission(Jenkins.MANAGE);
+        return Jenkins.get().hasPermission(getManagePermission());
     }
 
     @Override
     public void checkManagePermission() throws AccessDeniedException {
-        Jenkins.get().checkPermission(Jenkins.MANAGE);
+        Jenkins.get().checkPermission(getManagePermission());
+    }
+
+    @Override
+    public Permission getManagePermission() {
+        return Jenkins.MANAGE;
     }
 
     @Override
@@ -827,6 +834,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     @Override
     public void removeTemplate(PodTemplate t) {
+        this.checkManagePermission();
         this.templates.remove(t);
     }
 
@@ -1062,35 +1070,16 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(
-                @AncestorInPath AccessControlled owner, @QueryParameter String serverUrl) {
-            checkPermission((owner != null ? owner : Jenkins.get()));
+                @AncestorInPath ItemGroup owner, @QueryParameter String serverUrl) {
+            checkPermission((owner instanceof AccessControlled ? (AccessControlled) owner : Jenkins.get()));
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
-            if (owner instanceof Item ownerAsItem) {
-                result.includeMatchingAs(
-                        ACL.SYSTEM,
-                        ownerAsItem,
-                        StandardCredentials.class,
-                        serverUrl != null
-                                ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                : Collections.EMPTY_LIST,
-                        CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
-            } else if (owner instanceof ItemGroup ownerAsItemGroup) {
-                result.includeMatchingAs(
-                        ACL.SYSTEM,
-                        ownerAsItemGroup,
-                        StandardCredentials.class,
-                        serverUrl != null
-                                ? URIRequirementBuilder.fromUri(serverUrl).build()
-                                : Collections.EMPTY_LIST,
-                        CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
-            } else {
-                LOGGER.log(
-                        Level.WARNING,
-                        () -> "Unsupported owner type " + (owner == null ? "null" : owner.getClass()) + " (url: "
-                                + Stapler.getCurrentRequest2().getOriginalRequestURI()
-                                + "). Please report this issue to the plugin maintainers.");
-            }
+            result.includeMatchingAs(
+                    ACL.SYSTEM,
+                    owner,
+                    StandardCredentials.class,
+                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build() : Collections.EMPTY_LIST,
+                    CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
             return result;
         }
 
