@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest2;
+import org.springframework.security.access.AccessDeniedException;
 
 public class NonConfigurableKubernetesCloud extends KubernetesCloud {
     public NonConfigurableKubernetesCloud(@NonNull String name, @NonNull KubernetesCloud source) {
@@ -24,6 +25,14 @@ public class NonConfigurableKubernetesCloud extends KubernetesCloud {
 
     @Override
     public void removeTemplate(PodTemplate template) {}
+
+    @Override
+    public boolean hasManagePermission() {
+        return false;
+    }
+
+    @Override
+    public void checkManagePermission() throws AccessDeniedException {}
 
     @Override
     public Cloud reconfigure(@NonNull StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {

@@ -23,6 +23,7 @@ import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
+import hudson.security.Permission;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
 import hudson.util.FormApply;
@@ -90,6 +91,7 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Kubernetes cloud provider.
@@ -737,8 +739,24 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @Override
     public void replaceTemplate(PodTemplate oldTemplate, PodTemplate newTemplate) {
+        this.checkManagePermission();
         this.removeTemplate(oldTemplate);
         this.addTemplate(newTemplate);
+    }
+
+    @Override
+    public boolean hasManagePermission() {
+        return Jenkins.get().hasPermission(getManagePermission());
+    }
+
+    @Override
+    public void checkManagePermission() throws AccessDeniedException {
+        Jenkins.get().checkPermission(getManagePermission());
+    }
+
+    @Override
+    public Permission getManagePermission() {
+        return Jenkins.MANAGE;
     }
 
     @Override
@@ -816,6 +834,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     @Override
     public void removeTemplate(PodTemplate t) {
+        this.checkManagePermission();
         this.templates.remove(t);
     }
 
