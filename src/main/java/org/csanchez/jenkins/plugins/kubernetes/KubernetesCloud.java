@@ -90,6 +90,7 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Kubernetes cloud provider.
@@ -742,6 +743,16 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     }
 
     @Override
+    public boolean hasManagePermission() {
+        return Jenkins.get().hasPermission(Jenkins.MANAGE);
+    }
+
+    @Override
+    public void checkManagePermission() throws AccessDeniedException {
+        Jenkins.get().checkPermission(Jenkins.MANAGE);
+    }
+
+    @Override
     public boolean canProvision(@NonNull Cloud.CloudState state) {
         return getTemplate(state.getLabel()) != null;
     }
@@ -1051,16 +1062,35 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         @RequirePOST
         @SuppressWarnings("unused") // used by jelly
         public ListBoxModel doFillCredentialsIdItems(
-                @AncestorInPath ItemGroup owner, @QueryParameter String serverUrl) {
-            checkPermission((owner instanceof AccessControlled ? (AccessControlled) owner : Jenkins.get()));
+                @AncestorInPath AccessControlled owner, @QueryParameter String serverUrl) {
+            checkPermission((owner != null ? owner : Jenkins.get()));
             StandardListBoxModel result = new StandardListBoxModel();
             result.includeEmptyValue();
-            result.includeMatchingAs(
-                    ACL.SYSTEM,
-                    owner,
-                    StandardCredentials.class,
-                    serverUrl != null ? URIRequirementBuilder.fromUri(serverUrl).build() : Collections.EMPTY_LIST,
-                    CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
+            if (owner instanceof Item ownerAsItem) {
+                result.includeMatchingAs(
+                        ACL.SYSTEM,
+                        ownerAsItem,
+                        StandardCredentials.class,
+                        serverUrl != null
+                                ? URIRequirementBuilder.fromUri(serverUrl).build()
+                                : Collections.EMPTY_LIST,
+                        CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
+            } else if (owner instanceof ItemGroup ownerAsItemGroup) {
+                result.includeMatchingAs(
+                        ACL.SYSTEM,
+                        ownerAsItemGroup,
+                        StandardCredentials.class,
+                        serverUrl != null
+                                ? URIRequirementBuilder.fromUri(serverUrl).build()
+                                : Collections.EMPTY_LIST,
+                        CredentialsMatchers.anyOf(AuthenticationTokens.matcher(KubernetesAuth.class)));
+            } else {
+                LOGGER.log(
+                        Level.WARNING,
+                        () -> "Unsupported owner type " + (owner == null ? "null" : owner.getClass()) + " (url: "
+                                + Stapler.getCurrentRequest2().getOriginalRequestURI()
+                                + "). Please report this issue to the plugin maintainers.");
+            }
             return result;
         }
 

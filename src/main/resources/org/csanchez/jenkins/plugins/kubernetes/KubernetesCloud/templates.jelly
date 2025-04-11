@@ -29,12 +29,12 @@ THE SOFTWARE.
         <j:choose>
             <j:when test="${not empty it.templates}">
                 <l:app-bar title="${it.name} - ${%Pod templates}">
-                    <l:hasAdministerOrManage>
+                    <j:if test="${it.hasManagePermission()}">
                         <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
                             <l:icon src="symbol-add"/>
                             ${%Add a pod template}
                         </a>
-                    </l:hasAdministerOrManage>
+                    </j:if>
                 </l:app-bar>
                 <table id="templates" class="jenkins-table sortable">
                     <thead>
@@ -63,19 +63,21 @@ THE SOFTWARE.
             </j:when>
             <j:otherwise>
                 <l:app-bar title="${it.name} - ${%Pod templates}"/>
-                <div >
-                    <section>
-                        <div>
-                            <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
+                <j:if test="${it.hasManagePermission()}">
+                    <div >
+                        <section>
                             <div>
-                                <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
-                                    <l:icon src="symbol-add"/>
-                                    ${%Add a pod template}
-                                </a>
+                                <div class="jenkins-!-padding-bottom-3">No pod template added yet.</div>
+                                <div>
+                                    <a name="newTemplate" class="jenkins-button jenkins-button--primary" href="new">
+                                        <l:icon src="symbol-add"/>
+                                        ${%Add a pod template}
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-                    </section>
-                </div>
+                        </section>
+                    </div>
+                </j:if>
             </j:otherwise>
         </j:choose>
       </l:main-panel>
