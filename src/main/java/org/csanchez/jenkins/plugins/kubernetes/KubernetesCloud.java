@@ -823,6 +823,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     @Override
     public void addTemplate(PodTemplate t) {
+        this.checkManagePermission();
         this.templates.add(t);
         // t.parent = this;
     }

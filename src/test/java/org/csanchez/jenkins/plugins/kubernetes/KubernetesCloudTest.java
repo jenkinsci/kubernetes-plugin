@@ -1,10 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import hudson.model.User;
+import hudson.security.ACL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -35,6 +35,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 public class KubernetesCloudTest {
@@ -308,5 +309,42 @@ public class KubernetesCloudTest {
             }
         }
         return null;
+    }
+
+    @Test
+    public void authorization() throws Exception {
+        var securityRealm = j.createDummySecurityRealm();
+        j.jenkins.setSecurityRealm(securityRealm);
+        var authorizationStrategy = new MockAuthorizationStrategy();
+        authorizationStrategy.grant(Jenkins.ADMINISTER).everywhere().to("admin");
+        authorizationStrategy.grant(Jenkins.MANAGE).everywhere().to("manager");
+        authorizationStrategy.grant(Jenkins.READ).everywhere().to("user");
+        j.jenkins.setAuthorizationStrategy(authorizationStrategy);
+        j.jenkins.clouds.add(new KubernetesCloud("kubernetes"));
+        try (var ignored = ACL.as2(User.get("admin", true, Map.of()).impersonate2())) {
+            var pt = new PodTemplate("one");
+            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
+        }
+        try (var ignored = ACL.as2(User.get("user", true, Map.of()).impersonate2())) {
+            Exception exception = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
+                var pt = new PodTemplate();
+                j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
+            });
+            String expectedMessage = "user is missing the Overall/Administer permission";
+            String actualMessage = exception.getMessage();
+
+            assertTrue(actualMessage.contains(expectedMessage));
+            Exception exception2 = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
+                var pt = new PodTemplate("one");
+                j.jenkins.clouds.get(KubernetesCloud.class).removeTemplate(pt);
+            });
+            actualMessage = exception2.getMessage();
+
+            assertTrue(actualMessage.contains(expectedMessage));
+        }
+        try (var ignored = ACL.as2(User.get("manager", true, Map.of()).impersonate2())) {
+            var pt = new PodTemplate("one");
+            j.jenkins.clouds.get(KubernetesCloud.class).removeTemplate(pt);
+        }
     }
 }
