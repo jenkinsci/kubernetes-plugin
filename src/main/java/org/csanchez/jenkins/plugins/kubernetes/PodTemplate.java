@@ -685,7 +685,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             throw new IllegalStateException("Cloud could not be found");
         }
         Jenkins j = Jenkins.get();
-        j.checkPermission(owner.getManagePermission());
+        owner.checkManagePermission();
         owner.removeTemplate(this);
         j.save();
         // take the user back.
@@ -699,7 +699,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             throw new IllegalStateException("Cloud could not be found");
         }
         Jenkins j = Jenkins.get();
-        j.checkPermission(owner.getManagePermission());
+        owner.checkManagePermission();
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
         owner.replaceTemplate(this, newTemplate);
         j.save();
