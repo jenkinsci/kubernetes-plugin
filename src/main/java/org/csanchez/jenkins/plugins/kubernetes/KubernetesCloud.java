@@ -939,7 +939,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     public HttpResponse doCreate(StaplerRequest2 req, StaplerResponse2 rsp)
             throws IOException, ServletException, Descriptor.FormException {
         Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.MANAGE);
+        j.checkPermission(this.getManagePermission());
         PodTemplate newTemplate = getTemplateDescriptor().newInstance(req, req.getSubmittedForm());
         addTemplate(newTemplate);
         j.save();
