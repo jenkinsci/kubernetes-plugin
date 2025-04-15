@@ -329,7 +329,6 @@ public class KubernetesCloudTest {
             Exception exception = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
                 var pt = new PodTemplate();
                 j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
-                j.jenkins.clouds.get(KubernetesCloud.class).removeTemplate(pt);
             });
             String expectedMessage = "user is missing the Overall/Administer permission";
             String actualMessage = exception.getMessage();
@@ -342,11 +341,18 @@ public class KubernetesCloudTest {
             actualMessage = exception2.getMessage();
 
             assertTrue(actualMessage.contains(expectedMessage));
+
+            Exception exception3 = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
+                var pt = new PodTemplate("one");
+                var pt2 = new PodTemplate("two");
+                j.jenkins.clouds.get(KubernetesCloud.class).replaceTemplate(pt, pt2);
+            });
+            actualMessage = exception3.getMessage();
+            assertTrue(actualMessage.contains(expectedMessage));
         }
         try (var ignored = ACL.as2(User.get("manager", true, Map.of()).impersonate2())) {
             var pt = new PodTemplate("one");
             j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
-            j.jenkins.clouds.get(KubernetesCloud.class).removeTemplate(pt);
         }
     }
 }
