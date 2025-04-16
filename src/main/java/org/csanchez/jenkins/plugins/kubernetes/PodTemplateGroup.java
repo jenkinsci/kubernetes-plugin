@@ -1,4 +1,8 @@
 package org.csanchez.jenkins.plugins.kubernetes;
+
+import hudson.security.Permission;
+import org.springframework.security.access.AccessDeniedException;
+
 /**
  * A group of pod templates that can be saved together.
  */
@@ -25,4 +29,16 @@ public interface PodTemplateGroup {
      * @return the URL to redirect to after the template is saved.
      */
     String getPodTemplateGroupUrl();
+
+    Permission getManagePermission();
+    /**
+     * @return if the current Authentication has permissions to add / replace / remove templates.
+     */
+    boolean hasManagePermission();
+
+    /**
+     * Check that the current Authentication has sufficient permissions.
+     * @throws AccessDeniedException if access is denied for the current Authentication
+     */
+    void checkManagePermission() throws AccessDeniedException;
 }
