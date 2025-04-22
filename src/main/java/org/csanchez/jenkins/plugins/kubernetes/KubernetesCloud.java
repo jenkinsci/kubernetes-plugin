@@ -91,7 +91,6 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
-import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Kubernetes cloud provider.
