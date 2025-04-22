@@ -745,16 +745,6 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     }
 
     @Override
-    public boolean hasManagePermission() {
-        return Jenkins.get().hasPermission(getManagePermission());
-    }
-
-    @Override
-    public void checkManagePermission() throws AccessDeniedException {
-        Jenkins.get().checkPermission(getManagePermission());
-    }
-
-    @Override
     public Permission getManagePermission() {
         return Jenkins.MANAGE;
     }
