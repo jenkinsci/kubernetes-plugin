@@ -671,7 +671,6 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             if (groupFromRequest != null) {
                 return groupFromRequest.hasManagePermission();
             }
-            ;
         }
         return Jenkins.get().hasPermission(Jenkins.MANAGE);
     }
