@@ -3,6 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 
 /**
  * A group of pod templates that can be saved together.
@@ -31,17 +32,20 @@ public interface PodTemplateGroup {
      */
     String getPodTemplateGroupUrl();
 
+    /**
+     * @return The permission required to manage the templates in this group.
+     */
     Permission getManagePermission();
 
     /**
-     * @return if the current Authentication has permissions to add / replace / remove templates.
+     * @return {@code true} if the current {@link Authentication} has permissions to add / replace / remove templates.
      */
     default boolean hasManagePermission() {
         return Jenkins.get().hasPermission(getManagePermission());
     }
     /**
-     * Check that the current Authentication has sufficient permissions.
-     * @throws AccessDeniedException if access is denied for the current Authentication
+     * Checks whether the current {@link Authentication} has sufficient permissions to manage the templates in this group.
+     * @throws AccessDeniedException if access is denied for the current {@link Authentication}.
      */
     default void checkManagePermission() throws AccessDeniedException {
         Jenkins.get().checkPermission(getManagePermission());
