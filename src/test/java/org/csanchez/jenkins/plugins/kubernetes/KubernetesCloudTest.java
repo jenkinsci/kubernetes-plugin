@@ -1,10 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
+import hudson.security.AccessDeniedException3;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -33,8 +42,10 @@ import org.htmlunit.html.HtmlPage;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 public class KubernetesCloudTest {
@@ -308,5 +319,42 @@ public class KubernetesCloudTest {
             }
         }
         return null;
+    }
+
+    @Test
+    public void authorization() throws Exception {
+        var securityRealm = j.createDummySecurityRealm();
+        j.jenkins.setSecurityRealm(securityRealm);
+        var authorizationStrategy = new MockAuthorizationStrategy();
+        authorizationStrategy.grant(Jenkins.ADMINISTER).everywhere().to("admin");
+        authorizationStrategy.grant(Jenkins.MANAGE).everywhere().to("manager");
+        authorizationStrategy.grant(Jenkins.READ).everywhere().to("user");
+        j.jenkins.setAuthorizationStrategy(authorizationStrategy);
+        j.jenkins.clouds.add(new KubernetesCloud("kubernetes"));
+        var pt1 = new PodTemplate("one");
+        var pt2 = new PodTemplate("two");
+        try (var ignored = asUser("admin")) {
+            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
+        }
+        try (var ignored = asUser("user")) {
+            var expectedMessage = "user is missing the Overall/Administer permission";
+            var kubernetesCloud = j.jenkins.clouds.get(KubernetesCloud.class);
+            assertAccessDenied(() -> kubernetesCloud.addTemplate(new PodTemplate()), expectedMessage);
+            assertAccessDenied(() -> kubernetesCloud.removeTemplate(pt1), expectedMessage);
+            assertAccessDenied(() -> kubernetesCloud.replaceTemplate(pt1, pt2), expectedMessage);
+        }
+        try (var ignored = asUser("manager")) {
+            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
+        }
+    }
+
+    private static void assertAccessDenied(ThrowingRunnable throwingRunnable, String expectedMessage) {
+        assertThat(
+                assertThrows(AccessDeniedException3.class, throwingRunnable).getMessage(),
+                containsString(expectedMessage));
+    }
+
+    private static @NonNull ACLContext asUser(String admin) {
+        return ACL.as2(User.get(admin, true, Map.of()).impersonate2());
     }
 }
