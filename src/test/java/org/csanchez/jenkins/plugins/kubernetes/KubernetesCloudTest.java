@@ -1,9 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
+import hudson.security.AccessDeniedException3;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +42,7 @@ import org.htmlunit.html.HtmlPage;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -321,38 +331,30 @@ public class KubernetesCloudTest {
         authorizationStrategy.grant(Jenkins.READ).everywhere().to("user");
         j.jenkins.setAuthorizationStrategy(authorizationStrategy);
         j.jenkins.clouds.add(new KubernetesCloud("kubernetes"));
-        try (var ignored = ACL.as2(User.get("admin", true, Map.of()).impersonate2())) {
-            var pt = new PodTemplate("one");
-            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
+        var pt1 = new PodTemplate("one");
+        var pt2 = new PodTemplate("two");
+        try (var ignored = asUser("admin")) {
+            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
         }
-        try (var ignored = ACL.as2(User.get("user", true, Map.of()).impersonate2())) {
-            Exception exception = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
-                var pt = new PodTemplate();
-                j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
-            });
-            String expectedMessage = "user is missing the Overall/Administer permission";
-            String actualMessage = exception.getMessage();
-
-            assertTrue(actualMessage.contains(expectedMessage));
-            Exception exception2 = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
-                var pt = new PodTemplate("one");
-                j.jenkins.clouds.get(KubernetesCloud.class).removeTemplate(pt);
-            });
-            actualMessage = exception2.getMessage();
-
-            assertTrue(actualMessage.contains(expectedMessage));
-
-            Exception exception3 = assertThrows(hudson.security.AccessDeniedException3.class, () -> {
-                var pt = new PodTemplate("one");
-                var pt2 = new PodTemplate("two");
-                j.jenkins.clouds.get(KubernetesCloud.class).replaceTemplate(pt, pt2);
-            });
-            actualMessage = exception3.getMessage();
-            assertTrue(actualMessage.contains(expectedMessage));
+        try (var ignored = asUser("user")) {
+            var expectedMessage = "user is missing the Overall/Administer permission";
+            var kubernetesCloud = j.jenkins.clouds.get(KubernetesCloud.class);
+            assertAccessDenied(() -> kubernetesCloud.addTemplate(new PodTemplate()), expectedMessage);
+            assertAccessDenied(() -> kubernetesCloud.removeTemplate(pt1), expectedMessage);
+            assertAccessDenied(() -> kubernetesCloud.replaceTemplate(pt1, pt2), expectedMessage);
         }
-        try (var ignored = ACL.as2(User.get("manager", true, Map.of()).impersonate2())) {
-            var pt = new PodTemplate("one");
-            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt);
+        try (var ignored = asUser("manager")) {
+            j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
         }
+    }
+
+    private static void assertAccessDenied(ThrowingRunnable throwingRunnable, String expectedMessage) {
+        assertThat(
+                assertThrows(AccessDeniedException3.class, throwingRunnable).getMessage(),
+                containsString(expectedMessage));
+    }
+
+    private static @NonNull ACLContext asUser(String admin) {
+        return ACL.as2(User.get(admin, true, Map.of()).impersonate2());
     }
 }
