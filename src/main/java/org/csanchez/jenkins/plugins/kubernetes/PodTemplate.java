@@ -53,6 +53,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.verb.POST;
 
@@ -661,16 +662,29 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         }
     }
 
+    @SuppressWarnings("unused") // Used by jelly
+    @Restricted(DoNotUse.class) // Used by jelly
+    public boolean hasManagePermission() {
+        StaplerRequest2 request = Stapler.getCurrentRequest2();
+        if (request != null) {
+            PodTemplateGroup groupFromRequest = request.findAncestorObject(PodTemplateGroup.class);
+            if (groupFromRequest != null) {
+                return groupFromRequest.hasManagePermission();
+            }
+        }
+        return Jenkins.get().hasPermission(Jenkins.MANAGE);
+    }
+
     /**
      * Deletes the template.
      */
     @POST
     public HttpResponse doDoDelete(@AncestorInPath PodTemplateGroup owner) throws IOException {
-        Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.MANAGE);
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
+        Jenkins j = Jenkins.get();
+        owner.checkManagePermission();
         owner.removeTemplate(this);
         j.save();
         // take the user back.
@@ -680,11 +694,11 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @POST
     public HttpResponse doConfigSubmit(StaplerRequest2 req, @AncestorInPath PodTemplateGroup owner)
             throws IOException, ServletException, Descriptor.FormException {
-        Jenkins j = Jenkins.get();
-        j.checkPermission(Jenkins.MANAGE);
         if (owner == null) {
             throw new IllegalStateException("Cloud could not be found");
         }
+        Jenkins j = Jenkins.get();
+        owner.checkManagePermission();
         PodTemplate newTemplate = reconfigure(req, req.getSubmittedForm());
         owner.replaceTemplate(this, newTemplate);
         j.save();

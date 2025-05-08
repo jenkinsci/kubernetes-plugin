@@ -54,6 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
+import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
@@ -72,6 +73,9 @@ public class KubernetesLauncher extends JNLPLauncher {
     private static final Logger LOGGER = Logger.getLogger(KubernetesLauncher.class.getName());
 
     private volatile boolean launched = false;
+
+    private static final boolean DISABLE_DIAGNOSTIC_LOGS =
+            SystemProperties.getBoolean(KubernetesLauncher.class.getName() + ".disableDiagnosticLogs", false);
 
     /**
      * Provisioning exception if any.
@@ -146,7 +150,9 @@ public class KubernetesLauncher extends JNLPLauncher {
             node.setNamespace(namespace);
 
             // register a namespace informer (if not registered yet) to show relevant pod events in build logs
-            cloud.registerPodInformer(node);
+            if (!DISABLE_DIAGNOSTIC_LOGS) {
+                cloud.registerPodInformer(node);
+            }
 
             // if the controller was interrupted after creating the pod but before it connected back, then
             // the pod might already exist and the creating logic must be skipped.
