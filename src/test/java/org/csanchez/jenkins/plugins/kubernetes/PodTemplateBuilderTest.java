@@ -298,7 +298,7 @@ public class PodTemplateBuilderTest {
     @Issue("JENKINS-50525")
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
-        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(true));
+        template.setWorkspaceVolume(new EmptyDirWorkspaceVolume(true, "2G"));
         ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
         containerTemplate.setWorkingDir("");
         template.getContainers().add(containerTemplate);

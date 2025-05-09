@@ -28,12 +28,15 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import java.util.Objects;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 @SuppressFBWarnings(
         value = "SE_NO_SERIALVERSIONID",
@@ -46,9 +49,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
     @CheckForNull
     private Boolean memory;
 
+    private String requestsSize;
+
     @DataBoundConstructor
-    public EmptyDirWorkspaceVolume(Boolean memory) {
+    public EmptyDirWorkspaceVolume(Boolean memory, String requestsSize) {
         this.memory = memory;
+        this.requestsSize = requestsSize;
     }
 
     public String getMedium() {
@@ -60,14 +66,29 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         return memory != null && memory;
     }
 
+    @CheckForNull
+    public String getRequestsSize() {
+        return requestsSize;
+    }
+
+    @DataBoundSetter
+    public void setRequestsSize(@CheckForNull String requestsSize) {
+        this.requestsSize = Util.fixEmptyAndTrim(requestsSize);
+    }
+
     @Override
     public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewEmptyDir()
+                .withNewSizeLimit(getRequestsSizeOrDefault())
                 .withMedium(getMedium())
                 .endEmptyDir()
                 .build();
+    }
+
+    private String getRequestsSizeOrDefault() {
+        return StringUtils.defaultString(getRequestsSize(), "10Gi");
     }
 
     @Override
@@ -80,12 +101,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EmptyDirWorkspaceVolume that = (EmptyDirWorkspaceVolume) o;
-        return Objects.equals(memory, that.memory);
+        return Objects.equals(memory, that.memory) && Objects.equals(requestsSize, that.requestsSize);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memory);
+        return Objects.hash(memory, requestsSize);
     }
 
     @Extension

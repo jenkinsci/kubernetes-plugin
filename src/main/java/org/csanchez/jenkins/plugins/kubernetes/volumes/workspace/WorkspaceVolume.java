@@ -37,6 +37,7 @@ import java.io.Serializable;
 public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceVolume> implements Serializable {
 
     private static final long serialVersionUID = 5367004248055474414L;
+    private static String defaultRequestsSize = "1G";
 
     public static WorkspaceVolume merge(WorkspaceVolume parentWorkspaceVolume, WorkspaceVolume templateVolume) {
         // Only override parent if differ from the default
@@ -44,7 +45,7 @@ public abstract class WorkspaceVolume extends AbstractDescribableImpl<WorkspaceV
     }
 
     public static WorkspaceVolume getDefault() {
-        return new EmptyDirWorkspaceVolume(false);
+        return new EmptyDirWorkspaceVolume(false, defaultRequestsSize);
     }
 
     // Builds a Volume model with the given name.require podName to generate pvc name
