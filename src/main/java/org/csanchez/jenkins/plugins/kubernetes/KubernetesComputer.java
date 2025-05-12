@@ -155,9 +155,10 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         new LargeText(outputStream, false).doProgressText(req, rsp);
     }
 
+    // TODO delete after https://github.com/jenkinsci/jenkins/pull/10595
     @Override
     public String toString() {
-        return String.format("KubernetesComputer name: %s agent: %s", getName(), getNode());
+        return String.format("KubernetesComputer[%s]", getNode());
     }
 
     @Override
