@@ -49,12 +49,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
     @CheckForNull
     private Boolean memory;
 
+    @CheckForNull
     private String requestsSize;
 
     @DataBoundConstructor
-    public EmptyDirWorkspaceVolume(Boolean memory, String requestsSize) {
+    public EmptyDirWorkspaceVolume(Boolean memory) {
         this.memory = memory;
-        this.requestsSize = requestsSize;
     }
 
     public String getMedium() {
@@ -78,13 +78,22 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @Override
     public Volume buildVolume(String volumeName, String podName) {
-        return new VolumeBuilder()
-                .withName(volumeName)
-                .withNewEmptyDir()
-                .withNewSizeLimit(getRequestsSizeOrDefault())
-                .withMedium(getMedium())
-                .endEmptyDir()
-                .build();
+        if (requestsSize == null) {
+            return new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewEmptyDir()
+                    .withMedium(getMedium())
+                    .endEmptyDir()
+                    .build();
+        } else {
+            return new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewEmptyDir()
+                    .withNewSizeLimit(getRequestsSizeOrDefault())
+                    .withMedium(getMedium())
+                    .endEmptyDir()
+                    .build();
+        }
     }
 
     private String getRequestsSizeOrDefault() {
@@ -93,7 +102,7 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @Override
     public String toString() {
-        return "EmptyDirWorkspaceVolume [memory=" + memory + "]";
+        return "EmptyDirWorkspaceVolume [memory=" + memory + ", requestsSize=" + requestsSize + "]";
     }
 
     @Override

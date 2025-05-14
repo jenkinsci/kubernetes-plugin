@@ -49,7 +49,7 @@ public class PodTemplateStepTest {
         step.setWorkspaceVolume(new DynamicPVCWorkspaceVolume());
         st.assertRoundTrip(step, "podTemplate(workspaceVolume: dynamicPVC()) {\n    // some block\n}");
         step.setWorkspaceVolume(
-                new EmptyDirWorkspaceVolume(false, "2G")); // this is the default, it should not be in the snippet.
+                new EmptyDirWorkspaceVolume(false)); // this is the default, it should not be in the snippet.
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");
         DynamicPVCWorkspaceVolume workspaceVolume = new DynamicPVCWorkspaceVolume();
         workspaceVolume.setAccessModes("ReadWriteMany");
