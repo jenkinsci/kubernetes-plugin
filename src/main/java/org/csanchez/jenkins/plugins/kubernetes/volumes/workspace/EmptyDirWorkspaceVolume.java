@@ -28,12 +28,15 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import java.util.Objects;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 @SuppressFBWarnings(
         value = "SE_NO_SERIALVERSIONID",
@@ -45,6 +48,9 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @CheckForNull
     private Boolean memory;
+
+    @CheckForNull
+    private String sizeLimit;
 
     @DataBoundConstructor
     public EmptyDirWorkspaceVolume(Boolean memory) {
@@ -60,19 +66,36 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         return memory != null && memory;
     }
 
+    @CheckForNull
+    public String getSizeLimit() {
+        return sizeLimit;
+    }
+
+    @DataBoundSetter
+    public void setSizeLimit(@CheckForNull String sizeLimit) {
+        this.sizeLimit = Util.fixEmptyAndTrim(sizeLimit);
+    }
+
     @Override
     public Volume buildVolume(String volumeName, String podName) {
         return new VolumeBuilder()
                 .withName(volumeName)
                 .withNewEmptyDir()
                 .withMedium(getMedium())
+                .withSizeLimit(getSizeLimitAsQuantity())
                 .endEmptyDir()
                 .build();
     }
 
+    @CheckForNull
+    private Quantity getSizeLimitAsQuantity() {
+        var sizeLimit = getSizeLimit();
+        return sizeLimit == null ? null : new Quantity(sizeLimit);
+    }
+
     @Override
     public String toString() {
-        return "EmptyDirWorkspaceVolume [memory=" + memory + "]";
+        return "EmptyDirWorkspaceVolume [memory=" + memory + ", sizeLimit=" + sizeLimit + "]";
     }
 
     @Override
@@ -80,12 +103,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EmptyDirWorkspaceVolume that = (EmptyDirWorkspaceVolume) o;
-        return Objects.equals(memory, that.memory);
+        return Objects.equals(memory, that.memory) && Objects.equals(sizeLimit, that.sizeLimit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memory);
+        return Objects.hash(memory, sizeLimit);
     }
 
     @Extension
