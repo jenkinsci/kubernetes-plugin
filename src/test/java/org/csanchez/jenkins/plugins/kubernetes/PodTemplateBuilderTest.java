@@ -299,7 +299,7 @@ public class PodTemplateBuilderTest {
     public void testBuildWithCustomWorkspaceVolume() throws Exception {
         PodTemplate template = new PodTemplate();
         var workspaceVolume = new EmptyDirWorkspaceVolume(true);
-        workspaceVolume.setRequestsSize("1Gi");
+        workspaceVolume.setSizeLimit("1Gi");
         template.setWorkspaceVolume(workspaceVolume);
         ContainerTemplate containerTemplate = new ContainerTemplate("name", "image");
         containerTemplate.setWorkingDir("");

@@ -50,7 +50,7 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
     private Boolean memory;
 
     @CheckForNull
-    private String requestsSize;
+    private String sizeLimit;
 
     @DataBoundConstructor
     public EmptyDirWorkspaceVolume(Boolean memory) {
@@ -67,13 +67,13 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
     }
 
     @CheckForNull
-    public String getRequestsSize() {
-        return requestsSize;
+    public String getSizeLimit() {
+        return sizeLimit;
     }
 
     @DataBoundSetter
-    public void setRequestsSize(@CheckForNull String requestsSize) {
-        this.requestsSize = Util.fixEmptyAndTrim(requestsSize);
+    public void setSizeLimit(@CheckForNull String sizeLimit) {
+        this.sizeLimit = Util.fixEmptyAndTrim(sizeLimit);
     }
 
     @Override
@@ -82,20 +82,20 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
                 .withName(volumeName)
                 .withNewEmptyDir()
                 .withMedium(getMedium())
-                .withSizeLimit(getSizeLimit())
+                .withSizeLimit(getSizeLimitAsQuantity())
                 .endEmptyDir()
                 .build();
     }
 
     @CheckForNull
-    private Quantity getSizeLimit() {
-        var size = getRequestsSize();
-        return size == null ? null : new Quantity(size);
+    private Quantity getSizeLimitAsQuantity() {
+        var sizeLimit = getSizeLimit();
+        return sizeLimit == null ? null : new Quantity(sizeLimit);
     }
 
     @Override
     public String toString() {
-        return "EmptyDirWorkspaceVolume [memory=" + memory + ", requestsSize=" + requestsSize + "]";
+        return "EmptyDirWorkspaceVolume [memory=" + memory + ", sizeLimit=" + sizeLimit + "]";
     }
 
     @Override
@@ -103,12 +103,12 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EmptyDirWorkspaceVolume that = (EmptyDirWorkspaceVolume) o;
-        return Objects.equals(memory, that.memory) && Objects.equals(requestsSize, that.requestsSize);
+        return Objects.equals(memory, that.memory) && Objects.equals(sizeLimit, that.sizeLimit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memory, requestsSize);
+        return Objects.hash(memory, sizeLimit);
     }
 
     @Extension
