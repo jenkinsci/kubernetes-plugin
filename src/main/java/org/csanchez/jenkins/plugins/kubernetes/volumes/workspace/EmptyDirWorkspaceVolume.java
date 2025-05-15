@@ -30,11 +30,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
-import io.fabric8.kubernetes.api.model.EmptyDirVolumeSourceBuilder;
+import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import java.util.Objects;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -79,18 +78,19 @@ public class EmptyDirWorkspaceVolume extends WorkspaceVolume {
 
     @Override
     public Volume buildVolume(String volumeName, String podName) {
-        var emptyDirBuilder = new EmptyDirVolumeSourceBuilder().withMedium(getMedium());
-        if (requestsSize != null) {
-            emptyDirBuilder.withNewSizeLimit(getRequestsSizeOrDefault());
-        }
         return new VolumeBuilder()
                 .withName(volumeName)
-                .withEmptyDir(emptyDirBuilder.build())
+                .withNewEmptyDir()
+                .withMedium(getMedium())
+                .withSizeLimit(getSizeLimit())
+                .endEmptyDir()
                 .build();
     }
 
-    private String getRequestsSizeOrDefault() {
-        return StringUtils.defaultString(getRequestsSize(), "10Gi");
+    @CheckForNull
+    private Quantity getSizeLimit() {
+        var size = getRequestsSize();
+        return size == null ? null : new Quantity(size);
     }
 
     @Override
