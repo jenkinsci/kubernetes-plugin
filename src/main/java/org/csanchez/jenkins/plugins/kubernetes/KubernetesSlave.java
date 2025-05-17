@@ -34,7 +34,6 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -47,7 +46,6 @@ import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
-import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -302,19 +300,16 @@ public class KubernetesSlave extends AbstractCloudSlave {
     }
 
     static String getSlaveName(PodTemplate template) {
-        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
         String name = template.getName();
         if (StringUtils.isEmpty(name)) {
-            return String.format("%s-%s", DEFAULT_AGENT_PREFIX, randString);
+            name = DEFAULT_AGENT_PREFIX;
         }
-        // no spaces
-        name = name.replaceAll("[ _]", "-").toLowerCase(Locale.getDefault());
-        // keep it under 63 chars (62 is used to account for the '-')
-        name = name.substring(0, Math.min(name.length(), 62 - randString.length()));
-        String slaveName = String.format("%s-%s", name, randString);
-        if (!slaveName.matches("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*")) {
-            return String.format("%s-%s", DEFAULT_AGENT_PREFIX, randString);
+
+        String slaveName = PodUtils.createNameWithRandomSuffix(name);
+        if (!PodUtils.isValidName(slaveName)) {
+            slaveName = PodUtils.createNameWithRandomSuffix(DEFAULT_AGENT_PREFIX);
         }
+
         return slaveName;
     }
 
