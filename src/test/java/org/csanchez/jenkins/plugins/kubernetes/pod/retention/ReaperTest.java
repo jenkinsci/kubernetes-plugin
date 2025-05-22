@@ -892,11 +892,11 @@ public class ReaperTest {
         return new WatchEventBuilder()
                 .withType(Watcher.Action.ERROR.name())
                 .withType(Watcher.Action.ERROR.name())
-                .withObject(
-                        new StatusBuilder()
-                                .withCode(HttpURLConnection.HTTP_GONE)
-                                .withMessage(
-                                        "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]"))
+                .withObject(new StatusBuilder()
+                        .withCode(HttpURLConnection.HTTP_GONE)
+                        .withMessage(
+                                "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]")
+                        .build())
                 .build();
     }
 
@@ -905,7 +905,8 @@ public class ReaperTest {
                 .withType(Watcher.Action.ERROR.name())
                 .withObject(new StatusBuilder()
                         .withCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
-                        .withMessage("500: Internal error"))
+                        .withMessage("500: Internal error")
+                        .build())
                 .build();
     }
 
