@@ -148,6 +148,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
+      <version>193.vde6538624294</version>
     </dependency>
     <dependency>
       <!-- DeclarativeAgent -->
