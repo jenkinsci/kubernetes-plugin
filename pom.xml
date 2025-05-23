@@ -110,7 +110,8 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>7.2.0-255.v68c3eee00733</version>
+      <!-- TODO: Remove when in BOM -->
+      <version>7.3.1-256.vb_5a_891210a_75</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -148,7 +149,8 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>193.vde6538624294</version>
+      <!-- TODO: Remove when in BOM -->
+      <version>194.v50fb_108c0b_19</version>
     </dependency>
     <dependency>
       <!-- DeclarativeAgent -->
@@ -159,7 +161,7 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-server-mock</artifactId>
-      <version>7.2.0</version>
+      <version>7.3.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
