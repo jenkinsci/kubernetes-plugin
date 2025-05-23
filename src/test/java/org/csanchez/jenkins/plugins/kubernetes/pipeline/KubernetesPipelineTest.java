@@ -94,7 +94,6 @@ import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -941,9 +940,9 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @TestExtension("decoratorFailure")
     public static class DecoratorImpl implements PodDecorator {
-        @NotNull
+        @NonNull
         @Override
-        public Pod decorate(@NotNull KubernetesCloud kubernetesCloud, @NotNull Pod pod) {
+        public Pod decorate(@NonNull KubernetesCloud kubernetesCloud, @NonNull Pod pod) {
             throw new PodDecoratorException("I always fail");
         }
     }
