@@ -84,6 +84,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(Theories.class)
 public class PodTemplateUtilsTest {
@@ -1161,5 +1162,27 @@ public class PodTemplateUtilsTest {
 
         Pod result4 = combine(parent2, child2);
         assertTrue(result4.getSpec().getShareProcessNamespace());
+    }
+
+    @WithoutJenkins
+    @Test
+    public void testSplitCommandLine() {
+        assertNull(PodTemplateUtils.splitCommandLine(""));
+        assertNull(PodTemplateUtils.splitCommandLine(null));
+        assertEquals(List.of("bash"), PodTemplateUtils.splitCommandLine("bash"));
+        assertEquals(List.of("bash", "-c", "x y"), PodTemplateUtils.splitCommandLine("bash -c \"x y\""));
+        assertEquals(List.of("bash", "-c", "x y"), PodTemplateUtils.splitCommandLine("bash -c 'x y'"));
+        assertEquals(List.of("bash", "-c", "xy"), PodTemplateUtils.splitCommandLine("bash -c 'x''y'"));
+        assertEquals(
+                List.of("bash", "-c", "\"$folder\""), PodTemplateUtils.splitCommandLine("bash -c '\"'\"$folder\"'\"'"));
+        assertEquals(List.of("a", "b", "c", "d"), PodTemplateUtils.splitCommandLine("a b c d"));
+        assertEquals(List.of("docker", "info"), PodTemplateUtils.splitCommandLine("docker info"));
+        assertEquals(
+                List.of("echo", "I said: 'I am alive'"),
+                PodTemplateUtils.splitCommandLine("echo \"I said: 'I am alive'\""));
+        assertEquals(List.of("docker", "--version"), PodTemplateUtils.splitCommandLine("docker --version"));
+        assertEquals(
+                List.of("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080"),
+                PodTemplateUtils.splitCommandLine("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 }
