@@ -24,24 +24,32 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import static java.util.Map.entry;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import hudson.model.Descriptor;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.mockito.Mockito;
 
 /**
  * @author Carlos Sanchez
@@ -68,6 +76,91 @@ public class KubernetesSlaveTest {
         assertRegex(
                 KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)),
                 ("jenkins-agent-[0-9a-z]{5}"));
+    }
+
+    @Test
+    public void testGetPod() throws Exception {
+        Map<String, GetPodTestCase> testCases = Map.ofEntries(
+                entry("assigned", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    Pod p = new Pod();
+                    slave.assignPod(p);
+                    Optional<Pod> pod = slave.getPod();
+                    assertTrue(pod.isPresent());
+                    assertSame(p, pod.get());
+                    verify(cloud, never()).getPodResource(anyString(), anyString());
+                }),
+                entry("unassigned", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    Pod p = new Pod();
+                    doReturn(podResource).when(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                    when(podResource.get()).thenReturn(p);
+
+                    // test
+                    Optional<Pod> pod = slave.getPod();
+
+                    // verify
+                    assertTrue(pod.isPresent());
+                    assertSame(p, pod.get());
+                    verify(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                }),
+                entry("not found", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    doReturn(podResource).when(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                    when(podResource.get()).thenReturn(null);
+
+                    // test
+                    Optional<Pod> pod = slave.getPod();
+
+                    // verify
+                    assertTrue(pod.isEmpty());
+                    verify(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                }),
+                entry("auth failure", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    doThrow(KubernetesAuthException.class).when(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+
+                    // test
+                    Optional<Pod> pod = slave.getPod();
+
+                    // verify
+                    assertTrue(pod.isEmpty());
+                    verify(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                }),
+                entry("connect error", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    doThrow(IOException.class).when(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+
+                    // test
+                    Optional<Pod> pod = slave.getPod();
+
+                    // verify
+                    assertTrue(pod.isEmpty());
+                    verify(cloud).getPodResource(eq("bar"), startsWith("foo-"));
+                }),
+                entry("cloud not found", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
+                    r.jenkins.clouds.clear();
+
+                    // test
+                    Optional<Pod> pod = slave.getPod();
+
+                    // verify
+                    assertTrue(pod.isEmpty());
+                    verify(cloud, never()).getPodResource(eq("bar"), startsWith("foo-"));
+                }));
+
+        for (Map.Entry<String, GetPodTestCase> testCase : testCases.entrySet()) {
+            KubernetesCloud cloud = Mockito.spy(new KubernetesCloud("kube"));
+            PodResource podResource = Mockito.mock(PodResource.class);
+            PodTemplate podTemplate = new PodTemplate("foo", Collections.emptyList(), Collections.emptyList());
+            KubernetesSlave slave = new KubernetesSlave.Builder()
+                    .podTemplate(podTemplate)
+                    .cloud(cloud)
+                    .build();
+            slave.setNamespace("bar");
+            r.jenkins.clouds.clear();
+            r.jenkins.clouds.add(cloud);
+            testCase.getValue().test(cloud, slave, podResource);
+        }
+    }
+
+    private interface GetPodTestCase {
+        void test(KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) throws Exception;
     }
 
     @Test
