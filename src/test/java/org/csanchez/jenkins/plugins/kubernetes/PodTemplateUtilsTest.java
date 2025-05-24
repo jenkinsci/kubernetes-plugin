@@ -26,6 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder.parseLivenessProbe;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.parseFromYaml;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
@@ -84,6 +85,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 
 @RunWith(Theories.class)
 public class PodTemplateUtilsTest {
@@ -1161,5 +1163,25 @@ public class PodTemplateUtilsTest {
 
         Pod result4 = combine(parent2, child2);
         assertTrue(result4.getSpec().getShareProcessNamespace());
+    }
+
+    @WithoutJenkins
+    @Test
+    public void testSplitCommandLine() {
+        assertNull(PodTemplateUtils.splitCommandLine(""));
+        assertNull(PodTemplateUtils.splitCommandLine(null));
+        assertEquals(List.of("bash"), PodTemplateUtils.splitCommandLine("bash"));
+        assertEquals(List.of("bash", "-c", "x y"), PodTemplateUtils.splitCommandLine("bash -c \"x y\""));
+        assertEquals(List.of("bash", "-c", "x y"), PodTemplateUtils.splitCommandLine("bash -c 'x y'"));
+        assertEquals(List.of("bash", "-c", "xy"), PodTemplateUtils.splitCommandLine("bash -c 'x''y'"));
+        assertEquals(
+                List.of("bash", "-c", "\"$folder\""), PodTemplateUtils.splitCommandLine("bash -c '\"'\"$folder\"'\"'"));
+        assertEquals(List.of("a", "b", "c", "d"), PodTemplateUtils.splitCommandLine("a b c d"));
+        assertEquals(List.of("docker", "info"), parseLivenessProbe("docker info"));
+        assertEquals(List.of("echo", "I said: 'I am alive'"), parseLivenessProbe("echo \"I said: 'I am alive'\""));
+        assertEquals(List.of("docker", "--version"), parseLivenessProbe("docker --version"));
+        assertEquals(
+                List.of("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080"),
+                parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 }

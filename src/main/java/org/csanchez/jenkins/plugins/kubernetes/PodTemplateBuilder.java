@@ -95,8 +95,6 @@ public class PodTemplateBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateBuilder.class.getName());
 
-    private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
-
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
@@ -623,16 +621,7 @@ public class PodTemplateBuilder {
      */
     @Restricted(NoExternalUse.class)
     static List<String> parseDockerCommand(String dockerCommand) {
-        if (dockerCommand == null || dockerCommand.isEmpty()) {
-            return null;
-        }
-        // handle quoted arguments
-        Matcher m = SPLIT_IN_SPACES.matcher(dockerCommand);
-        List<String> commands = new ArrayList<String>();
-        while (m.find()) {
-            commands.add(substituteEnv(m.group(1).replace("\"", "")));
-        }
-        return commands;
+        return PodTemplateUtils.splitCommandLine(dockerCommand);
     }
 
     /**
@@ -643,16 +632,7 @@ public class PodTemplateBuilder {
      */
     @Restricted(NoExternalUse.class)
     static List<String> parseLivenessProbe(String livenessProbeExec) {
-        if (StringUtils.isBlank(livenessProbeExec)) {
-            return null;
-        }
-        // handle quoted arguments
-        Matcher m = SPLIT_IN_SPACES.matcher(livenessProbeExec);
-        List<String> commands = new ArrayList<String>();
-        while (m.find()) {
-            commands.add(substituteEnv(m.group(1).replace("\"", "").replace("?:\\\"", "")));
-        }
-        return commands;
+        return PodTemplateUtils.splitCommandLine(livenessProbeExec);
     }
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {

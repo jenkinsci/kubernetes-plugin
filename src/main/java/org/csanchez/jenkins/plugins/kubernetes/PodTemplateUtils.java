@@ -32,6 +32,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.types.Commandline;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
@@ -739,6 +741,27 @@ public class PodTemplateUtils {
     /** TODO perhaps enforce https://docs.docker.com/engine/reference/commandline/tag/#extended-description */
     public static boolean validateImage(String image) {
         return image != null && image.matches("\\S+");
+    }
+
+    /**
+     * Split a command in the parts that Docker need
+     *
+     * @param commandLine docker command to parse
+     * @return command split by arguments, {@code null} if {@code commandLine} is {@code null} or empty
+     */
+    public static @Nullable List<String> splitCommandLine(@Nullable String commandLine) {
+        if (commandLine == null || commandLine.isEmpty()) {
+            return null;
+        }
+
+        String[] args = Commandline.translateCommandline(commandLine);
+        if (SUBSTITUTE_ENV) {
+            for (int i = 0; i < args.length; i++) {
+                args[i] = substituteEnv(args[i]);
+            }
+        }
+
+        return Arrays.asList(args);
     }
 
     /**
