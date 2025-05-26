@@ -4,10 +4,13 @@ import static org.junit.Assert.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EphemeralContainer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import java.util.Optional;
+
+import io.fabric8.kubernetes.api.model.PodStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,6 +55,41 @@ public class PodContainerSourceTest {
         assertFalse(wd.isPresent());
     }
 
+    @Test
+    public void lookupContainerStatus() {
+        Pod pod = new PodBuilder()
+                .withNewStatus()
+                .addNewContainerStatus()
+                .withName("foo")
+                .withNewState()
+                .withNewRunning()
+                .endRunning()
+                .endState()
+                .endContainerStatus()
+                .addNewEphemeralContainerStatus()
+                .withName("bar")
+                .withNewState()
+                .withNewTerminated()
+                .endTerminated()
+                .endState()
+                .endEphemeralContainerStatus()
+                .endStatus()
+                .build();
+
+        Optional<ContainerStatus> status = PodContainerSource.lookupContainerStatus(pod, "foo");
+        assertTrue(status.isPresent());
+        assertEquals("foo", status.get().getName());
+
+        // should use TestPodContainerSource to find ephemeral container
+        status = PodContainerSource.lookupContainerStatus(pod, "bar");
+        assertTrue(status.isPresent());
+        assertEquals("bar", status.get().getName());
+
+        // no named container
+        status = PodContainerSource.lookupContainerStatus(pod, "fish");
+        assertFalse(status.isPresent());
+    }
+
     @WithoutJenkins
     @Test
     public void defaultPodContainerSourceGetContainerWorkingDir() {
@@ -82,6 +120,42 @@ public class PodContainerSourceTest {
         assertFalse(wd.isPresent());
     }
 
+    @WithoutJenkins
+    @Test
+    public void defaultPodContainerSourceGetContainerStatus() {
+        Pod pod = new PodBuilder()
+                .withNewStatus()
+                .addNewContainerStatus()
+                .withName("foo")
+                .withNewState()
+                .withNewRunning()
+                .endRunning()
+                .endState()
+                .endContainerStatus()
+                .addNewEphemeralContainerStatus()
+                .withName("bar")
+                .withNewState()
+                .withNewTerminated()
+                .endTerminated()
+                .endState()
+                .endEphemeralContainerStatus()
+                .endStatus()
+                .build();
+
+        PodContainerSource.DefaultPodContainerSource source = new PodContainerSource.DefaultPodContainerSource();
+        Optional<ContainerStatus> status = source.getContainerStatus(pod, "foo");
+        assertTrue(status.isPresent());
+        assertEquals("foo", status.get().getName());
+
+        // should not return ephemeral container
+        status = source.getContainerStatus(pod, "bar");
+        assertFalse(status.isPresent());
+
+        // no named container
+        status = source.getContainerStatus(pod, "fish");
+        assertFalse(status.isPresent());
+    }
+
     @Extension
     public static class TestPodContainerSource extends PodContainerSource {
 
@@ -92,5 +166,19 @@ public class PodContainerSourceTest {
                     .findAny()
                     .map(EphemeralContainer::getWorkingDir);
         }
+
+        @Override
+        public Optional<ContainerStatus> getContainerStatus(@NonNull Pod pod, @NonNull String containerName) {
+            PodStatus podStatus = pod.getStatus();
+            if (podStatus == null) {
+                return Optional.empty();
+            }
+
+            return podStatus.getEphemeralContainerStatuses().stream()
+                    .filter(cs -> StringUtils.equals(cs.getName(), containerName))
+                    .findFirst();
+        }
+
+
     }
 }

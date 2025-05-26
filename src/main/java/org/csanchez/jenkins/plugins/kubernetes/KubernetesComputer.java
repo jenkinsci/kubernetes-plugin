@@ -9,6 +9,7 @@ import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.slaves.AbstractCloudComputer;
 import io.fabric8.kubernetes.api.model.Container;
+import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.api.model.EventList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -22,6 +23,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
@@ -137,22 +142,53 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         Jenkins.get().checkPermission(Computer.EXTENDED_READ);
 
         ByteBuffer outputStream = new ByteBuffer();
+        LargeText text = new LargeText(outputStream, false);
         KubernetesSlave slave = getNode();
         if (slave != null) {
             KubernetesCloud cloud = slave.getKubernetesCloud();
-            KubernetesClient client = cloud.connect();
+            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), cloud.getNamespace());
+            PodResource resource = cloud.getPodResource(namespace, containerId);
 
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+            // check if pod exists
+            Pod pod = resource.get();
+            if (pod == null) {
+                outputStream.write("Pod not found".getBytes());
+                text.markAsComplete();
+                text.doProgressText(req, rsp);
+                return;
+            }
 
-            client.pods()
-                    .inNamespace(namespace)
-                    .withName(getName())
+            // Check if container exists and is running (maybe terminated if ephemeral)
+            Optional<ContainerStatus> status = PodContainerSource.lookupContainerStatus(pod, containerId);
+            if (status.isPresent()) {
+                ContainerStatus cs = status.get();
+                if (cs.getState().getTerminated() != null) {
+                    outputStream.write("Container terminated".getBytes());
+                    text.markAsComplete();
+                    text.doProgressText(req, rsp);
+                    return;
+                }
+            } else {
+                outputStream.write("Container not found".getBytes());
+                text.markAsComplete();
+                text.doProgressText(req, rsp);
+                return;
+            }
+
+            // Get logs
+            try (LogWatch ignore = resource
                     .inContainer(containerId)
                     .tailingLines(20)
-                    .watchLog(outputStream);
+                    .watchLog(outputStream)) {
+                text.doProgressText(req, rsp);
+            } catch (KubernetesClientException kce) {
+                LOGGER.log(Level.WARNING, "Failed getting container logs for " + containerId, kce);
+            }
+        } else {
+            outputStream.write("Node not available".getBytes());
+            text.markAsComplete();
+            text.doProgressText(req, rsp);
         }
-
-        new LargeText(outputStream, false).doProgressText(req, rsp);
     }
 
     // TODO delete after https://github.com/jenkinsci/jenkins/pull/10595
