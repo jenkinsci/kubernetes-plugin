@@ -272,8 +272,37 @@ public class KubernetesSlave extends AbstractCloudSlave {
         return Jenkins.getInstance().getCloud(getCloudName());
     }
 
+    /**
+     * Get {@link Pod} reference for this agent. If it hasn't been assigned yet
+     * or the reference was lost due to restart, it will be looked up.
+     * @return assigned pod, or empty if not assigned or no longer exists
+     */
     public Optional<Pod> getPod() {
-        return Optional.ofNullable(pod);
+        Pod p = pod;
+        if (p == null) {
+            // if jenkins restarts the transient pod reference may not be available
+            try {
+                p = getKubernetesCloud()
+                        .getPodResource(getNamespace(), getPodName())
+                        .get();
+                if (p != null) {
+                    assignPod(p);
+                    return Optional.of(p);
+                } else {
+                    return Optional.empty();
+                }
+            } catch (KubernetesAuthException | IOException | IllegalStateException e) {
+                LOGGER.log(
+                        Level.WARNING,
+                        e,
+                        () -> String.format(
+                                "Failed to connect to cloud %s to get pod %s/%s",
+                                getCloudName(), getNamespace(), getPodName()));
+                return Optional.empty();
+            }
+        } else {
+            return Optional.of(p);
+        }
     }
 
     /**
@@ -372,10 +401,9 @@ public class KubernetesSlave extends AbstractCloudSlave {
         // Prior to termination, determine if we should delete the slave pod based on
         // the slave pod's current state and the pod retention policy.
         // Healthy slave pods should still have a JNLP agent running at this point.
-        boolean deletePod = getPodRetention(cloud).shouldDeletePod(cloud, () -> client.pods()
-                .inNamespace(getNamespace())
-                .withName(name)
-                .get());
+        boolean deletePod = getPodRetention(cloud)
+                .shouldDeletePod(cloud, () -> KubernetesCloud.getPodResource(client, getNamespace(), name)
+                        .get());
 
         Computer computer = toComputer();
         if (computer == null) {
@@ -542,10 +570,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 var l = Instant.now();
                 try {
                     kubernetesCloud
-                            .connect()
-                            .pods()
-                            .inNamespace(ns)
-                            .withName(name)
+                            .getPodResource(ns, name)
                             .patch("{\"metadata\":{\"annotations\":{\"" + GarbageCollection.ANNOTATION_LAST_REFRESH
                                     + "\":\"" + l.toEpochMilli() + "\"}}}");
                 } catch (KubernetesAuthException e) {
