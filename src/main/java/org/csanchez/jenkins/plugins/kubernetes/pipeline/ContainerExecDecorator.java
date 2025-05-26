@@ -27,7 +27,6 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
-import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
@@ -59,6 +58,7 @@ import java.util.regex.Matcher;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
+import org.csanchez.jenkins.plugins.kubernetes.PodContainerSource;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -284,13 +284,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         : ContainerTemplate.DEFAULT_WORKING_DIR;
                 String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
                 if (slave != null && slave.getPod().isPresent() && containerName != null) {
-                    Optional<Container> container = slave.getPod().get().getSpec().getContainers().stream()
-                            .filter(container1 -> container1.getName().equals(containerName))
-                            .findAny();
-                    Optional<String> containerWorkingDir = Optional.empty();
-                    if (container.isPresent() && container.get().getWorkingDir() != null) {
-                        containerWorkingDir = Optional.of(container.get().getWorkingDir());
-                    }
+                    Optional<String> containerWorkingDir = PodContainerSource.lookupContainerWorkingDir(
+                            slave.getPod().get(), containerName);
                     if (containerWorkingDir.isPresent()) {
                         containerWorkingDirStr = containerWorkingDir.get();
                     }
@@ -403,7 +398,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // Do not send this command to the output when in quiet mode
                 if (quiet) {
                     stream = toggleStdout;
-                    printStream = new PrintStream(stream, true, StandardCharsets.UTF_8.toString());
+                    printStream = new PrintStream(stream, true, StandardCharsets.UTF_8);
                 } else {
                     printStream = launcher.getListener().getLogger();
                     stream = new TeeOutputStream(toggleStdout, printStream);
@@ -575,7 +570,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                     toggleStdout.disable();
                     OutputStream stdin = watch.getInput();
-                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8.name());
+                    PrintStream in = new PrintStream(stdin, true, StandardCharsets.UTF_8);
                     if (!launcher.isUnix()) {
                         in.print("@echo off");
                         in.print(newLine(true));
@@ -583,7 +578,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     if (pwd != null) {
                         // We need to get into the project workspace.
                         // The workspace is not known in advance, so we have to execute a cd command.
-                        in.print(String.format("cd \"%s\"", pwd));
+                        in.printf("cd \"%s\"", pwd);
                         in.print(newLine(!launcher.isUnix()));
                     }
 
@@ -644,10 +639,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                     doExec(in, !launcher.isUnix(), printStream, masks, commands);
 
-                    LOGGER.log(
-                            Level.INFO,
-                            "Created process inside pod: [" + getPodName() + "], container: [" + containerName + "]"
-                                    + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
+                    LOGGER.fine(() -> "Created process inside pod: [" + getPodName() + "], container: [" + containerName
+                            + "]" + "[" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMethod) + " ms]");
                     ContainerExecProc proc = new ContainerExecProc(watch, alive, finished, stdin, printStream);
                     closables.add(proc);
                     return proc;
