@@ -10,6 +10,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.Main;
 import hudson.TcpSlaveAgentListener;
@@ -34,6 +35,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.VersionInfo;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
@@ -598,6 +600,42 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             getDisplayName(), client.getMasterUrl().toString(), namespace
         });
         return client;
+    }
+
+    /**
+     * Get {@link PodResource} from {@link KubernetesClient}.
+     * @param namespace namespace pod is located in, possibly null
+     * @param name pod name, not null
+     * @return pod resource, never null
+     * @throws KubernetesAuthException if cluster authentication failed
+     * @throws IOException if connection failed
+     * @see #connect()
+     * @see #getPodResource(KubernetesClient, String, String)
+     */
+    @NonNull
+    public PodResource getPodResource(@Nullable String namespace, @NonNull String name)
+            throws KubernetesAuthException, IOException {
+        return getPodResource(connect(), namespace, name);
+    }
+
+    /**
+     * Get {@link PodResource} from {@link KubernetesClient}.
+     * @param client kubernetes client, not null
+     * @param namespace namespace pod is located in, possibly null
+     * @param name pod name, not null
+     * @return pod resource, never null
+     * @throws KubernetesAuthException if cluster authentication failed
+     * @throws IOException if connection failed
+     * @see #connect()
+     */
+    @NonNull
+    static PodResource getPodResource(
+            @NonNull KubernetesClient client, @Nullable String namespace, @NonNull String name) {
+        if (namespace == null) {
+            return client.pods().withName(name);
+        } else {
+            return client.pods().inNamespace(namespace).withName(name);
+        }
     }
 
     @Override

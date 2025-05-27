@@ -547,6 +547,9 @@ public class Reaper extends ComputerListener {
             String lines = PodUtils.logLastLines(pod, node.getKubernetesCloud().connect());
             if (lines != null) {
                 runListener.getLogger().print(lines);
+                String ns = pod.getMetadata().getNamespace();
+                String name = pod.getMetadata().getName();
+                LOGGER.fine(() -> ns + "/" + name + " log:\n" + lines);
             }
         } catch (KubernetesAuthException e) {
             LOGGER.log(Level.FINE, e, () -> "Unable to get logs after pod failed event");
