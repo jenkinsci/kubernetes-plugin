@@ -59,6 +59,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodContainerSource;
+import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 
 /**
@@ -462,10 +463,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         final CountDownLatch finished = new CountDownLatch(1);
                         final AtomicLong startAlive = new AtomicLong();
 
-                        ExecWatch watch = getClient()
-                                .pods()
-                                .inNamespace(getNamespace())
-                                .withName(getPodName())
+                        ExecWatch watch = nodeContext
+                                .getPodResource()
                                 .inContainer(containerName)
                                 .redirectingInput(STDIN_BUFFER_SIZE) // JENKINS-50429
                                 .writingOutput(stream)
@@ -527,10 +526,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             throw e;
                         }
 
+                    } catch (KubernetesAuthException e) {
+                        launcher.getListener().getLogger().print("Failed to authenticate with Kubernetes cluster: ");
+                        e.printStackTrace(launcher.getListener().getLogger());
+                        throw new AbortException("Failed to authenticate with Kubernetes cluster");
                     } catch (KubernetesClientException e) {
                         launcher.getListener().getLogger().print("Failed to start websocket connection: ");
                         String message = e.getMessage();
                         if (message != null && message.startsWith("container " + containerName + " not found in pod")) {
+                            launcher.getListener().getLogger().print(message);
                             // Don't even retry if the container is invalid.
                             throw e;
                         }

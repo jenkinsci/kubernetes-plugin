@@ -18,7 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
-import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ContainerResource;
 import io.fabric8.kubernetes.client.dsl.TailPrettyLoggable;
 import io.fabric8.kubernetes.client.dsl.TimeTailPrettyLoggable;
 import java.io.IOException;
@@ -30,10 +30,9 @@ import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 
 public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecution<String> {
     private static final long serialVersionUID = 5588861066775717487L;
-    private static final transient Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ContainerLogStepExecution.class.getName());
 
     private final ContainerLogStep step;
-    private transient KubernetesClient client;
 
     ContainerLogStepExecution(ContainerLogStep step, StepContext context) {
         super(context);
@@ -67,20 +66,11 @@ public class ContainerLogStepExecution extends SynchronousNonBlockingStepExecuti
             LOGGER.log(Level.FINE, "Starting containerLog step.");
 
             KubernetesNodeContext nodeContext = new KubernetesNodeContext(getContext());
-            client = nodeContext.connectToCloud();
 
             String podName = nodeContext.getPodName();
-
-            TimeTailPrettyLoggable limited = limitBytes > 0
-                    ? client.pods() //
-                            .inNamespace(nodeContext.getNamespace()) //
-                            .withName(podName)
-                            .inContainer(containerName)
-                            .limitBytes(limitBytes)
-                    : client.pods() //
-                            .inNamespace(nodeContext.getNamespace()) //
-                            .withName(podName)
-                            .inContainer(containerName);
+            ContainerResource containerResource = nodeContext.getPodResource().inContainer(containerName);
+            TimeTailPrettyLoggable limited =
+                    limitBytes > 0 ? containerResource.limitBytes(limitBytes) : containerResource;
 
             TailPrettyLoggable since = sinceSeconds > 0 ? limited.sinceSeconds(sinceSeconds) : limited;
 

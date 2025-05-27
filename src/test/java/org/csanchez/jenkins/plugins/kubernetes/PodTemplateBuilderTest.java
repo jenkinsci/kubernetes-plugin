@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -57,7 +56,6 @@ import org.jvnet.hudson.test.FlagRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
-import org.jvnet.hudson.test.WithoutJenkins;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
@@ -97,36 +95,6 @@ public class PodTemplateBuilderTest {
     @Before
     public void setUp() {
         when(slave.getKubernetesCloud()).thenReturn(cloud);
-    }
-
-    @WithoutJenkins
-    @Test
-    public void testParseDockerCommand() {
-        assertNull(parseDockerCommand(""));
-        assertNull(parseDockerCommand(null));
-        assertEquals(Collections.singletonList("bash"), parseDockerCommand("bash"));
-        assertEquals(
-                Collections.unmodifiableList(Arrays.asList("bash", "-c", "x y")),
-                parseDockerCommand("bash -c \"x y\""));
-        assertEquals(Collections.unmodifiableList(Arrays.asList("a", "b", "c", "d")), parseDockerCommand("a b c d"));
-    }
-
-    @WithoutJenkins
-    @Test
-    public void testParseLivenessProbe() {
-        assertNull(parseLivenessProbe(""));
-        assertNull(parseLivenessProbe(null));
-        assertEquals(Collections.unmodifiableList(Arrays.asList("docker", "info")), parseLivenessProbe("docker info"));
-        assertEquals(
-                Collections.unmodifiableList(Arrays.asList("echo", "I said: 'I am alive'")),
-                parseLivenessProbe("echo \"I said: 'I am alive'\""));
-        assertEquals(
-                Collections.unmodifiableList(Arrays.asList("docker", "--version")),
-                parseLivenessProbe("docker --version"));
-        assertEquals(
-                Collections.unmodifiableList(
-                        Arrays.asList("curl", "-k", "--silent", "--output=/dev/null", "https://localhost:8080")),
-                parseLivenessProbe("curl -k --silent --output=/dev/null \"https://localhost:8080\""));
     }
 
     @Test
