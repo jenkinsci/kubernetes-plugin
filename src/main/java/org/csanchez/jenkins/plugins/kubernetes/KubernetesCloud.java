@@ -22,11 +22,13 @@ import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Label;
+import hudson.model.Saveable;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.slaves.Cloud;
 import hudson.slaves.NodeProvisioner;
+import hudson.util.DescribableList;
 import hudson.util.FormApply;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -59,6 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -169,6 +172,10 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @CheckForNull
     private GarbageCollection garbageCollection;
+
+    @NonNull
+    private DescribableList<KubernetesCloudTrait, Descriptor<KubernetesCloudTrait>> traits =
+            new DescribableList<>(Saveable.NOOP);
 
     /**
      * namespace -> informer
@@ -368,6 +375,34 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @DataBoundSetter
     public void setGarbageCollection(GarbageCollection garbageCollection) {
         this.garbageCollection = garbageCollection;
+    }
+
+    /**
+     * Get list of traits enabled for this cloud.
+     * @return configured traits, never null
+     */
+    @NonNull
+    public List<KubernetesCloudTrait> getTraits() {
+        return traits;
+    }
+
+    /**
+     * Replace the traits enabled for this cloud.
+     * @param traits configured traits, if {@code null} traits will be cleared.
+     */
+    @DataBoundSetter
+    public void setTraits(List<KubernetesCloudTrait> traits) {
+        this.traits = new DescribableList<>(Saveable.NOOP, Util.fixNull(traits));
+    }
+
+    /**
+     * Find configuration trait by type.
+     * @param traitType trait type class
+     * @return configuration trait or empty if not configured
+     * @param <T> trait type
+     */
+    public <T extends KubernetesCloudTrait> Optional<T> getTrait(Class<T> traitType) {
+        return Optional.ofNullable(this.traits.get(traitType));
     }
 
     /**
@@ -1283,6 +1318,25 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
         public int getDefaultWaitForPod() {
             return DEFAULT_WAIT_FOR_POD_SEC;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public List<? extends Descriptor<KubernetesCloudTrait>> getAllTraits() {
+            return KubernetesCloudTrait.all();
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> getDefaultTraits() {
+            Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> descriptors = new HashMap<>();
+            for (Descriptor<KubernetesCloudTrait> descriptor : KubernetesCloudTrait.all()) {
+                if (descriptor instanceof KubernetesCloudTraitDescriptor) {
+                    ((KubernetesCloudTraitDescriptor) descriptor)
+                            .getDefaultTrait()
+                            .ifPresent(trait -> descriptors.put(descriptor, trait));
+                }
+            }
+
+            return descriptors;
         }
     }
 
