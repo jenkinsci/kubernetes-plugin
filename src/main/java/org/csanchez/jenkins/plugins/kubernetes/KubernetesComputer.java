@@ -15,7 +15,11 @@ import io.fabric8.kubernetes.api.model.EventList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +27,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.PodResource;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.apache.commons.lang.StringUtils;
@@ -152,7 +152,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
             // check if pod exists
             Pod pod = resource.get();
             if (pod == null) {
-                outputStream.write("Pod not found".getBytes());
+                outputStream.write("Pod not found".getBytes(StandardCharsets.UTF_8));
                 text.markAsComplete();
                 text.doProgressText(req, rsp);
                 return;
@@ -163,29 +163,27 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
             if (status.isPresent()) {
                 ContainerStatus cs = status.get();
                 if (cs.getState().getTerminated() != null) {
-                    outputStream.write("Container terminated".getBytes());
+                    outputStream.write("Container terminated".getBytes(StandardCharsets.UTF_8));
                     text.markAsComplete();
                     text.doProgressText(req, rsp);
                     return;
                 }
             } else {
-                outputStream.write("Container not found".getBytes());
+                outputStream.write("Container not found".getBytes(StandardCharsets.UTF_8));
                 text.markAsComplete();
                 text.doProgressText(req, rsp);
                 return;
             }
 
             // Get logs
-            try (LogWatch ignore = resource
-                    .inContainer(containerId)
-                    .tailingLines(20)
-                    .watchLog(outputStream)) {
+            try (LogWatch ignore =
+                    resource.inContainer(containerId).tailingLines(20).watchLog(outputStream)) {
                 text.doProgressText(req, rsp);
             } catch (KubernetesClientException kce) {
                 LOGGER.log(Level.WARNING, "Failed getting container logs for " + containerId, kce);
             }
         } else {
-            outputStream.write("Node not available".getBytes());
+            outputStream.write("Node not available".getBytes(StandardCharsets.UTF_8));
             text.markAsComplete();
             text.doProgressText(req, rsp);
         }

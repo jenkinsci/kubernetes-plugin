@@ -8,9 +8,8 @@ import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EphemeralContainer;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
-import java.util.Optional;
-
 import io.fabric8.kubernetes.api.model.PodStatus;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -178,7 +177,5 @@ public class PodContainerSourceTest {
                     .filter(cs -> StringUtils.equals(cs.getName(), containerName))
                     .findFirst();
         }
-
-
     }
 }
