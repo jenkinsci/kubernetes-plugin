@@ -12,7 +12,6 @@ import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
-
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
