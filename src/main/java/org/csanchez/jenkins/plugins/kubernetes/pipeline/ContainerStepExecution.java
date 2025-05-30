@@ -12,11 +12,13 @@ import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.slaves.NodeProperty;
 import hudson.slaves.NodePropertyDescriptor;
 import hudson.util.DescribableList;
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -88,5 +90,28 @@ public class ContainerStepExecution extends StepExecution {
     public void stop(@NonNull Throwable cause) throws Exception {
         LOGGER.log(Level.FINE, "Stopping container step.");
         closeQuietly(getContext(), decorator);
+    }
+
+    /**
+     * This class has been replaced but is not deleted to prevent {@code ClassNotFoundException}.
+     * See <a href="https://issues.jenkins.io/browse/JENKINS-75720">JENKINS-75720</a>
+     * @deprecated replaced {@link Resources#closeQuietlyCallback(Closeable...)}
+     */
+    @Deprecated
+    @SuppressFBWarnings("SE_BAD_FIELD")
+    private static class ContainerExecCallback extends BodyExecutionCallback.TailCall {
+
+        private static final long serialVersionUID = 6385838254761750483L;
+
+        private final Closeable[] closeables;
+
+        private ContainerExecCallback(Closeable... closeables) {
+            this.closeables = closeables;
+        }
+
+        @Override
+        public void finished(StepContext context) {
+            closeQuietly(context, closeables);
+        }
     }
 }
