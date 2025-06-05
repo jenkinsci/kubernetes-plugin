@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -169,6 +170,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     @CheckForNull
     private GarbageCollection garbageCollection;
+
+    @NonNull
+    private List<KubernetesCloudTrait> traits = new ArrayList<>();
 
     /**
      * namespace -> informer
@@ -368,6 +372,39 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     @DataBoundSetter
     public void setGarbageCollection(GarbageCollection garbageCollection) {
         this.garbageCollection = garbageCollection;
+    }
+
+    @NonNull
+    public List<KubernetesCloudTrait> getTraits() {
+        return traits;
+    }
+
+    @DataBoundSetter
+    public void setTraits(List<KubernetesCloudTrait> traits) {
+        this.traits = traits != null ? new ArrayList<>(traits) : Collections.emptyList();
+    }
+
+    @Restricted(NoExternalUse.class) // used by jelly
+    public Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> getTraitInstances() {
+        Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> descriptors = new HashMap<>();
+        for (KubernetesCloudTrait trait : this.getTraits()) {
+            descriptors.put(trait.getDescriptor(), trait);
+        }
+
+        return descriptors;
+    }
+
+    /**
+     * Find configuration trait by type.
+     * @param traitType trait type class
+     * @return configuration trait or empty if not configured
+     * @param <T> trait type
+     */
+    public <T extends KubernetesCloudTrait> Optional<T> getTrait(Class<T> traitType) {
+        return getTraits().stream()
+                .filter(t -> traitType.isAssignableFrom(t.getClass()))
+                .map(traitType::cast)
+                .findFirst();
     }
 
     /**
@@ -1283,6 +1320,25 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
         public int getDefaultWaitForPod() {
             return DEFAULT_WAIT_FOR_POD_SEC;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public List<? extends Descriptor<KubernetesCloudTrait>> getAllTraits() {
+            return KubernetesCloudTrait.all();
+        }
+
+        @SuppressWarnings("unused") // used by jelly
+        public Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> getDefaultTraits() {
+            Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> descriptors = new HashMap<>();
+            for (Descriptor<KubernetesCloudTrait> descriptor : KubernetesCloudTrait.all()) {
+                if (descriptor instanceof KubernetesCloudTrait.KubernetesCloudTraitDescriptor) {
+                    ((KubernetesCloudTrait.KubernetesCloudTraitDescriptor) descriptor)
+                            .getDefaultTrait()
+                            .ifPresent(trait -> descriptors.put(descriptor, trait));
+                }
+            }
+
+            return descriptors;
         }
     }
 
