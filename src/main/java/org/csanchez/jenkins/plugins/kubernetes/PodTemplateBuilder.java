@@ -26,10 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate.DEFAULT_WORKING_DIR;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.JNLP_NAME;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.combine;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.isNullOrEmpty;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
-import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.substituteEnv;
+import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -94,8 +91,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class PodTemplateBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateBuilder.class.getName());
-
-    private static final Pattern SPLIT_IN_SPACES = Pattern.compile("([^\"]\\S*|\".+?\")\\s*");
 
     private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
@@ -537,7 +532,7 @@ public class PodTemplateBuilder {
             }
         }
         List<String> arguments =
-                isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList() : parseDockerCommand(cmd);
+                isNullOrEmpty(containerTemplate.getArgs()) ? Collections.emptyList() : splitCommandLine(cmd);
 
         ContainerPort[] ports = containerTemplate.getPorts().stream()
                 .map(entry -> entry.toPort())
@@ -547,9 +542,9 @@ public class PodTemplateBuilder {
 
         ContainerLivenessProbe clp = containerTemplate.getLivenessProbe();
         Probe livenessProbe = null;
-        if (clp != null && parseLivenessProbe(clp.getExecArgs()) != null) {
+        if (clp != null && splitCommandLine(clp.getExecArgs()) != null) {
             livenessProbe = new ProbeBuilder()
-                    .withExec(new ExecAction(parseLivenessProbe(clp.getExecArgs())))
+                    .withExec(new ExecAction(splitCommandLine(clp.getExecArgs())))
                     .withInitialDelaySeconds(clp.getInitialDelaySeconds())
                     .withTimeoutSeconds(clp.getTimeoutSeconds())
                     .withFailureThreshold(clp.getFailureThreshold())
@@ -577,7 +572,7 @@ public class PodTemplateBuilder {
                 .withVolumeMounts(containerMounts.toArray(new VolumeMount[containerMounts.size()]))
                 .addToEnv(envVars)
                 .addToPorts(ports)
-                .withCommand(parseDockerCommand(containerTemplate.getCommand()))
+                .withCommand(splitCommandLine(containerTemplate.getCommand()))
                 .withArgs(arguments)
                 .withLivenessProbe(livenessProbe)
                 .withTty(containerTemplate.isTtyEnabled())
@@ -613,46 +608,6 @@ public class PodTemplateBuilder {
             containerMounts.add(getDefaultVolumeMount(workingDir));
         }
         return containerMounts;
-    }
-
-    /**
-     * Split a command in the parts that Docker need
-     *
-     * @param dockerCommand
-     * @return
-     */
-    @Restricted(NoExternalUse.class)
-    static List<String> parseDockerCommand(String dockerCommand) {
-        if (dockerCommand == null || dockerCommand.isEmpty()) {
-            return null;
-        }
-        // handle quoted arguments
-        Matcher m = SPLIT_IN_SPACES.matcher(dockerCommand);
-        List<String> commands = new ArrayList<String>();
-        while (m.find()) {
-            commands.add(substituteEnv(m.group(1).replace("\"", "")));
-        }
-        return commands;
-    }
-
-    /**
-     * Split a command in the parts that LivenessProbe need
-     *
-     * @param livenessProbeExec
-     * @return
-     */
-    @Restricted(NoExternalUse.class)
-    static List<String> parseLivenessProbe(String livenessProbeExec) {
-        if (StringUtils.isBlank(livenessProbeExec)) {
-            return null;
-        }
-        // handle quoted arguments
-        Matcher m = SPLIT_IN_SPACES.matcher(livenessProbeExec);
-        List<String> commands = new ArrayList<String>();
-        while (m.find()) {
-            commands.add(substituteEnv(m.group(1).replace("\"", "").replace("?:\\\"", "")));
-        }
-        return commands;
     }
 
     private Map<String, Quantity> getResourcesMap(String memory, String cpu, String ephemeralStorage) {
