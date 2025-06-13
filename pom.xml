@@ -106,6 +106,8 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
+      <!-- Test https://issues.jenkins.io/browse/JENKINS-75712 -->
+      <version>2.19.0-404.vb_b_0fd2fea_e10</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -180,6 +182,12 @@
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
       <version>4.3.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Test https://issues.jenkins.io/browse/JENKINS-75712 - wild guess -->
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>cloudbees-bitbucket-branch-source</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
