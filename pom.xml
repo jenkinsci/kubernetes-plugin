@@ -58,7 +58,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4488.v7fe26526366e</version>
+        <version>4924.v6b_eb_a_79a_d9d0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -106,10 +106,13 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
+      <!-- Remove when on bom -->
+      <version>2.19.0-404.vb_b_0fd2fea_e10</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
+      <version>6.14.0-255.va_8c7a_67b_2f79</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -147,6 +150,8 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
+      <version>193.vb_074930a_b_14c</version>
+      <!-- Incremental -->
     </dependency>
     <dependency>
       <!-- DeclarativeAgent -->
@@ -157,7 +162,7 @@
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>kubernetes-server-mock</artifactId>
-      <version>6.10.0</version>
+      <version>6.14.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
