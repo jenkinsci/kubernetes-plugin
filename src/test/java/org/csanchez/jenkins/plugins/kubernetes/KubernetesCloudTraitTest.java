@@ -1,11 +1,15 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.model.Descriptor;
+import hudson.ExtensionList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,46 +25,42 @@ public class KubernetesCloudTraitTest {
 
     @Test
     public void testKubernetesCloudAll() {
-        List<? extends Descriptor<KubernetesCloudTrait>> traits = KubernetesCloudTrait.all();
-        assertEquals(2, traits.size());
+        assertEquals(2, KubernetesCloudTrait.all().size());
     }
 
     @Test
     public void testKubernetesCloudDescriptorAllTraits() {
-        KubernetesCloud.DescriptorImpl descriptor = new KubernetesCloud.DescriptorImpl();
-        List<? extends Descriptor<KubernetesCloudTrait>> traits = descriptor.getAllTraits();
-        assertEquals(2, traits.size());
+        var descriptor = ExtensionList.lookupSingleton(KubernetesCloud.DescriptorImpl.class);
+        assertEquals(2, descriptor.getAllTraits().size());
     }
 
     @Test
     public void testKubernetesCloudDescriptorDefaultTraits() {
-        KubernetesCloud.DescriptorImpl descriptor = new KubernetesCloud.DescriptorImpl();
-        Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> traits = descriptor.getDefaultTraits();
+        var descriptor = ExtensionList.lookupSingleton(KubernetesCloud.DescriptorImpl.class);
+        var traits = descriptor.getDefaultTraits();
         assertEquals(1, traits.size());
-        Map.Entry<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> entry =
-                traits.entrySet().stream().findFirst().orElseThrow();
-        assertTrue(entry.getKey() instanceof TraitB.DescriptorImpl);
-        assertTrue(entry.getValue() instanceof TraitB);
-        assertEquals("default", ((TraitB) entry.getValue()).getValue());
+        var traitB = traits.get(TraitB.class);
+        assertThat(traitB, notNullValue());
+        assertThat(traitB.getValue(), equalTo("default"));
     }
 
     @WithoutJenkins
     @Test
     public void testKubernetesCloudTraits() {
-        KubernetesCloud cloud = new KubernetesCloud("Foo");
+        var cloud = new KubernetesCloud("Foo");
 
         // empty optional when trait instance not found
         assertTrue(cloud.getTrait(TraitA.class).isEmpty());
 
         // set traits
-        TraitA a = new TraitA();
-        cloud.setTraits(List.of(a, new TraitB()));
+        var traitA = new TraitA();
+        cloud.setTraits(List.of(traitA, new TraitB()));
         assertEquals(2, cloud.getTraits().size());
 
         // get trait by class
-        Optional<TraitA> ta = cloud.getTrait(TraitA.class);
-        assertTrue(ta.isPresent());
-        assertSame(a, ta.get());
+        var maybeTraitA = cloud.getTrait(TraitA.class);
+        assertTrue(maybeTraitA.isPresent());
+        assertSame(traitA, maybeTraitA.get());
 
         // handle null values
         cloud.setTraits(null);
@@ -72,7 +72,7 @@ public class KubernetesCloudTraitTest {
         public TraitA() {}
 
         @TestExtension
-        public static class DescriptorImpl extends Descriptor<KubernetesCloudTrait> {
+        public static class DescriptorImpl extends KubernetesCloudTraitDescriptor {
             @NonNull
             @Override
             public String getDisplayName() {
@@ -84,10 +84,6 @@ public class KubernetesCloudTraitTest {
     public static class TraitB extends KubernetesCloudTrait {
 
         private final String value;
-
-        public TraitB() {
-            this("constructor");
-        }
 
         @DataBoundConstructor
         public TraitB(String value) {

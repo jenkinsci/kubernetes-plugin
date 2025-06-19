@@ -1,10 +1,10 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import hudson.DescriptorExtensionList;
+import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractDescribableImpl;
-import hudson.model.Descriptor;
-import jenkins.model.Jenkins;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Extension point for {@link KubernetesCloud} configuration traits.
@@ -13,11 +13,17 @@ public abstract class KubernetesCloudTrait extends AbstractDescribableImpl<Kuber
         implements ExtensionPoint {
 
     /**
-     * Returns all the {@link KubernetesCloudTrait} descriptor instances.
-     *
      * @return all the {@link KubernetesCloudTrait} descriptor instances.
      */
-    public static DescriptorExtensionList<KubernetesCloudTrait, Descriptor<KubernetesCloudTrait>> all() {
-        return Jenkins.get().getDescriptorList(KubernetesCloudTrait.class);
+    public static ExtensionList<KubernetesCloudTraitDescriptor> all() {
+        return ExtensionList.lookup(KubernetesCloudTraitDescriptor.class);
+    }
+
+    public static List<KubernetesCloudTrait> getDefaultTraits() {
+        return all().stream()
+                .map(KubernetesCloudTraitDescriptor::getDefaultTrait)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
     }
 }

@@ -174,7 +174,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     private GarbageCollection garbageCollection;
 
     @NonNull
-    private DescribableList<KubernetesCloudTrait, Descriptor<KubernetesCloudTrait>> traits =
+    private DescribableList<KubernetesCloudTrait, KubernetesCloudTraitDescriptor> traits =
             new DescribableList<>(Saveable.NOOP);
 
     /**
@@ -401,6 +401,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * @return configuration trait or empty if not configured
      * @param <T> trait type
      */
+    @NonNull
     public <T extends KubernetesCloudTrait> Optional<T> getTrait(Class<T> traitType) {
         return Optional.ofNullable(this.traits.get(traitType));
     }
@@ -1321,22 +1322,13 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @SuppressWarnings("unused") // used by jelly
-        public List<? extends Descriptor<KubernetesCloudTrait>> getAllTraits() {
+        public List<? extends KubernetesCloudTraitDescriptor> getAllTraits() {
             return KubernetesCloudTrait.all();
         }
 
         @SuppressWarnings("unused") // used by jelly
-        public Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> getDefaultTraits() {
-            Map<Descriptor<KubernetesCloudTrait>, KubernetesCloudTrait> descriptors = new HashMap<>();
-            for (Descriptor<KubernetesCloudTrait> descriptor : KubernetesCloudTrait.all()) {
-                if (descriptor instanceof KubernetesCloudTraitDescriptor) {
-                    ((KubernetesCloudTraitDescriptor) descriptor)
-                            .getDefaultTrait()
-                            .ifPresent(trait -> descriptors.put(descriptor, trait));
-                }
-            }
-
-            return descriptors;
+        public DescribableList<KubernetesCloudTrait, KubernetesCloudTraitDescriptor> getDefaultTraits() {
+            return new DescribableList<>(Saveable.NOOP, KubernetesCloudTrait.getDefaultTraits());
         }
     }
 
