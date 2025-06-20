@@ -91,10 +91,9 @@ THE SOFTWARE.
                                   deleteCaption="${%Delete Pod Label}" />
     </f:entry>
 
-    <f:advanced title="${%Pod Retention}">
-      <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention"
-          descriptors="${descriptor.allowedPodRetentions}" default="${descriptor.defaultPodRetention}" />
-    </f:advanced>
+    <f:dropdownDescriptorSelector title="${%Pod Retention}" field="podRetention"
+                                  descriptors="${descriptor.allowedPodRetentions}"
+                                  default="${descriptor.defaultPodRetention}" />
 
     <f:entry title="${%Max connections to Kubernetes API}" field="maxRequestsPerHostStr">
       <f:number default="32" checkMethod="post"/>
@@ -119,5 +118,9 @@ THE SOFTWARE.
     <f:entry title="${%Defaults Provider Template Name}" field="defaultsProviderTemplate">
       <f:textbox default=""/>
     </f:entry>
+
     <f:optionalProperty field="garbageCollection" title="${%Enable garbage collection}"/>
+
+    <f:descriptorList field="traits" descriptors="${descriptor.allTraits}" />
+
 </j:jelly>
