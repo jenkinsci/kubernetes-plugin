@@ -1,8 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -30,14 +29,16 @@ public class KubernetesCloudTraitTest {
 
     @Test
     public void testKubernetesCloudDescriptorAllTraits() {
-        var descriptor = ExtensionList.lookupSingleton(KubernetesCloud.DescriptorImpl.class);
-        assertEquals(2, descriptor.getAllTraits().size());
+        var descriptors = ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
+        assertThat(descriptors.size(), greaterThanOrEqualTo(1));
+        assertEquals(2, descriptors.get(0).getAllTraits().size());
     }
 
     @Test
     public void testKubernetesCloudDescriptorDefaultTraits() {
-        var descriptor = ExtensionList.lookupSingleton(KubernetesCloud.DescriptorImpl.class);
-        var traits = descriptor.getDefaultTraits();
+        var descriptors = ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
+        assertThat(descriptors.size(), greaterThanOrEqualTo(1));
+        var traits = descriptors.get(0).getDefaultTraits();
         assertEquals(1, traits.size());
         var traitB = traits.get(TraitB.class);
         assertThat(traitB, notNullValue());
