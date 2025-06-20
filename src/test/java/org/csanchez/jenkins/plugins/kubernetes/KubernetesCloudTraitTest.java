@@ -54,7 +54,7 @@ public class KubernetesCloudTraitTest {
 
         // set traits
         var traitA = new TraitA();
-        cloud.setTraits(List.of(traitA, new TraitB()));
+        cloud.setTraits(List.of(traitA, new TraitB("foo")));
         assertEquals(2, cloud.getTraits().size());
 
         // get trait by class
