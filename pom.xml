@@ -112,7 +112,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>6.14.0-255.va_8c7a_67b_2f79</version>
+      <version>6.14.0-255.v44e4b_386fb_a_e</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -150,7 +150,7 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <version>193.vb_074930a_b_14c</version>
+      <version>195.v0c273a_cfb_4f4</version>
       <!-- Incremental -->
     </dependency>
     <dependency>
