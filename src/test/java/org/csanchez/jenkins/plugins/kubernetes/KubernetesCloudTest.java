@@ -220,8 +220,8 @@ public class KubernetesCloudTest {
         pt.setName("podTemplate");
 
         KubernetesCloud cloud = new KubernetesCloud("name");
-        var objectProperties =
-                Set.of("templates", "podRetention", "podLabels", "labels", "serverCertificate", "garbageCollection");
+        var objectProperties = Set.of(
+                "templates", "podRetention", "podLabels", "labels", "serverCertificate", "garbageCollection", "traits");
         for (String property : PropertyUtils.describe(cloud).keySet()) {
             if (PropertyUtils.isWriteable(cloud, property)) {
                 Class<?> propertyType = PropertyUtils.getPropertyType(cloud, property);

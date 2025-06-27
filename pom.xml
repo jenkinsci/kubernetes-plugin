@@ -58,7 +58,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4488.v7fe26526366e</version>
+        <version>4924.v6b_eb_a_79a_d9d0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -106,6 +106,8 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
+      <!-- Remove when on bom -->
+      <version>2.19.0-404.vb_b_0fd2fea_e10</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
