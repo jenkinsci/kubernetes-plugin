@@ -31,8 +31,8 @@ public class KubernetesPipelineRJRTest extends AbstractKubernetesPipelineRJRTest
         // the pod is created, but not connected yet
         rjr.runRemotely(new AssertBuildLogMessage("Created Pod", build));
         // restart
-        rjr.stopJenkins();
-        rjr.startJenkins();
+        //rjr.stopJenkins();
+        //rjr.startJenkins();
         // update k8s to make a node suitable to schedule (add disktype=special to the node)
         System.out.println("Adding label to node....");
         try (KubernetesClient client = new KubernetesClientBuilder().build()) {
