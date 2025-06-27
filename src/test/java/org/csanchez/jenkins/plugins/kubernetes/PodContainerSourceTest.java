@@ -3,7 +3,6 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.junit.Assert.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.Extension;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.EphemeralContainer;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -14,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.WithoutJenkins;
 
 public class PodContainerSourceTest {
@@ -155,7 +155,7 @@ public class PodContainerSourceTest {
         assertFalse(status.isPresent());
     }
 
-    @Extension
+    @TestExtension
     public static class TestPodContainerSource extends PodContainerSource {
 
         @Override
