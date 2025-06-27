@@ -60,7 +60,20 @@ public class PodRetentionTest {
         assertTrue(subject.shouldDeletePod(cloud, podS));
     }
 
+    @Test
+    public void testOnEvictedPodRetention() {
+        PodRetention subject = new Evicted();
+        pod.setStatus(buildStatus("Failed", "Evicted"));
+        assertFalse(subject.shouldDeletePod(cloud, podS));
+        pod.setStatus(buildStatus("Failed", "OOMKilled"));
+        assertTrue(subject.shouldDeletePod(cloud, podS));
+    }
+
     private PodStatus buildStatus(String phase) {
         return new PodStatusBuilder().withPhase(phase).build();
+    }
+
+    private PodStatus buildStatus(String phase, String reason) {
+        return new PodStatusBuilder().withPhase(phase).withReason(reason).build();
     }
 }
