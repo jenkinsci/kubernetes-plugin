@@ -111,7 +111,7 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
       <!-- TODO: Remove when in BOM -->
-      <version>7.3.1-256.vb_5a_891210a_75</version>
+      <version>7.3.1-258.v6f931956b_791</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -150,7 +150,7 @@
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
       <!-- TODO: Remove when in BOM -->
-      <version>194.v50fb_108c0b_19</version>
+      <version>199.v3395b_dd5cb_b_5</version>
     </dependency>
     <dependency>
       <!-- DeclarativeAgent -->
