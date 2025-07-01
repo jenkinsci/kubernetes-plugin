@@ -35,11 +35,14 @@ import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
+import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import io.fabric8.kubernetes.client.utils.Utils;
+import io.fabric8.mockwebserver.http.RecordedRequest;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +51,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import okhttp3.mockwebserver.RecordedRequest;
 import org.csanchez.jenkins.plugins.kubernetes.*;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
@@ -65,14 +68,24 @@ public class ReaperTest {
     public JenkinsRule j = new JenkinsRule();
 
     @Rule
-    public KubernetesServer server = new KubernetesServer();
-
-    @Rule
     public CapturingReaperListener listener = new CapturingReaperListener();
+
+    private KubernetesMockServer server;
+    private KubernetesClient client;
+
+    @Before
+    public void setUp() {
+        // TODO: remove when moving to junit 5
+        server = new KubernetesMockServer();
+        server.init(InetAddress.getLoopbackAddress(), 0);
+        client = server.createClient();
+    }
 
     @After
     public void tearDown() {
         KubernetesClientProvider.invalidateAll();
+        server.destroy();
+        client.close();
     }
 
     @Test
@@ -561,7 +574,7 @@ public class ReaperTest {
 
     @Test(timeout = 10_000)
     public void testTerminateAgentOnPodFailed() throws IOException, InterruptedException {
-        System.out.println(server.getKubernetesMockServer().getPort());
+        System.out.println(server.getPort());
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = createPod(node);
@@ -716,7 +729,7 @@ public class ReaperTest {
 
     private KubernetesCloud addCloud(String name, String namespace) {
         KubernetesCloud c = new KubernetesCloud(name);
-        c.setServerUrl(server.getClient().getMasterUrl().toString());
+        c.setServerUrl(client.getMasterUrl().toString());
         c.setNamespace(namespace);
         c.setSkipTlsVerify(true);
         j.jenkins.clouds.add(c);
@@ -730,10 +743,10 @@ public class ReaperTest {
      * @throws InterruptedException interrupted exception
      */
     private CapturedRequests kubeClientRequests() throws InterruptedException {
-        int count = server.getKubernetesMockServer().getRequestCount();
+        int count = server.getRequestCount();
         List<RecordedRequest> requests = new LinkedList<>();
         while (count-- > 0) {
-            RecordedRequest rr = server.getKubernetesMockServer().takeRequest(1, TimeUnit.SECONDS);
+            RecordedRequest rr = server.takeRequest(1, TimeUnit.SECONDS);
             if (rr != null) {
                 requests.add(rr);
             }
@@ -750,7 +763,7 @@ public class ReaperTest {
     private CapturedRequests waitForKubeClientRequests(int count) throws InterruptedException {
         List<RecordedRequest> requests = new LinkedList<>();
         while (count-- > 0) {
-            requests.add(server.getKubernetesMockServer().takeRequest());
+            requests.add(server.takeRequest());
         }
         return new CapturedRequests(requests);
     }
@@ -764,7 +777,7 @@ public class ReaperTest {
     private CapturedRequests waitForKubeClientRequests(String path) throws InterruptedException {
         List<RecordedRequest> requests = new LinkedList<>();
         while (true) {
-            RecordedRequest rr = server.getKubernetesMockServer().takeRequest();
+            RecordedRequest rr = server.takeRequest();
             requests.add(rr);
             if (rr.getPath().equals(path)) {
                 return new CapturedRequests(requests);
@@ -878,21 +891,22 @@ public class ReaperTest {
     private static WatchEvent outdatedEvent() {
         return new WatchEventBuilder()
                 .withType(Watcher.Action.ERROR.name())
-                .withNewStatusObject()
-                .withCode(HttpURLConnection.HTTP_GONE)
-                .withMessage(
-                        "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]")
-                .endStatusObject()
+                .withType(Watcher.Action.ERROR.name())
+                .withObject(new StatusBuilder()
+                        .withCode(HttpURLConnection.HTTP_GONE)
+                        .withMessage(
+                                "410: The event in requested index is outdated and cleared (the requested history has been cleared [3/1]) [2]")
+                        .build())
                 .build();
     }
 
     private static WatchEvent errorEvent() {
         return new WatchEventBuilder()
                 .withType(Watcher.Action.ERROR.name())
-                .withNewStatusObject()
-                .withCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
-                .withMessage("500: Internal error")
-                .endStatusObject()
+                .withObject(new StatusBuilder()
+                        .withCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
+                        .withMessage("500: Internal error")
+                        .build())
                 .build();
     }
 
