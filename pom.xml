@@ -43,8 +43,8 @@
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.host.address />
     <slaveAgentPort />
-    <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
+    <jenkins.baseline>2.504</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <no-test-jar>false</no-test-jar>
     <useBeta>true</useBeta>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
@@ -106,14 +106,10 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
-      <!-- Remove when on bom -->
-      <version>2.19.0-404.vb_b_0fd2fea_e10</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <!-- TODO: Remove when in BOM -->
-      <version>7.3.1-256.v788a_0b_787114</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -151,8 +147,6 @@
     <dependency>
       <groupId>org.jenkinsci.plugins</groupId>
       <artifactId>kubernetes-credentials</artifactId>
-      <!-- TODO: Remove when in BOM -->
-      <version>203.v85b_9836a_f44b_</version>
     </dependency>
     <dependency>
       <!-- DeclarativeAgent -->
