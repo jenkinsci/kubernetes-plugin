@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
@@ -130,7 +131,7 @@ public final class PodUtils {
             @CheckForNull String podDisplayName) {
         var queue = Jenkins.get().getQueue();
         Arrays.stream(queue.getItems())
-                .filter(item -> item.getTask().getUrl().equals(runUrl))
+                .filter(item -> Objects.equals(item.getTask().getUrl(), runUrl))
                 .filter(item -> Optional.ofNullable(item.getAssignedLabel())
                         .map(Label::getName)
                         .map(name -> PodTemplateUtils.sanitizeLabel(name).equals(label))
