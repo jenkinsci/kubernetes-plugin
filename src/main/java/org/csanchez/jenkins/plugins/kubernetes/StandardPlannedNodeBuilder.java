@@ -23,12 +23,11 @@ public class StandardPlannedNodeBuilder extends PlannedNodeBuilder {
                     .podTemplate(t.isUnwrapped() ? t : cloud.getUnwrappedTemplate(t))
                     .cloud(cloud)
                     .build();
-            id = agent.getId(); // always use one sourced from the slave we are provisioning so the identity is
-            // maintained
+            // always use one sourced from the slave we are provisioning so the identity is maintained
+            id = agent.getId();
             f = CompletableFuture.completedFuture(agent);
         } catch (IOException | Descriptor.FormException e) {
-            f = new CompletableFuture<>();
-            f.completeExceptionally(e);
+            f = CompletableFuture.failedFuture(e);
         }
 
         if (id == null) {
