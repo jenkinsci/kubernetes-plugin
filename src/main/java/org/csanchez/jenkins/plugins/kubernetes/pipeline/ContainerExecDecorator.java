@@ -55,6 +55,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -273,6 +275,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             return launcher;
         }
         return new Launcher.DecoratedLauncher(launcher) {
+
+            private String[] cmds; // For later use in windows
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
@@ -369,13 +373,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
+                cmds = getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix());
                 return doLaunch(
                         starter.quiet(),
                         fixDoubleDollar(envVars),
                         starter.stdout(),
                         containerWorkingDirFilePath,
                         starter.masks(),
-                        getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
+                        cmds);
+
             }
 
             private Proc doLaunch(
@@ -662,19 +668,32 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-
-                int exitCode = doLaunch(
-                                true,
-                                null,
-                                null,
-                                null,
-                                null,
-                                // TODO Windows
-                                "sh",
-                                "-c",
-                                "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
-                                        + "' /proc/*/environ | cut -d / -f 3 \\`")
-                        .join();
+                String launchCmd = Arrays.stream(cmds).filter(s -> !(s.equals("cmd") || s.equals("/Q"))).collect(Collectors.joining(" "));
+                int exitCode = 1;
+                if (this.isUnix()) {
+                    exitCode = doLaunch(
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
+                            "sh",
+                            "-c",
+                            "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
+                                    + "' /proc/*/environ | cut -d / -f 3 \\`")
+                            .join();
+                } else {
+                    exitCode = doLaunch(
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
+                            "cmd",
+                            "/Q",
+                            "wmic process where \"CommandLine like '%" + launchCmd +  "%'\" call terminate")
+                            .join();
+                }
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
             }
