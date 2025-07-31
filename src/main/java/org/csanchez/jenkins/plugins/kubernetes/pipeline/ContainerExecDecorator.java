@@ -667,9 +667,33 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                String launchCmd = Arrays.stream(cmds)
-                        .filter(s -> !(s.equals("cmd") || s.equals("/Q")))
-                        .collect(Collectors.joining(" "));
+                String script =
+                        "Function Get-ProcessEnvironment {\n"
+                                + "    param([System.Diagnostics.Process]$Process)\n"
+                                + "    try {\n"
+                                + "        $p = [System.Diagnostics.Process]::GetProcessById($Process.Id)\n"
+                                + "        $p | Add-Member -MemberType ScriptProperty -Name EnvVars -Value {\n"
+                                + "            $envVars = @{}\n"
+                                + "            $envBlock = $this.StartInfo.EnvironmentVariables\n"
+                                + "            foreach ($key in $envBlock.Keys) {\n"
+                                + "                $envVars[$key] = $envBlock[$key]\n"
+                                + "            }\n"
+                                + "            return $envVars\n"
+                                + "        } -Force\n"
+                                + "        return $p\n"
+                                + "    } catch {\n"
+                                + "        return $null\n"
+                                + "    }\n"
+                                + "}\n"
+                                + "Get-Process | ForEach-Object {\n"
+                                + "    $proc = Get-ProcessEnvironment $_\n"
+                                + "    if ($proc -and $proc.EnvVars[\"JENKINS_SERVER_COOKIE\"]) {\n"
+                                + "        Write-Host \"PID $($proc.Id): $($proc.ProcessName) has JENKINS_SERVER_COOKIE=$($proc.EnvVars[\\\"JENKINS_SERVER_COOKIE\\\"])\"\n"
+                                + "    }\n"
+                                + "}";
+
+                // Replace line breaks and escape double quotes for command line
+                script = script.replace("\n", "; ");
                 int exitCode = 1;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
@@ -690,9 +714,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                     null,
                                     null,
                                     null,
-                                    "cmd",
-                                    "/Q",
-                                    "wmic process where \"CommandLine like '%" + launchCmd + "%'\" call terminate")
+                            "powershell.exe", "-ExecutionPolicy", "Bypass", "-Command",
+                                    script)
                             .join();
                 }
 
