@@ -41,6 +41,8 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -264,6 +266,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.nodeContext = nodeContext;
     }
 
+    Instant launchedAt;
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
 
@@ -369,6 +373,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
+                launchedAt = Instant.now();
                 return doLaunch(
                         starter.quiet(),
                         fixDoubleDollar(envVars),
@@ -663,17 +668,23 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
 
+                // https://stackoverflow.com/a/55816584/12916
+                long launchedAtTicks = Duration.between(Instant.parse("0001-01-01T00:00:00.00Z"), launchedAt)
+                                .toMillis()
+                        * 10_000;
+
                 int exitCode = doLaunch(
                                 true,
                                 null,
+                                getListener().getLogger(),
                                 null,
                                 null,
-                                null,
-                                // TODO Windows
-                                "sh",
-                                "-c",
-                                "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
-                                        + "' /proc/*/environ | cut -d / -f 3 \\`")
+                                // TODO limit to Windows, and only if launchedAt is defined
+                                "powershell",
+                                "-Command",
+                                "foreach ($p in Get-Process) {if (($p.id -ne $pid) -and ($p.Name -ne 'WmiPrvSE') -and ($p.StartTime.Ticks -gt "
+                                        + launchedAtTicks
+                                        + ")) {write-host stopping $p.name $p.id $p.StartTime; try {stop-process $p} catch {Write-Host $_}}}; write-host done")
                         .join();
 
                 getListener().getLogger().println("kill finished with exit code " + exitCode);

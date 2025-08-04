@@ -747,8 +747,6 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("got stuff: some value", b);
     }
 
-    @Ignore(
-            "TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
     @Test
     public void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
