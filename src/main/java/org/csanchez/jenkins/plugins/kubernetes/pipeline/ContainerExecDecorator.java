@@ -31,15 +31,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -275,7 +268,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
         return new Launcher.DecoratedLauncher(launcher) {
 
-            private String[] cmds; // For later use in windows
 
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
@@ -373,14 +365,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
-                cmds = getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix());
                 return doLaunch(
                         starter.quiet(),
                         fixDoubleDollar(envVars),
                         starter.stdout(),
                         containerWorkingDirFilePath,
                         starter.masks(),
-                        cmds);
+                        getCommands(starter, containerWorkingDirFilePathStr, launcher.isUnix()));
             }
 
             private Proc doLaunch(
@@ -667,33 +658,24 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                String script =
-                        "Function Get-ProcessEnvironment {\n"
-                                + "    param([System.Diagnostics.Process]$Process)\n"
-                                + "    try {\n"
-                                + "        $p = [System.Diagnostics.Process]::GetProcessById($Process.Id)\n"
-                                + "        $p | Add-Member -MemberType ScriptProperty -Name EnvVars -Value {\n"
-                                + "            $envVars = @{}\n"
-                                + "            $envBlock = $this.StartInfo.EnvironmentVariables\n"
-                                + "            foreach ($key in $envBlock.Keys) {\n"
-                                + "                $envVars[$key] = $envBlock[$key]\n"
-                                + "            }\n"
-                                + "            return $envVars\n"
-                                + "        } -Force\n"
-                                + "        return $p\n"
-                                + "    } catch {\n"
-                                + "        return $null\n"
-                                + "    }\n"
-                                + "}\n"
-                                + "Get-Process | ForEach-Object {\n"
-                                + "    $proc = Get-ProcessEnvironment $_\n"
-                                + "    if ($proc -and $proc.EnvVars[\"JENKINS_SERVER_COOKIE\"]) {\n"
-                                + "        Write-Host \"PID $($proc.Id): $($proc.ProcessName) has JENKINS_SERVER_COOKIE=$($proc.EnvVars[\\\"JENKINS_SERVER_COOKIE\\\"])\"\n"
-                                + "    }\n"
-                                + "}";
-
-                // Replace line breaks and escape double quotes for command line
-                script = script.replace("\n", "; ");
+                getListener().getLogger().println("Cookie " + COOKIE_VAR + " value is " + cookie);
+                String psScript = "$failed = $false\n" +
+                        "Get-Process | ForEach-Object {\n" +
+                        "    try {\n" +
+                        "        $envVars = (Get-Process -Id $_.Id).StartInfo.EnvironmentVariables\n" +
+                        "        Write-Host \"Found $($_.ProcessName) (ID: $($_.Id)) with server cookie $($envVars['JENKINS_SERVER_COOKIE'])\"\n" +
+                        "        if ($envVars['" + COOKIE_VAR +"'] -eq '" + cookie + "') {\n" +
+                        "            try {\n" +
+                        "                Stop-Process -Id $_.Id -Force\n" +
+                        "            } catch {\n" +
+                        "                $failed = $true\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "    } catch {\n" +
+                        "        $failed = $true\n" +
+                        "    }\n" +
+                        "}\n" +
+                        "if ($failed) { exit 1 } else { exit 0 }";
                 int exitCode = 1;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
@@ -709,17 +691,16 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .join();
                 } else {
                     exitCode = doLaunch(
-                                    true,
+                                    false,
                                     null,
                                     null,
                                     null,
                                     null,
-                            "powershell.exe", "-ExecutionPolicy", "Bypass", "-Command",
-                                    script)
-                            .join();
+                            "powershell.exe", "-NoProfile", "-File", "C:\\s\\get-envvars.ps1", "-cookie", cookie
+                                    ).join();
                 }
-
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
+
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
