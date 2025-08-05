@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -268,7 +267,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         }
         return new Launcher.DecoratedLauncher(launcher) {
 
-
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
@@ -365,6 +363,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
+
                 return doLaunch(
                         starter.quiet(),
                         fixDoubleDollar(envVars),
@@ -658,24 +657,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                getListener().getLogger().println("Cookie " + COOKIE_VAR + " value is " + cookie);
-                String psScript = "$failed = $false\n" +
-                        "Get-Process | ForEach-Object {\n" +
-                        "    try {\n" +
-                        "        $envVars = (Get-Process -Id $_.Id).StartInfo.EnvironmentVariables\n" +
-                        "        Write-Host \"Found $($_.ProcessName) (ID: $($_.Id)) with server cookie $($envVars['JENKINS_SERVER_COOKIE'])\"\n" +
-                        "        if ($envVars['" + COOKIE_VAR +"'] -eq '" + cookie + "') {\n" +
-                        "            try {\n" +
-                        "                Stop-Process -Id $_.Id -Force\n" +
-                        "            } catch {\n" +
-                        "                $failed = $true\n" +
-                        "            }\n" +
-                        "        }\n" +
-                        "    } catch {\n" +
-                        "        $failed = $true\n" +
-                        "    }\n" +
-                        "}\n" +
-                        "if ($failed) { exit 1 } else { exit 0 }";
+                FilePath workspace = new FilePath(channel, "C:/s");
                 int exitCode = 1;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
@@ -690,14 +672,19 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                             + "' /proc/*/environ | cut -d / -f 3 \\`")
                             .join();
                 } else {
-                    exitCode = doLaunch(
-                                    false,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                            "powershell.exe", "-NoProfile", "-File", "C:\\s\\get-envvars.ps1", "-cookie", cookie
-                                    ).join();
+                    try {
+                        String remote = copyWindowsKillScript(workspace).getRemote();
+                        exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in all cases
+                                false,
+                                null,
+                                null,
+                                null,
+                                null,
+                                "powershell.exe", "-NoProfile", "-File", remote, "-cookie", cookie
+                        ).join();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.FINE, "Exception killin processes", e);
+                    }
                 }
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
 
@@ -715,6 +702,25 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     }
                 }
             }
+
+            private FilePath copyWindowsKillScript(FilePath workspace) throws IOException, InterruptedException {
+                InputStream resourceStream = ContainerExecDecorator.class.getResourceAsStream("scripts/kill-processes-with-cookie.ps1");
+                if (resourceStream == null) {
+                    throw new FileNotFoundException("Script not found in resources!");
+                }
+                FilePath tempFile = workspace.createTempFile("kill-processes-with-cookie",".ps1");
+                try (OutputStream os = tempFile.write()) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = resourceStream.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+                } finally {
+                    resourceStream.close();
+                }
+                return tempFile;
+            }
+
         };
     }
 
