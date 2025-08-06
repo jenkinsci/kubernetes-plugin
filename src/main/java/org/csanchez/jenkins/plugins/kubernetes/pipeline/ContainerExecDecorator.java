@@ -257,6 +257,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.nodeContext = nodeContext;
     }
 
+    private FilePath workspace;
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
 
@@ -274,6 +275,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // find container working dir
                 KubernetesSlave slave = (KubernetesSlave) node;
                 FilePath containerWorkingDirFilePath = starter.pwd();
+                workspace = containerWorkingDirFilePath;
                 String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
                         ? containerWorkingDirFilePath.getRemote()
                         : ContainerTemplate.DEFAULT_WORKING_DIR;
@@ -657,7 +659,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                FilePath workspace = new FilePath(channel, "C:/s");
                 int exitCode = 1;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
@@ -680,10 +681,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 null,
                                 null,
                                 null,
-                                "powershell.exe", "-NoProfile", "-File", remote, "-cookie", cookie
+                                "powershell.exe", "-NoProfile", "-File",
+                                /* path to file may contain spaces so wrap in double quotes*/
+                                "\""+remote+"\"",
+                                "-cookie", cookie
                         ).join();
                     } catch (Exception e) {
-                        LOGGER.log(Level.FINE, "Exception killin processes", e);
+                        LOGGER.log(Level.FINE, "Exception killing processes", e);
                     }
                 }
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
