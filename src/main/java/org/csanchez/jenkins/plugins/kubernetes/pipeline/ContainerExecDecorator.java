@@ -42,7 +42,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -277,7 +276,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             return launcher;
         }
         return new Launcher.DecoratedLauncher(launcher) {
-
             @Override
             public Proc launch(ProcStarter starter) throws IOException {
                 LOGGER.log(Level.FINEST, "Launch proc with environment: {0}", Arrays.toString(starter.envs()));
@@ -375,7 +373,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         }
                     }
                 }
-
                 return doLaunch(
                         starter.quiet(),
                         fixDoubleDollar(envVars),
@@ -684,7 +681,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .join();
                 } else {
                     try {
-                        String remote = copyWindowsKillScript(workspace).getRemote();
+                        String remote = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1").getRemote();
+                        String csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs").getRemote();
                         exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in all cases
                                 false,
                                 null,
@@ -694,14 +692,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 "powershell.exe", "-NoProfile", "-File",
                                 /* path to file may contain spaces so wrap in double quotes*/
                                 "\""+remote+"\"",
-                                "-cookie", cookie
+                                "-cookie", cookie, "-csFile", "\""+csCode+"\""
                         ).join();
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE, "Exception killing processes", e);
                     }
                 }
                 getListener().getLogger().println("kill finished with exit code " + exitCode);
-
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
@@ -717,12 +714,12 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
             }
 
-            private FilePath copyWindowsKillScript(FilePath workspace) throws IOException, InterruptedException {
-                InputStream resourceStream = ContainerExecDecorator.class.getResourceAsStream("scripts/kill-processes-with-cookie.ps1");
+            private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix) throws IOException, InterruptedException {
+                InputStream resourceStream = ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix);
                 if (resourceStream == null) {
                     throw new FileNotFoundException("Script not found in resources!");
                 }
-                FilePath tempFile = workspace.createTempFile("kill-processes-with-cookie",".ps1");
+                FilePath tempFile = workspace.createTempFile(scriptName,scriptSuffix);
                 try (OutputStream os = tempFile.write()) {
                     byte[] buffer = new byte[4096];
                     int bytesRead;
@@ -734,7 +731,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
                 return tempFile;
             }
-
         };
     }
 
