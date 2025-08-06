@@ -19,11 +19,9 @@ Get-Process | ForEach-Object {
                 	Write-Host "Failed to kill process: $id"
                 	$failed = $true
             	}
-        	} else {
-        		Write-Host "Cookie does not match"
         	}
     	} catch {
-    		Write-Error "Failed to read environment variables: $id"
+    		Write-Error "Failed to read environment variables for $id"
 		}
 
 }
