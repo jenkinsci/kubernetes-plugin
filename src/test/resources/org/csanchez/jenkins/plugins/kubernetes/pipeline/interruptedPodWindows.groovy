@@ -18,11 +18,7 @@ spec:
 ''') {
     node(POD_LABEL) {
         container('shell') {
-            try {
-                bat 'echo "starting ping" && ping 127.0.0.1 -n 3601 > test.txt'
-            } catch (Exception e) { //If killing works we should be able to do things with test.txt
-                bat 'rename test.txt test2.txt && echo "shut down gracefully"'
-            }
+            powershell 'try {Write-Host starting to sleep; Start-Sleep 999999} finally {Write-Host shut down gracefully}'
         }
     }
 }

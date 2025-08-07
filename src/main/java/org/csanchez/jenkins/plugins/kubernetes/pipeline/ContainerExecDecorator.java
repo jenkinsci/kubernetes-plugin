@@ -681,7 +681,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .join();
                 } else {
                     try {
-                        String remote = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1").getRemote();
+                        String mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1").getRemote();
+                        String killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1").getRemote();
                         String csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs").getRemote();
                         exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in all cases
                                 false,
@@ -691,8 +692,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                 null,
                                 "powershell.exe", "-NoProfile", "-File",
                                 /* path to file may contain spaces so wrap in double quotes*/
-                                "\""+remote+"\"",
-                                "-cookie", cookie, "-csFile", "\""+csCode+"\""
+                                "\""+mainScript+"\"",
+                                "-cookie", cookie, "-csFile", "\""+csCode+"\"","-killScript", "\""+killProcessScript+"\""
                         ).join();
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE, "Exception killing processes", e);

@@ -751,7 +751,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
-        r.waitForMessage("starting ping", b);
+        r.waitForMessage("starting to sleep", b);
         b.getExecutor().interrupt();
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("shut down gracefully", b);

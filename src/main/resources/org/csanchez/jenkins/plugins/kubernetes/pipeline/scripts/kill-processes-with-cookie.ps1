@@ -1,29 +1,31 @@
 param(
     [string]$cookie,
-	[string]$csFile
+	[string]$csFile,
+	[string]$killScript
 )
 
 Add-Type -Path $csFile
 
 $failed = $false
+$matchedProcessIds = @()
 Get-Process | ForEach-Object {
         $id = $_.Id
+		$name = $_.ProcessName
+		Write-Host "Trying process $id with name $name"
         try {
     		$envBlock = [ProcessEnvironmentReader]::ReadEnvironmentBlock($id)
-            if ($envBlock.Contains("JENKINS_SERVER_COOKIE=$($cookie)")) {
-            	Write-Host "Killing $($_.ProcessName) (ID: $($_.Id)) - JENKINS_SERVER_COOKIE matches"
-            	try {
-            		Stop-Process -Id $id -Force
-                	Write-Host "Killed."
-            	} catch {
-                	Write-Host "Failed to kill process: $id"
-                	$failed = $true
-            	}
+            if (($envBlock.Contains("JENKINS_SERVER_COOKIE=$($cookie)")) -and ($id -ne $PID)) {
+				Write-Host "Added process $name with id: $id to the list of processes to kill"
+				$matchedProcessIds += $id
+
         	}
     	} catch {
-    		Write-Error "Failed to read environment variables for $id"
+    		# Do nothing
 		}
 
+}
+foreach ($processId in $matchedProcessIds) {
+	& $killScript -processId $processId
 }
 if ($failed) {
 	exit 1
