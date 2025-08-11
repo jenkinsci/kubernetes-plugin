@@ -7,6 +7,7 @@ import hudson.model.Node;
 import hudson.model.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
@@ -24,7 +25,7 @@ public final class KubernetesProvisioningLimits {
     private static final Logger LOGGER = Logger.getLogger(KubernetesProvisioningLimits.class.getName());
 
     @GuardedBy("this")
-    private boolean init;
+    private AtomicBoolean init;
 
     /**
      * Tracks current number of kubernetes agents per pod template
@@ -41,8 +42,8 @@ public final class KubernetesProvisioningLimits {
      * @return whether the instance was already initialized before this call.
      */
     private boolean initInstance() {
-        boolean previousInit = init;
-        if (!init) {
+        AtomicBoolean previousInit = init;
+        if (!init.get()) {
             Queue.withLock(() -> {
                 Jenkins.get().getNodes().stream()
                         .filter(KubernetesSlave.class::isInstance)
@@ -55,9 +56,9 @@ public final class KubernetesProvisioningLimits {
                                     getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
                         });
             });
-            init = true;
+            init.set(true);
         }
-        return previousInit;
+        return previousInit.get();
     }
 
     /**
