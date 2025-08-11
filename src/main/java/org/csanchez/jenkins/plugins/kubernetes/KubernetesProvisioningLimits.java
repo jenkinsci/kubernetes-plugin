@@ -5,8 +5,8 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Node;
 import hudson.model.Queue;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
@@ -29,18 +29,18 @@ public final class KubernetesProvisioningLimits {
     /**
      * Tracks current number of kubernetes agents per pod template
      */
-    private final Map<String, Integer> podTemplateCounts = new HashMap<>();
+    private final ConcurrentMap<String, Integer> podTemplateCounts = new ConcurrentHashMap<>();
 
     /**
      * Tracks current number of kubernetes agents per kubernetes cloud
      */
-    private final Map<String, Integer> cloudCounts = new HashMap<>();
+    private final ConcurrentMap<String, Integer> cloudCounts = new ConcurrentHashMap<>();
 
     /**
      * Initialize limits counter
      * @return whether the instance was already initialized before this call.
      */
-    private synchronized boolean initInstance() {
+    private boolean initInstance() {
         boolean previousInit = init;
         if (!init) {
             Queue.withLock(() -> {
@@ -73,8 +73,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized boolean register(
-            @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+    public boolean register(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         initInstance();
         int newGlobalCount = getGlobalCount(cloud.name) + numExecutors;
         if (newGlobalCount <= cloud.getContainerCap()) {
@@ -115,8 +114,7 @@ public final class KubernetesProvisioningLimits {
      * @param podTemplate the pod template used to schedule the agent
      * @param numExecutors the number of executors (pretty much always 1)
      */
-    public synchronized void unregister(
-            @NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
+    public void unregister(@NonNull KubernetesCloud cloud, @NonNull PodTemplate podTemplate, int numExecutors) {
         if (initInstance()) {
             int newGlobalCount = getGlobalCount(cloud.name) - numExecutors;
             if (newGlobalCount < 0) {
