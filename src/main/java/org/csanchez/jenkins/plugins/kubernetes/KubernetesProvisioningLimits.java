@@ -42,8 +42,7 @@ public final class KubernetesProvisioningLimits {
      * @return whether the instance was already initialized before this call.
      */
     private boolean initInstance() {
-        AtomicBoolean previousInit = init;
-        if (!init.get()) {
+        if (!init.getAndSet(true)) {
             Queue.withLock(() -> {
                 Jenkins.get().getNodes().stream()
                         .filter(KubernetesSlave.class::isInstance)
@@ -56,9 +55,10 @@ public final class KubernetesProvisioningLimits {
                                     getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
                         });
             });
-            init.set(true);
+            return false;
+        } else {
+            return true;
         }
-        return previousInit.get();
     }
 
     /**
