@@ -699,7 +699,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         LOGGER.log(Level.FINE, "Exception killing processes", e);
                     }
                 }
-                getListener().getLogger().println("kill finished with exit code " + exitCode);
+                getListener().getLogger().println("Attempt to gracefully kill processes finished with exit code " + exitCode);
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
