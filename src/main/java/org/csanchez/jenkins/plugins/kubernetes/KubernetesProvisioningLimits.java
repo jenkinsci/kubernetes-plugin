@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.model.NodeListener;
-import net.jcip.annotations.GuardedBy;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
