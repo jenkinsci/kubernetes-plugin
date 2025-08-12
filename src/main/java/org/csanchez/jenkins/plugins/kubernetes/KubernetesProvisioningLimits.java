@@ -25,7 +25,7 @@ public final class KubernetesProvisioningLimits {
     private static final Logger LOGGER = Logger.getLogger(KubernetesProvisioningLimits.class.getName());
 
     @GuardedBy("this")
-    private AtomicBoolean init;
+    private final AtomicBoolean init = new AtomicBoolean();
 
     /**
      * Tracks current number of kubernetes agents per pod template
