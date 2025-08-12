@@ -24,7 +24,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public final class KubernetesProvisioningLimits {
     private static final Logger LOGGER = Logger.getLogger(KubernetesProvisioningLimits.class.getName());
 
-    @GuardedBy("this")
     private final AtomicBoolean init = new AtomicBoolean();
 
     /**
@@ -42,7 +41,7 @@ public final class KubernetesProvisioningLimits {
      * @return whether the instance was already initialized before this call.
      */
     private boolean initInstance() {
-        if (!init.getAndSet(true)) {
+        if (init.compareAndSet(false, true)) {
             Queue.withLock(() -> {
                 Jenkins.get().getNodes().stream()
                         .filter(KubernetesSlave.class::isInstance)
