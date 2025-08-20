@@ -41,18 +41,20 @@ public final class KubernetesProvisioningLimits {
      */
     private boolean initInstance() {
         if (init.compareAndSet(false, true)) {
-            Queue.withLock(() -> {
-                Jenkins.get().getNodes().stream()
-                        .filter(KubernetesSlave.class::isInstance)
-                        .map(KubernetesSlave.class::cast)
-                        .forEach(node -> {
-                            cloudCounts.put(
-                                    node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
-                            podTemplateCounts.put(
-                                    node.getTemplateId(),
-                                    getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
-                        });
-            });
+            synchronized (this) {
+                Queue.withLock(() -> {
+                    Jenkins.get().getNodes().stream()
+                            .filter(KubernetesSlave.class::isInstance)
+                            .map(KubernetesSlave.class::cast)
+                            .forEach(node -> {
+                                cloudCounts.put(
+                                        node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                                podTemplateCounts.put(
+                                        node.getTemplateId(),
+                                        getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
+                            });
+                });
+            }
             return false;
         } else {
             return true;
