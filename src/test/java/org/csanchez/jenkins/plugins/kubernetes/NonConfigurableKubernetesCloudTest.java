@@ -1,29 +1,35 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class NonConfigurableKubernetesCloudTest {
+@WithJenkins
+class NonConfigurableKubernetesCloudTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
-
-    @Rule
-    public LoggerRule logs = new LoggerRule()
+    @SuppressWarnings("unused")
+    private final LogRecorder logs = new LogRecorder()
             .record(
                     Logger.getLogger(NonConfigurableKubernetesCloudTest.class
                             .getPackage()
                             .getName()),
                     Level.ALL);
 
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
+
     @Test
-    public void configRoundTrip() throws Exception {
+    void configRoundTrip() throws Exception {
         // create a cloud with a template
         var cloud = new KubernetesCloud("kubernetes");
         var podTemplate = new PodTemplate();

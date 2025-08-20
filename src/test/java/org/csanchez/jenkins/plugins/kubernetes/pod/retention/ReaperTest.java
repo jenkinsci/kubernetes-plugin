@@ -26,7 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -37,12 +37,11 @@ import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import io.fabric8.kubernetes.client.utils.Utils;
 import io.fabric8.mockwebserver.http.RecordedRequest;
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -53,43 +52,42 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.*;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ReaperTest {
+@WithJenkins
+@EnableKubernetesMockClient
+class ReaperTest {
 
     private static final Long EVENT_WAIT_PERIOD_MS = 10L;
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
-    @Rule
-    public CapturingReaperListener listener = new CapturingReaperListener();
+    @RegisterExtension
+    private final CapturingReaperListener listener = new CapturingReaperListener();
 
     private KubernetesMockServer server;
     private KubernetesClient client;
 
-    @Before
-    public void setUp() {
-        // TODO: remove when moving to junit 5
-        server = new KubernetesMockServer();
-        server.init(InetAddress.getLoopbackAddress(), 0);
-        client = server.createClient();
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void afterEach() {
         KubernetesClientProvider.invalidateAll();
-        server.destroy();
-        client.close();
     }
 
     @Test
-    public void testMaybeActivate() throws IOException, InterruptedException {
+    void testMaybeActivate() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
@@ -101,14 +99,14 @@ public class ReaperTest {
 
         // add node that does not exist in k8s so it get's removed
         KubernetesSlave podNotRunning = addNode(cloud, "k8s-node-123", "k8s-node");
-        assertEquals("node added to jenkins", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "node added to jenkins");
 
         // activate reaper
         Reaper r = Reaper.getInstance();
         r.maybeActivate();
 
         // k8s node which no pod should be deleted on activation
-        assertEquals("node removed from jenkins", j.jenkins.getNodes().size(), 0);
+        assertEquals(0, j.jenkins.getNodes().size(), "node removed from jenkins");
 
         // watch was created
         assertShouldBeWatching(r, cloud);
@@ -122,18 +120,18 @@ public class ReaperTest {
         // create new node to verify activate is not run again
         KubernetesSlave newNode = addNode(cloud, "new-123", "new");
         j.jenkins.addNode(newNode);
-        assertEquals("node added to jenkins", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "node added to jenkins");
         // call again should not add any more calls
         r.maybeActivate();
 
         kubeClientRequests()
                 // expect not to be called
                 .assertRequestCount("/api/v1/namespaces/foo/pods/new-123", 0);
-        assertEquals("node not removed from jenkins", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "node not removed from jenkins");
     }
 
     @Test
-    public void testWatchFailOnActivate() throws IOException, InterruptedException {
+    void testWatchFailOnActivate() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         // activate reaper
         Reaper r = Reaper.getInstance();
@@ -147,7 +145,7 @@ public class ReaperTest {
     }
 
     @Test
-    public void testActivateOnNewComputer() throws IOException, InterruptedException {
+    void testActivateOnNewComputer() throws Exception {
         server.expect()
                 .withPath("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true")
                 .andUpgradeToWebSocket()
@@ -176,8 +174,9 @@ public class ReaperTest {
                 .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 1);
     }
 
-    @Test(timeout = 10_000)
-    public void testReconnectOnNewComputer() throws InterruptedException, IOException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testReconnectOnNewComputer() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
@@ -229,8 +228,9 @@ public class ReaperTest {
         System.out.println("Watch started");
     }
 
-    @Test(timeout = 10_000)
-    public void testAddWatchWhenCloudAdded() throws InterruptedException, IOException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testAddWatchWhenCloudAdded() throws Exception {
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
                 .withPath(watchPodsPath)
@@ -244,7 +244,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         String cloudName = "k8s";
-        assertFalse("should not be watching cloud", r.isWatchingCloud(cloudName));
+        assertFalse(r.isWatchingCloud(cloudName), "should not be watching cloud");
 
         KubernetesCloud cloud = addCloud(cloudName, "foo");
 
@@ -256,8 +256,9 @@ public class ReaperTest {
         kubeClientRequests().assertRequestCountAtLeast(watchPodsPath, 1);
     }
 
-    @Test(timeout = 10_000)
-    public void testRemoveWatchWhenCloudRemoved() throws InterruptedException, IOException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testRemoveWatchWhenCloudRemoved() {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
@@ -283,8 +284,9 @@ public class ReaperTest {
         assertShouldNotBeWatching(r, cloud);
     }
 
-    @Test(timeout = 10_000)
-    public void testReplaceWatchWhenCloudUpdated() throws InterruptedException, IOException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testReplaceWatchWhenCloudUpdated() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         Pod node123 = new PodBuilder()
                 .withNewStatus()
@@ -338,8 +340,9 @@ public class ReaperTest {
         kubeClientRequests().assertRequestCountAtLeast(watchBarPodsPath, 1);
     }
 
-    @Test(timeout = 10_000)
-    public void testStopWatchingOnCloseException() throws InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testStopWatchingOnCloseException() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
@@ -371,8 +374,9 @@ public class ReaperTest {
         assertShouldNotBeWatching(r, cloud);
     }
 
-    @Test(timeout = 10_000)
-    public void testKeepWatchingOnKubernetesApiServerError() throws InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testKeepWatchingOnKubernetesApiServerError() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect()
@@ -412,8 +416,9 @@ public class ReaperTest {
         assertShouldBeWatching(r, cloud);
     }
 
-    @Test(timeout = 10_000)
-    public void testKeepWatchingOnStatusWatchEvent() throws InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testKeepWatchingOnStatusWatchEvent() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
         server.expect().withPath(watchPodsPath).andReturnChunked(200).once();
@@ -444,7 +449,7 @@ public class ReaperTest {
     }
 
     @Test
-    public void testCloseWatchersOnShutdown() throws InterruptedException {
+    void testCloseWatchersOnShutdown() {
         String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
 
         server.expect()
@@ -473,8 +478,9 @@ public class ReaperTest {
         assertShouldNotBeWatching(r, cloud, cloud2, cloud3);
     }
 
-    @Test(timeout = 10_000)
-    public void testDeleteNodeOnPodDelete() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testDeleteNodeOnPodDelete() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = createPod(node);
@@ -500,7 +506,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // verify node is still registered
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // wait for the delete event to be processed
         waitForKubeClientRequests(6)
@@ -513,11 +519,12 @@ public class ReaperTest {
         verify(node.getComputer()).disconnect(isA(PodOfflineCause.class));
 
         // expect node to be removed
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 0);
+        assertEquals(0, j.jenkins.getNodes().size(), "jenkins nodes");
     }
 
-    @Test(timeout = 10_000)
-    public void testTerminateAgentOnContainerTerminated() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testTerminateAgentOnContainerTerminated() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = withContainerStatusTerminated(createPod(node));
@@ -559,7 +566,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // verify node is still registered
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // verify listener got notified
         listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
@@ -569,11 +576,12 @@ public class ReaperTest {
         // verify computer disconnected with offline cause
         verify(node.getComputer(), atLeastOnce()).disconnect(isA(PodOfflineCause.class));
         // verify node is still registered (will be removed when pod deleted)
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
     }
 
-    @Test(timeout = 10_000)
-    public void testTerminateAgentOnPodFailed() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testTerminateAgentOnPodFailed() throws Exception {
         System.out.println(server.getPort());
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
@@ -601,7 +609,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // verify node is still registered
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // verify listener got notified
         listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
@@ -611,11 +619,12 @@ public class ReaperTest {
         // verify computer disconnected with offline cause
         verify(node.getComputer()).disconnect(isA(PodOfflineCause.class));
         // verify node is still registered (will be removed when pod deleted)
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
     }
 
-    @Test(timeout = 10_000)
-    public void testTerminateAgentOnImagePullBackoff() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 10_000, unit = TimeUnit.MILLISECONDS)
+    void testTerminateAgentOnImagePullBackoff() throws Exception {
         KubernetesCloud cloud = addCloud("k8s", "foo");
         KubernetesSlave node = addNode(cloud, "node-123", "node");
         Pod node123 = withContainerImagePullBackoff(createPod(node));
@@ -647,7 +656,7 @@ public class ReaperTest {
         r.maybeActivate();
 
         // verify node is still registered
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // wait for the delete event to be processed
         waitForKubeClientRequests(6).assertRequestCountAtLeast(watchPodsPath, 3);
@@ -660,7 +669,7 @@ public class ReaperTest {
         // verify computer disconnected with offline cause
         verify(node.getComputer(), atLeastOnce()).disconnect(isA(PodOfflineCause.class));
         // verify node is still registered (will be removed when pod deleted)
-        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+        assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
     }
 
     private Pod withContainerImagePullBackoff(Pod pod) {
@@ -708,7 +717,7 @@ public class ReaperTest {
                 .build();
     }
 
-    private KubernetesSlave addNode(KubernetesCloud cld, String podName, String nodeName) throws IOException {
+    private KubernetesSlave addNode(KubernetesCloud cld, String podName, String nodeName) throws Exception {
         KubernetesSlave node = mock(KubernetesSlave.class);
         when(node.getNodeName()).thenReturn(nodeName);
         when(node.getNamespace()).thenReturn(cld.getNamespace());
@@ -742,7 +751,7 @@ public class ReaperTest {
      * @return captured kube client requests so far
      * @throws InterruptedException interrupted exception
      */
-    private CapturedRequests kubeClientRequests() throws InterruptedException {
+    private CapturedRequests kubeClientRequests() throws Exception {
         int count = server.getRequestCount();
         List<RecordedRequest> requests = new LinkedList<>();
         while (count-- > 0) {
@@ -760,29 +769,12 @@ public class ReaperTest {
      * @return captured requests
      * @throws InterruptedException interrupted exception
      */
-    private CapturedRequests waitForKubeClientRequests(int count) throws InterruptedException {
+    private CapturedRequests waitForKubeClientRequests(int count) throws Exception {
         List<RecordedRequest> requests = new LinkedList<>();
         while (count-- > 0) {
             requests.add(server.takeRequest());
         }
         return new CapturedRequests(requests);
-    }
-
-    /**
-     * Wait until the specified request is captured.
-     * @param path number of requests to wait for
-     * @return captured requests
-     * @throws InterruptedException interrupted exception
-     */
-    private CapturedRequests waitForKubeClientRequests(String path) throws InterruptedException {
-        List<RecordedRequest> requests = new LinkedList<>();
-        while (true) {
-            RecordedRequest rr = server.takeRequest();
-            requests.add(rr);
-            if (rr.getPath().equals(path)) {
-                return new CapturedRequests(requests);
-            }
-        }
     }
 
     private static class CapturedRequests {
@@ -795,7 +787,7 @@ public class ReaperTest {
         }
 
         CapturedRequests assertRequestCount(String path, long count) {
-            assertEquals(path + " count", count, (long) countByPath.getOrDefault(path, 0L));
+            assertEquals(count, (long) countByPath.getOrDefault(path, 0L), path + " count");
             return this;
         }
 
@@ -806,7 +798,7 @@ public class ReaperTest {
     }
 
     @Extension
-    public static class CapturingReaperListener extends ExternalResource implements Reaper.Listener {
+    public static class CapturingReaperListener implements Reaper.Listener, AfterEachCallback {
 
         private static final List<ReaperListenerWatchEvent> CAPTURED_EVENTS = new LinkedList<>();
 
@@ -815,8 +807,7 @@ public class ReaperTest {
                 @NonNull Watcher.Action action,
                 @NonNull KubernetesSlave node,
                 @NonNull Pod pod,
-                @NonNull Set<String> terminationReaons)
-                throws IOException, InterruptedException {
+                @NonNull Set<String> terminationReasons) {
             CAPTURED_EVENTS.add(new ReaperListenerWatchEvent(action, node, pod));
             notifyAll();
         }
@@ -824,8 +815,7 @@ public class ReaperTest {
         /**
          * Test should use {@link #waitForEvents()}, not this method
          */
-        private synchronized CapturingReaperListener waitForEventsOnJenkinsExtensionInstance()
-                throws InterruptedException {
+        private synchronized CapturingReaperListener waitForEventsOnJenkinsExtensionInstance() throws Exception {
             while (CAPTURED_EVENTS.isEmpty()) {
                 wait();
             }
@@ -837,7 +827,7 @@ public class ReaperTest {
          * @return jenkins extension instance
          * @throws InterruptedException if wait was interrupted
          */
-        public CapturingReaperListener waitForEvents() throws InterruptedException {
+        public CapturingReaperListener waitForEvents() throws Exception {
             // find the instance that Jenkins created and wait on that one
             CapturingReaperListener l =
                     Jenkins.get().getExtensionList(Reaper.Listener.class).get(CapturingReaperListener.class);
@@ -855,18 +845,18 @@ public class ReaperTest {
          */
         public synchronized void expectEvent(Watcher.Action action, KubernetesSlave node) {
             boolean found = CAPTURED_EVENTS.stream().anyMatch(e -> e.action == action && e.node == node);
-            assertTrue("expected event: " + action + ", " + node, found);
+            assertTrue(found, "expected event: " + action + ", " + node);
         }
 
         /**
          * Expect not event to have been received.
          */
         public synchronized void expectNoEvents() {
-            assertEquals("no watcher events", 0, CAPTURED_EVENTS.size());
+            assertEquals(0, CAPTURED_EVENTS.size(), "no watcher events");
         }
 
         @Override
-        protected void after() {
+        public void afterEach(ExtensionContext context) {
             CAPTURED_EVENTS.clear();
         }
     }

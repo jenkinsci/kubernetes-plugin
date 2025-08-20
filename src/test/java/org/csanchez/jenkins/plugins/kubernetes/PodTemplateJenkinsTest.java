@@ -3,7 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplate.getLabelDigestFunction;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import hudson.model.Label;
 import java.math.BigInteger;
@@ -13,18 +13,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodTemplateJenkinsTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class PodTemplateJenkinsTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void singleLabel() {
+    void singleLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
@@ -38,7 +45,7 @@ public class PodTemplateJenkinsTest {
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void multiLabel() {
+    void multiLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("foo bar");
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
@@ -52,7 +59,7 @@ public class PodTemplateJenkinsTest {
 
     @Test
     @Issue({"JENKINS-59690", "JENKINS-60537"})
-    public void defaultLabel() {
+    void defaultLabel() {
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel(null);
         Map<String, String> labelsMap = podTemplate.getLabelsMap();
@@ -61,7 +68,7 @@ public class PodTemplateJenkinsTest {
     }
 
     @Test
-    public void jenkinsLabels() {
+    void jenkinsLabels() {
         KubernetesCloud kubernetesCloud = new KubernetesCloud("kubernetes");
         j.jenkins.clouds.add(kubernetesCloud);
         PodTemplate podTemplate = new PodTemplate();

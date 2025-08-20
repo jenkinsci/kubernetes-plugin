@@ -1,31 +1,32 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MetricNamesTest {
+import org.junit.jupiter.api.Test;
+
+class MetricNamesTest {
 
     @Test
-    public void metricNameForPodStatusAddsNullWhenStatusIsNull() {
+    void metricNameForPodStatusAddsNullWhenStatusIsNull() {
         String expected = "kubernetes.cloud.pods.launch.status.null";
         String actual = MetricNames.metricNameForPodStatus(null);
 
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void metricNameForPodStatusAddsStatusValueIfNotNull() {
+    void metricNameForPodStatusAddsStatusValueIfNotNull() {
         String expected = "kubernetes.cloud.pods.launch.status.running";
         String actual = MetricNames.metricNameForPodStatus("RUNNING");
 
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void metricNameForPodStatusChangeStatusToLowercase() {
+    void metricNameForPodStatusChangeStatusToLowercase() {
         String expected = "kubernetes.cloud.pods.launch.status.failed";
         String actual = MetricNames.metricNameForPodStatus("FaIlEd");
 
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
     }
 }

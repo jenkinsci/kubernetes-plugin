@@ -1,6 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.decorator;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -10,29 +10,29 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class PodDecoratorTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+@ExtendWith(MockitoExtension.class)
+class PodDecoratorTest {
 
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
+    private JenkinsRule j;
 
     @Mock
     private KubernetesSlave slave;
 
     private KubernetesCloud cloud = new KubernetesCloud("test");
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
         when(slave.getKubernetesCloud()).thenReturn(cloud);
     }
 
@@ -52,7 +52,7 @@ public class PodDecoratorTest {
     }
 
     @Test
-    public void activeDecorator() {
+    void activeDecorator() {
         PodTemplate podTemplate = new PodTemplate();
         PodTemplateBuilder podTemplateBuilder = new PodTemplateBuilder(podTemplate, slave);
         Pod pod = podTemplateBuilder.build();

@@ -8,17 +8,23 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import java.util.Collections;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class KubernetesFolderPropertyTest {
+@WithJenkins
+class KubernetesFolderPropertyTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void propertySavedOnFirstSaveTest() throws Exception {
+    void propertySavedOnFirstSaveTest() throws Exception {
         KubernetesCloud kube1 = new KubernetesCloud("kube1");
         kube1.setUsageRestricted(true);
         KubernetesCloud kube2 = new KubernetesCloud("kube2");

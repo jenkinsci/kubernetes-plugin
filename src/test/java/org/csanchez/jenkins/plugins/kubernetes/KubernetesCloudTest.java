@@ -2,11 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
@@ -14,7 +10,6 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.AccessDeniedException3;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,31 +34,37 @@ import org.htmlunit.html.HtmlElement;
 import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlInput;
 import org.htmlunit.html.HtmlPage;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class KubernetesCloudTest {
+@WithJenkins
+class KubernetesCloudTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
-    @Rule
-    public LoggerRule logs = new LoggerRule()
+    @SuppressWarnings("unused")
+    private final LogRecorder logs = new LogRecorder()
             .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
 
-    @After
-    public void tearDown() {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
+
+    @AfterEach
+    void afterEach() {
         System.getProperties().remove("KUBERNETES_JENKINS_URL");
     }
 
     @Test
-    public void configRoundTrip() throws Exception {
+    void configRoundTrip() throws Exception {
         var cloud = new KubernetesCloud("kubernetes");
         var podTemplate = new PodTemplate();
         podTemplate.setName("test-template");
@@ -77,8 +78,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testInheritance() {
-
+    void testInheritance() {
         ContainerTemplate jnlp = new ContainerTemplate("jnlp", "jnlp:1");
         ContainerTemplate maven = new ContainerTemplate("maven", "maven:1");
         maven.setTtyEnabled(true);
@@ -88,26 +88,25 @@ public class KubernetesCloudTest {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
         parent.setLabel("parent");
-        parent.setContainers(Arrays.asList(jnlp));
-        parent.setVolumes(Arrays.asList(podVolume));
+        parent.setContainers(List.of(jnlp));
+        parent.setVolumes(List.of(podVolume));
 
         ContainerTemplate maven2 = new ContainerTemplate("maven", "maven:2");
         PodTemplate withNewMavenVersion = new PodTemplate();
-        withNewMavenVersion.setContainers(Arrays.asList(maven2));
+        withNewMavenVersion.setContainers(List.of(maven2));
 
         PodTemplate result = PodTemplateUtils.combine(parent, withNewMavenVersion);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void getJenkinsUrlOrDie_NoJenkinsUrl() {
+    @Test
+    void getJenkinsUrlOrDie_NoJenkinsUrl() {
         JenkinsLocationConfiguration.get().setUrl(null);
         KubernetesCloud cloud = new KubernetesCloud("name");
-        String url = cloud.getJenkinsUrlOrDie();
-        fail("Should have thrown IllegalStateException at this point but got " + url + " instead.");
+        assertThrows(IllegalStateException.class, () -> cloud.getJenkinsUrlOrDie());
     }
 
     @Test
-    public void getJenkinsUrlOrDie_UrlInCloud() {
+    void getJenkinsUrlOrDie_UrlInCloud() {
         System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocationinsysprop");
         KubernetesCloud cloud = new KubernetesCloud("name");
         cloud.setJenkinsUrl("http://mylocation");
@@ -115,21 +114,21 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void getJenkinsUrlOrDie_UrlInSysprop() {
+    void getJenkinsUrlOrDie_UrlInSysprop() {
         System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocation");
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrDie());
     }
 
     @Test
-    public void getJenkinsUrlOrDie_UrlInLocation() {
+    void getJenkinsUrlOrDie_UrlInLocation() {
         JenkinsLocationConfiguration.get().setUrl("http://mylocation");
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrDie());
     }
 
     @Test
-    public void getJenkinsUrlOrNull_NoJenkinsUrl() {
+    void getJenkinsUrlOrNull_NoJenkinsUrl() {
         JenkinsLocationConfiguration.get().setUrl(null);
         KubernetesCloud cloud = new KubernetesCloud("name");
         String url = cloud.getJenkinsUrlOrNull();
@@ -137,7 +136,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void getJenkinsUrlOrNull_UrlInCloud() {
+    void getJenkinsUrlOrNull_UrlInCloud() {
         System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocationinsysprop");
         KubernetesCloud cloud = new KubernetesCloud("name");
         cloud.setJenkinsUrl("http://mylocation");
@@ -145,27 +144,27 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void getJenkinsUrlOrNull_UrlInSysprop() {
+    void getJenkinsUrlOrNull_UrlInSysprop() {
         System.setProperty("KUBERNETES_JENKINS_URL", "http://mylocation");
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrNull());
     }
 
     @Test
-    public void getJenkinsUrlOrNull_UrlInLocation() {
+    void getJenkinsUrlOrNull_UrlInLocation() {
         JenkinsLocationConfiguration.get().setUrl("http://mylocation");
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals("http://mylocation/", cloud.getJenkinsUrlOrNull());
     }
 
     @Test
-    public void testKubernetesCloudDefaults() {
+    void testKubernetesCloudDefaults() {
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals(PodRetention.getKubernetesCloudDefault(), cloud.getPodRetention());
     }
 
     @Test
-    public void testPodLabels() {
+    void testPodLabels() {
         List<PodLabel> defaultPodLabelsList = PodLabel.fromMap(KubernetesCloud.DEFAULT_POD_LABELS);
         KubernetesCloud cloud = new KubernetesCloud("name");
         assertEquals(KubernetesCloud.DEFAULT_POD_LABELS, cloud.getPodLabelsMap());
@@ -192,7 +191,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void testLabels() {
+    void testLabels() {
         KubernetesCloud cloud = new KubernetesCloud("name");
 
         List<PodLabel> labels = PodLabel.listOf("foo", "bar", "cat", "dog");
@@ -215,7 +214,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void copyConstructor() throws Exception {
+    void copyConstructor() throws Exception {
         PodTemplate pt = new PodTemplate();
         pt.setName("podTemplate");
 
@@ -236,7 +235,7 @@ public class KubernetesCloudTest {
                 } else if (propertyType == int.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextInt());
                 } else if (propertyType == Integer.class) {
-                    PropertyUtils.setProperty(cloud, property, Integer.valueOf(RandomUtils.nextInt()));
+                    PropertyUtils.setProperty(cloud, property, RandomUtils.nextInt());
                 } else if (propertyType == boolean.class) {
                     PropertyUtils.setProperty(cloud, property, RandomUtils.nextBoolean());
                 } else if (!objectProperties.contains(property)) {
@@ -253,12 +252,12 @@ public class KubernetesCloudTest {
         KubernetesCloud copy = new KubernetesCloud("copy", cloud);
         assertEquals("copy", copy.name);
         assertTrue(
-                "Expected cloud from copy constructor to be equal to the source except for name",
-                EqualsBuilder.reflectionEquals(cloud, copy, true, KubernetesCloud.class, "name"));
+                EqualsBuilder.reflectionEquals(cloud, copy, true, KubernetesCloud.class, "name"),
+                "Expected cloud from copy constructor to be equal to the source except for name");
     }
 
     @Test
-    public void defaultWorkspaceVolume() throws Exception {
+    void defaultWorkspaceVolume() throws Exception {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         j.jenkins.clouds.add(cloud);
         j.jenkins.save();
@@ -282,11 +281,11 @@ public class KubernetesCloudTest {
         assertEquals("default-workspace", podTemplate.getName());
         p = wc.goTo("cloud/kubernetes/templates");
         DomElement row = p.getElementById("template_" + podTemplate.getId());
-        assertTrue(row != null);
+        assertNotNull(row);
     }
 
     @Test
-    public void minRetentionTimeout() {
+    void minRetentionTimeout() {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
         cloud.setRetentionTimeout(0);
@@ -295,7 +294,7 @@ public class KubernetesCloudTest {
 
     @Test
     @LocalData
-    public void emptyKubernetesCloudReadResolve() {
+    void emptyKubernetesCloudReadResolve() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
         assertEquals(KubernetesCloud.DEFAULT_RETENTION_TIMEOUT_MINUTES, cloud.getRetentionTimeout());
         assertEquals(Integer.MAX_VALUE, cloud.getContainerCap());
@@ -306,9 +305,9 @@ public class KubernetesCloudTest {
 
     @Test
     @LocalData
-    public void readResolveContainerCapZero() {
+    void readResolveContainerCapZero() {
         KubernetesCloud cloud = j.jenkins.clouds.get(KubernetesCloud.class);
-        assertEquals(cloud.getContainerCap(), Integer.MAX_VALUE);
+        assertEquals(Integer.MAX_VALUE, cloud.getContainerCap());
     }
 
     public HtmlInput getInputByName(DomElement root, String name) {
@@ -322,7 +321,7 @@ public class KubernetesCloudTest {
     }
 
     @Test
-    public void authorization() throws Exception {
+    void authorization() {
         var securityRealm = j.createDummySecurityRealm();
         j.jenkins.setSecurityRealm(securityRealm);
         var authorizationStrategy = new MockAuthorizationStrategy();
@@ -348,10 +347,9 @@ public class KubernetesCloudTest {
         }
     }
 
-    private static void assertAccessDenied(ThrowingRunnable throwingRunnable, String expectedMessage) {
+    private static void assertAccessDenied(Executable executable, String expectedMessage) {
         assertThat(
-                assertThrows(AccessDeniedException3.class, throwingRunnable).getMessage(),
-                containsString(expectedMessage));
+                assertThrows(AccessDeniedException3.class, executable).getMessage(), containsString(expectedMessage));
     }
 
     private static @NonNull ACLContext asUser(String admin) {

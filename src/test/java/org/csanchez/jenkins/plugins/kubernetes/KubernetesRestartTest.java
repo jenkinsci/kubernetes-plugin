@@ -25,23 +25,23 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class KubernetesRestartTest {
+class KubernetesRestartTest {
 
-    @Rule
-    public JenkinsSessionRule s = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension s = new JenkinsSessionExtension();
 
     @Test
     @LocalData
-    public void upgradeFrom_1_27_1() throws Throwable {
+    void upgradeFrom_1_27_1() throws Throwable {
         AtomicReference<String> podTemplateId = new AtomicReference<>();
         AtomicReference<String> toString = new AtomicReference<>();
         s.then(r -> {

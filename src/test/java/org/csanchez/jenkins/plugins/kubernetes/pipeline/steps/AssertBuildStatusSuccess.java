@@ -3,9 +3,9 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline.steps;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.RealJenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 
-public class AssertBuildStatusSuccess implements RealJenkinsRule.Step {
+public class AssertBuildStatusSuccess implements RealJenkinsExtension.Step {
     private RunId runId;
 
     public AssertBuildStatusSuccess(RunId runId) {

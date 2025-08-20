@@ -2,41 +2,44 @@ package org.csanchez.jenkins.plugins.kubernetes.casc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import io.jenkins.plugins.casc.misc.junit.jupiter.AbstractRoundTripTest;
 import java.util.List;
+import java.util.stream.Stream;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-@RunWith(Parameterized.class)
-public class EnvVarCasCTest extends RoundTripAbstractTest {
-    final EnvVarStrategy strategy;
-    final String resource;
+@WithJenkins
+@ParameterizedClass(name = "{index}: {1}")
+@MethodSource("permutations")
+class EnvVarCasCTest extends AbstractRoundTripTest {
 
-    public EnvVarCasCTest(EnvVarStrategy strategy, String resource) {
-        this.strategy = strategy;
-        this.resource = resource;
-    }
+    @Parameter(0)
+    private EnvVarStrategy strategy;
 
-    @Parameterized.Parameters(name = "{index}: {1}")
-    public static Object[] permutations() {
-        return new Object[][] {
-            {new KeyValueEnvVarStrategy(), "keyValue"},
-            {new SecretEnvVarStrategy(), "secret"},
-        };
+    @Parameter(1)
+    private String resource;
+
+    static Stream<Arguments> permutations() {
+        return Stream.of(
+                Arguments.of(new KeyValueEnvVarStrategy(), "keyValue"),
+                Arguments.of(new SecretEnvVarStrategy(), "secret"));
     }
 
     @Override
-    protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
-        KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
+    protected void assertConfiguredAsExpected(JenkinsRule r, String configContent) {
+        KubernetesCloud cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
         List<PodTemplate> templates = cloud.getTemplates();
         assertNotNull(templates);

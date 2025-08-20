@@ -1,41 +1,42 @@
 package org.csanchez.jenkins.plugins.kubernetes.pod.retention;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.api.model.PodStatusBuilder;
 import java.util.function.Supplier;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class PodRetentionTest {
+class PodRetentionTest {
 
     private KubernetesCloud cloud;
     private Pod pod;
     private Supplier<Pod> podS = () -> pod;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void beforeEach() {
         this.cloud = new KubernetesCloud("kubernetes");
         this.pod = new Pod();
     }
 
     @Test
-    public void testAlwaysPodRetention() {
+    void testAlwaysPodRetention() {
         PodRetention subject = new Always();
         assertFalse(subject.shouldDeletePod(cloud, podS));
     }
 
     @Test
-    public void testNeverPodRetention() {
+    void testNeverPodRetention() {
         PodRetention subject = new Never();
         assertTrue(subject.shouldDeletePod(cloud, podS));
     }
 
     @Test
-    public void testDefaultPodRetention() {
+    void testDefaultPodRetention() {
         PodRetention subject = new Default();
         cloud.setPodRetention(new Always());
         assertFalse(subject.shouldDeletePod(cloud, podS));
@@ -48,7 +49,7 @@ public class PodRetentionTest {
     }
 
     @Test
-    public void testOnFailurePodRetention() {
+    void testOnFailurePodRetention() {
         PodRetention subject = new OnFailure();
         pod.setStatus(buildStatus("Failed"));
         assertFalse(subject.shouldDeletePod(cloud, podS));
@@ -61,7 +62,7 @@ public class PodRetentionTest {
     }
 
     @Test
-    public void testOnEvictedPodRetention() {
+    void testOnEvictedPodRetention() {
         PodRetention subject = new Evicted();
         pod.setStatus(buildStatus("Failed", "Evicted"));
         assertFalse(subject.shouldDeletePod(cloud, podS));

@@ -2,44 +2,47 @@ package org.csanchez.jenkins.plugins.kubernetes.casc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import io.jenkins.plugins.casc.misc.junit.jupiter.AbstractRoundTripTest;
 import java.util.List;
+import java.util.stream.Stream;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.*;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-@RunWith(Parameterized.class)
-public class WorkspaceVolumeCasCTest extends RoundTripAbstractTest {
-    final WorkspaceVolumeStrategy strategy;
-    final String resource;
+@WithJenkins
+@ParameterizedClass(name = "{index}: {1}")
+@MethodSource("permutations")
+public class WorkspaceVolumeCasCTest extends AbstractRoundTripTest {
 
-    public WorkspaceVolumeCasCTest(WorkspaceVolumeStrategy strategy, String resource) {
-        this.strategy = strategy;
-        this.resource = resource;
-    }
+    @Parameter(0)
+    private WorkspaceVolumeStrategy strategy;
 
-    @Parameterized.Parameters(name = "{index}: {1}")
-    public static Object[] permutations() {
-        return new Object[][] {
-            {new DynamicPVCWorkspaceVolumeStrategy(), "dynamicPVC"},
-            {new EmptyDirWorkspaceVolumeStrategy(), "emptyDir"},
-            {new EmptyDirWorkspaceVolumeStrategy(Boolean.TRUE), "emptyDir_memory"},
-            {new HostPathWorkspaceVolumeStrategy(), "hostPath"},
-            {new NfsWorkspaceVolumeStrategy(), "nfs"},
-            {new PVCWorkspaceVolumeStrategy(), "pvc"},
-            {new GenericEphemeralWorkspaceVolumeStrategy(), "genericEphemeral"},
-        };
+    @Parameter(1)
+    private String resource;
+
+    static Stream<Arguments> permutations() {
+        return Stream.of(
+                Arguments.of(new DynamicPVCWorkspaceVolumeStrategy(), "dynamicPVC"),
+                Arguments.of(new EmptyDirWorkspaceVolumeStrategy(), "emptyDir"),
+                Arguments.of(new EmptyDirWorkspaceVolumeStrategy(Boolean.TRUE), "emptyDir_memory"),
+                Arguments.of(new HostPathWorkspaceVolumeStrategy(), "hostPath"),
+                Arguments.of(new NfsWorkspaceVolumeStrategy(), "nfs"),
+                Arguments.of(new PVCWorkspaceVolumeStrategy(), "pvc"),
+                Arguments.of(new GenericEphemeralWorkspaceVolumeStrategy(), "genericEphemeral"));
     }
 
     @Override
-    protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
-        KubernetesCloud cloud = r.j.jenkins.clouds.get(KubernetesCloud.class);
+    protected void assertConfiguredAsExpected(JenkinsRule r, String configContent) {
+        KubernetesCloud cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
         List<PodTemplate> templates = cloud.getTemplates();
         assertNotNull(templates);
