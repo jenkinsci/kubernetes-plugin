@@ -41,8 +41,8 @@ public final class KubernetesProvisioningLimits {
      */
     private boolean initInstance() {
         if (init.compareAndSet(false, true)) {
-            synchronized (this) {
-                Queue.withLock(() -> {
+            Queue.withLock(() -> {
+                synchronized (this) {
                     Jenkins.get().getNodes().stream()
                             .filter(KubernetesSlave.class::isInstance)
                             .map(KubernetesSlave.class::cast)
@@ -54,8 +54,9 @@ public final class KubernetesProvisioningLimits {
                                         node.getTemplateId(),
                                         getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
                             });
-                });
-            }
+                }
+            });
+
             return false;
         } else {
             return true;
