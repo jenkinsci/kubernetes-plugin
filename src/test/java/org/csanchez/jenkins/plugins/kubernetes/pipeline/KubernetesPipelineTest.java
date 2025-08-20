@@ -748,6 +748,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     }
     
     @Test
+    @Ignore // Can not be fixed in kubernetes, see https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410
     public void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
