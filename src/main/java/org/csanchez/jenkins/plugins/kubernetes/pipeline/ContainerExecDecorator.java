@@ -681,20 +681,23 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .join();
                 } else {
                     try {
-                        String mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1").getRemote();
-                        String killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1").getRemote();
-                        String csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs").getRemote();
+                        FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
+                        FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
+                        FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
                         exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in all cases
-                                false,
+                                true,
                                 null,
                                 null,
                                 null,
                                 null,
                                 "powershell.exe", "-NoProfile", "-File",
                                 /* path to file may contain spaces so wrap in double quotes*/
-                                "\""+mainScript+"\"",
-                                "-cookie", cookie, "-csFile", "\""+csCode+"\"","-killScript", "\""+killProcessScript+"\""
+                                "\""+mainScript.getRemote()+"\"",
+                                "-cookie", cookie, "-csFile", "\""+csCode.getRemote()+"\"","-killScript", "\""+killProcessScript.getRemote()+"\""
                         ).join();
+                        mainScript.delete();
+                        csCode.delete();
+                        killProcessScript.delete();
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE, "Exception killing processes", e);
                     }

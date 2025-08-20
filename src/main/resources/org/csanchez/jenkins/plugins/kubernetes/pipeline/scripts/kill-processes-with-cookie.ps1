@@ -5,11 +5,10 @@ param(
 )
 
 Add-Type -Path $csFile
-
+$returnCode = 0
 $matchedProcessIds = @()
 Get-Process | ForEach-Object {
         $id = $_.Id
-		$name = $_.ProcessName
 		try {
     		$envBlock = [ProcessEnvironmentReader]::ReadEnvironmentBlock($id)
             if (($envBlock.Contains("JENKINS_SERVER_COOKIE=$($cookie)")) -and ($id -ne $PID)) {
@@ -21,4 +20,6 @@ Get-Process | ForEach-Object {
 }
 foreach ($processId in $matchedProcessIds) {
 	& $killScript -processId $processId
+	$returnCode = $returnCode + $LASTEXITCODE
 }
+return $returnCode

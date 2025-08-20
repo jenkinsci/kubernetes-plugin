@@ -24,11 +24,9 @@ try {
     $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
     
     if ($process) {
-        Write-Host "Attempting graceful termination of process $processId"
         $gracefulShutdown = $false
         
         # Method 1: Try Ctrl+C via console API (most reliable in containers)
-        Write-Host "Attempting Ctrl+C termination"
         [ProcessControl]::FreeConsole() | Out-Null
         if ([ProcessControl]::AttachConsole($processId)) {
             # Don't disable our handler
@@ -36,45 +34,35 @@ try {
             
             # Wait for process to handle signal
             if ($process.WaitForExit(5000)) {
-                Write-Host "Process $processId terminated via Ctrl+C"
                 $gracefulShutdown = $true
             }
             [ProcessControl]::FreeConsole() | Out-Null
         }
         
-        # Method 2: Try Stop-Process with -Force:$false (more graceful)
+        # Method 2: Try Stop-Process with -Force:$false (more graceful than plain Stop-Process)
         if (-not $gracefulShutdown) {
-            Write-Host "Attempting Stop-Process termination"
             try {
                 Stop-Process -Id $processId -Force:$false -ErrorAction SilentlyContinue
                 if ($process.WaitForExit(5000)) {
-                    Write-Host "Process $processId terminated via Stop-Process"
                     $gracefulShutdown = $true
                 }
             } catch {
-                Write-Host "Stop-Process failed: $_"
+                # Ignore, this is best effort
             }
         }
         
         # Method 3: Last resort - force kill
         if (-not $gracefulShutdown) {
-            Write-Host "Graceful termination attempts failed, forcing termination of process $processId"
             try {
                 $process.Kill()
                 $process.WaitForExit(2000)
                 Write-Host "Process $processId forcefully terminated"
             } catch {
-                Write-Host "Force termination failed: $_"
+                return 1 # Failed to stop the process
             }
         }
-    } else {
-        Write-Host "Process with ID $processId is not running"
     }
-    
     return 0
 } catch {
-    Write-Host "Error: $($_.Exception.Message)"
-    Write-Host "Full Exception: $_"
-    Write-Host "Stack Trace: $($_.Exception.StackTrace)"
-    return 1
+    return 1 #Failed to even get the process
 }
