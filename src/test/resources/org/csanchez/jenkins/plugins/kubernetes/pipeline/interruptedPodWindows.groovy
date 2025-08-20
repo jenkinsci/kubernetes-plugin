@@ -18,7 +18,7 @@ spec:
 ''') {
     node(POD_LABEL) {
         container('shell') {
-            bat 'powershell -Command "try {Write-Host starting to sleep; Start-Sleep 999999} finally {Write-Host shut down gracefully}"'
+            powershell 'try {Write-Host starting to sleep; Start-Sleep 999999} finally {Write-Host shut down gracefully}'
         }
     }
 }
