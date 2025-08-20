@@ -48,7 +48,8 @@ public final class KubernetesProvisioningLimits {
                             .map(KubernetesSlave.class::cast)
                             .forEach(node -> {
                                 cloudCounts.put(
-                                        node.getCloudName(), getGlobalCount(node.getCloudName()) + node.getNumExecutors());
+                                        node.getCloudName(),
+                                        getGlobalCount(node.getCloudName()) + node.getNumExecutors());
                                 podTemplateCounts.put(
                                         node.getTemplateId(),
                                         getPodTemplateCount(node.getTemplateId()) + node.getNumExecutors());
