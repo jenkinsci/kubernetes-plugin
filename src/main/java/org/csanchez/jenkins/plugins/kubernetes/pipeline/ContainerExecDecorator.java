@@ -267,6 +267,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
     }
 
     private FilePath workspace;
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
 
@@ -684,17 +685,26 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
                         FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
                         FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
-                        exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in all cases
-                                true,
-                                null,
-                                null,
-                                null,
-                                null,
-                                "powershell.exe", "-NoProfile", "-File",
-                                /* path to file may contain spaces so wrap in double quotes*/
-                                "\""+mainScript.getRemote()+"\"",
-                                "-cookie", cookie, "-csFile", "\""+csCode.getRemote()+"\"","-killScript", "\""+killProcessScript.getRemote()+"\""
-                        ).join();
+                        exitCode =
+                                doLaunch( // Will fail if the script is not present, but it was also failing before in
+                                                // all cases
+                                                true,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                "powershell.exe",
+                                                "-NoProfile",
+                                                "-File",
+                                                /* path to file may contain spaces so wrap in double quotes*/
+                                                "\"" + mainScript.getRemote() + "\"",
+                                                "-cookie",
+                                                cookie,
+                                                "-csFile",
+                                                "\"" + csCode.getRemote() + "\"",
+                                                "-killScript",
+                                                "\"" + killProcessScript.getRemote() + "\"")
+                                        .join();
                         mainScript.delete();
                         csCode.delete();
                         killProcessScript.delete();
@@ -702,7 +712,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         LOGGER.log(Level.FINE, "Exception killing processes", e);
                     }
                 }
-                getListener().getLogger().println("Attempt to gracefully kill processes finished with exit code " + exitCode);
+                getListener()
+                        .getLogger()
+                        .println("Attempt to gracefully kill processes finished with exit code " + exitCode);
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
@@ -718,12 +730,14 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
             }
 
-            private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix) throws IOException, InterruptedException {
-                InputStream resourceStream = ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix);
+            private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix)
+                    throws IOException, InterruptedException {
+                InputStream resourceStream =
+                        ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix);
                 if (resourceStream == null) {
                     throw new FileNotFoundException("Script not found in resources!");
                 }
-                FilePath tempFile = workspace.createTempFile(scriptName,scriptSuffix);
+                FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
                 try (OutputStream os = tempFile.write()) {
                     byte[] buffer = new byte[4096];
                     int bytesRead;

@@ -746,9 +746,10 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("C:\\Users\\ContainerAdministrator", b);
         r.assertLogContains("got stuff: some value", b);
     }
-    
+
     @Test
-    @Ignore("Can not be fixed in kubernetes, see https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410")
+    @Ignore(
+            "Can not be fixed in kubernetes, see https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410")
     public void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);
