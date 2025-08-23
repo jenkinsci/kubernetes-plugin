@@ -33,8 +33,10 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -264,6 +266,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.nodeContext = nodeContext;
     }
 
+    private FilePath workspace;
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
 
@@ -280,6 +284,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // find container working dir
                 KubernetesSlave slave = (KubernetesSlave) node;
                 FilePath containerWorkingDirFilePath = starter.pwd();
+                workspace = containerWorkingDirFilePath;
                 String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
                         ? containerWorkingDirFilePath.getRemote()
                         : ContainerTemplate.DEFAULT_WORKING_DIR;
@@ -662,21 +667,54 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-
-                int exitCode = doLaunch(
-                                true,
-                                null,
-                                null,
-                                null,
-                                null,
-                                // TODO Windows
-                                "sh",
-                                "-c",
-                                "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
-                                        + "' /proc/*/environ | cut -d / -f 3 \\`")
-                        .join();
-
-                getListener().getLogger().println("kill finished with exit code " + exitCode);
+                int exitCode = 1;
+                if (this.isUnix()) {
+                    exitCode = doLaunch(
+                                    true,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    "sh",
+                                    "-c",
+                                    "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
+                                            + "' /proc/*/environ | cut -d / -f 3 \\`")
+                            .join();
+                } else {
+                    try {
+                        FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
+                        FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
+                        FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
+                        exitCode =
+                                doLaunch( // Will fail if the script is not present, but it was also failing before in
+                                                // all cases
+                                                true,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                "powershell.exe",
+                                                "-NoProfile",
+                                                "-File",
+                                                /* path to file may contain spaces so wrap in double quotes*/
+                                                "\"" + mainScript.getRemote() + "\"",
+                                                "-cookie",
+                                                cookie,
+                                                "-csFile",
+                                                "\"" + csCode.getRemote() + "\"",
+                                                "-killScript",
+                                                "\"" + killProcessScript.getRemote() + "\"")
+                                        .join();
+                        mainScript.delete();
+                        csCode.delete();
+                        killProcessScript.delete();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.FINE, "Exception killing processes", e);
+                    }
+                }
+                getListener()
+                        .getLogger()
+                        .println("Attempt to gracefully kill processes finished with exit code " + exitCode);
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
@@ -690,6 +728,26 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         out.print(newLine(windows));
                     }
                 }
+            }
+
+            private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix)
+                    throws IOException, InterruptedException {
+                InputStream resourceStream =
+                        ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix);
+                if (resourceStream == null) {
+                    throw new FileNotFoundException("Script not found in resources!");
+                }
+                FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
+                try (OutputStream os = tempFile.write()) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = resourceStream.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+                } finally {
+                    resourceStream.close();
+                }
+                return tempFile;
             }
         };
     }
