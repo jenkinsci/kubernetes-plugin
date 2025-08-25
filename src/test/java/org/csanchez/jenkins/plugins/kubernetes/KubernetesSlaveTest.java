@@ -26,10 +26,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.util.Map.entry;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertRegex;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.IOException;
@@ -46,23 +45,29 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.Mockito;
 
 /**
  * @author Carlos Sanchez
  */
-public class KubernetesSlaveTest {
+@WithJenkins
+class KubernetesSlaveTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @WithoutJenkins
     @Test
-    public void testGetSlaveName() {
+    void testGetSlaveName() {
         List<? extends PodVolume> volumes = Collections.emptyList();
         List<ContainerTemplate> containers = Collections.emptyList();
 
@@ -80,7 +85,7 @@ public class KubernetesSlaveTest {
     }
 
     @Test
-    public void testGetPod() throws Exception {
+    void testGetPod() throws Exception {
         Map<String, GetPodTestCase> testCases = Map.ofEntries(
                 entry("assigned", (KubernetesCloud cloud, KubernetesSlave slave, PodResource podResource) -> {
                     Pod p = new Pod();
@@ -165,8 +170,8 @@ public class KubernetesSlaveTest {
     }
 
     @Test
-    public void testGetPodRetention() {
-        try {
+    void testGetPodRetention() {
+        assertDoesNotThrow(() -> {
             List<KubernetesSlaveTestCase<PodRetention>> cases = Arrays.asList(
                     createPodRetentionTestCase(new Never(), new Default(), new Default()),
                     createPodRetentionTestCase(new Never(), new Always(), new Always()),
@@ -191,9 +196,7 @@ public class KubernetesSlaveTest {
                 KubernetesSlave testSlave = testCase.buildSubject(cloud);
                 assertEquals(testCase.getExpectedResult(), testSlave.getPodRetention(cloud));
             }
-        } catch (IOException | Descriptor.FormException e) {
-            fail(e.getMessage());
-        }
+        });
     }
 
     private KubernetesSlaveTestCase<PodRetention> createPodRetentionTestCase(
@@ -212,7 +215,7 @@ public class KubernetesSlaveTest {
         private String podPhase;
         private T expectedResult;
 
-        public KubernetesSlave buildSubject(KubernetesCloud cloud) throws IOException, Descriptor.FormException {
+        public KubernetesSlave buildSubject(KubernetesCloud cloud) throws Exception {
             return new KubernetesSlave.Builder()
                     .cloud(cloud)
                     .podTemplate(podTemplate)
@@ -269,7 +272,7 @@ public class KubernetesSlaveTest {
             testTemplate.setPodRetention(templatePodRetention);
             testTemplate.setName("test-template");
             testTemplate.setLabel("test-template");
-            testTemplate.setContainers(Arrays.asList(testContainer));
+            testTemplate.setContainers(List.of(testContainer));
 
             KubernetesSlaveTestCase<T> testCase = new KubernetesSlaveTestCase<>();
             testCase.cloudPodRetention = cloudPodRetention;

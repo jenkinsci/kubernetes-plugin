@@ -15,16 +15,17 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import hudson.util.FormValidation;
 import java.util.Collections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ContainerTemplateTest {
+class ContainerTemplateTest {
 
     @Test
-    public void testCopyConstructorCreatesEqualInstance() {
+    void testCopyConstructorCreatesEqualInstance() {
         ContainerTemplate originalTemplate = new ContainerTemplate("myname", "myimage");
         originalTemplate.setPrivileged(true);
         originalTemplate.setAlwaysPullImage(true);
@@ -43,31 +44,31 @@ public class ContainerTemplateTest {
 
         ContainerTemplate clonedTemplate = new ContainerTemplate(originalTemplate);
 
-        assertEquals("Cloned ContainerTemplate is not equal to the original one!", originalTemplate, clonedTemplate);
+        assertEquals(originalTemplate, clonedTemplate, "Cloned ContainerTemplate is not equal to the original one!");
         assertEquals(
-                "String representation (toString()) of the cloned and original ContainerTemplate is not equal!",
                 originalTemplate.toString(),
-                clonedTemplate.toString());
+                clonedTemplate.toString(),
+                "String representation (toString()) of the cloned and original ContainerTemplate is not equal!");
     }
 
     @SuppressWarnings("ResultOfObjectAllocationIgnored")
     @Test
-    public void badImage() throws Exception {
+    void badImage() {
         new ContainerTemplate("n", "something");
         assertEquals(FormValidation.Kind.OK, new ContainerTemplate.DescriptorImpl().doCheckImage("something").kind);
         for (String empty : new String[] {null, ""}) {
-            assertThrows("rejected " + empty, IllegalArgumentException.class, () -> new ContainerTemplate("n", empty));
+            assertThrows(IllegalArgumentException.class, () -> new ContainerTemplate("n", empty), "rejected " + empty);
             assertEquals(
-                    "tolerating " + empty + " during form validation",
                     FormValidation.Kind.OK,
-                    new ContainerTemplate.DescriptorImpl().doCheckImage(empty).kind);
+                    new ContainerTemplate.DescriptorImpl().doCheckImage(empty).kind,
+                    "tolerating " + empty + " during form validation");
         }
         for (String bad : new String[] {" ", " something"}) {
-            assertThrows("rejected " + bad, IllegalArgumentException.class, () -> new ContainerTemplate("n", bad));
+            assertThrows(IllegalArgumentException.class, () -> new ContainerTemplate("n", bad), "rejected " + bad);
             assertEquals(
-                    "rejected " + bad,
                     FormValidation.Kind.ERROR,
-                    new ContainerTemplate.DescriptorImpl().doCheckImage(bad).kind);
+                    new ContainerTemplate.DescriptorImpl().doCheckImage(bad).kind,
+                    "rejected " + bad);
         }
     }
 }

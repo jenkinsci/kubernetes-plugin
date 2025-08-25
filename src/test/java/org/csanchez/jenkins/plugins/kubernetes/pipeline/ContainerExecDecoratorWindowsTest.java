@@ -30,8 +30,8 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeW
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -62,23 +62,20 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.WithTimeout;
 
-public class ContainerExecDecoratorWindowsTest {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+@WithJenkins
+class ContainerExecDecoratorWindowsTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
     private KubernetesCloud cloud;
     private static KubernetesClient client;
@@ -88,22 +85,23 @@ public class ContainerExecDecoratorWindowsTest {
     private Pod pod;
     private KubernetesSlave agent;
 
-    @Rule
-    public LoggerRule containerExecLogs = new LoggerRule()
+    @SuppressWarnings("unused")
+    private final LogRecorder containerExecLogs = new LogRecorder()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL)
             .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
-    @Rule
-    public TestName name = new TestName();
+    private String name;
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
+    @BeforeAll
+    static void beforeAll() {
         assumeKubernetes();
         assumeWindows(WINDOWS_1809_BUILD);
     }
 
-    @Before
-    public void configureCloud() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule, TestInfo info) throws Exception {
+        j = rule;
+        name = info.getTestMethod().orElseThrow().getName();
         cloud = setupCloud(this, name);
         client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
@@ -147,39 +145,40 @@ public class ContainerExecDecoratorWindowsTest {
         decorator.setContainerName(image);
     }
 
-    @After
-    public void after() throws Exception {
+    @AfterEach
+    void afterEach() throws Exception {
         client.pods().delete(pod);
         deletePods(client, getLabels(this, name), true);
     }
 
+    // in case we need to pull windows docker image
     @Test
-    @WithTimeout(value = 900) // in case we need to pull windows docker image
-    public void testCommandExecution() throws Exception {
+    @WithTimeout(value = 900)
+    void testCommandExecution() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, false, output, "where", "cmd.exe");
-        assertEquals("C:\\Windows\\System32\\cmd.exe\r\n", output.toString(StandardCharsets.UTF_8.name()));
+        assertEquals("C:\\Windows\\System32\\cmd.exe\r\n", output.toString(StandardCharsets.UTF_8));
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
+    // in case we need to pull windows docker image
     @Test
-    @WithTimeout(value = 900) // in case we need to pull windows docker image
-    public void testCommandExecutionNoOutput() throws Exception {
+    @WithTimeout(value = 900)
+    void testCommandExecutionNoOutput() throws Exception {
         ProcReturn r = execCommandInContainer("container", null, false, null, "where", "cmd.exe");
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
+    // in case we need to pull windows docker image
     @Test
-    @WithTimeout(value = 900) // in case we need to pull windows docker image
-    public void testQuietCommandExecution() throws Exception {
+    @WithTimeout(value = 900)
+    void testQuietCommandExecution() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ProcReturn r = execCommandInContainer("container", null, true, output, "echo", "pid is 9999");
-        String out = output.toString(StandardCharsets.UTF_8.name());
-        assertFalse(
-                "Output should not contain command: " + out,
-                PID_PATTERN.matcher(out).find());
+        String out = output.toString(StandardCharsets.UTF_8);
+        assertFalse(PID_PATTERN.matcher(out).find(), "Output should not contain command: " + out);
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
@@ -189,12 +188,14 @@ public class ContainerExecDecoratorWindowsTest {
             throws Exception {
         decorator.setContainerName(containerName);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out))) {
-            @Override
-            public boolean isUnix() {
-                return false;
-            }
-        };
+        DummyLauncher dummyLauncher =
+                new DummyLauncher(
+                        new StreamTaskListener(new TeeOutputStream(out, System.out), StandardCharsets.UTF_8)) {
+                    @Override
+                    public boolean isUnix() {
+                        return false;
+                    }
+                };
         Launcher launcher = decorator.decorate(dummyLauncher, node);
         Map<String, String> envs = new HashMap<>(100);
         for (int i = 0; i < 50; i++) {
@@ -212,12 +213,12 @@ public class ContainerExecDecoratorWindowsTest {
         for (int i = 0; proc.isAlive() && i < 200; i++) {
             Thread.sleep(100);
         }
-        assertFalse("proc is alive", proc.isAlive());
+        assertFalse(proc.isAlive(), "proc is alive");
         int exitCode = proc.join();
         return new ProcReturn(proc, exitCode, out.toString());
     }
 
-    class ProcReturn {
+    static class ProcReturn {
         public int exitCode;
         public String output;
         public ContainerExecProc proc;
