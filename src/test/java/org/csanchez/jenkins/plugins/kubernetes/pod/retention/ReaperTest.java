@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.TaskListener;
 import hudson.slaves.ComputerLauncher;
 import hudson.util.StreamTaskListener;
@@ -47,19 +47,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.*;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
@@ -69,9 +70,6 @@ class ReaperTest {
     private static final Long EVENT_WAIT_PERIOD_MS = 10L;
 
     private JenkinsRule j;
-
-    @RegisterExtension
-    private final CapturingReaperListener listener = new CapturingReaperListener();
 
     private KubernetesMockServer server;
     private KubernetesClient client;
@@ -209,7 +207,7 @@ class ReaperTest {
         waitForKubeClientRequests(2).assertRequestCount(watchPodsPath, 2);
 
         // error status event should be filtered out
-        listener.expectNoEvents();
+        getReaperListener().expectNoEvents();
 
         // wait until watch is removed
         System.out.println("Waiting for watch to be removed");
@@ -226,6 +224,10 @@ class ReaperTest {
         System.out.println("Waiting for a new watch to be started");
         assertShouldBeWatching(r, cloud);
         System.out.println("Watch started");
+    }
+
+    private CapturingReaperListener getReaperListener() {
+        return ExtensionList.lookupSingleton(CapturingReaperListener.class);
     }
 
     @Test
@@ -336,7 +338,7 @@ class ReaperTest {
         // watch is still active
         assertShouldBeWatching(r, cloud);
 
-        listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
+        getReaperListener().expectEvent(Watcher.Action.MODIFIED, node);
         kubeClientRequests().assertRequestCountAtLeast(watchBarPodsPath, 1);
     }
 
@@ -368,7 +370,7 @@ class ReaperTest {
         waitForKubeClientRequests(2).assertRequestCount(watchPodsPath, 2);
 
         // error status event should be filtered out
-        listener.expectNoEvents();
+        getReaperListener().expectNoEvents();
 
         // watch is removed
         assertShouldNotBeWatching(r, cloud);
@@ -410,7 +412,7 @@ class ReaperTest {
         waitForKubeClientRequests(3).assertRequestCount(watchPodsPath, 3);
 
         // error status event should be filtered out
-        listener.expectNoEvents();
+        getReaperListener().expectNoEvents();
 
         // watch is still active
         assertShouldBeWatching(r, cloud);
@@ -442,7 +444,7 @@ class ReaperTest {
         waitForKubeClientRequests(2).assertRequestCount(watchPodsPath, 2);
 
         // error status event should be filtered out
-        listener.expectNoEvents();
+        getReaperListener().expectNoEvents();
 
         // watch is still active
         assertShouldBeWatching(r, cloud);
@@ -513,7 +515,7 @@ class ReaperTest {
                 .assertRequestCountAtLeast("/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true", 3);
 
         // verify listener got notified
-        listener.expectEvent(Watcher.Action.DELETED, node);
+        getReaperListener().expectEvent(Watcher.Action.DELETED, node);
 
         // verify computer disconnected with offline cause
         verify(node.getComputer()).disconnect(isA(PodOfflineCause.class));
@@ -569,7 +571,7 @@ class ReaperTest {
         assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // verify listener got notified
-        listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
+        getReaperListener().expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
         verify(node, atLeastOnce()).terminate();
@@ -612,7 +614,7 @@ class ReaperTest {
         assertEquals(1, j.jenkins.getNodes().size(), "jenkins nodes");
 
         // verify listener got notified
-        listener.waitForEvents().expectEvent(Watcher.Action.MODIFIED, node);
+        getReaperListener().expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
         verify(node, atLeastOnce()).terminate();
@@ -662,7 +664,7 @@ class ReaperTest {
         waitForKubeClientRequests(6).assertRequestCountAtLeast(watchPodsPath, 3);
 
         // verify listener got notified
-        listener.expectEvent(Watcher.Action.MODIFIED, node);
+        getReaperListener().expectEvent(Watcher.Action.MODIFIED, node);
 
         // expect node to be terminated
         verify(node, atLeastOnce()).terminate();
@@ -797,10 +799,12 @@ class ReaperTest {
         }
     }
 
-    @Extension
-    public static class CapturingReaperListener implements Reaper.Listener, AfterEachCallback {
+    @TestExtension
+    public static class CapturingReaperListener implements Reaper.Listener {
 
-        private static final List<ReaperListenerWatchEvent> CAPTURED_EVENTS = new LinkedList<>();
+        private final List<ReaperListenerWatchEvent> capturedEvents = new CopyOnWriteArrayList<>();
+
+        private static final Logger LOGGER = Logger.getLogger(CapturingReaperListener.class.getName());
 
         @Override
         public synchronized void onEvent(
@@ -808,75 +812,54 @@ class ReaperTest {
                 @NonNull KubernetesSlave node,
                 @NonNull Pod pod,
                 @NonNull Set<String> terminationReasons) {
-            CAPTURED_EVENTS.add(new ReaperListenerWatchEvent(action, node, pod));
-            notifyAll();
+            LOGGER.info(this + " capturing event: " + action + " for node: " + node + " pod: " + pod);
+            capturedEvents.add(new ReaperListenerWatchEvent(action, node, pod));
         }
 
-        /**
-         * Test should use {@link #waitForEvents()}, not this method
-         */
-        private synchronized CapturingReaperListener waitForEventsOnJenkinsExtensionInstance() throws Exception {
-            while (CAPTURED_EVENTS.isEmpty()) {
-                wait();
-            }
-            return this;
-        }
+        private static class ReaperListenerWatchEventMatcher extends TypeSafeMatcher<ReaperListenerWatchEvent> {
+            private final Watcher.Action action;
+            private final KubernetesSlave node;
 
-        /**
-         * Tests should use this method to wait for events to be processed by the Reaper cloud watcher.
-         * @return jenkins extension instance
-         * @throws InterruptedException if wait was interrupted
-         */
-        public CapturingReaperListener waitForEvents() throws Exception {
-            // find the instance that Jenkins created and wait on that one
-            CapturingReaperListener l =
-                    Jenkins.get().getExtensionList(Reaper.Listener.class).get(CapturingReaperListener.class);
-            if (l == null) {
-                throw new RuntimeException("CapturingReaperListener not registered in Jenkins");
+            public ReaperListenerWatchEventMatcher(Watcher.Action action, KubernetesSlave node) {
+                this.action = action;
+                this.node = node;
             }
 
-            return l.waitForEventsOnJenkinsExtensionInstance();
+            @Override
+            protected boolean matchesSafely(ReaperListenerWatchEvent event) {
+                return event.action == action && event.node == node;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description
+                        .appendText("event with action ")
+                        .appendValue(action)
+                        .appendText(" and node ")
+                        .appendValue(node);
+            }
+
+            @Override
+            protected void describeMismatchSafely(ReaperListenerWatchEvent item, Description mismatchDescription) {
+                mismatchDescription.appendText("was ").appendValue(item);
+            }
         }
 
-        /**
-         * Verify that the watcher received an event of the given action and target node.
-         * @param action action to match
-         * @param node target node
-         */
-        public synchronized void expectEvent(Watcher.Action action, KubernetesSlave node) {
-            boolean found = CAPTURED_EVENTS.stream().anyMatch(e -> e.action == action && e.node == node);
-            assertTrue(found, "expected event: " + action + ", " + node);
+        public void expectEvent(Watcher.Action action, KubernetesSlave node) {
+            await().until(
+                            () -> capturedEvents,
+                            hasItem(new CapturingReaperListener.ReaperListenerWatchEventMatcher(action, node)));
         }
 
         /**
          * Expect not event to have been received.
          */
-        public synchronized void expectNoEvents() {
-            assertEquals(0, CAPTURED_EVENTS.size(), "no watcher events");
-        }
-
-        @Override
-        public void afterEach(ExtensionContext context) {
-            CAPTURED_EVENTS.clear();
+        public void expectNoEvents() {
+            assertThat("no watcher events", capturedEvents, empty());
         }
     }
 
-    private static class ReaperListenerWatchEvent {
-        final Watcher.Action action;
-        final KubernetesSlave node;
-        final Pod pod;
-
-        private ReaperListenerWatchEvent(Watcher.Action action, KubernetesSlave node, Pod pod) {
-            this.action = action;
-            this.node = node;
-            this.pod = pod;
-        }
-
-        @Override
-        public String toString() {
-            return "[" + action + ", " + node + ", " + pod + "]";
-        }
-    }
+    private record ReaperListenerWatchEvent(Watcher.Action action, KubernetesSlave node, Pod pod) {}
 
     private static WatchEvent outdatedEvent() {
         return new WatchEventBuilder()
