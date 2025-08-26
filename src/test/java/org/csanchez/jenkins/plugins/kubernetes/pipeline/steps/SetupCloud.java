@@ -2,23 +2,22 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline.steps;
 
 import java.net.InetAddress;
 import java.net.URL;
-import java.net.UnknownHostException;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.RealJenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 
 /**
  * Sets up a Kubernetes cloud instance named kubernetes.
  */
-public class SetupCloud implements RealJenkinsRule.Step {
+public class SetupCloud implements RealJenkinsExtension.Step {
     private String hostAddress;
     private Integer agentPort;
 
     private boolean websocket;
 
-    public SetupCloud(boolean websocket) throws UnknownHostException {
+    public SetupCloud(boolean websocket) throws Exception {
         hostAddress = StringUtils.defaultIfBlank(
                 System.getProperty("jenkins.host.address"),
                 InetAddress.getLocalHost().getHostAddress());
@@ -26,7 +25,7 @@ public class SetupCloud implements RealJenkinsRule.Step {
         this.websocket = websocket;
     }
 
-    public SetupCloud() throws UnknownHostException {
+    public SetupCloud() throws Exception {
         this(false);
     }
 
