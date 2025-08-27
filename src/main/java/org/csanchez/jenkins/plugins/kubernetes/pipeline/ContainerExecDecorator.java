@@ -684,26 +684,25 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
                     FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
                     FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
-                    exitCode =
-                            doLaunch( // Will fail if the script is not present, but it was also failing before in
-                                            // all cases
-                                            true,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            "powershell.exe",
-                                            "-NoProfile",
-                                            "-File",
-                                            /* path to file may contain spaces so wrap in double quotes*/
-                                            "\"" + mainScript.getRemote() + "\"",
-                                            "-cookie",
-                                            cookie,
-                                            "-csFile",
-                                            "\"" + csCode.getRemote() + "\"",
-                                            "-killScript",
-                                            "\"" + killProcessScript.getRemote() + "\"")
-                                    .join();
+                    exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in
+                                    // all cases
+                                    true,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    "powershell.exe",
+                                    "-NoProfile",
+                                    "-File",
+                                    /* path to file may contain spaces so wrap in double quotes*/
+                                    "\"" + mainScript.getRemote() + "\"",
+                                    "-cookie",
+                                    cookie,
+                                    "-csFile",
+                                    "\"" + csCode.getRemote() + "\"",
+                                    "-killScript",
+                                    "\"" + killProcessScript.getRemote() + "\"")
+                            .join();
                     mainScript.delete();
                     csCode.delete();
                     killProcessScript.delete();
