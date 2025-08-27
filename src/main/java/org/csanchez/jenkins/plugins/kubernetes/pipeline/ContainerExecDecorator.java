@@ -667,7 +667,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                int exitCode = 1;
+                int exitCode = 256;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
                                     true,
@@ -681,36 +681,32 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                             + "' /proc/*/environ | cut -d / -f 3 \\`")
                             .join();
                 } else {
-                    try {
-                        FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
-                        FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
-                        FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
-                        exitCode =
-                                doLaunch( // Will fail if the script is not present, but it was also failing before in
-                                                // all cases
-                                                true,
-                                                null,
-                                                null,
-                                                null,
-                                                null,
-                                                "powershell.exe",
-                                                "-NoProfile",
-                                                "-File",
-                                                /* path to file may contain spaces so wrap in double quotes*/
-                                                "\"" + mainScript.getRemote() + "\"",
-                                                "-cookie",
-                                                cookie,
-                                                "-csFile",
-                                                "\"" + csCode.getRemote() + "\"",
-                                                "-killScript",
-                                                "\"" + killProcessScript.getRemote() + "\"")
-                                        .join();
-                        mainScript.delete();
-                        csCode.delete();
-                        killProcessScript.delete();
-                    } catch (Exception e) {
-                        LOGGER.log(Level.FINE, "Exception killing processes", e);
-                    }
+                    FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
+                    FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
+                    FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
+                    exitCode =
+                            doLaunch( // Will fail if the script is not present, but it was also failing before in
+                                            // all cases
+                                            true,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            "powershell.exe",
+                                            "-NoProfile",
+                                            "-File",
+                                            /* path to file may contain spaces so wrap in double quotes*/
+                                            "\"" + mainScript.getRemote() + "\"",
+                                            "-cookie",
+                                            cookie,
+                                            "-csFile",
+                                            "\"" + csCode.getRemote() + "\"",
+                                            "-killScript",
+                                            "\"" + killProcessScript.getRemote() + "\"")
+                                    .join();
+                    mainScript.delete();
+                    csCode.delete();
+                    killProcessScript.delete();
                 }
                 getListener()
                         .getLogger()
@@ -732,22 +728,15 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix)
                     throws IOException, InterruptedException {
-                InputStream resourceStream =
-                        ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix);
-                if (resourceStream == null) {
-                    throw new FileNotFoundException("Script not found in resources!");
-                }
-                FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
-                try (OutputStream os = tempFile.write()) {
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = resourceStream.read(buffer)) != -1) {
-                        os.write(buffer, 0, bytesRead);
+                try (InputStream resourceStream =
+                        ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix)) {
+                    if (resourceStream == null) {
+                        throw new FileNotFoundException("Script not found in resources!");
                     }
-                } finally {
-                    resourceStream.close();
+                    FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
+                    tempFile.copyFrom(resourceStream);
+                    return tempFile;
                 }
-                return tempFile;
             }
         };
     }
