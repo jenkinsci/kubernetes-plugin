@@ -630,7 +630,15 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         LOGGER.log(Level.FINEST, "Building connection to Kubernetes {0} URL {1} namespace {2}", new String[] {
             getDisplayName(), serverUrl, namespace
         });
-        KubernetesClient client = KubernetesClientProvider.createClient(this);
+        KubernetesClient client = null;
+        try {
+            client = KubernetesClientProvider.createClient(this);
+        } catch (KubernetesAuthException e) {
+            // it is possible the cached credentials are no longer valid (ex. when using k8s backed secrets)
+            // so we retry once more after invalidating the client
+            KubernetesClientProvider.invalidate(this.getDisplayName());
+            client = KubernetesClientProvider.createClient(this);
+        }
 
         LOGGER.log(Level.FINE, "Connected to Kubernetes {0} URL {1} namespace {2}", new String[] {
             getDisplayName(), client.getMasterUrl().toString(), namespace
