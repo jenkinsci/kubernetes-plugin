@@ -24,20 +24,19 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import java.net.URL;
-import java.util.logging.Logger;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.csanchez.jenkins.plugins.kubernetes.pipeline.AbstractKubernetesPipelineTest;
+import java.net.URL;
+import java.util.logging.Logger;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.mockito.MockedStatic;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mockStatic;
 
 public class ClientAuthenticationTest {
 
@@ -51,8 +50,8 @@ public class ClientAuthenticationTest {
 
         try (MockedStatic<KubernetesClientProvider> mocked = mockStatic(KubernetesClientProvider.class)) {
             mocked.when(() -> KubernetesClientProvider.createClient(any()))
-                .thenThrow(new KubernetesAuthException("auth fail"))
-                .thenReturn(mockClient);
+                    .thenThrow(new KubernetesAuthException("auth fail"))
+                    .thenReturn(mockClient);
 
             KubernetesCloud cloud = new KubernetesCloud("test");
             cloud.connect();
@@ -60,5 +59,4 @@ public class ClientAuthenticationTest {
             mocked.verify(() -> KubernetesClientProvider.createClient(any()), atLeast(2));
         }
     }
-
 }

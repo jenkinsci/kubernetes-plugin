@@ -25,10 +25,8 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
 import java.util.function.Consumer;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.junit.Assert;
 import org.junit.Test;
 
