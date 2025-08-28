@@ -38,7 +38,7 @@ spec:
             steps{
                 container('jnlp') {
                     script {
-                        catchError(buildResult: 'SUCCESS', message: 'Failed to perform flaky task') {
+                        catchError {
                             bat 'ping 127.0.0.1 -n 3601 > test.txt' // Imagine this is a git checkout
                         }
                         bat 'rename test.txt test2.txt'

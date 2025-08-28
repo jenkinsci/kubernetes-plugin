@@ -667,7 +667,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 getListener().getLogger().println("Killing processes");
 
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                int exitCode = 256;
+                final int exitCode;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
                                     true,
