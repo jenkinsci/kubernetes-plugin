@@ -27,6 +27,8 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.remoting.VirtualChannel;
+import hudson.slaves.WorkspaceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
@@ -36,12 +38,12 @@ import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -266,7 +268,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.nodeContext = nodeContext;
     }
 
-    private FilePath workspace;
+    private String workspace;
 
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
@@ -284,10 +286,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 // find container working dir
                 KubernetesSlave slave = (KubernetesSlave) node;
                 FilePath containerWorkingDirFilePath = starter.pwd();
-                workspace = containerWorkingDirFilePath;
                 String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
                         ? containerWorkingDirFilePath.getRemote()
                         : ContainerTemplate.DEFAULT_WORKING_DIR;
+                workspace = containerWorkingDirFilePathStr;
                 String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
                 if (slave != null && slave.getPod().isPresent() && containerName != null) {
                     Optional<String> containerWorkingDir = PodContainerSource.lookupContainerWorkingDir(
@@ -665,9 +667,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             @Override
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
                 getListener().getLogger().println("Killing processes");
-
                 String cookie = modelEnvVars.get(COOKIE_VAR);
-                final int exitCode;
+                int exitCode;
                 if (this.isUnix()) {
                     exitCode = doLaunch(
                                     true,
@@ -681,31 +682,46 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                             + "' /proc/*/environ | cut -d / -f 3 \\`")
                             .join();
                 } else {
-                    FilePath mainScript = copyKillScript(workspace, "kill-processes-with-cookie", ".ps1");
-                    FilePath killProcessScript = copyKillScript(workspace, "kill-process-by-id", ".ps1");
-                    FilePath csCode = copyKillScript(workspace, "ProcessEnvironmentReader", ".cs");
-                    exitCode = doLaunch( // Will fail if the script is not present, but it was also failing before in
-                                    // all cases
-                                    true,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    "powershell.exe",
-                                    "-NoProfile",
-                                    "-File",
-                                    /* path to file may contain spaces so wrap in double quotes*/
-                                    "\"" + mainScript.getRemote() + "\"",
-                                    "-cookie",
-                                    cookie,
-                                    "-csFile",
-                                    "\"" + csCode.getRemote() + "\"",
-                                    "-killScript",
-                                    "\"" + killProcessScript.getRemote() + "\"")
-                            .join();
-                    mainScript.delete();
-                    csCode.delete();
-                    killProcessScript.delete();
+                    VirtualChannel channel = node.getChannel();
+                    if (channel != null) {
+                        FilePath mainScript = null, killProcessScript = null, csCode = null;
+                        try {
+                            FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
+                            mainScript = copyKillScript(tmpFolder, "kill-processes-with-cookie", ".ps1");
+                            killProcessScript = copyKillScript(tmpFolder, "kill-process-by-id", ".ps1");
+                            csCode = copyKillScript(tmpFolder, "ProcessEnvironmentReader", ".cs");
+                            exitCode = doLaunch(
+                                            true,
+                                            null,
+                                            null,
+                                            null,
+                                            null,
+                                            "powershell.exe",
+                                            "-NoProfile",
+                                            "-File",
+                                            /* path to file may contain spaces so wrap in double quotes*/
+                                            "\"" + mainScript.getRemote() + "\"",
+                                            "-cookie",
+                                            cookie,
+                                            "-csFile",
+                                            "\"" + csCode.getRemote() + "\"",
+                                            "-killScript",
+                                            "\"" + killProcessScript.getRemote() + "\"")
+                                    .join();
+                        } finally {
+                            if (mainScript != null && mainScript.exists()) {
+                                mainScript.delete();
+                            }
+                            if (csCode != null && csCode.exists()) {
+                                csCode.delete();
+                            }
+                            if (killProcessScript != null && killProcessScript.exists()) {
+                                killProcessScript.delete();
+                            }
+                        }
+                    } else {
+                        exitCode = 9009;
+                    }
                 }
                 getListener()
                         .getLogger()
@@ -727,15 +743,13 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
 
             private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix)
                     throws IOException, InterruptedException {
-                try (InputStream resourceStream =
-                        ContainerExecDecorator.class.getResourceAsStream("scripts/" + scriptName + scriptSuffix)) {
-                    if (resourceStream == null) {
-                        throw new FileNotFoundException("Script not found in resources!");
-                    }
-                    FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
-                    tempFile.copyFrom(resourceStream);
-                    return tempFile;
+                URL resource = ContainerExecDecorator.class.getResource("scripts/" + scriptName + scriptSuffix);
+                if (resource == null) {
+                    throw new FileNotFoundException("Script not found in resources!");
                 }
+                FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
+                tempFile.copyFrom(resource);
+                return tempFile;
             }
         };
     }

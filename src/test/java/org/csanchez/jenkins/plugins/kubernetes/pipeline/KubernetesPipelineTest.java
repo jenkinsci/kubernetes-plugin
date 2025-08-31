@@ -107,6 +107,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.recipes.WithTimeout;
 
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
@@ -763,7 +764,7 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     // Before PR#1724 this would fail as windows processes were not killed
     // and hence files blocked. The test is a bit unrealistic as I want it
     // to be fast and deterministic, but imagine that instead of the ping we execute
-    // a big checkout that blocks some files and prevents next steps to execute
+    // a big checkout that locks some files and prevents next steps to execute
     public void killsProcessesWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
         cloud.setDirectConnection(false);

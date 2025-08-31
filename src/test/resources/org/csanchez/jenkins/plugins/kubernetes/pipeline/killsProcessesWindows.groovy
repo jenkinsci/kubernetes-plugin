@@ -1,7 +1,6 @@
 pipeline {
     agent {
         kubernetes {
-            customWorkspace 'c:/s'
             yaml """
 apiVersion: v1
 kind: Pod
@@ -10,21 +9,11 @@ spec:
   - name: jnlp
     image: "jenkins/inbound-agent:windowsservercore-1809"
     imagePullPolicy: IfNotPresent
-    volumeMounts:
-    - mountPath: /s
-      name: s-volume
-    - mountPath: /s@tmp
-      name: stmp-volume
     resources:
       cpu:
         request: 1
       memory:
         request: 2Gi
-  volumes:
-  - emptyDir: {}
-    name: s-volume
-  - emptyDir: {}
-    name: stmp-volume
   nodeSelector:
     kubernetes.io/os: windows
 """
@@ -38,6 +27,10 @@ spec:
             steps{
                 container('jnlp') {
                     script {
+                        // Before PR#1724 this would fail as windows processes were not killed
+                        // and hence files blocked. The test is a bit unrealistic as I want it
+                        // to be fast and deterministic, but imagine that instead of the ping we execute
+                        // a big checkout that locks some files and prevents next steps to execute
                         catchError {
                             bat 'ping 127.0.0.1 -n 3601 > test.txt' // Imagine this is a git checkout
                         }
