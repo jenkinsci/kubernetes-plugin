@@ -18,6 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -43,13 +44,13 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -59,6 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -684,12 +686,10 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 } else {
                     VirtualChannel channel = node.getChannel();
                     if (channel != null) {
-                        FilePath mainScript = null, killProcessScript = null, csCode = null;
-                        try {
-                            FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
-                            mainScript = copyKillScript(tmpFolder, "kill-processes-with-cookie", ".ps1");
-                            killProcessScript = copyKillScript(tmpFolder, "kill-process-by-id", ".ps1");
-                            csCode = copyKillScript(tmpFolder, "ProcessEnvironmentReader", ".cs");
+                        FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
+                        try (var mainScript = withTemporaryScript(tmpFolder, "kill-processes-with-cookie.ps1");
+                                var killProcessScript = withTemporaryScript(tmpFolder, "kill-process-by-id.ps1");
+                                var csCode = withTemporaryScript(tmpFolder, "ProcessEnvironmentReader.cs")) {
                             exitCode = doLaunch(
                                             true,
                                             null,
@@ -708,16 +708,6 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                                             "-killScript",
                                             "\"" + killProcessScript.getRemote() + "\"")
                                     .join();
-                        } finally {
-                            if (mainScript != null && mainScript.exists()) {
-                                mainScript.delete();
-                            }
-                            if (csCode != null && csCode.exists()) {
-                                csCode.delete();
-                            }
-                            if (killProcessScript != null && killProcessScript.exists()) {
-                                killProcessScript.delete();
-                            }
                         }
                     } else {
                         exitCode = 9009;
@@ -741,15 +731,9 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 }
             }
 
-            private FilePath copyKillScript(FilePath workspace, String scriptName, String scriptSuffix)
+            private static TemporaryFile withTemporaryScript(FilePath workspace, String name)
                     throws IOException, InterruptedException {
-                URL resource = ContainerExecDecorator.class.getResource("scripts/" + scriptName + scriptSuffix);
-                if (resource == null) {
-                    throw new FileNotFoundException("Script not found in resources!");
-                }
-                FilePath tempFile = workspace.createTempFile(scriptName, scriptSuffix);
-                tempFile.copyFrom(resource);
-                return tempFile;
+                return new TemporaryFile(workspace, name);
             }
         };
     }
@@ -968,5 +952,41 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return Arrays.stream(envVars)
                 .map(ev -> ev.replaceAll("\\$\\$", Matcher.quoteReplacement("$")))
                 .toArray(String[]::new);
+    }
+
+    private static final class TemporaryFile implements AutoCloseable {
+        @NonNull
+        final FilePath filePath;
+
+        TemporaryFile(@NonNull FilePath workspace, @NonNull String name) throws IOException, InterruptedException {
+            var resource = ContainerExecDecorator.class.getResource("scripts/" + name);
+            if (resource == null) {
+                throw new FileNotFoundException("Script " + name + " not found in resources!");
+            }
+            var tempFile =
+                    workspace.createTempFile(FilenameUtils.getBaseName(name), "." + FilenameUtils.getExtension(name));
+            tempFile.copyFrom(resource);
+            this.filePath = tempFile;
+        }
+
+        public String getRemote() {
+            return filePath.getRemote();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof TemporaryFile that)) return false;
+            return Objects.equals(filePath, that.filePath);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(filePath);
+        }
+
+        @Override
+        public void close() throws IOException, InterruptedException {
+            filePath.delete();
+        }
     }
 }

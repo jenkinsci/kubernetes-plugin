@@ -107,7 +107,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.WithTimeout;
 
 public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
