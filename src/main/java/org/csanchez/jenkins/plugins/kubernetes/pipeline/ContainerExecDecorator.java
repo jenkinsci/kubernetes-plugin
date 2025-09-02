@@ -687,28 +687,33 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     VirtualChannel channel = node.getChannel();
                     if (channel != null && workspace != null) {
                         FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
-                        try (var mainScript = withTemporaryScript(tmpFolder, "kill-processes-with-cookie.ps1");
-                                var killProcessScript = withTemporaryScript(tmpFolder, "kill-process-by-id.ps1");
-                                var csCode = withTemporaryScript(tmpFolder, "ProcessEnvironmentReader.cs")) {
-                            exitCode = doLaunch(
-                                            true,
-                                            null,
-                                            null,
-                                            null,
-                                            null,
-                                            "powershell.exe",
-                                            "-NoProfile",
-                                            "-File",
-                                            /* path to file may contain spaces so wrap in double quotes*/
-                                            "\"" + mainScript.getRemote() + "\"",
-                                            "-cookie",
-                                            cookie,
-                                            "-csFile",
-                                            "\"" + csCode.getRemote() + "\"",
-                                            "-killScript",
-                                            "\"" + killProcessScript.getRemote() + "\"")
-                                    .join();
+                        if (tmpFolder != null) {
+                            try (var mainScript = withTemporaryScript(tmpFolder, "kill-processes-with-cookie.ps1");
+                                    var killProcessScript = withTemporaryScript(tmpFolder, "kill-process-by-id.ps1");
+                                    var csCode = withTemporaryScript(tmpFolder, "ProcessEnvironmentReader.cs")) {
+                                exitCode = doLaunch(
+                                                true,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                "powershell.exe",
+                                                "-NoProfile",
+                                                "-File",
+                                                /* path to file may contain spaces so wrap in double quotes*/
+                                                "\"" + mainScript.getRemote() + "\"",
+                                                "-cookie",
+                                                cookie,
+                                                "-csFile",
+                                                "\"" + csCode.getRemote() + "\"",
+                                                "-killScript",
+                                                "\"" + killProcessScript.getRemote() + "\"")
+                                        .join();
+                            }
+                        } else {
+                            exitCode = 9099;
                         }
+
                     } else {
                         exitCode = 9009;
                     }
