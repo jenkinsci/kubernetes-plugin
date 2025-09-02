@@ -28,7 +28,7 @@ spec:
                 container('jnlp') {
                     script {
                         // Before PR#1724 this would fail as windows processes were not killed
-                        // and hence files blocked. The test is a bit unrealistic as I want it
+                        // and hence files locked. The test is a bit unrealistic as I want it
                         // to be fast and deterministic, but imagine that instead of the ping we execute
                         // a big checkout that locks some files and prevents next steps to execute
                         catchError {
