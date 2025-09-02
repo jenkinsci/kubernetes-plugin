@@ -14,17 +14,17 @@ fi
 export PATH=$WORKSPACE_TMP:$PATH
 if [ \! -x "$WORKSPACE_TMP/kind" ]
 then
-    curl -sLo "$WORKSPACE_TMP/kind" https://github.com/kubernetes-sigs/kind/releases/download/v0.23.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-${arch}
+    curl -sLo "$WORKSPACE_TMP/kind" "https://github.com/kubernetes-sigs/kind/releases/download/v0.23.0/kind-$(uname | tr '[:upper:]' '[:lower:]')-${arch}"
     chmod +x "$WORKSPACE_TMP/kind"
 fi
 if [ \! -x "$WORKSPACE_TMP/kubectl" ]
 then
-    curl -sLo "$WORKSPACE_TMP/kubectl" https://storage.googleapis.com/kubernetes-release/release/v1.30.1/bin/$(uname | tr '[:upper:]' '[:lower:]')/${arch}/kubectl
+    curl -sLo "$WORKSPACE_TMP/kubectl" "https://storage.googleapis.com/kubernetes-release/release/v1.30.1/bin/$(uname | tr '[:upper:]' '[:lower:]')/${arch}/kubectl"
     chmod +x "$WORKSPACE_TMP/kubectl"
 fi
 if [ \! -x "$WORKSPACE_TMP/ktunnel" ]
 then
-    (cd "$WORKSPACE_TMP"; curl -sL https://github.com/omrikiei/ktunnel/releases/download/v1.6.1/ktunnel_1.6.1_$(uname -o)_${machine_name}.tar.gz | tar xvfz - ktunnel)
+    (cd "$WORKSPACE_TMP"; curl -sL "https://github.com/omrikiei/ktunnel/releases/download/v1.6.1/ktunnel_1.6.1_$(uname)_${machine_name}.tar.gz" | tar xvfz - ktunnel)
 fi
 
 export cluster=ci$RANDOM
