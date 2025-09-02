@@ -685,7 +685,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                             .join();
                 } else {
                     VirtualChannel channel = node.getChannel();
-                    if (channel != null) {
+                    if (channel != null && workspace != null) {
                         FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
                         try (var mainScript = withTemporaryScript(tmpFolder, "kill-processes-with-cookie.ps1");
                                 var killProcessScript = withTemporaryScript(tmpFolder, "kill-process-by-id.ps1");
