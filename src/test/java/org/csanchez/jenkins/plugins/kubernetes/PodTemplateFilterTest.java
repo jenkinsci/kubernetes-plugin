@@ -1,7 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -9,14 +9,21 @@ import hudson.model.Label;
 import java.util.ArrayList;
 import java.util.List;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodTemplateFilterTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class PodTemplateFilterTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @TestExtension
     public static class PodTemplateFilter1 extends PodTemplateFilter {
@@ -39,7 +46,7 @@ public class PodTemplateFilterTest {
     }
 
     @Test
-    public void multipleFilters() {
+    void multipleFilters() {
         List<PodTemplate> podtemplates = new ArrayList<>();
         PodTemplate podTemplate = new PodTemplate();
         podTemplate.setLabel("label");

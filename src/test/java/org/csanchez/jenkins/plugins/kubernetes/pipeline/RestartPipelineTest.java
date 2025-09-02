@@ -26,12 +26,13 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static java.util.Arrays.*;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.model.Node;
 import hudson.model.Result;
 import hudson.slaves.DumbSlave;
 import hudson.slaves.JNLPLauncher;
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
@@ -39,7 +40,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
-import org.apache.commons.io.IOUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -53,48 +53,51 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepDynamicContext;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.JenkinsSessionRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-public class RestartPipelineTest {
-    protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
-    protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
-    protected static final String SECRET_KEY = "password";
-    protected static final String CONTAINER_ENV_VAR_FROM_SECRET_VALUE = "container-pa55w0rd";
-    protected static final String POD_ENV_VAR_FROM_SECRET_VALUE = "pod-pa55w0rd";
-    protected KubernetesCloud cloud;
+class RestartPipelineTest {
 
-    @Rule
-    public JenkinsSessionRule story = new JenkinsSessionRule();
+    private static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
+    private static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
+    private static final String SECRET_KEY = "password";
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    private KubernetesCloud cloud;
 
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+    @RegisterExtension
+    private final JenkinsSessionExtension story = new JenkinsSessionExtension();
 
-    @Rule
-    public LoggerRule logs = new LoggerRule()
+    @TempDir
+    private File tmp;
+
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+
+    private final LogRecorder logs = new LogRecorder()
             .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
     // .record("org.jenkinsci.plugins.durabletask",
     // Level.ALL).record("org.jenkinsci.plugins.workflow.support.concurrent",
     // Level.ALL).record("org.csanchez.jenkins.plugins.kubernetes.pipeline", Level.ALL);
 
-    @Rule
-    public TestName name = new TestName();
+    private String name;
 
-    @BeforeClass
-    public static void isKubernetesConfigured() throws Exception {
+    @BeforeAll
+    static void beforeAll() {
         assumeKubernetes();
+    }
+
+    @BeforeEach
+    void beforeEach(TestInfo info) {
+        name = info.getTestMethod().orElseThrow().getName();
     }
 
     private static void setEnvVariables(PodTemplate podTemplate) {
@@ -125,7 +128,7 @@ public class RestartPipelineTest {
         return podTemplate;
     }
 
-    public void configureCloud() throws Exception {
+    private void configureCloud() throws Exception {
         cloud = setupCloud(this, name);
         createSecret(cloud.connect(), cloud.getNamespace());
         cloud.getTemplates().clear();
@@ -136,22 +139,14 @@ public class RestartPipelineTest {
         Jenkins.get().clouds.add(cloud);
     }
 
-    public void configureAgentListener() throws IOException {
+    private void configureAgentListener() throws Exception {
         // Take random port and fix it, to be the same after Jenkins restart
         int fixedPort = Jenkins.get().getTcpSlaveAgentListener().getAdvertisedPort();
         Jenkins.get().setSlaveAgentPort(fixedPort);
     }
 
-    protected String loadPipelineScript(String name) {
-        try {
-            return new String(IOUtils.toByteArray(getClass().getResourceAsStream(name)));
-        } catch (Throwable t) {
-            throw new RuntimeException("Could not read resource:[" + name + "].");
-        }
-    }
-
     @Test
-    public void nullLabelSupportsRestart() throws Throwable {
+    void nullLabelSupportsRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -179,12 +174,12 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void runInPodWithRestartWithMultipleContainerCalls() throws Exception, Throwable {
+    void runInPodWithRestartWithMultipleContainerCalls() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
+            r.jenkins.addNode(new DumbSlave("slave", newFolder(tmp, "remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh
@@ -200,12 +195,12 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void runInPodWithRestartWithLongSleep() throws Exception, Throwable {
+    void runInPodWithRestartWithLongSleep() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
+            r.jenkins.addNode(new DumbSlave("slave", newFolder(tmp, "remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh
@@ -221,7 +216,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void windowsRestart() throws Throwable {
+    void windowsRestart() throws Throwable {
         assumeWindows(WINDOWS_1809_BUILD);
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
@@ -243,7 +238,7 @@ public class RestartPipelineTest {
 
     @Issue("JENKINS-49707")
     @Test
-    public void terminatedPodAfterRestart() throws Exception, Throwable {
+    void terminatedPodAfterRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -268,7 +263,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void taskListenerAfterRestart() throws Throwable {
+    void taskListenerAfterRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -284,7 +279,7 @@ public class RestartPipelineTest {
             Optional<Node> first = r.jenkins.getNodes().stream()
                     .filter(KubernetesSlave.class::isInstance)
                     .findFirst();
-            assertTrue("Kubernetes node should be present after restart", first.isPresent());
+            assertTrue(first.isPresent(), "Kubernetes node should be present after restart");
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
             waitForTemplate(node).getListener().getLogger().println("This got printed");
@@ -295,7 +290,7 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void taskListenerAfterRestart_multipleLabels() throws Throwable {
+    void taskListenerAfterRestart_multipleLabels() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
@@ -311,7 +306,7 @@ public class RestartPipelineTest {
             Optional<Node> first = r.jenkins.getNodes().stream()
                     .filter(KubernetesSlave.class::isInstance)
                     .findFirst();
-            assertTrue("Kubernetes node should be present after restart", first.isPresent());
+            assertTrue(first.isPresent(), "Kubernetes node should be present after restart");
             KubernetesSlave node = (KubernetesSlave) first.get();
             r.waitForMessage("Ready to run", b);
             waitForTemplate(node).getListener().getLogger().println("This got printed");
@@ -321,7 +316,7 @@ public class RestartPipelineTest {
         });
     }
 
-    private PodTemplate waitForTemplate(KubernetesSlave node) throws InterruptedException {
+    private PodTemplate waitForTemplate(KubernetesSlave node) throws Exception {
         while (node.getTemplateOrNull() == null) {
             Thread.sleep(100L);
         }
@@ -329,12 +324,12 @@ public class RestartPipelineTest {
     }
 
     @Test
-    public void getContainerLogWithRestart() throws Exception, Throwable {
+    void getContainerLogWithRestart() throws Throwable {
         AtomicReference<String> projectName = new AtomicReference<>();
         story.then(r -> {
             configureAgentListener();
             configureCloud();
-            r.jenkins.addNode(new DumbSlave("slave", tmp.newFolder("remoteFS").getPath(), new JNLPLauncher(false)));
+            r.jenkins.addNode(new DumbSlave("slave", newFolder(tmp, "remoteFS").getPath(), new JNLPLauncher(false)));
             WorkflowRun b = getPipelineJobThenScheduleRun(r);
             projectName.set(b.getParent().getFullName());
             // we need to wait until we are sure that the sh
@@ -352,6 +347,15 @@ public class RestartPipelineTest {
     }
 
     private WorkflowRun getPipelineJobThenScheduleRun(JenkinsRule r) throws Exception {
-        return createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName());
+        return createPipelineJobThenScheduleRun(r, getClass(), name);
+    }
+
+    private static File newFolder(File root, String... subDirs) throws Exception {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        if (!result.mkdirs()) {
+            throw new IOException("Couldn't create folders " + root);
+        }
+        return result;
     }
 }
