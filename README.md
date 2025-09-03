@@ -6,7 +6,7 @@ Kubernetes plugin for Jenkins
 [![kubernetes license](https://img.shields.io/github/license/jenkinsci/kubernetes-plugin)](https://github.com/jenkinsci/kubernetes-plugin/blob/master/LICENSE)
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/jenkinsci/kubernetes-plugin.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jenkinsci/kubernetes-plugin/context:java)
 
-Jenkins plugin to run dynamic agents in a Kubernetes cluster.
+Jenkins plugin to run dynamic agents in a Kubernetes cluster. This is a very complex change
 
 Based on the [Scaling Docker with Kubernetes](http://www.infoq.com/articles/scaling-docker-with-kubernetes) article,
 automates the scaling of Jenkins agents running in Kubernetes.
