@@ -24,15 +24,15 @@
 
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.csanchez.jenkins.plugins.kubernetes.model.KeyValueEnvVar;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class PodEnvVarTest {
+class PodEnvVarTest {
 
     @Test
-    public void testEquals() {
+    void testEquals() {
         assertEquals(new PodEnvVar("a", "b"), new KeyValueEnvVar("a", "b"));
     }
 }

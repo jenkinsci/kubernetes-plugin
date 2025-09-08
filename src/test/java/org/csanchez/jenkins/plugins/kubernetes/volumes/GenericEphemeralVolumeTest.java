@@ -1,14 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.fabric8.kubernetes.api.model.Volume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class GenericEphemeralVolumeTest {
+class GenericEphemeralVolumeTest {
 
     @Test
-    public void testCreatesVolumeCorrectly() {
+    void testCreatesVolumeCorrectly() {
 
         GenericEphemeralVolume genericEphemeralVolume = new GenericEphemeralVolume();
         genericEphemeralVolume.setAccessModes("ReadWriteOnce");

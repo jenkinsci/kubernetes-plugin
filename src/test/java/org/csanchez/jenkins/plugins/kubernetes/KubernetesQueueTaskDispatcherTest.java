@@ -1,6 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
@@ -16,21 +17,18 @@ import java.util.Calendar;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class KubernetesQueueTaskDispatcherTest {
-
-    @Rule
-    public JenkinsRule jenkins = new JenkinsRule();
-
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
+@WithJenkins
+@ExtendWith(MockitoExtension.class)
+class KubernetesQueueTaskDispatcherTest {
 
     @Mock
     private ExecutorStepExecution.PlaceholderTask task;
@@ -40,11 +38,18 @@ public class KubernetesQueueTaskDispatcherTest {
     private KubernetesSlave slaveA;
     private KubernetesSlave slaveB;
 
-    public void setUpTwoClouds() throws Exception {
-        folderA = new Folder(jenkins.jenkins, "A");
-        folderB = new Folder(jenkins.jenkins, "B");
-        jenkins.jenkins.add(folderA, "Folder A");
-        jenkins.jenkins.add(folderB, "Folder B");
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
+
+    private void setUpTwoClouds() throws Exception {
+        folderA = new Folder(j.jenkins, "A");
+        folderB = new Folder(j.jenkins, "B");
+        j.jenkins.add(folderA, "Folder A");
+        j.jenkins.add(folderB, "Folder B");
 
         KubernetesCloud cloudA = new KubernetesCloud("A");
         cloudA.setUsageRestricted(true);
@@ -52,8 +57,8 @@ public class KubernetesQueueTaskDispatcherTest {
         KubernetesCloud cloudB = new KubernetesCloud("B");
         cloudB.setUsageRestricted(true);
 
-        jenkins.jenkins.clouds.add(cloudA);
-        jenkins.jenkins.clouds.add(cloudB);
+        j.jenkins.clouds.add(cloudA);
+        j.jenkins.clouds.add(cloudB);
 
         KubernetesFolderProperty property1 = new KubernetesFolderProperty();
         folderA.addProperty(property1);
@@ -76,7 +81,7 @@ public class KubernetesQueueTaskDispatcherTest {
     }
 
     @Test
-    public void checkRestrictedTwoClouds() throws Exception {
+    void checkRestrictedTwoClouds() throws Exception {
         setUpTwoClouds();
 
         FreeStyleProject projectA = folderA.createProject(FreeStyleProject.class, "buildJob");
@@ -86,23 +91,21 @@ public class KubernetesQueueTaskDispatcherTest {
         assertNull(dispatcher.canTake(
                 slaveA,
                 new Queue.BuildableItem(new Queue.WaitingItem(Calendar.getInstance(), projectA, new ArrayList<>()))));
-        assertTrue(
-                canTake(dispatcher, slaveB, projectA)
-                        instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
-        assertTrue(
-                canTake(dispatcher, slaveA, projectB)
-                        instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
+        assertInstanceOf(
+                KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed.class, canTake(dispatcher, slaveB, projectA));
+        assertInstanceOf(
+                KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed.class, canTake(dispatcher, slaveA, projectB));
         assertNull(canTake(dispatcher, slaveB, projectB));
     }
 
     @Test
-    public void checkNotRestrictedClouds() throws Exception {
-        Folder folder = new Folder(jenkins.jenkins, "C");
+    void checkNotRestrictedClouds() throws Exception {
+        Folder folder = new Folder(j.jenkins, "C");
         FreeStyleProject project = folder.createProject(FreeStyleProject.class, "buildJob");
-        jenkins.jenkins.add(folder, "C");
+        j.jenkins.add(folder, "C");
         KubernetesCloud cloud = new KubernetesCloud("C");
         cloud.setUsageRestricted(false);
-        jenkins.jenkins.clouds.add(cloud);
+        j.jenkins.clouds.add(cloud);
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
         KubernetesSlave slave = new KubernetesSlave(
                 "C", new PodTemplate(), "testC", "C", "dockerC", new KubernetesLauncher(), RetentionStrategy.INSTANCE);
@@ -111,16 +114,16 @@ public class KubernetesQueueTaskDispatcherTest {
     }
 
     @Test
-    public void checkDumbSlave() throws Exception {
-        DumbSlave slave = jenkins.createOnlineSlave();
-        FreeStyleProject project = jenkins.createProject(FreeStyleProject.class);
+    void checkDumbSlave() throws Exception {
+        DumbSlave slave = j.createOnlineSlave();
+        FreeStyleProject project = j.createProject(FreeStyleProject.class);
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
         assertNull(canTake(dispatcher, slave, project));
     }
 
     @Test
-    public void checkPipelinesRestrictedTwoClouds() throws Exception {
+    void checkPipelinesRestrictedTwoClouds() throws Exception {
         setUpTwoClouds();
 
         WorkflowJob job = folderA.createProject(WorkflowJob.class, "pipeline");
@@ -128,8 +131,8 @@ public class KubernetesQueueTaskDispatcherTest {
         KubernetesQueueTaskDispatcher dispatcher = new KubernetesQueueTaskDispatcher();
 
         assertNull(canTake(dispatcher, slaveA, task));
-        assertTrue(
-                canTake(dispatcher, slaveB, task) instanceof KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed);
+        assertInstanceOf(
+                KubernetesQueueTaskDispatcher.KubernetesCloudNotAllowed.class, canTake(dispatcher, slaveB, task));
     }
 
     private CauseOfBlockage canTake(KubernetesQueueTaskDispatcher dispatcher, Slave slave, Project project) {
