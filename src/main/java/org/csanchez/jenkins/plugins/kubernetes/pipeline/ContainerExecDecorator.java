@@ -18,6 +18,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.pipeline.Constants.EXIT;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -27,12 +28,15 @@ import hudson.LauncherDecorator;
 import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.Node;
+import hudson.remoting.VirtualChannel;
+import hudson.slaves.WorkspaceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -46,6 +50,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -55,6 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -264,6 +270,8 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         this.nodeContext = nodeContext;
     }
 
+    private String workspace;
+
     @Override
     public Launcher decorate(final Launcher launcher, final Node node) {
 
@@ -283,6 +291,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                 String containerWorkingDirFilePathStr = containerWorkingDirFilePath != null
                         ? containerWorkingDirFilePath.getRemote()
                         : ContainerTemplate.DEFAULT_WORKING_DIR;
+                workspace = containerWorkingDirFilePathStr;
                 String containerWorkingDirStr = ContainerTemplate.DEFAULT_WORKING_DIR;
                 if (slave != null && slave.getPod().isPresent() && containerName != null) {
                     Optional<String> containerWorkingDir = PodContainerSource.lookupContainerWorkingDir(
@@ -660,23 +669,58 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
             @Override
             public void kill(Map<String, String> modelEnvVars) throws IOException, InterruptedException {
                 getListener().getLogger().println("Killing processes");
-
                 String cookie = modelEnvVars.get(COOKIE_VAR);
+                int exitCode;
+                if (this.isUnix()) {
+                    exitCode = doLaunch(
+                                    true,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    "sh",
+                                    "-c",
+                                    "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
+                                            + "' /proc/*/environ | cut -d / -f 3 \\`")
+                            .join();
+                } else {
+                    VirtualChannel channel = node.getChannel();
+                    if (channel != null && workspace != null) {
+                        FilePath tmpFolder = WorkspaceList.tempDir(new FilePath(channel, workspace));
+                        if (tmpFolder != null) {
+                            try (var mainScript = withTemporaryScript(tmpFolder, "kill-processes-with-cookie.ps1");
+                                    var killProcessScript = withTemporaryScript(tmpFolder, "kill-process-by-id.ps1");
+                                    var csCode = withTemporaryScript(tmpFolder, "ProcessEnvironmentReader.cs")) {
+                                exitCode = doLaunch(
+                                                true,
+                                                null,
+                                                null,
+                                                null,
+                                                null,
+                                                "powershell.exe",
+                                                "-NoProfile",
+                                                "-File",
+                                                /* path to file may contain spaces so wrap in double quotes*/
+                                                "\"" + mainScript.getRemote() + "\"",
+                                                "-cookie",
+                                                cookie,
+                                                "-csFile",
+                                                "\"" + csCode.getRemote() + "\"",
+                                                "-killScript",
+                                                "\"" + killProcessScript.getRemote() + "\"")
+                                        .join();
+                            }
+                        } else {
+                            exitCode = 9099;
+                        }
 
-                int exitCode = doLaunch(
-                                true,
-                                null,
-                                null,
-                                null,
-                                null,
-                                // TODO Windows
-                                "sh",
-                                "-c",
-                                "kill \\`grep -l '" + COOKIE_VAR + "=" + cookie
-                                        + "' /proc/*/environ | cut -d / -f 3 \\`")
-                        .join();
-
-                getListener().getLogger().println("kill finished with exit code " + exitCode);
+                    } else {
+                        exitCode = 9009;
+                    }
+                }
+                getListener()
+                        .getLogger()
+                        .println("Attempt to gracefully kill processes finished with exit code " + exitCode);
             }
 
             private void setupEnvironmentVariable(EnvVars vars, PrintStream out, boolean windows) throws IOException {
@@ -690,6 +734,11 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                         out.print(newLine(windows));
                     }
                 }
+            }
+
+            private static TemporaryFile withTemporaryScript(FilePath workspace, String name)
+                    throws IOException, InterruptedException {
+                return new TemporaryFile(workspace, name);
             }
         };
     }
@@ -908,5 +957,41 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
         return Arrays.stream(envVars)
                 .map(ev -> ev.replaceAll("\\$\\$", Matcher.quoteReplacement("$")))
                 .toArray(String[]::new);
+    }
+
+    private static final class TemporaryFile implements AutoCloseable {
+        @NonNull
+        final FilePath filePath;
+
+        TemporaryFile(@NonNull FilePath workspace, @NonNull String name) throws IOException, InterruptedException {
+            var resource = ContainerExecDecorator.class.getResource("scripts/" + name);
+            if (resource == null) {
+                throw new FileNotFoundException("Script " + name + " not found in resources!");
+            }
+            var tempFile =
+                    workspace.createTempFile(FilenameUtils.getBaseName(name), "." + FilenameUtils.getExtension(name));
+            tempFile.copyFrom(resource);
+            this.filePath = tempFile;
+        }
+
+        public String getRemote() {
+            return filePath.getRemote();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof TemporaryFile that)) return false;
+            return Objects.equals(filePath, that.filePath);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(filePath);
+        }
+
+        @Override
+        public void close() throws IOException, InterruptedException {
+            filePath.delete();
+        }
     }
 }

@@ -733,8 +733,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("got stuff: some value", b);
     }
 
-    @Disabled(
-            "TODO aborts, but with “kill finished with exit code 9009” and “After 20s process did not stop” and no graceful shutdown")
+    @Disabled("Does not appear fixable: https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410")
     @Test
     void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);
@@ -743,6 +742,19 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         b.getExecutor().interrupt();
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("shut down gracefully", b);
+    }
+
+    @Test
+    @Issue("JENKINS-75563")
+    // Before PR#1724 this would fail as windows processes were not killed
+    // and hence files blocked. The test is a bit unrealistic as I want it
+    // to be fast and deterministic, but imagine that instead of the ping we execute
+    // a big checkout that locks some files and prevents next steps to execute
+    void killsProcessesWindows() throws Exception {
+        assumeWindows(WINDOWS_1809_BUILD);
+        cloud.setDirectConnection(false);
+        r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
+        r.assertLogContains("\"It worked!\"", b);
     }
 
     @Test
