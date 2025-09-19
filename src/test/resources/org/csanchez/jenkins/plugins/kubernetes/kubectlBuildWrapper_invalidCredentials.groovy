@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
   - name: kubectl
-    image: bitnami/kubectl:1.25.4
+    image: alpine/kubectl:1.34.1
     command:
       - sleep
     args:
