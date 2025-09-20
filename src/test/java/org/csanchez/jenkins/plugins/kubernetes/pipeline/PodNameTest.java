@@ -21,18 +21,18 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabe
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class PodNameTest extends AbstractKubernetesPipelineTest {
+class PodNameTest extends AbstractKubernetesPipelineTest {
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
     }
 
     @Test
-    public void multipleDots() throws Exception {
+    void multipleDots() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class, "whatever...man");
         p.setDefinition(new CpsFlowDefinition("podTemplate {node(POD_LABEL) {sh 'echo ok'}}", true));
         r.buildAndAssertSuccess(p);

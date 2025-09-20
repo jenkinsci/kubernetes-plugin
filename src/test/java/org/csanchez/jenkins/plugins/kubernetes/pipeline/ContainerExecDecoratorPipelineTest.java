@@ -16,7 +16,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.PrivateKeySource;
@@ -28,21 +28,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
 
-public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
+class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
 
-    @Rule
-    public LoggerRule containerExecLogs = new LoggerRule()
+    private final LogRecorder containerExecLogs = new LogRecorder()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL)
             .record(BourneShellScript.class, Level.ALL);
 
     @Issue({"JENKINS-47225", "JENKINS-42582"})
     @Test
-    public void sshagent() throws Exception {
+    void sshagent() throws Exception {
         PrivateKeySource source = new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(
                 new String(IOUtils.toByteArray(getClass().getResourceAsStream("id_rsa"))));
         BasicSSHUserPrivateKey credentials = new BasicSSHUserPrivateKey(
@@ -68,7 +66,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
     }
 
     @Test
-    public void docker() throws Exception {
+    void docker() throws Exception {
         StandardUsernamePasswordCredentials credentials = new UsernamePasswordCredentialsImpl(
                 CredentialsScope.GLOBAL,
                 "ContainerExecDecoratorPipelineTest-docker",
@@ -88,26 +86,26 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         r.assertLogNotContains("secret_password", b);
         // check that we don't accidentally start exporting sensitive info to the Jenkins log
         assertFalse(
-                "credential leaked to log",
-                containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains("secret_password")));
+                containerExecLogs.getMessages().stream().anyMatch(msg -> msg.contains("secret_password")),
+                "credential leaked to log");
     }
 
     @Issue("JENKINS-58290")
     @Test
-    public void closedWebSocketExit() throws Exception {
+    void closedWebSocketExit() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         containerExecLogs.capture(1000);
         r.waitForMessage("have started user process", b);
         assertTrue(
-                "WebSocket was closed in a timely fashion",
-                containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")));
+                containerExecLogs.getMessages().stream().anyMatch(m -> m.startsWith("onClose : ")),
+                "WebSocket was closed in a timely fashion");
         b.getExecutor().interrupt();
         r.waitForCompletion(b);
     }
 
     @Issue("JENKINS-61950")
     @Test
-    public void envVarDollarSignEscaping() throws Exception {
+    void envVarDollarSignEscaping() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         containerExecLogs.capture(1000);
         r.waitForCompletion(b);
@@ -117,7 +115,7 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
     }
 
     @Test
-    public void containerEnvironmentIsHonored() throws Exception {
+    void containerEnvironmentIsHonored() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.waitForCompletion(b);
         r.assertLogContains(
