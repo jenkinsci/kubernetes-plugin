@@ -1,14 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes.volumes.workspace;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.fabric8.kubernetes.api.model.Volume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class GenericEphemeralWorkspaceVolumeTest {
+class GenericEphemeralWorkspaceVolumeTest {
 
     @Test
-    public void testCreatesVolumeCorrectly() {
+    void testCreatesVolumeCorrectly() {
 
         GenericEphemeralWorkspaceVolume genericEphemeralWorkspaceVolume = new GenericEphemeralWorkspaceVolume();
         genericEphemeralWorkspaceVolume.setStorageClassName("test-storageclass");
