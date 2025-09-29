@@ -176,7 +176,7 @@ public class KubernetesFactoryAdapter {
             builder = new ConfigBuilder(Config.autoConfigure(null));
         } else {
             // Using Config.empty() disables autoconfiguration when both serviceAddress and auth are set
-            builder = auth == null ? new ConfigBuilder() : new ConfigBuilder(Config.empty());
+            builder = auth == null ? new ConfigBuilder(Config.autoConfigure(null)) : new ConfigBuilder(Config.empty());
             builder = builder.withMasterUrl(serviceAddress);
         }
 
