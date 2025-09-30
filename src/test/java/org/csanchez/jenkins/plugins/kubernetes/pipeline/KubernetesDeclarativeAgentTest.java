@@ -27,7 +27,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 // Required for workflow-api graph analysis
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.common.base.Predicates;
 import hudson.model.Result;
@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
@@ -44,18 +45,23 @@ import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.FlowScanningUtils;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
-public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
+@WithGitSampleRepo
+class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTest {
 
-    @Rule
-    public GitSampleRepoRule repoRule = new GitSampleRepoRule();
+    private GitSampleRepoRule repoRule;
+
+    @BeforeEach
+    void beforeEach(GitSampleRepoRule repo) {
+        repoRule = repo;
+    }
 
     @Issue({"JENKINS-41758", "JENKINS-57827", "JENKINS-60886"})
     @Test
-    public void declarative() throws Exception {
+    void declarative() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -67,7 +73,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
                         Predicates.and(
                                 new NodeStepTypePredicate("podTemplate"),
                                 FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
-        assertNotNull("recorded arguments for podTemplate", podTemplateNode);
+        assertNotNull(podTemplateNode, "recorded arguments for podTemplate");
         Map<String, Object> arguments =
                 podTemplateNode.getAction(ArgumentsAction.class).getArguments();
         FlowNode nodeNode = new DepthFirstScanner()
@@ -76,7 +82,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
                         Predicates.and(
                                 new NodeStepTypePredicate("node"),
                                 FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
-        assertNotNull("recorded arguments for node", nodeNode);
+        assertNotNull(nodeNode, "recorded arguments for node");
         Map<String, Object> nodeArguments =
                 nodeNode.getAction(ArgumentsAction.class).getArguments();
         assertEquals("labels && multiple", nodeArguments.get("label"));
@@ -84,24 +90,23 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
         List<UninstantiatedDescribable> containers = (List<UninstantiatedDescribable>) arguments.get("containers");
         assertNotNull(containers);
         assertFalse(
-                "no junk in arguments: " + arguments,
-                containers.get(0).getArguments().containsKey("alwaysPullImage"));
+                containers.get(0).getArguments().containsKey("alwaysPullImage"), "no junk in arguments: " + arguments);
         FlowNode containerNode = new DepthFirstScanner()
                 .findFirstMatch(
                         b.getExecution(),
                         Predicates.and(
                                 new NodeStepTypePredicate("container"),
                                 FlowScanningUtils.hasActionPredicate(ArgumentsAction.class)));
-        assertNotNull("recorded arguments for container", containerNode);
+        assertNotNull(containerNode, "recorded arguments for container");
         // JENKINS-60886
         UninstantiatedDescribable podRetention = (UninstantiatedDescribable) arguments.get("podRetention");
         assertNotNull(podRetention);
-        assertEquals(podRetention.getModel().getType(), OnFailure.class);
+        assertEquals(OnFailure.class, podRetention.getModel().getType());
     }
 
     @Issue("JENKINS-48135")
     @Test
-    public void declarativeFromYaml() throws Exception {
+    void declarativeFromYaml() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -112,7 +117,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-51610")
     @Test
-    public void declarativeWithNamespaceFromYaml() throws Exception {
+    void declarativeWithNamespaceFromYaml() throws Exception {
         createNamespaceIfNotExist(cloud.connect(), "kubernetes-plugin-test-overridden-namespace");
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
@@ -124,7 +129,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-52259")
     @Test
-    public void declarativeFromYamlFile() throws Exception {
+    void declarativeFromYamlFile() throws Exception {
         repoRule.init();
         repoRule.write("Jenkinsfile", loadPipelineDefinition());
         repoRule.write("declarativeYamlFile.yml", loadPipelineScript("declarativeYamlFile.yml"));
@@ -144,7 +149,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     }
 
     @Test
-    public void declarativeFromYamlWithNullEnv() throws Exception {
+    void declarativeFromYamlWithNullEnv() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("\njnlp container: OK\n", b);
@@ -153,7 +158,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-52623")
     @Test
-    public void declarativeSCMVars() throws Exception {
+    void declarativeSCMVars() throws Exception {
         p = r.jenkins.createProject(WorkflowJob.class, "job with repo");
         // We can't use a local GitSampleRepoRule for this because the repo has to be accessible from within the
         // container.
@@ -166,7 +171,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-53817")
     @Test
-    public void declarativeCustomWorkspace() throws Exception {
+    void declarativeCustomWorkspace() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -175,7 +180,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-58975")
     @Test
-    public void declarativeCustomWorkingDir() throws Exception {
+    void declarativeCustomWorkingDir() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains(
@@ -191,7 +196,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-57548")
     @Test
-    public void declarativeWithNestedExplicitInheritance() throws Exception {
+    void declarativeWithNestedExplicitInheritance() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("Apache Maven 3.3.9", b);
@@ -199,14 +204,14 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
     }
 
     @Test
-    public void declarativeWithNonexistentDockerImage() throws Exception {
+    void declarativeWithNonexistentDockerImage() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("ERROR: Unable to pull container image", b);
     }
 
     @Test
-    public void declarativeWithCreateContainerError() throws Exception {
+    void declarativeWithCreateContainerError() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         r.assertLogContains("was terminated", b);
@@ -214,7 +219,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-61360")
     @Test
-    public void declarativeShowRawYamlFalse() throws Exception {
+    void declarativeShowRawYamlFalse() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         // check yaml metadata labels not logged
@@ -223,7 +228,7 @@ public class KubernetesDeclarativeAgentTest extends AbstractKubernetesPipelineTe
 
     @Issue("JENKINS-49707")
     @Test
-    public void declarativeRetries() throws Exception {
+    void declarativeRetries() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.waitForMessage("+ sleep", b);
         deletePods(cloud.connect(), getLabels(this, name), false);

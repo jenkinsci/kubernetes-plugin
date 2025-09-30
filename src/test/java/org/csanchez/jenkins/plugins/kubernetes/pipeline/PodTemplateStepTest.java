@@ -5,19 +5,26 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodTemplateStepTest {
-    @Rule
-    public JenkinsRule rule = new JenkinsRule();
+@WithJenkins
+class PodTemplateStepTest {
+
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Issue("JENKINS-57828")
     @Test
-    public void configRoundTrip() throws Exception {
-        SnippetizerTester st = new SnippetizerTester(rule);
+    void configRoundTrip() throws Exception {
+        SnippetizerTester st = new SnippetizerTester(r);
         PodTemplateStep step = new PodTemplateStep();
 
         st.assertRoundTrip(step, "podTemplate {\n    // some block\n}");

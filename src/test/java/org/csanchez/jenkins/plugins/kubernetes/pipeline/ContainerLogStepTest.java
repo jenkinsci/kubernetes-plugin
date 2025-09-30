@@ -16,16 +16,16 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
-public class ContainerLogStepTest extends AbstractKubernetesPipelineTest {
+class ContainerLogStepTest extends AbstractKubernetesPipelineTest {
 
     @Issue("JENKINS-46085")
     @Test
-    public void getContainerLog() throws Exception {
+    void getContainerLog() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         r.assertLogContains("INFO: Handshaking", b);
