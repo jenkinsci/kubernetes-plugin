@@ -150,6 +150,36 @@ class KubernetesFactoryAdapterTest {
     }
 
     @Test
+    public void autoConfigWithMasterUrlWithoutAuth() throws Exception {
+        System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
+        KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://example.com", null, null, false);
+        KubernetesClient client = factory.createClient();
+        assertEquals("test-namespace", client.getNamespace());
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] {NO_PROXY}, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertTrue(client.getConfiguration().getAutoConfigure());
+        assertEquals("http://example.com/", client.getConfiguration().getMasterUrl());
+    }
+
+    @Test
+    public void autoConfigWithKubeconfig() throws Exception {
+        System.setProperty(KUBERNETES_KUBECONFIG_FILE, "src/test/resources/kubeconfig");
+        KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://example.com", null, null, false);
+        KubernetesClient client = factory.createClient();
+        assertEquals("test-namespace", client.getNamespace());
+        assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
+        assertEquals(HTTPS_PROXY, client.getConfiguration().getHttpsProxy());
+        assertArrayEquals(new String[] {NO_PROXY}, client.getConfiguration().getNoProxy());
+        assertEquals(PROXY_USERNAME, client.getConfiguration().getProxyUsername());
+        assertEquals(PROXY_PASSWORD, client.getConfiguration().getProxyPassword());
+        assertTrue(client.getConfiguration().getAutoConfigure());
+        assertEquals("http://example.com/", client.getConfiguration().getMasterUrl());
+    }
+
+    @Test
     @Issue("JENKINS-70416")
     void autoConfigWithAuth() throws Exception {
         System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
