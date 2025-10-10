@@ -78,14 +78,11 @@ adequate communication from Jenkins to the Kubernetes cluster, as seen below
 ![image](images/cloud-configuration.png)
 
 
-### Garbage collection (beta)
+### Garbage collection
 
 In some exceptional cases, agent pods can be left behind, with no declared Jenkins agent in the controller. They will try to reconnect over and over, until something deletes them.
 
-The plugin provides a garbage collection mechanism to clean up these pods. As it has been introduced recently,
-and generates extra load on the Kubernetes API server, it is disabled by default.
-
-Feel free to enable it and provide feedback about this functionality.
+The plugin provides a garbage collection mechanism to clean up these pods. As it may generate extra load on the Kubernetes API server, it is disabled by default.
 
 ![image](images/garbage-collection.png)
 
