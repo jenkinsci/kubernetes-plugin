@@ -37,7 +37,7 @@ public class KubernetesSamples {
                     case "scripted":
                         return false;
                     default:
-                        // OK
+                    // OK
                 }
             }
             return true;
