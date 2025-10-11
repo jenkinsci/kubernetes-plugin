@@ -16,20 +16,19 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import java.net.UnknownHostException;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.AssertBuildStatusSuccess;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.RunId;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.steps.SetupCloud;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public final class KubernetesDeclarativeAgentRJRTest extends AbstractKubernetesPipelineRJRTest {
+class KubernetesDeclarativeAgentRJRTest extends AbstractKubernetesPipelineRJRTest {
 
-    public KubernetesDeclarativeAgentRJRTest() throws UnknownHostException {
+    public KubernetesDeclarativeAgentRJRTest() throws Exception {
         super(new SetupCloud());
     }
 
     @Test
-    public void declarative() throws Throwable {
+    void declarative() throws Throwable {
         RunId runId = createWorkflowJobThenScheduleRun();
         rjr.runRemotely(new AssertBuildStatusSuccess(runId));
     }

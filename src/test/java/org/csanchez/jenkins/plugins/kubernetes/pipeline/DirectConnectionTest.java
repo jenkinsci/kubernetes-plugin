@@ -20,25 +20,29 @@ import hudson.TcpSlaveAgentListener;
 import java.util.logging.Level;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.jvnet.hudson.test.JenkinsRule;
 
-public final class DirectConnectionTest extends AbstractKubernetesPipelineTest {
+class DirectConnectionTest extends AbstractKubernetesPipelineTest {
 
     static {
         System.setProperty(
                 TcpSlaveAgentListener.class.getName() + ".hostName", System.getProperty("jenkins.host.address"));
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @Override
+    @BeforeEach
+    protected void beforeEach(JenkinsRule rule, TestInfo info) throws Exception {
+        super.beforeEach(rule, info);
         KubernetesTestUtil.deletePods(cloud.connect(), KubernetesTestUtil.getLabels(cloud, this, name), false);
         cloud.setDirectConnection(true);
         logs.record(PodTemplateBuilder.class, Level.FINEST);
     }
 
     @Test
-    public void directConnectionAgent() throws Exception {
+    void directConnectionAgent() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(createJobThenScheduleRun()));
     }
 }

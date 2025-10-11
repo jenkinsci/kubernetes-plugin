@@ -25,7 +25,7 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import hudson.model.Result;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
@@ -34,27 +34,28 @@ import org.csanchez.jenkins.plugins.kubernetes.Messages;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodTemplateStepExecutionTest {
+@WithJenkins
+class PodTemplateStepExecutionTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
 
     protected KubernetesCloud cloud;
 
-    @Before
-    public void configureCloud() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
         cloud = new KubernetesCloud("kubernetes");
         r.jenkins.clouds.add(cloud);
     }
 
-    @BeforeClass
-    public static void isKubernetesConfigured() throws Exception {
+    @BeforeAll
+    static void beforeAll() {
         assumeKubernetes();
     }
 
@@ -63,7 +64,7 @@ public class PodTemplateStepExecutionTest {
     }
 
     @Test
-    public void testBadNameDetection() throws Exception {
+    void testBadNameDetection() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_container_name");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badcontainername.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
@@ -73,7 +74,7 @@ public class PodTemplateStepExecutionTest {
     }
 
     @Test
-    public void testBadNameYamlDetection() throws Exception {
+    void testBadNameYamlDetection() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "bad_container_name_yaml");
         p.setDefinition(new CpsFlowDefinition(loadPipelineScript("badcontainernameyaml.groovy"), true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
