@@ -2,7 +2,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,20 +19,21 @@ import hudson.slaves.Cloud;
 import hudson.slaves.CloudProvisioningListener;
 import hudson.slaves.NodeProvisioner;
 import java.util.Collection;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.jvnet.hudson.test.TestExtension;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTest {
+@ExtendWith(MockitoExtension.class)
+class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTest {
+
     @Mock
-    CloudProvisioningListener cloudProvisioningListener;
+    private CloudProvisioningListener cloudProvisioningListener;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         CloudProvisionerListenerImpl instance = ExtensionList.lookupSingleton(CloudProvisionerListenerImpl.class);
         instance.setDelegate(cloudProvisioningListener);
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
@@ -80,7 +81,7 @@ public class NoDelayProvisionerStrategyTest extends AbstractKubernetesPipelineTe
     }
 
     @Test
-    public void noDelayProvisionerCallsListener() throws Exception {
+    void noDelayProvisionerCallsListener() throws Exception {
         when(cloudProvisioningListener.canProvision(any(Cloud.class), any(Label.class), anyInt()))
                 .thenReturn(null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
