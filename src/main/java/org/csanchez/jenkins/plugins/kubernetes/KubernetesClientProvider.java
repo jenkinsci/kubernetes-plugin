@@ -7,11 +7,8 @@ import hudson.Extension;
 import hudson.XmlFile;
 import hudson.model.Saveable;
 import hudson.model.listeners.SaveableListener;
-import hudson.util.DaemonThreadFactory;
-import hudson.util.NamingThreadFactory;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.io.IOException;
-import java.lang.ref.Cleaner;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -97,25 +94,12 @@ public class KubernetesClientProvider {
     }
 
     private static class Client {
-
-        private static final Cleaner CLEANER = Cleaner.create(new NamingThreadFactory(
-                new DaemonThreadFactory(), KubernetesClientProvider.class.getName() + ".Cleaner"));
-        // Use Java Cleaner to ensure the client is closed eventually
         private final KubernetesClient client;
         private final int validity;
 
         public Client(int validity, KubernetesClient client) {
             this.client = client;
             this.validity = validity;
-            CLEANER.register(this, this::close);
-        }
-
-        /**
-         * Close the underlying client when the Client object is expired or GC'ed
-         */
-        private void close() {
-            LOGGER.log(Level.FINE, () -> "Closing expired client " + client);
-            client.close();
         }
 
         public KubernetesClient getClient() {
