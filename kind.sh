@@ -52,6 +52,7 @@ ktunnel expose jenkins 8000:8000 8001:8001 &
 ktunnel_pid=$!
 
 mvn \
+    --show-version \
     -B \
     -ntp \
     -Djenkins.host.address=jenkins.default \
