@@ -56,7 +56,7 @@ stage('Tests') {
             node('maven-25') {
                 timeout(60) {
                     checkout scm
-                    sh 'mvn --show-version -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
+                    sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
                     infra.prepareToPublishIncrementals()
                     junit 'target/surefire-reports/*.xml'
                 }
