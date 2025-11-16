@@ -6,7 +6,7 @@ properties([
 
 def splits
 stage('Determine splits') {
-    node('maven-17') {
+    node('maven-21') {
         checkout scm
         splits = splitTests parallelism: count(2), generateInclusions: true, estimateTestsFromFiles: true
     }
@@ -51,12 +51,12 @@ stage('Tests') {
             }
         }
     }
-    branches['jdk17'] = {
+    branches['jdk25'] = {
         retry(count: 3, conditions: [kubernetesAgent(handleNonKubernetes: true), nonresumable()]) {
-            node('maven-17') {
+            node('maven-25') {
                 timeout(60) {
                     checkout scm
-                    sh 'mvn -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
+                    sh 'mvn --show-version -B -ntp -Dset.changelist -Dmaven.test.failure.ignore clean install'
                     infra.prepareToPublishIncrementals()
                     junit 'target/surefire-reports/*.xml'
                 }
@@ -65,7 +65,7 @@ stage('Tests') {
     }
     parallel branches
     stage('aggregate coverage') {
-        node('maven-17') {
+        node('maven-25') {
             checkout scm
             unstash 'classes'
             for (int i = 0; i < splits.size(); i++) {
