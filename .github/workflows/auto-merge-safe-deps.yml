@@ -1,0 +1,9 @@
+name: Automatically approve and merge safe dependency updates
+on:
+  - pull_request_target
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  auto-merge-safe-deps:
+    uses: jenkins-infra/github-reusable-workflows/.github/workflows/auto-merge-safe-deps.yml@v1
