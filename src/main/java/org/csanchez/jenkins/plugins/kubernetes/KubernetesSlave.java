@@ -410,6 +410,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             String msg = String.format("Computer for agent is null: %s", name);
             LOGGER.log(Level.SEVERE, msg);
             listener.fatalError(msg);
+            deleteSlavePod(listener, client);
             return;
         }
 
