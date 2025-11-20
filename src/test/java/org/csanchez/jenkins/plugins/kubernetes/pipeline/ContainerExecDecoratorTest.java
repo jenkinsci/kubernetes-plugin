@@ -28,11 +28,10 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeK
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -51,6 +50,7 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,28 +70,26 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * @author Carlos Sanchez
  */
-public class ContainerExecDecoratorTest {
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+@WithJenkins
+@Timeout(value = 3, unit = TimeUnit.MINUTES)
+class ContainerExecDecoratorTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
     private KubernetesCloud cloud;
     private static KubernetesClient client;
@@ -102,25 +100,23 @@ public class ContainerExecDecoratorTest {
     private KubernetesSlave agent;
     private DumbSlave dumbAgent;
 
-    @Rule
-    public Timeout timeout = new Timeout(3, TimeUnit.MINUTES);
-
-    @Rule
-    public LoggerRule containerExecLogs = new LoggerRule()
+    @SuppressWarnings("unused")
+    private final LogRecorder containerExecLogs = new LogRecorder()
             .record(Logger.getLogger(ContainerExecDecorator.class.getName()), Level.ALL) //
             .record(ContainerExecProc.class, Level.ALL) //
             .record(Logger.getLogger(KubernetesClientProvider.class.getName()), Level.ALL);
 
-    @Rule
-    public TestName name = new TestName();
+    private String name;
 
-    @BeforeClass
-    public static void isKubernetesConfigured() throws Exception {
+    @BeforeAll
+    static void beforeAll() {
         assumeKubernetes();
     }
 
-    @Before
-    public void configureCloud() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule, TestInfo info) throws Exception {
+        j = rule;
+        name = info.getTestMethod().orElseThrow().getName();
         cloud = setupCloud(this, name);
         client = cloud.connect();
         deletePods(client, getLabels(this, name), false);
@@ -172,8 +168,8 @@ public class ContainerExecDecoratorTest {
         decorator.setContainerName(image);
     }
 
-    @After
-    public void after() throws Exception {
+    @AfterEach
+    void afterEach() throws Exception {
         client.pods().delete(pod);
         deletePods(client, getLabels(this, name), true);
     }
@@ -181,9 +177,9 @@ public class ContainerExecDecoratorTest {
     /**
      * Test that multiple command execution in parallel works.
      */
-    @Ignore("TODO PID_PATTERN match flaky in CI")
+    @Disabled("TODO PID_PATTERN match flaky in CI")
     @Test
-    public void testCommandExecution() throws Exception {
+    void testCommandExecution() throws Exception {
         Thread[] t = new Thread[10];
         List<ProcReturn> results = Collections.synchronizedList(new ArrayList<>(t.length));
         for (int i = 0; i < t.length; i++) {
@@ -195,26 +191,21 @@ public class ContainerExecDecoratorTest {
         for (Thread thread : t) {
             thread.join();
         }
-        assertEquals("Not all threads finished successfully", t.length, results.size());
+        assertEquals(t.length, results.size(), "Not all threads finished successfully");
         for (ProcReturn r : results) {
-            assertEquals("Command didn't complete in time or failed", 0, r.exitCode);
-            assertTrue(
-                    "Output should contain pid: " + r.output,
-                    PID_PATTERN.matcher(r.output).find());
+            assertEquals(0, r.exitCode, "Command didn't complete in time or failed");
+            assertTrue(PID_PATTERN.matcher(r.output).find(), "Output should contain pid: " + r.output);
             assertFalse(r.proc.isAlive());
         }
     }
 
     private Thread newThread(int i, List<ProcReturn> results) {
         return new Thread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            command(results, i);
-                        } finally {
-                            System.out.println("Thread " + i + " finished");
-                        }
+                () -> {
+                    try {
+                        command(results, i);
+                    } finally {
+                        System.out.println("Thread " + i + " finished");
                     }
                 },
                 "test-" + i);
@@ -231,42 +222,38 @@ public class ContainerExecDecoratorTest {
     }
 
     @Test
-    public void testCommandExecutionFailure() throws Exception {
+    void testCommandExecutionFailure() throws Exception {
         ProcReturn r = execCommand(false, false, "false");
         assertEquals(1, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
-    public void testCommandExecutionFailureHighError() throws Exception {
+    void testCommandExecutionFailureHighError() throws Exception {
         ProcReturn r = execCommand(false, false, "sh", "-c", "return 127");
         assertEquals(127, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
-    public void testQuietCommandExecution() throws Exception {
+    void testQuietCommandExecution() throws Exception {
         ProcReturn r = execCommand(true, false, "echo", "pid is 9999");
-        assertFalse(
-                "Output should not contain command: " + r.output,
-                PID_PATTERN.matcher(r.output).find());
+        assertFalse(PID_PATTERN.matcher(r.output).find(), "Output should not contain command: " + r.output);
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
-    public void testCommandExecutionWithNohup() throws Exception {
+    void testCommandExecutionWithNohup() throws Exception {
         ProcReturn r = execCommand(
                 false, false, "nohup", "sh", "-c", "sleep 5; cd /tmp; echo pid is $$$$ > test; cat /tmp/test");
-        assertTrue(
-                "Output should contain pid: " + r.output,
-                PID_PATTERN.matcher(r.output).find());
+        assertTrue(PID_PATTERN.matcher(r.output).find(), "Output should contain pid: " + r.output);
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
-    public void commandsEscaping() {
+    void commandsEscaping() {
         DummyLauncher launcher = new DummyLauncher(null);
         assertThat(
                 ContainerExecDecorator.getCommands(launcher.launch().cmds("$$$$", "$$?"), null, true),
@@ -279,34 +266,34 @@ public class ContainerExecDecoratorTest {
     }
 
     @Test
-    public void testCommandExecutionWithEscaping() throws Exception {
+    void testCommandExecutionWithEscaping() throws Exception {
         ProcReturn r =
                 execCommand(false, false, "sh", "-c", "cd /tmp; false; echo result is $$? > test; cat /tmp/test");
         assertTrue(
-                "Output should contain result: " + r.output,
                 Pattern.compile("^(result is 1)$", Pattern.MULTILINE)
                         .matcher(r.output)
-                        .find());
+                        .find(),
+                "Output should contain result: " + r.output);
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
     @Issue("JENKINS-62502")
-    public void testCommandExecutionEscapingDoubleQuotes() throws Exception {
+    void testCommandExecutionEscapingDoubleQuotes() throws Exception {
         ProcReturn r =
                 execCommand(false, false, "sh", "-c", "cd /tmp; false; echo \"result is 1\" > test; cat /tmp/test");
         assertTrue(
-                "Output should contain result: " + r.output,
                 Pattern.compile("^(result is 1)$", Pattern.MULTILINE)
                         .matcher(r.output)
-                        .find());
+                        .find(),
+                "Output should contain result: " + r.output);
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
-    public void testCommandExecutionOutput() throws Exception {
+    void testCommandExecutionOutput() throws Exception {
         String testString = "Should appear once";
 
         // Check output with quiet=false
@@ -333,7 +320,7 @@ public class ContainerExecDecoratorTest {
     }
 
     @Test
-    public void testCommandExecutionWithNohupAndError() throws Exception {
+    void testCommandExecutionWithNohupAndError() throws Exception {
         ProcReturn r = execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127");
         assertEquals(127, r.exitCode);
         assertFalse(r.proc.isAlive());
@@ -341,11 +328,12 @@ public class ContainerExecDecoratorTest {
 
     @Test
     @Issue("JENKINS-46719")
-    public void testContainerDoesNotExist() throws Exception {
+    void testContainerDoesNotExist() {
         decorator.setContainerName("doesNotExist");
-        exception.expect(KubernetesClientException.class);
-        exception.expectMessage("container doesNotExist not found in pod");
-        execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127");
+        Throwable exception = assertThrows(
+                KubernetesClientException.class,
+                () -> execCommand(false, false, "nohup", "sh", "-c", "sleep 5; return 127"));
+        assertThat(exception.getMessage(), containsString("container doesNotExist not found in pod"));
     }
 
     /**
@@ -359,7 +347,7 @@ public class ContainerExecDecoratorTest {
      */
     @Test
     @Issue("JENKINS-55392")
-    public void testRejectedExecutionException() throws Exception {
+    void testRejectedExecutionException() throws Exception {
         List<Thread> threads = new ArrayList<>();
         final AtomicInteger errors = new AtomicInteger(0);
         for (int i = 0; i < 10; i++) {
@@ -378,8 +366,8 @@ public class ContainerExecDecoratorTest {
         // force expiration of client
         KubernetesClientProvider.invalidate(cloud.getDisplayName());
         cloud.connect();
-        threads.stream().forEach(t -> t.start());
-        threads.stream().forEach(t -> {
+        threads.forEach(Thread::start);
+        threads.forEach(t -> {
             try {
                 System.out.println("Waiting for " + t.getName());
                 t.join();
@@ -387,12 +375,12 @@ public class ContainerExecDecoratorTest {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals("Errors in threads", 0, errors.get());
+        assertEquals(0, errors.get(), "Errors in threads");
     }
 
     @Test
     @Issue("JENKINS-50429")
-    public void testContainerExecPerformance() throws Exception {
+    void testContainerExecPerformance() throws Exception {
         for (int i = 0; i < 10; i++) {
             ProcReturn r = execCommand(false, false, "ls");
         }
@@ -400,19 +388,19 @@ public class ContainerExecDecoratorTest {
 
     @Test
     @Issue("JENKINS-58975")
-    public void testContainerExecOnCustomWorkingDir() throws Exception {
+    void testContainerExecOnCustomWorkingDir() throws Exception {
         doReturn(null).when((Node) agent).toComputer();
         ProcReturn r = execCommandInContainer("busybox1", agent, false, false, "env");
         assertTrue(
-                "Environment variable workingDir1 should be changed to /home/jenkins/agent1",
-                r.output.contains("workingDir1=/home/jenkins/agent1"));
+                r.output.contains("workingDir1=/home/jenkins/agent1"),
+                "Environment variable workingDir1 should be changed to /home/jenkins/agent1");
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
 
     @Test
     @Issue("JENKINS-58975")
-    public void testContainerExecOnCustomWorkingDirWithComputeEnvVars() throws Exception {
+    void testContainerExecOnCustomWorkingDirWithComputeEnvVars() throws Exception {
         EnvVars computeEnvVars = new EnvVars();
         computeEnvVars.put("MyDir", "dir");
         computeEnvVars.put("MyCustomDir", "/home/jenkins/agent");
@@ -422,11 +410,11 @@ public class ContainerExecDecoratorTest {
         doReturn(computer).when((Node) agent).toComputer();
         ProcReturn r = execCommandInContainer("busybox1", agent, false, false, "env");
         assertTrue(
-                "Environment variable workingDir1 should be changed to /home/jenkins/agent1",
-                r.output.contains("workingDir1=/home/jenkins/agent1"));
+                r.output.contains("workingDir1=/home/jenkins/agent1"),
+                "Environment variable workingDir1 should be changed to /home/jenkins/agent1");
         assertTrue(
-                "Environment variable MyCustomDir should be changed to /home/jenkins/agent1",
-                r.output.contains("MyCustomDir=/home/jenkins/agent1"));
+                r.output.contains("MyCustomDir=/home/jenkins/agent1"),
+                "Environment variable MyCustomDir should be changed to /home/jenkins/agent1");
         assertEquals(0, r.exitCode);
         assertFalse(r.proc.isAlive());
     }
@@ -440,9 +428,10 @@ public class ContainerExecDecoratorTest {
      */
     @Test
     @Issue("JENKINS-66986")
-    public void testRunningANonKubernetesNodeInsideContainerClause() throws Exception {
+    void testRunningANonKubernetesNodeInsideContainerClause() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
+        DummyLauncher dummyLauncher =
+                new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out), StandardCharsets.UTF_8));
         dumbAgent = j.createSlave("test", "", null);
         Launcher launcher = decorator.decorate(dummyLauncher, dumbAgent);
         assertEquals(dummyLauncher, launcher);
@@ -458,7 +447,8 @@ public class ContainerExecDecoratorTest {
             decorator.setContainerName(containerName);
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        DummyLauncher dummyLauncher = new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out)));
+        DummyLauncher dummyLauncher =
+                new DummyLauncher(new StreamTaskListener(new TeeOutputStream(out, System.out), StandardCharsets.UTF_8));
         Launcher launcher = decorator.decorate(dummyLauncher, node);
         Map<String, String> envs = new HashMap<>(100);
         for (int i = 0; i < 50; i++) {
@@ -476,12 +466,12 @@ public class ContainerExecDecoratorTest {
         for (int i = 0; proc.isAlive() && i < 200; i++) {
             Thread.sleep(100);
         }
-        assertFalse("proc is alive", proc.isAlive());
+        assertFalse(proc.isAlive(), "proc is alive");
         int exitCode = proc.join();
         return new ProcReturn(proc, exitCode, out.toString());
     }
 
-    class ProcReturn {
+    static class ProcReturn {
         public int exitCode;
         public String output;
         public ContainerExecProc proc;

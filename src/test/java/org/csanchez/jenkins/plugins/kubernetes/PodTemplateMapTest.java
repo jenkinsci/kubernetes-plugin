@@ -1,23 +1,24 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodTemplateMapTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class PodTemplateMapTest {
 
     private PodTemplateMap instance;
     private KubernetesCloud cloud;
 
-    @Before
-    public void setUp() throws IOException {
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
         this.instance = PodTemplateMap.get();
         this.cloud = new KubernetesCloud("kubernetes");
         j.jenkins.clouds.add(cloud);
@@ -25,7 +26,7 @@ public class PodTemplateMapTest {
     }
 
     @Test
-    public void concurrentAdds() throws Exception {
+    void concurrentAdds() throws Exception {
         assertEquals(0, this.instance.getTemplates(cloud).size());
         int n = 10;
         Thread[] t = new Thread[n];
@@ -43,11 +44,7 @@ public class PodTemplateMapTest {
 
     private Thread newThread(int i) {
         String name = "test-" + i;
-        return new Thread(
-                () -> {
-                    instance.addTemplate(cloud, buildPodTemplate(name));
-                },
-                name);
+        return new Thread(() -> instance.addTemplate(cloud, buildPodTemplate(name)), name);
     }
 
     private PodTemplate buildPodTemplate(String label) {
