@@ -40,6 +40,7 @@ import org.htmlunit.html.HtmlForm;
 import org.htmlunit.html.HtmlInput;
 import org.htmlunit.html.HtmlPage;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
@@ -56,6 +57,12 @@ public class KubernetesCloudTest {
     @Rule
     public LoggerRule logs = new LoggerRule()
             .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
+
+    @BeforeClass
+    public static void enableManagePermission() {
+        // TODO remove when baseline contains https://github.com/jenkinsci/jenkins/pull/23873
+        Jenkins.MANAGE.setEnabled(true);
+    }
 
     @After
     public void tearDown() {
@@ -337,7 +344,7 @@ public class KubernetesCloudTest {
             j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
         }
         try (var ignored = asUser("user")) {
-            var expectedMessage = "user is missing the Overall/Administer permission";
+            var expectedMessage = "user is missing the Overall/Manage permission";
             var kubernetesCloud = j.jenkins.clouds.get(KubernetesCloud.class);
             assertAccessDenied(() -> kubernetesCloud.addTemplate(new PodTemplate()), expectedMessage);
             assertAccessDenied(() -> kubernetesCloud.removeTemplate(pt1), expectedMessage);
