@@ -24,6 +24,7 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static jenkins.test.RunMatchers.logContains;
 import static org.awaitility.Awaitility.await;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.CONTAINER_ENV_VAR_FROM_SECRET_VALUE;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.POD_ENV_VAR_FROM_SECRET_VALUE;
@@ -32,6 +33,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeW
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
@@ -967,6 +969,8 @@ public class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     public void imageWithoutAgentNoJava() throws Exception {
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
-        r.assertLogContains("java: not found", b);
+        // Fails with older launcher scripts due to missing Java.
+        // But Busybox also lacks Bash, used in newer scripts.
+        assertThat(b, anyOf(logContains("java: not found"), logContains("can't execute 'bash'")));
     }
 }
