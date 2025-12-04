@@ -456,7 +456,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Test
     void supportComputerEnvVars() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("OPENJDK_BUILD_NUMBER: 1\n", b);
+        r.assertLogContains("BUSYBOX_BUILD_NUMBER: 1\n", b);
         r.assertLogContains("JNLP_BUILD_NUMBER: 1\n", b);
         r.assertLogContains("DEFAULT_BUILD_NUMBER: 1\n", b);
     }

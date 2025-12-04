@@ -1,0 +1,11 @@
+name: Close BOM update PR if passing
+on:
+  check_run:
+    types:
+      - completed
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  close-bom-if-passing:
+    uses: jenkins-infra/github-reusable-workflows/.github/workflows/close-bom-if-passing.yml@v1

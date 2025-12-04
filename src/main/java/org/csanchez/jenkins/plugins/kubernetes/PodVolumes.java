@@ -75,7 +75,7 @@ public class PodVolumes {
     }
 
     /**
-     * @deprecated Use {@link PodVolume#volumeMountExists(String, List)} instead
+     * @deprecated Use {@link PodVolume#volumeMountExists(String, Iterable)} instead
      */
     @Deprecated
     public static boolean volumeMountExists(String path, List<VolumeMount> existingMounts) {

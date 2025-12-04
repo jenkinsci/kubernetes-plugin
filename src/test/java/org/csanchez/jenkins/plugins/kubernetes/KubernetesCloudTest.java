@@ -53,6 +53,12 @@ class KubernetesCloudTest {
     private final LogRecorder logs = new LogRecorder()
             .record(Logger.getLogger(KubernetesCloud.class.getPackage().getName()), Level.ALL);
 
+    @BeforeAll
+    static void beforeAll() {
+        // TODO remove when baseline contains https://github.com/jenkinsci/jenkins/pull/23873
+        Jenkins.MANAGE.setEnabled(true);
+    }
+  
     @BeforeEach
     void beforeEach(JenkinsRule rule) {
         j = rule;
@@ -336,7 +342,7 @@ class KubernetesCloudTest {
             j.jenkins.clouds.get(KubernetesCloud.class).addTemplate(pt1);
         }
         try (var ignored = asUser("user")) {
-            var expectedMessage = "user is missing the Overall/Administer permission";
+            var expectedMessage = "user is missing the Overall/Manage permission";
             var kubernetesCloud = j.jenkins.clouds.get(KubernetesCloud.class);
             assertAccessDenied(() -> kubernetesCloud.addTemplate(new PodTemplate()), expectedMessage);
             assertAccessDenied(() -> kubernetesCloud.removeTemplate(pt1), expectedMessage);
