@@ -202,11 +202,28 @@ public class KubernetesTest {
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
     }
 
-    private void assertPodTemplates(List<PodTemplate> templates) {
-        assertEquals(1, templates.size());
+    @Test
+    @LocalData()
+    @Issue("JENKINS-70287")
+    public void mixedPrivivilegedPodTemplates() throws Exception {
+        List<PodTemplate> templates = cloud.getTemplates();
+        assertPodTemplates(templates, 2, 2);
+        PodTemplate template = templates.get(0);
+        assertEquals(2, template.getContainers().size());
+        assertEquals(true, template.getContainers().get(0).isPrivileged());
+        assertEquals(false, template.getContainers().get(1).isPrivileged());
+        PodTemplate baseTemplate = templates.get(1);
+        assertEquals(1, baseTemplate.getContainers().size());
+        assertEquals(true, baseTemplate.getContainers().get(0).isPrivileged());
+        assertEquals(Collections.emptyList(), template.getYamls());
+        assertNull(template.getYaml());
+    }
+
+    private void assertPodTemplates(List<PodTemplate> templates, Integer... numbers) {
+        assertEquals(numbers.length > 0 ? numbers[0] : 1, templates.size());
         PodTemplate podTemplate = templates.get(0);
         assertEquals(Integer.MAX_VALUE, podTemplate.getInstanceCap());
-        assertEquals(1, podTemplate.getContainers().size());
+        assertEquals(numbers.length > 1 ? numbers[1] : 1, podTemplate.getContainers().size());
         ContainerTemplate containerTemplate = podTemplate.getContainers().get(0);
         assertEquals("jenkins/inbound-agent", containerTemplate.getImage());
         assertEquals("jnlp", containerTemplate.getName());
