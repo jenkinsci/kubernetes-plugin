@@ -32,19 +32,16 @@ import static org.mockito.Mockito.when;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.net.URL;
-import java.util.logging.Logger;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.mockito.MockedStatic;
 
-public class ClientAuthenticationTest {
-
-    private static final Logger LOGGER = Logger.getLogger(ClientAuthenticationTest.class.getName());
+class ClientAuthenticationTest {
 
     @Issue("JENKINS-76047")
     @Test
-    public void testConnectCallsCreateClient() throws Exception {
+    void testConnectCallsCreateClient() throws Exception {
         KubernetesClient mockClient = mock(KubernetesClient.class);
         when(mockClient.getMasterUrl()).thenReturn(new URL("http://localhost:9999/"));
 

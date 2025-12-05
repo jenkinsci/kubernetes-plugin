@@ -26,10 +26,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Util;
@@ -42,7 +41,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collections;
@@ -60,11 +58,9 @@ import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.rules.TestName;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class KubernetesTestUtil {
@@ -83,7 +79,7 @@ public class KubernetesTestUtil {
 
     public static final String WINDOWS_1809_BUILD = "10.0.17763";
 
-    public static KubernetesCloud setupCloud(Object test, TestName name) throws KubernetesAuthException, IOException {
+    public static KubernetesCloud setupCloud(Object test, String name) throws Exception {
         KubernetesCloud cloud = new KubernetesCloud("kubernetes");
         // unique labels per test
         cloud.setPodLabels(PodLabel.fromMap(getLabels(cloud, test, name)));
@@ -141,11 +137,11 @@ public class KubernetesTestUtil {
         }
     }
 
-    public static void assumeKubernetes() throws Exception {
+    public static void assumeKubernetes() {
         try (KubernetesClient client = new KubernetesClientBuilder().build()) {
             client.pods().list();
         } catch (Exception e) {
-            assumeNoException(e);
+            assumeTrue(false, e.toString());
         }
     }
 
@@ -156,7 +152,7 @@ public class KubernetesTestUtil {
      * Note that running the <em>controller</em> on Windows is untested.
      */
     public static void assumeWindows(String buildNumber) {
-        assumeTrue("Cluster seems to contain no Windows nodes with build " + buildNumber, isWindows(buildNumber));
+        assumeTrue(isWindows(buildNumber), "Cluster seems to contain no Windows nodes with build " + buildNumber);
     }
 
     public static boolean isWindows(@CheckForNull String buildNumber) {
@@ -177,14 +173,14 @@ public class KubernetesTestUtil {
         return false;
     }
 
-    public static Map<String, String> getLabels(Object o, TestName name) {
+    public static Map<String, String> getLabels(Object o, String name) {
         return getLabels(null, o, name);
     }
 
     /**
      * Labels to add to the pods so we can match them to a specific build run, test class and method
      */
-    public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, TestName name) {
+    public static Map<String, String> getLabels(KubernetesCloud cloud, Object o, String name) {
         Map<String, String> l = new HashMap<>();
         l.put("BRANCH_NAME", BRANCH_NAME == null ? "undefined" : BRANCH_NAME);
         l.put("BUILD_NUMBER", BUILD_NUMBER == null ? "undefined" : BUILD_NUMBER);
@@ -192,7 +188,7 @@ public class KubernetesTestUtil {
             l.putAll(cloud.getPodLabelsMap());
         }
         l.put("class", o.getClass().getSimpleName());
-        l.put("test", name.getMethodName());
+        l.put("test", name);
         return l;
     }
 
@@ -245,7 +241,7 @@ public class KubernetesTestUtil {
             PodList list = client.pods().withLabels(labels).list();
             if (!list.getItems().isEmpty()) {
                 LOGGER.log(WARNING, "Deleting leftover pods: {0}", print(list));
-                return client.pods().withLabels(labels).delete().size() > 0;
+                return !client.pods().withLabels(labels).delete().isEmpty();
             }
         }
         return false;
@@ -320,6 +316,6 @@ public class KubernetesTestUtil {
 
     public static void assertRegex(String name, String regex) {
         assertNotNull(name);
-        assertTrue(String.format("Name does not match regex [%s]: '%s'", regex, name), name.matches(regex));
+        assertTrue(name.matches(regex), String.format("Name does not match regex [%s]: '%s'", regex, name));
     }
 }

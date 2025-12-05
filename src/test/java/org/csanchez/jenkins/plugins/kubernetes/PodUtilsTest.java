@@ -1,20 +1,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 import org.apache.commons.lang.StringUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class PodUtilsTest {
+class PodUtilsTest {
 
     @Test
-    public void generateRandomSuffix() {
+    void generateRandomSuffix() {
         List<String> generated = IntStream.range(0, 100)
                 .mapToObj(i -> PodUtils.generateRandomSuffix())
                 .toList();
@@ -28,7 +26,7 @@ public class PodUtilsTest {
     }
 
     @Test
-    public void createNameWithRandomSuffix() {
+    void createNameWithRandomSuffix() {
         String name = PodUtils.createNameWithRandomSuffix("foo");
         assertEquals(9, name.length());
         assertTrue(name.startsWith("foo-"));
@@ -46,7 +44,7 @@ public class PodUtilsTest {
     }
 
     @Test
-    public void isValidName() {
+    void isValidName() {
         assertTrue(PodUtils.isValidName("foo"));
         assertTrue(PodUtils.isValidName("foo-bar"));
         assertTrue(PodUtils.isValidName("foo.bar"));
