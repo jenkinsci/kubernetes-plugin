@@ -3,13 +3,9 @@ package org.csanchez.jenkins.plugins.kubernetes.casc;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import io.jenkins.plugins.casc.misc.junit.jupiter.AbstractRoundTripTest;
 import java.util.List;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerLivenessProbe;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
@@ -19,13 +15,15 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Overrides;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.WorkspaceVolume;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class CasCTest extends RoundTripAbstractTest {
+@WithJenkins
+class CasCTest extends AbstractRoundTripTest {
 
     @Override
-    protected void assertConfiguredAsExpected(RestartableJenkinsRule r, String configContent) {
-        List<KubernetesCloud> all = r.j.jenkins.clouds.getAll(KubernetesCloud.class);
+    protected void assertConfiguredAsExpected(JenkinsRule r, String configContent) {
+        List<KubernetesCloud> all = r.jenkins.clouds.getAll(KubernetesCloud.class);
         assertThat(all, hasSize(1));
         KubernetesCloud cloud = all.get(0);
         assertNotNull(cloud);

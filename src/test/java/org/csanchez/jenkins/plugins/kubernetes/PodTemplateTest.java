@@ -3,14 +3,15 @@ package org.csanchez.jenkins.plugins.kubernetes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import hudson.util.XStream2;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class PodTemplateTest {
+class PodTemplateTest {
+
     @Test
-    public void getYamlsExposesSingleYamlField() {
+    void getYamlsExposesSingleYamlField() {
         PodTemplate podTemplate = new PodTemplate();
         assertThat(podTemplate.getYamls(), empty());
         podTemplate.setYamls(null);
@@ -22,7 +23,7 @@ public class PodTemplateTest {
     }
 
     @Test
-    public void copyConstructor() throws Exception {
+    void copyConstructor() {
         XStream2 xs = new XStream2();
         PodTemplate pt = new PodTemplate();
         assertEquals(xs.toXML(pt), xs.toXML(new PodTemplate(pt)));
