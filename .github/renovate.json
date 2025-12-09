@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "labels": [
     "dependencies"
@@ -9,8 +9,12 @@
   "packageRules": [
     {
       "description": "remoting agent uses non-standard versioning",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["jenkins/inbound-agent"],
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "jenkins/inbound-agent"
+      ],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?$"
     }
   ],
@@ -20,15 +24,15 @@
     "kubernetes"
   ],
   "dockerfile": {
-    "fileMatch": [
-        ".*\\.dockerfile$",
-        ".*-dockerfile$",
-        "Dockerfile"
+    "managerFilePatterns": [
+      "/.*\\.dockerfile$/",
+      "/.*-dockerfile$/",
+      "/Dockerfile/"
     ]
   },
   "kubernetes": {
-    "fileMatch": [
-      ".*\\.ya?ml$"
+    "managerFilePatterns": [
+      "/.*\\.ya?ml$/"
     ]
   }
 }
