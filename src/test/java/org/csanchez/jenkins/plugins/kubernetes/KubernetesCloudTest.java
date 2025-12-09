@@ -59,7 +59,7 @@ class KubernetesCloudTest {
         // TODO remove when baseline contains https://github.com/jenkinsci/jenkins/pull/23873
         Jenkins.MANAGE.setEnabled(true);
     }
-  
+
     @BeforeEach
     void beforeEach(JenkinsRule rule) {
         j = rule;

@@ -59,15 +59,13 @@ class KubernetesAgentErrorConditionTest {
         Slave s = r.createSlave(Label.get("remote")); // *not* a KubernetesSlave
         WorkflowJob p = r.createProject(WorkflowJob.class, "p");
         p.addProperty(new ParametersDefinitionProperty(new BooleanParameterDefinition("HNK")));
-        p.setDefinition(new CpsFlowDefinition(
-                """
+        p.setDefinition(new CpsFlowDefinition("""
                         retry(count: 2, conditions: [kubernetesAgent(handleNonKubernetes: params.HNK)]) {
                           node('remote') {
                             semaphore 'wait'
                             pwd()
                           }
-                        }""",
-                true));
+                        }""", true));
         WorkflowRun b = p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("HNK", false)))
                 .waitForStart();
         SemaphoreStep.waitForStart("wait/1", b);

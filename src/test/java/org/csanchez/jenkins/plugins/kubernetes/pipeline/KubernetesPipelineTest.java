@@ -735,7 +735,8 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
         r.assertLogContains("got stuff: some value", b);
     }
 
-    @Disabled("Does not appear fixable: https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410")
+    @Disabled(
+            "Does not appear fixable: https://github.com/jenkinsci/kubernetes-plugin/pull/1724#discussion_r2287512410")
     @Test
     void interruptedPodWindows() throws Exception {
         assumeWindows(WINDOWS_1809_BUILD);

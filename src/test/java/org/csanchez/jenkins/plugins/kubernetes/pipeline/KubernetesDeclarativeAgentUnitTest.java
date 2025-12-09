@@ -75,8 +75,7 @@ class KubernetesDeclarativeAgentUnitTest {
 
     @Test
     void simpleGenerator() throws Exception {
-        dg.assertGenerateDirective(
-                directive, """
+        dg.assertGenerateDirective(directive, """
                 agent {
                   kubernetes true
                 }""");
@@ -94,9 +93,7 @@ class KubernetesDeclarativeAgentUnitTest {
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setPodRetention(new Never());
         instance.setInheritFrom("inheritFrom");
-        dg.assertGenerateDirective(
-                directive,
-                """
+        dg.assertGenerateDirective(directive, """
                         agent {
                           kubernetes {
                             cloud 'cloud'

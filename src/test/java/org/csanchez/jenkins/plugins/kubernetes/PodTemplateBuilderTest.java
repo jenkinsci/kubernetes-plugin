@@ -580,8 +580,7 @@ class PodTemplateBuilderTest {
     @Test
     void inheritYamlMergeStrategy() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 spec:
@@ -639,8 +638,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlMergeContainers() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -656,8 +654,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   containers:
                   - name: container2
@@ -686,8 +683,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideContainer() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -703,8 +699,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   containers:
                   - name: container
@@ -731,8 +726,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideContainerEnvvar() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 kind: Pod
                 spec:
                   containers:
@@ -745,8 +739,7 @@ class PodTemplateBuilderTest {
                 """);
         PodTemplate child = new PodTemplate();
         child.setYamlMergeStrategy(merge());
-        child.setYaml(
-                """
+        child.setYaml("""
                 kind: Pod
                 spec:
                   containers:
@@ -772,8 +765,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideVolume() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -793,8 +785,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   volumes:
                   - name: host-volume
@@ -838,8 +829,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideHostNetwork() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -859,8 +849,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   hostNetwork: true
                   containers:
@@ -883,8 +872,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideSchedulerName() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -909,8 +897,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlOverrideSecurityContext() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -932,8 +919,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   securityContext:
                     runAsUser: 3000
@@ -967,8 +953,7 @@ class PodTemplateBuilderTest {
     @Test
     void yamlMergeVolumes() {
         PodTemplate parent = new PodTemplate();
-        parent.setYaml(
-                """
+        parent.setYaml("""
                 apiVersion: v1
                 kind: Pod
                 metadata:
@@ -982,8 +967,7 @@ class PodTemplateBuilderTest {
                 """);
 
         PodTemplate child = new PodTemplate();
-        child.setYaml(
-                """
+        child.setYaml("""
                 spec:
                   volumes:
                   - name: host-volume2
