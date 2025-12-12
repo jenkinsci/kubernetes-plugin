@@ -1444,9 +1444,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             client = connect();
         } catch (KubernetesAuthException | IOException e) {
             LOGGER.log(
-                    Level.WARNING,
-                    "Cannot connect to K8s cloud. Pod events will not be available in build logs.",
-                    e);
+                    Level.WARNING, "Cannot connect to K8s cloud. Pod events will not be available in build logs.", e);
             return null;
         }
         Map<String, String> labelsFilter = new HashMap<>(getPodLabelsMap());
@@ -1469,17 +1467,23 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 if (clientCertData != null) {
                     byte[] certBytes = Base64.getDecoder().decode(clientCertData);
                     CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
-                    X509Certificate cert = (X509Certificate) certFactory.generateCertificate(new ByteArrayInputStream(certBytes));
+                    X509Certificate cert =
+                            (X509Certificate) certFactory.generateCertificate(new ByteArrayInputStream(certBytes));
                     Instant notAfter = cert.getNotAfter().toInstant();
                     Instant now = Instant.now();
 
-                    long delayMillis = ChronoUnit.MILLIS.between(now, notAfter) - TimeUnit.SECONDS.toMillis(30); // Stop 30s before expiry
+                    long delayMillis = ChronoUnit.MILLIS.between(now, notAfter)
+                            - TimeUnit.SECONDS.toMillis(30); // Stop 30s before expiry
 
                     if (delayMillis > 0) {
-                        LOGGER.info(String.format("Scheduling proactive informer restart for namespace %s in %d ms (Certificate expires at %s)", namespace, delayMillis, notAfter));
-                        informerScheduler.schedule(() -> restartInformer(namespace), delayMillis, TimeUnit.MILLISECONDS);
+                        LOGGER.info(String.format(
+                                "Scheduling proactive informer restart for namespace %s in %d ms (Certificate expires at %s)",
+                                namespace, delayMillis, notAfter));
+                        informerScheduler.schedule(
+                                () -> restartInformer(namespace), delayMillis, TimeUnit.MILLISECONDS);
                     } else {
-                        LOGGER.warning("Certificate is already expired or expires very soon. Informer might fail shortly.");
+                        LOGGER.warning(
+                                "Certificate is already expired or expires very soon. Informer might fail shortly.");
                     }
                 }
             } catch (Exception e) {
@@ -1497,7 +1501,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             // Handle instance replacement (e.g. config save)
             if (cloud instanceof KubernetesCloud && cloud != this) {
                 KubernetesCloud currentCloud = (KubernetesCloud) cloud;
-                LOGGER.info(String.format("Cloud instance %s updated, migrating informer for namespace %s to new instance", name, namespace));
+                LOGGER.info(String.format(
+                        "Cloud instance %s updated, migrating informer for namespace %s to new instance",
+                        name, namespace));
                 SharedIndexInformer<Pod> inform = informers.get(namespace);
                 if (inform != null) {
                     inform.stop();
@@ -1505,7 +1511,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
                 // Ensure informers map exists on target (transient field)
                 if (currentCloud.informers == null) {
-                    synchronized(currentCloud) {
+                    synchronized (currentCloud) {
                         if (currentCloud.informers == null) currentCloud.informers = new ConcurrentHashMap<>();
                     }
                 }
@@ -1524,7 +1530,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             }
 
             if (cloud != this) {
-                LOGGER.info(String.format("Cloud instance %s is no longer active, stopping stale informer for namespace %s", name, namespace));
+                LOGGER.info(String.format(
+                        "Cloud instance %s is no longer active, stopping stale informer for namespace %s",
+                        name, namespace));
                 SharedIndexInformer<Pod> inform = informers.get(namespace);
                 if (inform != null) {
                     inform.stop();
@@ -1532,7 +1540,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 return;
             }
 
-            LOGGER.info(String.format("Proactively stopping informer for namespace %s due to impending certificate expiry", namespace));
+            LOGGER.info(String.format(
+                    "Proactively stopping informer for namespace %s due to impending certificate expiry", namespace));
 
             // Restart logic:
             // 1. Invalidate cache to ensure fresh client/cert
@@ -1552,8 +1561,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             } else {
                 throw new IOException("Failed to create new informer");
             }
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, String.format("Failed to restart informer for namespace %s, retrying in 10s", namespace), e);
+        } catch (IOException | RuntimeException e) {
+            LOGGER.log(
+                    Level.WARNING,
+                    String.format("Failed to restart informer for namespace %s, retrying in 10s", namespace),
+                    e);
             informerScheduler.schedule(() -> restartInformer(namespace), 10, TimeUnit.SECONDS);
         }
     }

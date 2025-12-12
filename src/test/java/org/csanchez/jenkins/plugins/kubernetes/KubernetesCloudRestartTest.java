@@ -1,6 +1,5 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -9,7 +8,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import hudson.slaves.Cloud;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
@@ -72,11 +70,10 @@ public class KubernetesCloudRestartTest {
         Date notBefore = Date.from(Instant.now().minus(1, ChronoUnit.HOURS));
         Date notAfter = Date.from(expiry);
 
-        X509v3CertificateBuilder builder = new JcaX509v3CertificateBuilder(
-                subject, serial, notBefore, notAfter, subject, keyPair.getPublic());
+        X509v3CertificateBuilder builder =
+                new JcaX509v3CertificateBuilder(subject, serial, notBefore, notAfter, subject, keyPair.getPublic());
 
-        ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA")
-                .build(keyPair.getPrivate());
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA").build(keyPair.getPrivate());
         X509Certificate cert = new JcaX509CertificateConverter().getCertificate(builder.build(signer));
 
         return Base64.getEncoder().encodeToString(cert.getEncoded());
@@ -92,8 +89,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -104,19 +103,19 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client and Config
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
-            
+
             // Create a cert expiring in 5 minutes
             Instant expiry = Instant.now().plus(5, ChronoUnit.MINUTES);
             String certData = createSelfSignedCert(expiry);
-            
+
             when(mockConfig.getClientCertData()).thenReturn(certData);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             // Mock Pods operation for informer creation
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
@@ -128,7 +127,8 @@ public class KubernetesCloudRestartTest {
             when(namespaceOp.withLabels(any())).thenReturn(labelsOp);
             when(labelsOp.inform(any(), anyLong())).thenReturn(informer);
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
 
             // Act
@@ -136,20 +136,20 @@ public class KubernetesCloudRestartTest {
             template.setName("test-template");
             template.setLabel("test");
             template.setNamespace("default");
-            
+
             KubernetesSlave slave = new KubernetesSlave.Builder()
                     .cloud(cloud)
                     .podTemplate(template)
                     .name("slave1")
                     .build();
-            
+
             // Fix for slave.getNamespace() returning null despite template having it
             Field namespaceField = KubernetesSlave.class.getDeclaredField("namespace");
             namespaceField.setAccessible(true);
             namespaceField.set(slave, "default");
-            
+
             cloud.registerPodInformer(slave);
-            
+
             // Assert
             boolean found = false;
             for (String msg : messages) {
@@ -174,8 +174,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -186,39 +188,42 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client and Config
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
-            
+
             // Create a cert expiring in 5 minutes
             Instant expiry = Instant.now().plus(5, ChronoUnit.MINUTES);
             String certData = createSelfSignedCert(expiry);
-            
+
             when(mockConfig.getClientCertData()).thenReturn(certData);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
             when(mockClient.getNamespace()).thenReturn("default"); // Reaper needs this
-            
+
             // Mock Watch operation
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
-            
+
             when(mockClient.pods()).thenReturn(podsOp);
             when(podsOp.inNamespace(anyString())).thenReturn(namespaceOp);
             when(namespaceOp.watch(any())).thenReturn(mock(io.fabric8.kubernetes.client.Watch.class));
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
-            mockedProvider.when(() -> KubernetesClientProvider.getValidity(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.getValidity(any(KubernetesCloud.class)))
                     .thenReturn(1);
 
             // Act
             // Trigger Reaper.watchCloud using reflection as it's private
-            java.lang.reflect.Method watchCloudMethod = Reaper.class.getDeclaredMethod("watchCloud", KubernetesCloud.class);
+            java.lang.reflect.Method watchCloudMethod =
+                    Reaper.class.getDeclaredMethod("watchCloud", KubernetesCloud.class);
             watchCloudMethod.setAccessible(true);
             watchCloudMethod.invoke(Reaper.getInstance(), cloud);
-            
+
             // Assert
             boolean found = false;
             for (String msg : messages) {
@@ -228,7 +233,7 @@ public class KubernetesCloudRestartTest {
                 }
             }
             assertTrue("Should have logged Reaper watcher restart scheduling. Messages: " + messages, found);
-            
+
         } finally {
             logger.removeHandler(handler);
         }
@@ -244,8 +249,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -256,19 +263,19 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client and Config
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
-            
+
             // Create a cert expiring in 10 years
             Instant expiry = Instant.now().plus(3650, ChronoUnit.DAYS);
             String certData = createSelfSignedCert(expiry);
-            
+
             when(mockConfig.getClientCertData()).thenReturn(certData);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             // Mock Pods operation
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
@@ -280,7 +287,8 @@ public class KubernetesCloudRestartTest {
             when(namespaceOp.withLabels(any())).thenReturn(labelsOp);
             when(labelsOp.inform(any(), anyLong())).thenReturn(informer);
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
 
             // Act
@@ -288,19 +296,19 @@ public class KubernetesCloudRestartTest {
             template.setName("test-template");
             template.setLabel("test");
             template.setNamespace("default");
-            
+
             KubernetesSlave slave = new KubernetesSlave.Builder()
                     .cloud(cloud)
                     .podTemplate(template)
                     .name("slave1")
                     .build();
-            
+
             Field namespaceField = KubernetesSlave.class.getDeclaredField("namespace");
             namespaceField.setAccessible(true);
             namespaceField.set(slave, "default");
-            
+
             cloud.registerPodInformer(slave);
-            
+
             // Assert
             boolean found = false;
             for (String msg : messages) {
@@ -309,7 +317,10 @@ public class KubernetesCloudRestartTest {
                     break;
                 }
             }
-            assertTrue("Should have logged restart scheduling for long lived cert (it will happen eventually). Messages: " + messages, found);
+            assertTrue(
+                    "Should have logged restart scheduling for long lived cert (it will happen eventually). Messages: "
+                            + messages,
+                    found);
         } finally {
             logger.removeHandler(handler);
         }
@@ -325,8 +336,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -337,19 +350,19 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client and Config
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
-            
+
             // Create a cert already expired
             Instant expiry = Instant.now().minus(5, ChronoUnit.MINUTES);
             String certData = createSelfSignedCert(expiry);
-            
+
             when(mockConfig.getClientCertData()).thenReturn(certData);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             // Mock Pods operation
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
@@ -361,7 +374,8 @@ public class KubernetesCloudRestartTest {
             when(namespaceOp.withLabels(any())).thenReturn(labelsOp);
             when(labelsOp.inform(any(), anyLong())).thenReturn(informer);
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
 
             // Act
@@ -369,19 +383,19 @@ public class KubernetesCloudRestartTest {
             template.setName("test-template");
             template.setLabel("test");
             template.setNamespace("default");
-            
+
             KubernetesSlave slave = new KubernetesSlave.Builder()
                     .cloud(cloud)
                     .podTemplate(template)
                     .name("slave1")
                     .build();
-            
+
             Field namespaceField = KubernetesSlave.class.getDeclaredField("namespace");
             namespaceField.setAccessible(true);
             namespaceField.set(slave, "default");
-            
+
             cloud.registerPodInformer(slave);
-            
+
             // Assert
             boolean foundWarning = false;
             for (String msg : messages) {
@@ -406,8 +420,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -418,13 +434,13 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
             MixedOperation labelsOp = mock(MixedOperation.class);
@@ -435,12 +451,13 @@ public class KubernetesCloudRestartTest {
             when(namespaceOp.withLabels(any())).thenReturn(labelsOp);
             when(labelsOp.inform(any(), anyLong())).thenReturn(informer);
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
 
             // Trigger restart directly (using package-private access)
             cloud.restartInformer("default");
-            
+
             // Assert
             mockedProvider.verify(() -> KubernetesClientProvider.invalidate("kubernetes"));
             boolean found = false;
@@ -451,7 +468,7 @@ public class KubernetesCloudRestartTest {
                 }
             }
             assertTrue("Should have logged fresh informer creation", found);
-            
+
         } finally {
             logger.removeHandler(handler);
         }
@@ -467,8 +484,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -478,19 +497,19 @@ public class KubernetesCloudRestartTest {
         try {
             KubernetesCloud cloudOld = new KubernetesCloud("kubernetes");
             cloudOld.setServerUrl("https://k8s.example.com");
-            
+
             KubernetesCloud cloudNew = new KubernetesCloud("kubernetes"); // Same name
             cloudNew.setServerUrl("https://k8s.example.com");
-            
+
             // Register OLD cloud first to setup initial state if needed, but we simulate replacement
             j.jenkins.clouds.add(cloudNew); // Register NEW cloud in Jenkins
-            
+
             // Mock Client
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             MixedOperation podsOp = mock(MixedOperation.class);
             MixedOperation namespaceOp = mock(MixedOperation.class);
             MixedOperation labelsOp = mock(MixedOperation.class);
@@ -501,16 +520,17 @@ public class KubernetesCloudRestartTest {
             when(namespaceOp.withLabels(any())).thenReturn(labelsOp);
             when(labelsOp.inform(any(), anyLong())).thenReturn(informer);
 
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient);
 
             // Act: Trigger restart on OLD cloud
             cloudOld.restartInformer("default");
-            
+
             // Assert
             // 1. Verify invalidation happened for "kubernetes" (the cloud name)
             mockedProvider.verify(() -> KubernetesClientProvider.invalidate("kubernetes"));
-            
+
             // 2. Verify migration log
             boolean foundMigration = false;
             for (String msg : messages) {
@@ -520,12 +540,12 @@ public class KubernetesCloudRestartTest {
                 }
             }
             assertTrue("Should have logged migration to new instance", foundMigration);
-            
+
             // 3. Verify that NEW cloud has the informer
             // Access private 'informers' map via reflection or check if createInformer was called for cloudNew
             // Since we mocked createClient, we can check if it was called with cloudNew
             mockedProvider.verify(() -> KubernetesClientProvider.createClient(cloudNew));
-            
+
         } finally {
             logger.removeHandler(handler);
         }
@@ -541,8 +561,10 @@ public class KubernetesCloudRestartTest {
             public void publish(LogRecord record) {
                 messages.add(record.getMessage());
             }
+
             @Override
             public void flush() {}
+
             @Override
             public void close() throws SecurityException {}
         };
@@ -553,28 +575,31 @@ public class KubernetesCloudRestartTest {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes");
             cloud.setServerUrl("https://k8s.example.com");
             j.jenkins.clouds.add(cloud);
-            
+
             // Mock Client
             KubernetesClient mockClient = mock(KubernetesClient.class);
             Config mockConfig = mock(Config.class);
             when(mockClient.getConfiguration()).thenReturn(mockConfig);
             when(mockClient.getMasterUrl()).thenReturn(new URL("https://k8s.example.com"));
-            
+
             // Simulate failure during createClient (called by createInformer)
-            mockedProvider.when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
+            mockedProvider
+                    .when(() -> KubernetesClientProvider.createClient(any(KubernetesCloud.class)))
                     .thenReturn(mockClient) // First call (connect) works if needed, or fail immediately
                     .thenThrow(new RuntimeException("API Unreachable")); // Fail on restart attempt
 
-            // We need createInformer to fail. createInformer calls connect() which calls KubernetesClientProvider.createClient.
+            // We need createInformer to fail. createInformer calls connect() which calls
+            // KubernetesClientProvider.createClient.
             // But verify calls inside restartInformer:
             // 1. KubernetesClientProvider.invalidate
             // 2. createInformer -> connect -> createClient
-            
-            // So if createClient throws, createInformer throws (or returns null depending on impl, but exception propagates).
-            
+
+            // So if createClient throws, createInformer throws (or returns null depending on impl, but exception
+            // propagates).
+
             // Act
             cloud.restartInformer("default");
-            
+
             // Assert
             boolean foundRetryLog = false;
             for (String msg : messages) {
@@ -584,7 +609,7 @@ public class KubernetesCloudRestartTest {
                 }
             }
             assertTrue("Should have logged retry message after failure. Messages: " + messages, foundRetryLog);
-            
+
         } finally {
             logger.removeHandler(handler);
         }
