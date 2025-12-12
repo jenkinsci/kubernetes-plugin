@@ -40,6 +40,7 @@ import io.fabric8.kubernetes.client.VersionInfo;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
 import jakarta.servlet.ServletException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.ConnectException;
@@ -50,9 +51,13 @@ import java.net.UnknownHostException;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAPublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -64,6 +69,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -182,6 +189,9 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * Use to watch pod events per namespace.
      */
     private transient volatile Map<String, SharedIndexInformer<Pod>> informers = new ConcurrentHashMap<>();
+
+    // Executor for scheduling informer stops
+    private static final ScheduledExecutorService informerScheduler = Executors.newSingleThreadScheduledExecutor();
 
     @DataBoundConstructor
     public KubernetesCloud(String name) {
@@ -1421,31 +1431,131 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 }
             }
         }
-        informers.computeIfAbsent(node.getNamespace(), (n) -> {
-            KubernetesClient client;
+        informers.computeIfAbsent(node.getNamespace(), this::createInformer);
+    }
+
+    private SharedIndexInformer<Pod> createInformer(String namespace) {
+        return createInformer(namespace, true);
+    }
+
+    private SharedIndexInformer<Pod> createInformer(String namespace, boolean scheduleRestart) {
+        KubernetesClient client;
+        try {
+            client = connect();
+        } catch (KubernetesAuthException | IOException e) {
+            LOGGER.log(
+                    Level.WARNING,
+                    "Cannot connect to K8s cloud. Pod events will not be available in build logs.",
+                    e);
+            return null;
+        }
+        Map<String, String> labelsFilter = new HashMap<>(getPodLabelsMap());
+        String jenkinsUrlLabel = sanitizeLabel(getJenkinsUrlOrNull());
+        if (jenkinsUrlLabel != null) {
+            labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+        }
+        SharedIndexInformer<Pod> inform = client.pods()
+                .inNamespace(namespace)
+                .withLabels(labelsFilter)
+                .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+        LOGGER.info(String.format(
+                "Registered informer to watch pod events on namespace [%s], with labels [%s] on cloud [%s]",
+                namespace, labelsFilter, name));
+
+        // Proactive Expiry Logic - only schedule if requested
+        if (scheduleRestart) {
             try {
-                client = connect();
-            } catch (KubernetesAuthException | IOException e) {
-                LOGGER.log(
-                        Level.WARNING,
-                        "Cannot connect to K8s cloud. Pod events will not be available in build logs.",
-                        e);
-                return null;
+                String clientCertData = client.getConfiguration().getClientCertData();
+                if (clientCertData != null) {
+                    byte[] certBytes = Base64.getDecoder().decode(clientCertData);
+                    CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+                    X509Certificate cert = (X509Certificate) certFactory.generateCertificate(new ByteArrayInputStream(certBytes));
+                    Instant notAfter = cert.getNotAfter().toInstant();
+                    Instant now = Instant.now();
+
+                    long delayMillis = ChronoUnit.MILLIS.between(now, notAfter) - TimeUnit.SECONDS.toMillis(30); // Stop 30s before expiry
+
+                    if (delayMillis > 0) {
+                        LOGGER.info(String.format("Scheduling proactive informer restart for namespace %s in %d ms (Certificate expires at %s)", namespace, delayMillis, notAfter));
+                        informerScheduler.schedule(() -> restartInformer(namespace), delayMillis, TimeUnit.MILLISECONDS);
+                    } else {
+                        LOGGER.warning("Certificate is already expired or expires very soon. Informer might fail shortly.");
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to schedule proactive informer restart", e);
             }
-            Map<String, String> labelsFilter = new HashMap<>(getPodLabelsMap());
-            String jenkinsUrlLabel = sanitizeLabel(getJenkinsUrlOrNull());
-            if (jenkinsUrlLabel != null) {
-                labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
+        }
+
+        return inform;
+    }
+
+    void restartInformer(String namespace) {
+        try {
+            Cloud cloud = Jenkins.get().getCloud(name);
+
+            // Handle instance replacement (e.g. config save)
+            if (cloud instanceof KubernetesCloud && cloud != this) {
+                KubernetesCloud currentCloud = (KubernetesCloud) cloud;
+                LOGGER.info(String.format("Cloud instance %s updated, migrating informer for namespace %s to new instance", name, namespace));
+                SharedIndexInformer<Pod> inform = informers.get(namespace);
+                if (inform != null) {
+                    inform.stop();
+                }
+
+                // Ensure informers map exists on target (transient field)
+                if (currentCloud.informers == null) {
+                    synchronized(currentCloud) {
+                        if (currentCloud.informers == null) currentCloud.informers = new ConcurrentHashMap<>();
+                    }
+                }
+                // Only create if not already watching
+                if (!currentCloud.informers.containsKey(namespace)) {
+                    // Force fresh credentials for the new instance
+                    KubernetesClientProvider.invalidate(currentCloud.getDisplayName());
+                    SharedIndexInformer<Pod> newInformer = currentCloud.createInformer(namespace, true);
+                    if (newInformer != null) {
+                        currentCloud.informers.put(namespace, newInformer);
+                    } else {
+                        throw new IOException("Failed to create migrated informer");
+                    }
+                }
+                return;
             }
-            SharedIndexInformer<Pod> inform = client.pods()
-                    .inNamespace(node.getNamespace())
-                    .withLabels(labelsFilter)
-                    .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
-            LOGGER.info(String.format(
-                    "Registered informer to watch pod events on namespace [%s], with labels [%s] on cloud [%s]",
-                    namespace, labelsFilter, name));
-            return inform;
-        });
+
+            if (cloud != this) {
+                LOGGER.info(String.format("Cloud instance %s is no longer active, stopping stale informer for namespace %s", name, namespace));
+                SharedIndexInformer<Pod> inform = informers.get(namespace);
+                if (inform != null) {
+                    inform.stop();
+                }
+                return;
+            }
+
+            LOGGER.info(String.format("Proactively stopping informer for namespace %s due to impending certificate expiry", namespace));
+
+            // Restart logic:
+            // 1. Invalidate cache to ensure fresh client/cert
+            KubernetesClientProvider.invalidate(getDisplayName());
+
+            // 2. Create new informer first (before stopping old one)
+            LOGGER.info(String.format("Creating fresh informer for namespace %s with new credentials", namespace));
+            SharedIndexInformer<Pod> newInformer = createInformer(namespace, true);
+
+            // 3. Only if successful, stop old informer and replace in map
+            if (newInformer != null) {
+                SharedIndexInformer<Pod> inform = informers.get(namespace);
+                if (inform != null) {
+                    inform.stop();
+                }
+                informers.put(namespace, newInformer);
+            } else {
+                throw new IOException("Failed to create new informer");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, String.format("Failed to restart informer for namespace %s, retrying in 10s", namespace), e);
+            informerScheduler.schedule(() -> restartInformer(namespace), 10, TimeUnit.SECONDS);
+        }
     }
 
     @Extension

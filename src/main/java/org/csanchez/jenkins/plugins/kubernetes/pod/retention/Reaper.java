@@ -32,6 +32,7 @@ import hudson.model.Saveable;
 import hudson.model.TaskListener;
 import hudson.model.listeners.ItemListener;
 import hudson.model.listeners.SaveableListener;
+import hudson.slaves.Cloud;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
 import hudson.slaves.OfflineCause;
@@ -225,9 +226,72 @@ public class Reaper extends ComputerListener {
                     old.stop();
                 }
                 LOGGER.info(() -> "set up watcher on " + kc.getDisplayName());
+
+                // Proactive Expiry Logic for Reaper Watcher
+                try {
+                    String clientCertData = client.getConfiguration().getClientCertData();
+                    if (clientCertData != null) {
+                        byte[] certBytes = java.util.Base64.getDecoder().decode(clientCertData);
+                        java.security.cert.CertificateFactory certFactory = java.security.cert.CertificateFactory.getInstance("X.509");
+                        java.security.cert.X509Certificate cert = (java.security.cert.X509Certificate) certFactory.generateCertificate(new java.io.ByteArrayInputStream(certBytes));
+                        java.time.Instant notAfter = cert.getNotAfter().toInstant();
+                        java.time.Instant now = java.time.Instant.now();
+
+                        long delayMillis = java.time.temporal.ChronoUnit.MILLIS.between(now, notAfter) - java.util.concurrent.TimeUnit.SECONDS.toMillis(30); // Stop 30s before expiry
+
+                        if (delayMillis > 0) {
+                            LOGGER.info(String.format("Scheduling proactive Reaper watcher restart for cloud %s in %d ms (Certificate expires at %s)", kc.getDisplayName(), delayMillis, notAfter));
+                            jenkins.util.Timer.get().schedule(() -> restartWatcher(kc, watcher), delayMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, e, () -> "Failed to schedule proactive Reaper watcher restart");
+                }
+
             } catch (KubernetesAuthException | IOException | RuntimeException x) {
                 LOGGER.log(Level.WARNING, x, () -> "failed to set up watcher on " + kc.getDisplayName());
             }
+        }
+    }
+
+    void restartWatcher(KubernetesCloud kc, CloudPodWatcher watcher) {
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null) return;
+        Cloud cloud = jenkins.getCloud(kc.name);
+
+        // Handle instance replacement (e.g. config save)
+        if (cloud instanceof KubernetesCloud && cloud != kc) {
+            LOGGER.info(String.format("Cloud instance %s updated, migrating proactive Reaper watcher restart to new instance", kc.name));
+            // If there is still an active watcher, this will replace it.
+            // If is already replaced, this might restart the new one (due to invalidate), which is acceptable to ensure cert freshness.
+            KubernetesClientProvider.invalidate(cloud.getDisplayName());
+            watchCloud((KubernetesCloud) cloud);
+            watcher.stop();
+            return;
+        }
+
+        // Handle removal or type change
+        if (cloud != kc) {
+             LOGGER.info(String.format("Cloud instance %s is no longer active, skipping proactive Reaper watcher restart", kc.name));
+             watcher.stop();
+             return;
+        }
+
+        LOGGER.info(String.format("Proactively restarting Reaper watcher for cloud %s due to impending certificate expiry", kc.getDisplayName()));
+        KubernetesClientProvider.invalidate(kc.getDisplayName());
+
+        // Stop the old watcher to ensure watchCloud doesn't skip update due to identical config validity
+        watcher.stop();
+        watchers.remove(kc.name, watcher);
+
+        // Restart the watcher immediately
+        watchCloud(kc);
+
+        // Verify if restart succeeded (watcher should be replaced in the map)
+        CloudPodWatcher newWatcher = watchers.get(kc.name);
+        if (newWatcher == null || newWatcher == watcher) {
+             LOGGER.warning(String.format("Failed to restart Reaper watcher for cloud %s, retrying in 10s", kc.getDisplayName()));
+             Timer.get().schedule(() -> restartWatcher(kc, watcher), 10, java.util.concurrent.TimeUnit.SECONDS);
         }
     }
 
