@@ -43,6 +43,12 @@ public class KubernetesClientProvider {
                 if (client != null) {
                     LOGGER.log(
                             Level.FINE, () -> "Expiring Kubernetes client " + key + " " + client.client + ": " + cause);
+                    try {
+                        client.client.close();
+                        LOGGER.log(Level.FINE, () -> "Closed Kubernetes client " + key);
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Failed to close Kubernetes client " + key, e);
+                    }
                 }
             })
             .build();
@@ -113,11 +119,29 @@ public class KubernetesClientProvider {
 
     @Restricted(NoExternalUse.class) // testing only
     public static void invalidate(String displayName) {
+        Client client = clients.getIfPresent(displayName);
         clients.invalidate(displayName);
+        // Close client if manual invalidation happened before cache expiration
+        if (client != null) {
+            try {
+                client.client.close();
+                LOGGER.log(Level.FINE, () -> "Closed manually invalidated Kubernetes client " + displayName);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to close manually invalidated Kubernetes client " + displayName, e);
+            }
+        }
     }
 
     @Restricted(NoExternalUse.class) // testing only
     public static void invalidateAll() {
+        clients.asMap().forEach((key, client) -> {
+            try {
+                client.client.close();
+                LOGGER.log(Level.FINE, () -> "Closed Kubernetes client during invalidateAll: " + key);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to close Kubernetes client during invalidateAll: " + key, e);
+            }
+        });
         clients.invalidateAll();
     }
 
