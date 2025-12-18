@@ -2,7 +2,7 @@ name: Close BOM update PR if passing
 on:
   check_run:
     types:
-      - completed
+    - completed
 permissions:
   contents: read
   pull-requests: write
