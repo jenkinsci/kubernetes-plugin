@@ -29,39 +29,43 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @Issue("JENKINS-49707")
-public class KubernetesAgentErrorConditionTest {
+@WithJenkins
+class KubernetesAgentErrorConditionTest {
 
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
 
-    @Rule
-    public LoggerRule logging = new LoggerRule().record(KubernetesAgentErrorCondition.class, Level.FINE);
+    @SuppressWarnings("unused")
+    private final LogRecorder logging = new LogRecorder().record(KubernetesAgentErrorCondition.class, Level.FINE);
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void handleNonKubernetes() throws Exception {
+    void handleNonKubernetes() throws Exception {
         Slave s = r.createSlave(Label.get("remote")); // *not* a KubernetesSlave
         WorkflowJob p = r.createProject(WorkflowJob.class, "p");
         p.addProperty(new ParametersDefinitionProperty(new BooleanParameterDefinition("HNK")));
-        p.setDefinition(new CpsFlowDefinition(
-                "retry(count: 2, conditions: [kubernetesAgent(handleNonKubernetes: params.HNK)]) {\n"
-                        + "  node('remote') {\n"
-                        + "    semaphore 'wait'\n"
-                        + "    pwd()\n"
-                        + "  }\n"
-                        + "}",
-                true));
+        p.setDefinition(new CpsFlowDefinition("""
+                        retry(count: 2, conditions: [kubernetesAgent(handleNonKubernetes: params.HNK)]) {
+                          node('remote') {
+                            semaphore 'wait'
+                            pwd()
+                          }
+                        }""", true));
         WorkflowRun b = p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("HNK", false)))
                 .waitForStart();
         SemaphoreStep.waitForStart("wait/1", b);

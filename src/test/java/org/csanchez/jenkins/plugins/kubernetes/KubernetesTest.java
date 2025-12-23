@@ -26,11 +26,7 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
@@ -55,12 +51,12 @@ import org.csanchez.jenkins.plugins.kubernetes.volumes.EmptyDirVolume;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.HostPathVolume;
 import org.jenkinsci.plugins.kubernetes.credentials.FileSystemServiceAccountCredential;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 /**
@@ -68,25 +64,25 @@ import org.jvnet.hudson.test.recipes.LocalData;
  * @since 0.9
  *
  */
-public class KubernetesTest {
+@WithJenkins
+class KubernetesTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
-
-    @Rule
-    public LoggerRule log = new LoggerRule();
+    private final LogRecorder log = new LogRecorder();
 
     private KubernetesCloud cloud;
 
-    @Before
-    public void before() throws Exception {
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
         cloud = r.jenkins.clouds.get(KubernetesCloud.class);
         assertNotNull(cloud);
     }
 
     @Test
     @LocalData()
-    public void upgradeFrom_1_17_2() throws Exception {
+    void upgradeFrom_1_17_2() {
         Map<String, String> labels = cloud.getPodLabelsMap();
         assertEquals(2, labels.size());
         assertThat(cloud.getPodLabelsMap(), hasEntry("jenkins", "slave"));
@@ -101,7 +97,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData
-    public void upgradeFrom_1_15_9() {
+    void upgradeFrom_1_15_9() {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         PodTemplate template = templates.get(0);
@@ -112,7 +108,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData
-    public void upgradeFrom_1_15_9_invalid() {
+    void upgradeFrom_1_15_9_invalid() {
         log.record(PodTemplate.class, Level.WARNING).capture(1);
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
@@ -127,7 +123,7 @@ public class KubernetesTest {
     @Test
     @LocalData()
     @Issue("JENKINS-57116")
-    public void upgradeFrom_1_15_1() throws Exception {
+    void upgradeFrom_1_15_1() {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         PodTemplate template = templates.get(0);
@@ -137,7 +133,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
-    public void upgradeFrom_1_10() throws Exception {
+    void upgradeFrom_1_10() {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         assertEquals(new Never(), cloud.getPodRetention());
@@ -151,7 +147,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
-    public void upgradeFrom_1_1() throws Exception {
+    void upgradeFrom_1_1() {
         List<Credentials> credentials = SystemCredentialsProvider.getInstance().getCredentials();
         assertEquals(3, credentials.size());
         UsernamePasswordCredentialsImpl cred0 = (UsernamePasswordCredentialsImpl) credentials.get(0);
@@ -166,7 +162,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
-    public void upgradeFrom_0_12() throws Exception {
+    void upgradeFrom_0_12() {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         PodTemplate template = templates.get(0);
@@ -180,7 +176,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
-    public void upgradeFrom_0_10() throws Exception {
+    void upgradeFrom_0_10() {
         List<PodTemplate> templates = cloud.getTemplates();
         PodTemplate template = templates.get(0);
         DescribableList<NodeProperty<?>, NodePropertyDescriptor> nodeProperties = template.getNodeProperties();
@@ -196,7 +192,7 @@ public class KubernetesTest {
 
     @Test
     @LocalData()
-    public void upgradeFrom_0_8() throws Exception {
+    void upgradeFrom_0_8() {
         List<PodTemplate> templates = cloud.getTemplates();
         assertPodTemplates(templates);
         assertEquals(cloud.DEFAULT_WAIT_FOR_POD_SEC, cloud.getWaitForPodSec());
