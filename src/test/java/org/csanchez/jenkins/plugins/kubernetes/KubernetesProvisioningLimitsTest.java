@@ -1,7 +1,7 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.CompletionService;
@@ -11,21 +11,27 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class KubernetesProvisioningLimitsTest {
+@WithJenkins
+class KubernetesProvisioningLimitsTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    @SuppressWarnings("unused")
+    private final LogRecorder log = new LogRecorder().record(KubernetesProvisioningLimits.class, Level.FINEST);
 
-    @Rule
-    public LoggerRule log = new LoggerRule().record(KubernetesProvisioningLimits.class, Level.FINEST);
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void lotsOfCloudsAndTemplates() throws InterruptedException {
+    void lotsOfCloudsAndTemplates() throws Exception {
         ThreadLocalRandom testRandom = ThreadLocalRandom.current();
         for (int i = 1; i < 4; i++) {
             KubernetesCloud cloud = new KubernetesCloud("kubernetes-" + i);
@@ -61,11 +67,7 @@ public class KubernetesProvisioningLimitsTest {
                             }
                         }
 
-                        ecs.submit(
-                                () -> {
-                                    kubernetesProvisioningLimits.unregister(cloud, podTemplate, 1);
-                                },
-                                null);
+                        ecs.submit(() -> kubernetesProvisioningLimits.unregister(cloud, podTemplate, 1), null);
                     },
                     null);
         }

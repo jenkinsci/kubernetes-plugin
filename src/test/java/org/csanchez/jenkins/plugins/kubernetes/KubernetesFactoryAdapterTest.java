@@ -33,10 +33,7 @@ import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_PASSWORD;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_PROXY_USERNAME;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_SERVICE_HOST_PROPERTY;
 import static io.fabric8.kubernetes.client.Config.KUBERNETES_SERVICE_PORT_PROPERTY;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
@@ -46,19 +43,19 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.HashMap;
 import java.util.Map;
-import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * Test the creation of clients
  */
-public class KubernetesFactoryAdapterTest {
+@WithJenkins
+class KubernetesFactoryAdapterTest {
 
     private static final String[] SYSTEM_PROPERTY_NAMES = new String[] { //
         KUBERNETES_KUBECONFIG_FILE, //
@@ -79,13 +76,14 @@ public class KubernetesFactoryAdapterTest {
     private static final String KUBERNETES_PORT = "443";
     private static final String KUBERNETES_MASTER_URL = "https://" + KUBERNETES_HOST + ":" + KUBERNETES_PORT + "/";
 
-    private Map<String, String> systemProperties = new HashMap<>();
+    private final Map<String, String> systemProperties = new HashMap<>();
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
-    @Before
-    public void saveSystemProperties() {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+
         for (String key : SYSTEM_PROPERTY_NAMES) {
             systemProperties.put(key, System.getProperty(key));
             // use bogus values to avoid influence from environment
@@ -102,8 +100,8 @@ public class KubernetesFactoryAdapterTest {
         System.setProperty(KUBERNETES_SERVICE_PORT_PROPERTY, KUBERNETES_PORT);
     }
 
-    @After
-    public void restoreSystemProperties() {
+    @AfterEach
+    void afterEach() {
         for (String key : systemProperties.keySet()) {
             String s = systemProperties.get(key);
             if (s != null) {
@@ -115,7 +113,7 @@ public class KubernetesFactoryAdapterTest {
     }
 
     @Test
-    public void defaultNamespace() throws Exception {
+    void defaultNamespace() throws Exception {
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter(null, null, null, false);
         KubernetesClient client = factory.createClient();
         assertEquals("default", client.getNamespace());
@@ -124,7 +122,7 @@ public class KubernetesFactoryAdapterTest {
     }
 
     @Test
-    public void autoConfig() throws Exception {
+    void autoConfig() throws Exception {
         System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter(null, null, null, false);
         KubernetesClient client = factory.createClient();
@@ -139,7 +137,7 @@ public class KubernetesFactoryAdapterTest {
     }
 
     @Test
-    public void autoConfigWithMasterUrl() throws Exception {
+    void autoConfigWithMasterUrl() throws Exception {
         KubernetesFactoryAdapter factory = new KubernetesFactoryAdapter("http://example.com", null, null, false);
         KubernetesClient client = factory.createClient();
         assertEquals(HTTP_PROXY, client.getConfiguration().getHttpProxy());
@@ -183,7 +181,7 @@ public class KubernetesFactoryAdapterTest {
 
     @Test
     @Issue("JENKINS-70416")
-    public void autoConfigWithAuth() throws Exception {
+    void autoConfigWithAuth() throws Exception {
         System.setProperty(KUBERNETES_NAMESPACE_FILE, "src/test/resources/kubenamespace");
         StringCredentialsImpl tokenCredential = new StringCredentialsImpl(
                 CredentialsScope.GLOBAL, "sa-token", "some credentials", Secret.fromString("sa-token"));
@@ -203,8 +201,7 @@ public class KubernetesFactoryAdapterTest {
 
     @Test
     @Issue("JENKINS-70563")
-    public void jenkinsProxyConfiguration() throws KubernetesAuthException {
-
+    void jenkinsProxyConfiguration() throws Exception {
         j.jenkins.setProxy(new ProxyConfiguration(
                 "proxy.com", 123, PROXY_USERNAME, PROXY_PASSWORD, "*acme.com\n*acme*.com\n*.example.com|192.168.*"));
         KubernetesFactoryAdapter factory =

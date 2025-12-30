@@ -2,40 +2,44 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class KubernetesCloudTraitTest {
+@WithJenkins
+class KubernetesCloudTraitTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void testKubernetesCloudAll() {
+    void testKubernetesCloudAll() {
         assertEquals(2, KubernetesCloudTrait.all().size());
     }
 
     @Test
-    public void testKubernetesCloudDescriptorAllTraits() {
+    void testKubernetesCloudDescriptorAllTraits() {
         var descriptors = ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
         assertThat(descriptors.size(), greaterThanOrEqualTo(1));
         assertEquals(2, descriptors.get(0).getAllTraits().size());
     }
 
     @Test
-    public void testKubernetesCloudDescriptorDefaultTraits() {
+    void testKubernetesCloudDescriptorDefaultTraits() {
         var descriptors = ExtensionList.lookup(KubernetesCloud.DescriptorImpl.class);
         assertThat(descriptors.size(), greaterThanOrEqualTo(1));
         var traits = descriptors.get(0).getDefaultTraits();
@@ -47,7 +51,7 @@ public class KubernetesCloudTraitTest {
 
     @WithoutJenkins
     @Test
-    public void testKubernetesCloudTraits() {
+    void testKubernetesCloudTraits() {
         var cloud = new KubernetesCloud("Foo");
 
         // empty optional when trait instance not found

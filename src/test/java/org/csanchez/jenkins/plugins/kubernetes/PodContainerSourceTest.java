@@ -1,6 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -10,19 +10,25 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class PodContainerSourceTest {
+@WithJenkins
+class PodContainerSourceTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void lookupContainerWorkingDir() {
+    void lookupContainerWorkingDir() {
         Pod pod = new PodBuilder()
                 .withNewSpec()
                 .addNewContainer()
@@ -55,7 +61,7 @@ public class PodContainerSourceTest {
     }
 
     @Test
-    public void lookupContainerStatus() {
+    void lookupContainerStatus() {
         Pod pod = new PodBuilder()
                 .withNewStatus()
                 .addNewContainerStatus()
@@ -91,7 +97,7 @@ public class PodContainerSourceTest {
 
     @WithoutJenkins
     @Test
-    public void defaultPodContainerSourceGetContainerWorkingDir() {
+    void defaultPodContainerSourceGetContainerWorkingDir() {
         Pod pod = new PodBuilder()
                 .withNewSpec()
                 .addNewContainer()
@@ -121,7 +127,7 @@ public class PodContainerSourceTest {
 
     @WithoutJenkins
     @Test
-    public void defaultPodContainerSourceGetContainerStatus() {
+    void defaultPodContainerSourceGetContainerStatus() {
         Pod pod = new PodBuilder()
                 .withNewStatus()
                 .addNewContainerStatus()

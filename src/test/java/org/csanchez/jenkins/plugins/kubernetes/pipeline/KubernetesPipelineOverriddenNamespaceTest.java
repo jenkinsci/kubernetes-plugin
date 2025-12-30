@@ -1,19 +1,19 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.testingNamespace;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetesPipelineTest {
+class KubernetesPipelineOverriddenNamespaceTest extends AbstractKubernetesPipelineTest {
 
     @Test
-    public void runWithCloudOverriddenNamespace() throws Exception {
+    void runWithCloudOverriddenNamespace() throws Exception {
         String overriddenNamespace = testingNamespace + "-overridden-namespace";
         cloud.setNamespace(overriddenNamespace);
         // Run in our own testing namespace
@@ -36,7 +36,7 @@ public class KubernetesPipelineOverridenNamespaceTest extends AbstractKubernetes
      * Step namespace should have priority over anything else.
      */
     @Test
-    public void runWithStepOverriddenNamespace() throws Exception {
+    void runWithStepOverriddenNamespace() throws Exception {
         String overriddenNamespace = testingNamespace + "-overridden-namespace";
         String stepNamespace = testingNamespace + "-overridden-namespace2";
         cloud.setNamespace(overriddenNamespace);

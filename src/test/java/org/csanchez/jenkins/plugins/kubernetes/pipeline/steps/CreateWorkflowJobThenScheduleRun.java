@@ -4,12 +4,12 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.RealJenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.RealJenkinsExtension;
 
 /**
  * Creates a workflow job using the specified script, then schedules it and returns a reference to the run.
  */
-public class CreateWorkflowJobThenScheduleRun implements RealJenkinsRule.Step2<RunId> {
+public class CreateWorkflowJobThenScheduleRun implements RealJenkinsExtension.Step2<RunId> {
     private String script;
 
     public CreateWorkflowJobThenScheduleRun(String script) {

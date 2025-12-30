@@ -20,15 +20,15 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.*;
 
 import java.util.logging.Level;
 import jenkins.agents.WebSocketAgents;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
 @Issue("JEP-222")
-public class WebSocketTest extends AbstractKubernetesPipelineTest {
+class WebSocketTest extends AbstractKubernetesPipelineTest {
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         deletePods(cloud.connect(), getLabels(cloud, this, name), false);
         r.jenkins.setSlaveAgentPort(-1);
         cloud.setWebSocket(true);
@@ -36,7 +36,7 @@ public class WebSocketTest extends AbstractKubernetesPipelineTest {
     }
 
     @Test
-    public void webSocketAgent() throws Exception {
+    void webSocketAgent() throws Exception {
         r.assertBuildStatusSuccess(r.waitForCompletion(createJobThenScheduleRun()));
     }
 }

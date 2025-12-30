@@ -8,12 +8,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ResourcesTest {
+class ResourcesTest {
 
     @Test
-    public void testCloseQuietly() throws Exception {
+    void testCloseQuietly() throws Exception {
         StepContext ctx = mock(StepContext.class);
         TaskListener listener = mock(TaskListener.class);
         when(ctx.get(TaskListener.class))
@@ -42,7 +42,7 @@ public class ResourcesTest {
     }
 
     @Test
-    public void testCloseQuietlyCallbackOnSuccess() throws Exception {
+    void testCloseQuietlyCallbackOnSuccess() throws Exception {
         StepContext ctx = mock(StepContext.class);
         Closeable c1 = mock(Closeable.class);
         doThrow(IOException.class).when(c1).close();
@@ -58,7 +58,7 @@ public class ResourcesTest {
     }
 
     @Test
-    public void testCloseQuietlyCallbackOnFailure() throws Exception {
+    void testCloseQuietlyCallbackOnFailure() throws Exception {
         StepContext ctx = mock(StepContext.class);
         Closeable c1 = mock(Closeable.class);
         doThrow(IOException.class).when(c1).close();

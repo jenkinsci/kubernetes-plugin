@@ -54,43 +54,40 @@ import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.TestName;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
+@WithJenkins
 public abstract class AbstractKubernetesPipelineTest {
     protected static final String CONTAINER_ENV_VAR_VALUE = "container-env-var-value";
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
     protected static final String GLOBAL = "GLOBAL";
 
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    protected static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
     protected KubernetesCloud cloud;
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    protected JenkinsRule r;
 
-    @Rule
-    public LoggerRule logs = new LoggerRule()
+    protected final LogRecorder logs = new LogRecorder()
             .recordPackage(KubernetesCloud.class, Level.FINE)
             .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
             .record(PodUtils.class, Level.FINE)
             .record(NodeProvisioner.class, Level.FINE)
             .record(KubernetesAgentErrorCondition.class, Level.FINE);
 
-    @BeforeClass
-    public static void isKubernetesConfigured() throws Exception {
+    @BeforeAll
+    protected static void beforeAll() {
         assumeKubernetes();
     }
 
-    @Rule
-    public TestName name = new TestName();
+    protected String name;
 
     private String projectName;
 
@@ -98,10 +95,29 @@ public abstract class AbstractKubernetesPipelineTest {
 
     protected WorkflowRun b;
 
-    @Before
-    public void defineProjectName() {
+    @BeforeEach
+    protected void beforeEach(JenkinsRule rule, TestInfo info) throws Exception {
+        r = rule;
+        name = info.getTestMethod().orElseThrow().getName();
         // Add spaces before uppercases
-        this.projectName = generateProjectName(name.getMethodName());
+        projectName = generateProjectName(name);
+
+        cloud = setupCloud(this, name);
+        createSecret(cloud.connect(), cloud.getNamespace());
+        cloud.getTemplates().clear();
+        cloud.addTemplate(buildBusyboxTemplate("busybox"));
+
+        setupHost(cloud);
+
+        r.jenkins.clouds.add(cloud);
+
+        DescribableList<NodeProperty<?>, NodePropertyDescriptor> list = r.jenkins.getGlobalNodeProperties();
+        EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
+        list.add(newEnvVarsNodeProperty);
+        EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();
+        envVars.put("GLOBAL", "GLOBAL");
+        envVars.put("JAVA_HOME_X", "java-home-x");
+        r.jenkins.save();
     }
 
     protected String getProjectName() {
@@ -132,33 +148,13 @@ public abstract class AbstractKubernetesPipelineTest {
      * @return The scheduled pipeline run
      */
     protected final WorkflowRun createJobThenScheduleRun(Map<String, String> env) throws Exception {
-        b = createPipelineJobThenScheduleRun(r, getClass(), name.getMethodName(), env);
+        b = createPipelineJobThenScheduleRun(r, getClass(), name, env);
         p = b.getParent();
         return b;
     }
 
     protected final String loadPipelineDefinition() {
-        return KubernetesTestUtil.loadPipelineDefinition(getClass(), name.getMethodName(), null);
-    }
-
-    @Before
-    public void configureCloud() throws Exception {
-        cloud = setupCloud(this, name);
-        createSecret(cloud.connect(), cloud.getNamespace());
-        cloud.getTemplates().clear();
-        cloud.addTemplate(buildBusyboxTemplate("busybox"));
-
-        setupHost(cloud);
-
-        r.jenkins.clouds.add(cloud);
-
-        DescribableList<NodeProperty<?>, NodePropertyDescriptor> list = r.jenkins.getGlobalNodeProperties();
-        EnvironmentVariablesNodeProperty newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
-        list.add(newEnvVarsNodeProperty);
-        EnvVars envVars = newEnvVarsNodeProperty.getEnvVars();
-        envVars.put("GLOBAL", "GLOBAL");
-        envVars.put("JAVA_HOME_X", "java-home-x");
-        r.jenkins.save();
+        return KubernetesTestUtil.loadPipelineDefinition(getClass(), name, null);
     }
 
     private PodTemplate buildBusyboxTemplate(String label) {

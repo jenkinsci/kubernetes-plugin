@@ -11,35 +11,42 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.Merge;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.DynamicPVCWorkspaceVolume;
 import org.jenkinsci.plugins.pipeline.modeldefinition.generator.AgentDirective;
 import org.jenkinsci.plugins.pipeline.modeldefinition.generator.DirectiveGeneratorTester;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class KubernetesDeclarativeAgentUnitTest {
-    @ClassRule
-    public static JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class KubernetesDeclarativeAgentUnitTest {
 
-    KubernetesDeclarativeAgent instance;
+    private static JenkinsRule j;
 
-    DirectiveGeneratorTester dg;
-    AgentDirective directive;
+    private KubernetesDeclarativeAgent instance;
 
-    @Before
-    public void setUp() {
+    private DirectiveGeneratorTester dg;
+    private AgentDirective directive;
+
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        j = rule;
+    }
+
+    @BeforeEach
+    void beforeEach() {
         instance = new KubernetesDeclarativeAgent();
         directive = new AgentDirective(instance);
         dg = new DirectiveGeneratorTester(j);
     }
 
     @Test
-    public void serializationNull() {
+    void serializationNull() {
         Map<String, Object> args = instance.getAsArgs();
         assertThat(args, equalTo(Collections.emptyMap()));
     }
 
     @Test
-    public void serialization() throws Exception {
+    void serialization() {
         instance.setCloud("cloud");
         instance.setLabel("label");
         instance.setYaml("yaml");
@@ -67,12 +74,15 @@ public class KubernetesDeclarativeAgentUnitTest {
     }
 
     @Test
-    public void simpleGenerator() throws Exception {
-        dg.assertGenerateDirective(directive, "agent {\n" + "  kubernetes true\n" + "}");
+    void simpleGenerator() throws Exception {
+        dg.assertGenerateDirective(directive, """
+                agent {
+                  kubernetes true
+                }""");
     }
 
     @Test
-    public void complexGenerator() throws Exception {
+    void complexGenerator() throws Exception {
         instance.setCloud("cloud");
         instance.setYaml("yaml");
         instance.setYamlMergeStrategy(new Merge());
@@ -83,16 +93,16 @@ public class KubernetesDeclarativeAgentUnitTest {
         instance.setWorkspaceVolume(workspaceVolume);
         instance.setPodRetention(new Never());
         instance.setInheritFrom("inheritFrom");
-        dg.assertGenerateDirective(
-                directive,
-                "agent {\n" + "  kubernetes {\n"
-                        + "    cloud 'cloud'\n"
-                        + "    inheritFrom 'inheritFrom'\n"
-                        + "    podRetention never()\n"
-                        + "    workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')\n"
-                        + "    yaml 'yaml'\n"
-                        + "    yamlMergeStrategy merge()\n"
-                        + "  }\n"
-                        + "}");
+        dg.assertGenerateDirective(directive, """
+                        agent {
+                          kubernetes {
+                            cloud 'cloud'
+                            inheritFrom 'inheritFrom'
+                            podRetention never()
+                            workspaceVolume dynamicPVC(accessModes: 'ReadWrite', requestsSize: '1G', storageClassName: 'sc')
+                            yaml 'yaml'
+                            yamlMergeStrategy merge()
+                          }
+                        }""");
     }
 }

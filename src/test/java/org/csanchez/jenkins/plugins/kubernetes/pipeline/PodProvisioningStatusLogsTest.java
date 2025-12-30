@@ -1,14 +1,14 @@
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import hudson.model.Result;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class PodProvisioningStatusLogsTest extends AbstractKubernetesPipelineTest {
+class PodProvisioningStatusLogsTest extends AbstractKubernetesPipelineTest {
 
     @Test
-    public void podStatusErrorLogs() throws Exception {
+    void podStatusErrorLogs() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         // pod not schedulable
         // build never finishes, so just checking the message and killing
@@ -18,7 +18,7 @@ public class PodProvisioningStatusLogsTest extends AbstractKubernetesPipelineTes
     }
 
     @Test
-    public void podStatusNoErrorLogs() throws Exception {
+    void podStatusNoErrorLogs() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatusSuccess(r.waitForCompletion(b));
         // regular logs when starting containers
@@ -27,7 +27,7 @@ public class PodProvisioningStatusLogsTest extends AbstractKubernetesPipelineTes
     }
 
     @Test
-    public void containerStatusErrorLogs() throws Exception {
+    void containerStatusErrorLogs() throws Exception {
         assertNotNull(createJobThenScheduleRun());
         r.assertBuildStatus(Result.ABORTED, r.waitForCompletion(b));
         // error starting container

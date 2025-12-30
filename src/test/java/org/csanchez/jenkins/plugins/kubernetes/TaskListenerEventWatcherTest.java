@@ -23,7 +23,7 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 import hudson.model.TaskListener;
@@ -32,38 +32,40 @@ import io.fabric8.kubernetes.api.model.ObjectReference;
 import io.fabric8.kubernetes.client.Watcher;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-public class TaskListenerEventWatcherTest {
+@ExtendWith(MockitoExtension.class)
+class TaskListenerEventWatcherTest {
 
-    private @Mock TaskListener listener;
+    @Mock
+    private TaskListener listener;
+
     private TaskListenerEventWatcher watcher;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void beforeEach() {
         watcher = new TaskListenerEventWatcher("foo", listener);
     }
 
     @Test
-    public void ignoreBookmarkAction() {
+    void ignoreBookmarkAction() {
         watcher.eventReceived(Watcher.Action.BOOKMARK, new Event());
         verifyNoInteractions(listener);
     }
 
     @Test
-    public void ignoreErrorAction() {
+    void ignoreErrorAction() {
         watcher.eventReceived(Watcher.Action.ERROR, null);
         verifyNoInteractions(listener);
     }
 
     @Test
-    public void logEventMessage() throws UnsupportedEncodingException {
+    void logEventMessage() {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(bos);
         when(listener.getLogger()).thenReturn(ps);
@@ -80,7 +82,7 @@ public class TaskListenerEventWatcherTest {
 
         verify(listener).getLogger();
         ps.flush();
-        String output = bos.toString("UTF-8");
+        String output = bos.toString(StandardCharsets.UTF_8);
         assertEquals("[Update][bar/foo-123][because] cat\n[Update][bar/foo-123][because] dog\n", output);
     }
 }
