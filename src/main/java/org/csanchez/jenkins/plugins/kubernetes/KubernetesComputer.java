@@ -147,7 +147,7 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         if (slave != null) {
             KubernetesCloud cloud = slave.getKubernetesCloud();
             String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), cloud.getNamespace());
-            PodResource resource = cloud.getPodResource(namespace, containerId);
+            PodResource resource = cloud.getPodResource(namespace, slave.getPodName());
 
             // check if pod exists
             Pod pod = resource.get();
@@ -158,29 +158,22 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
                 return;
             }
 
-            // Check if container exists and is running (maybe terminated if ephemeral)
+            // Check if container exists (ephemeral containers are not included)
             Optional<ContainerStatus> status = PodContainerSource.lookupContainerStatus(pod, containerId);
-            if (status.isPresent()) {
-                ContainerStatus cs = status.get();
-                if (cs.getState().getTerminated() != null) {
-                    outputStream.write("Container terminated".getBytes(StandardCharsets.UTF_8));
-                    text.markAsComplete();
-                    text.doProgressText(req, rsp);
-                    return;
-                }
-            } else {
+            if (!status.isPresent()) {
                 outputStream.write("Container not found".getBytes(StandardCharsets.UTF_8));
                 text.markAsComplete();
                 text.doProgressText(req, rsp);
                 return;
             }
 
-            // Get logs
-            try (LogWatch ignore =
-                    resource.inContainer(containerId).tailingLines(20).watchLog(outputStream)) {
+            // Get logs, the state of the container should not matter
+            try (LogWatch ignore = resource.inContainer(containerId).watchLog(outputStream)) {
+                // without Thread.sleep logs are not shown
+                Thread.sleep(5000L);
                 text.doProgressText(req, rsp);
-            } catch (KubernetesClientException kce) {
-                LOGGER.log(Level.WARNING, "Failed getting container logs for " + containerId, kce);
+            } catch (KubernetesClientException | InterruptedException e) {
+                LOGGER.log(Level.WARNING, "Failed getting container logs for " + containerId, e);
             }
         } else {
             outputStream.write("Node not available".getBytes(StandardCharsets.UTF_8));
