@@ -673,6 +673,67 @@ public class ReaperTest {
         return pod;
     }
 
+    private Pod withContainerImagePullBackoffReasonOnly(Pod pod) {
+        // Simulates real Kubernetes behavior where only the reason field is set
+        ContainerStatus status = new ContainerStatusBuilder()
+                .withNewState()
+                .withNewWaiting(null, "ImagePullBackOff")
+                .endState()
+                .build();
+        pod.getStatus().getContainerStatuses().add(status);
+        return pod;
+    }
+
+    @Test(timeout = 10_000)
+    public void testTerminateAgentOnImagePullBackoffReasonFieldOnly() throws IOException, InterruptedException {
+        // Test the scenario reported in #2772 where only the reason field contains "ImagePullBackOff"
+        KubernetesCloud cloud = addCloud("k8s", "foo");
+        KubernetesSlave node = addNode(cloud, "node-124", "node");
+        Pod node124 = withContainerImagePullBackoffReasonOnly(createPod(node));
+        Reaper.TerminateAgentOnImagePullBackOff.BACKOFF_EVENTS_LIMIT = 2;
+
+        String watchPodsPath = "/api/v1/namespaces/foo/pods?allowWatchBookmarks=true&watch=true";
+        server.expect()
+                .withPath(watchPodsPath)
+                .andUpgradeToWebSocket()
+                .open()
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node124, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node124, "BOOKMARK"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node124, "MODIFIED"))
+                .waitFor(EVENT_WAIT_PERIOD_MS)
+                .andEmit(new WatchEvent(node124, "BOOKMARK"))
+                .done()
+                .always();
+        // don't remove pod on activate
+        server.expect()
+                .withPath("/api/v1/namespaces/foo/pods/node-124")
+                .andReturn(200, node124)
+                .once();
+
+        // activate reaper
+        Reaper r = Reaper.getInstance();
+        r.maybeActivate();
+
+        // verify node is still registered
+        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+
+        // wait for the delete event to be processed
+        waitForKubeClientRequests(6).assertRequestCountAtLeast(watchPodsPath, 3);
+
+        // verify listener got notified
+        listener.expectEvent(Watcher.Action.MODIFIED, node);
+
+        // expect node to be terminated
+        verify(node, atLeastOnce()).terminate();
+        // verify computer disconnected with offline cause
+        verify(node.getComputer(), atLeastOnce()).disconnect(org.mockito.ArgumentMatchers.any(PodOfflineCause.class));
+        // verify node is still registered (will be removed when pod deleted)
+        assertEquals("jenkins nodes", j.jenkins.getNodes().size(), 1);
+    }
+
     private Pod withContainerStatusTerminated(Pod pod) {
         PodStatus podStatus = pod.getStatus();
         podStatus

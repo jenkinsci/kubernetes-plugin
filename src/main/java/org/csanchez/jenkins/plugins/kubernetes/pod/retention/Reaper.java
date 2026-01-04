@@ -600,9 +600,17 @@ public class Reaper extends ComputerListener {
 
             List<ContainerStatus> backOffContainers = PodUtils.getContainers(pod, cs -> {
                 ContainerStateWaiting waiting = cs.getState().getWaiting();
-                return waiting != null
-                        && waiting.getMessage() != null
-                        && waiting.getMessage().contains("Back-off pulling image");
+                if (waiting == null) {
+                    return false;
+                }
+                // Check reason field first as it's the primary indicator set by Kubernetes
+                String reason = waiting.getReason();
+                if (reason != null && reason.equalsIgnoreCase(IMAGE_PULL_BACK_OFF)) {
+                    return true;
+                }
+                // Fall back to checking message field for backward compatibility
+                String message = waiting.getMessage();
+                return message != null && message.contains("Back-off pulling image");
             });
 
             if (!backOffContainers.isEmpty()) {
@@ -611,6 +619,12 @@ public class Reaper extends ComputerListener {
                 var podUid = pod.getMetadata().getUid();
                 var backOffNumber = ttlCache.get(podUid, k -> 0);
                 ttlCache.put(podUid, ++backOffNumber);
+                final int currentBackOffNumber = backOffNumber;
+                LOGGER.log(
+                        Level.FINE,
+                        () -> "ImagePullBackOff detected for pod "
+                                + pod.getMetadata().getName() + " (event " + currentBackOffNumber + "/"
+                                + BACKOFF_EVENTS_LIMIT + ")");
                 if (backOffNumber >= BACKOFF_EVENTS_LIMIT) {
                     var imagesString = String.join(",", images);
                     node.getRunListener()
