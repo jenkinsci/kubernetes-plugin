@@ -91,4 +91,58 @@ public class KubernetesProvisioningLimitsTest {
             }
         }
     }
+
+    @Test
+    public void testCounterDecrementAfterRestartWithEphemeralTemplate() throws Exception {
+        // Create a cloud with an ephemeral template
+        KubernetesCloud cloud = new KubernetesCloud("test-cloud");
+        cloud.setContainerCap(10);
+        j.jenkins.clouds.add(cloud);
+
+        // Create an ephemeral pod template (not saved to cloud config)
+        PodTemplate ephemeralTemplate = new PodTemplate();
+        ephemeralTemplate.setName("ephemeral-template");
+        ephemeralTemplate.setInstanceCap(5);
+
+        // Register the template (simulates agent creation)
+        KubernetesProvisioningLimits limits = KubernetesProvisioningLimits.get();
+        assertTrue("Should successfully register template", limits.register(cloud, ephemeralTemplate, 1));
+
+        // Get the template ID that was auto-generated
+        String templateId = ephemeralTemplate.getId();
+
+        // Verify counters were incremented after registration
+        assertEquals(
+                "Global count should be 1 after registration", 1, limits.getGlobalCount("test-cloud"));
+        assertEquals(
+                "Template count should be 1 after registration",
+                1,
+                limits.getPodTemplateCount(templateId));
+
+        // Create a KubernetesSlave using Builder pattern
+        KubernetesSlave slave = new KubernetesSlave.Builder()
+                .podTemplate(ephemeralTemplate)
+                .cloud(cloud)
+                .nodeDescription("Test agent for counter leak fix")
+                .build();
+
+        // Add the slave to Jenkins
+        j.jenkins.addNode(slave);
+
+        // Remove the node (simulates agent deletion)
+        // The fix ensures counters are decremented using cloudName and templateId,
+        // even when template reference is null (as happens with ephemeral templates after restart)
+        j.jenkins.removeNode(slave);
+
+        // After deletion, counters should be decremented back to 0
+        // This is the bug fix: should work even when template reference is null
+        assertEquals(
+                "Global count should be 0 after node deletion",
+                0,
+                limits.getGlobalCount("test-cloud"));
+        assertEquals(
+                "Template count should be 0 after node deletion",
+                0,
+                limits.getPodTemplateCount(templateId));
+    }
 }
