@@ -176,25 +176,32 @@ public final class KubernetesProvisioningLimits {
     public void unregisterByIds(@NonNull String cloudName, @NonNull String podTemplateId, int numExecutors) {
         if (initInstance()) {
             synchronized (this) {
-                int newGlobalCount = getGlobalCount(cloudName) - numExecutors;
-                if (newGlobalCount < 0) {
-                    LOGGER.log(
-                            Level.WARNING,
-                            "Global count for " + cloudName
-                                    + " went below zero. There is likely a bug in kubernetes-plugin");
-                }
-                cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
-                LOGGER.log(Level.FINEST, () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
+                // Only unregister if the counts exist (node was actually registered)
+                int currentGlobalCount = getGlobalCount(cloudName);
+                int currentPodTemplateCount = getPodTemplateCount(podTemplateId);
 
-                int newPodTemplateCount = getPodTemplateCount(podTemplateId) - numExecutors;
-                if (newPodTemplateCount < 0) {
+                if (currentGlobalCount > 0 || currentPodTemplateCount > 0) {
+                    int newGlobalCount = currentGlobalCount - numExecutors;
+                    if (newGlobalCount < 0) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Global count for " + cloudName
+                                        + " went below zero. There is likely a bug in kubernetes-plugin");
+                    }
+                    cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
+                    LOGGER.log(Level.FINEST, () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
+
+                    int newPodTemplateCount = currentPodTemplateCount - numExecutors;
+                    if (newPodTemplateCount < 0) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Pod template count for " + podTemplateId
+                                        + " went below zero. There is likely a bug in kubernetes-plugin");
+                    }
+                    podTemplateCounts.put(podTemplateId, Math.max(0, newPodTemplateCount));
                     LOGGER.log(
-                            Level.WARNING,
-                            "Pod template count for " + podTemplateId
-                                    + " went below zero. There is likely a bug in kubernetes-plugin");
+                            Level.FINEST, () -> podTemplateId + " template limit: " + Math.max(0, newPodTemplateCount));
                 }
-                podTemplateCounts.put(podTemplateId, Math.max(0, newPodTemplateCount));
-                LOGGER.log(Level.FINEST, () -> podTemplateId + " template limit: " + Math.max(0, newPodTemplateCount));
             }
         }
     }
