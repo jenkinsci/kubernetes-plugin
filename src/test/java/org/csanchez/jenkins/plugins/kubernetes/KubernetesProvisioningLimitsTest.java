@@ -112,12 +112,8 @@ public class KubernetesProvisioningLimitsTest {
         String templateId = ephemeralTemplate.getId();
 
         // Verify counters were incremented after registration
-        assertEquals(
-                "Global count should be 1 after registration", 1, limits.getGlobalCount("test-cloud"));
-        assertEquals(
-                "Template count should be 1 after registration",
-                1,
-                limits.getPodTemplateCount(templateId));
+        assertEquals("Global count should be 1 after registration", 1, limits.getGlobalCount("test-cloud"));
+        assertEquals("Template count should be 1 after registration", 1, limits.getPodTemplateCount(templateId));
 
         // Create a KubernetesSlave using Builder pattern
         KubernetesSlave slave = new KubernetesSlave.Builder()
@@ -136,13 +132,7 @@ public class KubernetesProvisioningLimitsTest {
 
         // After deletion, counters should be decremented back to 0
         // This is the bug fix: should work even when template reference is null
-        assertEquals(
-                "Global count should be 0 after node deletion",
-                0,
-                limits.getGlobalCount("test-cloud"));
-        assertEquals(
-                "Template count should be 0 after node deletion",
-                0,
-                limits.getPodTemplateCount(templateId));
+        assertEquals("Global count should be 0 after node deletion", 0, limits.getGlobalCount("test-cloud"));
+        assertEquals("Template count should be 0 after node deletion", 0, limits.getPodTemplateCount(templateId));
     }
 }

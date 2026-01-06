@@ -184,9 +184,7 @@ public final class KubernetesProvisioningLimits {
                                     + " went below zero. There is likely a bug in kubernetes-plugin");
                 }
                 cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
-                LOGGER.log(
-                        Level.FINEST,
-                        () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
+                LOGGER.log(Level.FINEST, () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
 
                 int newPodTemplateCount = getPodTemplateCount(podTemplateId) - numExecutors;
                 if (newPodTemplateCount < 0) {
@@ -196,9 +194,7 @@ public final class KubernetesProvisioningLimits {
                                     + " went below zero. There is likely a bug in kubernetes-plugin");
                 }
                 podTemplateCounts.put(podTemplateId, Math.max(0, newPodTemplateCount));
-                LOGGER.log(
-                        Level.FINEST,
-                        () -> podTemplateId + " template limit: " + Math.max(0, newPodTemplateCount));
+                LOGGER.log(Level.FINEST, () -> podTemplateId + " template limit: " + Math.max(0, newPodTemplateCount));
             }
         }
     }
