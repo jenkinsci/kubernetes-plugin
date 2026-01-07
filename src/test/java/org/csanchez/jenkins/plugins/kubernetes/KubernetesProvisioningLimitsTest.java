@@ -125,9 +125,12 @@ public class KubernetesProvisioningLimitsTest {
         // Add the slave to Jenkins
         j.jenkins.addNode(slave);
 
+        // Simulate ephemeral template removal (happens with idleMinutes config after build completion)
+        cloud.removeTemplate(ephemeralTemplate);
+
         // Remove the node (simulates agent deletion)
         // The fix ensures counters are decremented using cloudName and templateId,
-        // even when template reference is null (as happens with ephemeral templates after restart)
+        // even when template reference is null (as happens with ephemeral templates after removal/restart)
         j.jenkins.removeNode(slave);
 
         // After deletion, counters should be decremented back to 0

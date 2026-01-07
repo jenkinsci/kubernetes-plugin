@@ -176,11 +176,9 @@ public final class KubernetesProvisioningLimits {
     public void unregisterByIds(@NonNull String cloudName, @NonNull String podTemplateId, int numExecutors) {
         if (initInstance()) {
             synchronized (this) {
-                // Only unregister if the counts exist (node was actually registered)
+                // Decrement each counter independently if it was registered
                 int currentGlobalCount = getGlobalCount(cloudName);
-                int currentPodTemplateCount = getPodTemplateCount(podTemplateId);
-
-                if (currentGlobalCount > 0 || currentPodTemplateCount > 0) {
+                if (currentGlobalCount > 0) {
                     int newGlobalCount = currentGlobalCount - numExecutors;
                     if (newGlobalCount < 0) {
                         LOGGER.log(
@@ -190,7 +188,10 @@ public final class KubernetesProvisioningLimits {
                     }
                     cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
                     LOGGER.log(Level.FINEST, () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
+                }
 
+                int currentPodTemplateCount = getPodTemplateCount(podTemplateId);
+                if (currentPodTemplateCount > 0) {
                     int newPodTemplateCount = currentPodTemplateCount - numExecutors;
                     if (newPodTemplateCount < 0) {
                         LOGGER.log(
