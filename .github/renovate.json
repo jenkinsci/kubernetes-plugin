@@ -1,10 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ],
-  "labels": [
-    "dependencies"
+    "github>jenkinsci/renovate-config"
   ],
   "packageRules": [
     {
@@ -15,7 +12,7 @@
       "matchPackageNames": [
         "jenkins/inbound-agent"
       ],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?(-(?<buildtype>[^\\.-]*))?$"
     }
   ],
   "enabledManagers": [
