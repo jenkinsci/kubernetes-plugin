@@ -24,11 +24,18 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.function.Consumer;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.junit.Assert;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
+import org.mockito.MockedConstruction;
 
 public class KubernetesClientProviderTest {
 
@@ -85,5 +92,30 @@ public class KubernetesClientProviderTest {
 
     interface ValidityAssertion {
         void doAssert(String message, int before, int after);
+    }
+
+    /**
+     * Verifies that KubernetesClient.close() is called when the client is invalidated
+     * from the cache. This ensures thread pool executors are properly shut down.
+     */
+    @Issue("JENKINS-76095")
+    @Test
+    public void testClientClosedOnInvalidation() throws Exception {
+        KubernetesClient mockClient = mock(KubernetesClient.class);
+        KubernetesCloud cloud = new KubernetesCloud("test-cloud");
+
+        try (MockedConstruction<KubernetesFactoryAdapter> mocked =
+                mockConstruction(KubernetesFactoryAdapter.class, (mock, context) -> {
+                    when(mock.createClient()).thenReturn(mockClient);
+                })) {
+            // Create client (populates cache)
+            KubernetesClientProvider.createClient(cloud);
+
+            // Invalidate (should trigger removal listener which calls close())
+            KubernetesClientProvider.invalidate(cloud.getDisplayName());
+
+            // Verify close was called
+            verify(mockClient).close();
+        }
     }
 }

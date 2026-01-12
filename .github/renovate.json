@@ -12,13 +12,8 @@
       "matchPackageNames": [
         "jenkins/inbound-agent"
       ],
-      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?$"
+      "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?(-(?<buildtype>[^\\.-]*))?$"
     }
-  ],
-  "enabledManagers": [
-    "dockerfile",
-    "docker-compose",
-    "kubernetes"
   ],
   "dockerfile": {
     "managerFilePatterns": [

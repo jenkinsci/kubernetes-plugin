@@ -377,7 +377,7 @@ public class ContainerExecDecoratorTest {
 
         // force expiration of client
         KubernetesClientProvider.invalidate(cloud.getDisplayName());
-        cloud.connect();
+        client = cloud.connect();
         threads.stream().forEach(t -> t.start());
         threads.stream().forEach(t -> {
             try {
