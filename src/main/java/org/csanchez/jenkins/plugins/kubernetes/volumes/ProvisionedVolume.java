@@ -3,7 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes;
 import io.fabric8.kubernetes.api.model.Quantity;
 import java.util.Collections;
 import java.util.Map;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public interface ProvisionedVolume {
     default String getStorageClassNameOrDefault() {

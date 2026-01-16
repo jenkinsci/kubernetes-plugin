@@ -3,7 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.pod.decorator;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import io.fabric8.kubernetes.api.model.Pod;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 
 /**
