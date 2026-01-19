@@ -433,6 +433,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
             return;
         }
 
+        LOGGER.info("Sleeping for 1 minute, the client expires and closes, see if it is a race condition causing leftover pods");
+        Thread.sleep(60000);
+        LOGGER.info("Woke up, continuing termination");
+
         if (deletePod) {
             deleteSlavePod(listener, client);
             Metrics.metricRegistry().counter(MetricNames.PODS_TERMINATED).inc();

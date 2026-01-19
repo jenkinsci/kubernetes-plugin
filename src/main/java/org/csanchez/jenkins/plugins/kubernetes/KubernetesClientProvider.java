@@ -34,7 +34,7 @@ public class KubernetesClientProvider {
      */
     private static final long CACHE_EXPIRATION = Long.getLong(
             KubernetesClientProvider.class.getPackage().getName() + ".clients.cacheExpiration",
-            TimeUnit.MINUTES.toSeconds(10));
+            TimeUnit.MINUTES.toSeconds(1));
 
     private static final Cache<String, Client> clients = Caffeine.newBuilder()
             .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
