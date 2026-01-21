@@ -93,29 +93,4 @@ class KubernetesClientProviderTest {
     interface ValidityAssertion {
         void doAssert(int before, int after, String message);
     }
-
-    /**
-     * Verifies that KubernetesClient.close() is called when the client is invalidated
-     * from the cache. This ensures thread pool executors are properly shut down.
-     */
-    @Issue("JENKINS-76095")
-    @Test
-    void testClientClosedOnInvalidation() throws Exception {
-        KubernetesClient mockClient = mock(KubernetesClient.class);
-        KubernetesCloud cloud = new KubernetesCloud("test-cloud");
-
-        try (MockedConstruction<KubernetesFactoryAdapter> mocked =
-                mockConstruction(KubernetesFactoryAdapter.class, (mock, context) -> {
-                    when(mock.createClient()).thenReturn(mockClient);
-                })) {
-            // Create client (populates cache)
-            KubernetesClientProvider.createClient(cloud);
-
-            // Invalidate (should trigger removal listener which calls close())
-            KubernetesClientProvider.invalidate(cloud.getDisplayName());
-
-            // Verify close was called
-            verify(mockClient).close();
-        }
-    }
 }

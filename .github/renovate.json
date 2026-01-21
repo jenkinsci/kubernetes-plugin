@@ -15,11 +15,6 @@
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>[^\\.-]*)(\\.(?<patch>\\d+))?(-(?<build>\\d+))?(-(?<buildtype>[^\\.-]*))?$"
     }
   ],
-  "enabledManagers": [
-    "dockerfile",
-    "docker-compose",
-    "kubernetes"
-  ],
   "dockerfile": {
     "managerFilePatterns": [
       "/.*\\.dockerfile$/",
