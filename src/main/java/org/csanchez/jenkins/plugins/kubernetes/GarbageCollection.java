@@ -127,7 +127,8 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
     @Extension
     public static final class PeriodicGarbageCollection extends AsyncPeriodicWork {
         public PeriodicGarbageCollection() {
-            super("Garbage collection of orphaned Kubernetes pods");
+            super("Garbage collection of orphaned Kubernetes pods across " + 
+                    Jenkins.get().clouds.getAll(KubernetesCloud.class).size() + " clouds");
         }
 
         @Override
