@@ -46,8 +46,8 @@ import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -260,7 +260,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             // if computer is null then channel is null and thus we were going to return null anyway
             return null;
         } else {
-            return createPath(StringUtils.defaultString(computer.getAbsoluteRemoteFs(), getRemoteFS()));
+            return createPath(Objects.toString(computer.getAbsoluteRemoteFs(), getRemoteFS()));
         }
     }
 

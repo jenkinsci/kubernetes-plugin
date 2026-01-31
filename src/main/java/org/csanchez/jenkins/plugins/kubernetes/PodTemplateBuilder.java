@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,7 +72,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
@@ -308,7 +309,7 @@ public class PodTemplateBuilder {
         }
 
         // default agent container
-        String agentContainerName = StringUtils.defaultString(template.getAgentContainer(), JNLP_NAME);
+        String agentContainerName = Objects.toString(template.getAgentContainer(), JNLP_NAME);
         Optional<Container> agentOpt = pod.getSpec().getContainers().stream()
                 .filter(c -> agentContainerName.equals(c.getName()))
                 .findFirst();

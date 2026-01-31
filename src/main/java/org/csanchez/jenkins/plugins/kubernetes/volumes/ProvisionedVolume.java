@@ -3,7 +3,7 @@ package org.csanchez.jenkins.plugins.kubernetes.volumes;
 import io.fabric8.kubernetes.api.model.Quantity;
 import java.util.Collections;
 import java.util.Map;
-import org.apache.commons.lang.StringUtils;
+import java.util.Objects;
 
 public interface ProvisionedVolume {
     default String getStorageClassNameOrDefault() {
@@ -17,13 +17,13 @@ public interface ProvisionedVolume {
     }
 
     default String getRequestsSizeOrDefault() {
-        return StringUtils.defaultString(getRequestsSize(), "10Gi");
+        return Objects.toString(getRequestsSize(), "10Gi");
     }
 
     String getRequestsSize();
 
     default String getAccessModesOrDefault() {
-        return StringUtils.defaultString(getAccessModes(), "ReadWriteOnce");
+        return Objects.toString(getAccessModes(), "ReadWriteOnce");
     }
 
     String getAccessModes();

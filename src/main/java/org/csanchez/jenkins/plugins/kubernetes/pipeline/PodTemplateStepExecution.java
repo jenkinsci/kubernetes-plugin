@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesFolderProperty;
@@ -28,6 +27,7 @@ import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
 import org.csanchez.jenkins.plugins.kubernetes.PodImagePullSecret;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils;
+import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
@@ -75,8 +75,8 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
         String label;
         String podTemplateLabel = step.getLabel();
         if (podTemplateLabel == null) {
-            var sanitized = PodTemplateUtils.sanitizeLabel(run.getExternalizableId()) + "-"
-                    + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+            var sanitized =
+                    PodTemplateUtils.sanitizeLabel(run.getExternalizableId()) + "-" + PodUtils.generateRandomSuffix();
             assert PodTemplateUtils.validateLabel(sanitized) : sanitized;
             label = sanitized;
         } else {
@@ -85,7 +85,7 @@ public class PodTemplateStepExecution extends AbstractStepExecutionImpl {
 
         // Let's generate a random name based on the user specified to make sure that we don't have
         // issues with concurrent builds, or messing with pre-existing configuration
-        String randString = RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        String randString = PodUtils.generateRandomSuffix();
         String stepName = step.getName();
         if (stepName == null) {
             stepName = label;

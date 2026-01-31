@@ -12,7 +12,7 @@ import io.fabric8.kubernetes.api.model.PodStatus;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Pod container sources are responsible to locating details about Pod containers.

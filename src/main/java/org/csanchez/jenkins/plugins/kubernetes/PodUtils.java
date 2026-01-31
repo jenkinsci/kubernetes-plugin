@@ -38,8 +38,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 
 public final class PodUtils {
@@ -208,7 +208,7 @@ public final class PodUtils {
      */
     @NonNull
     public static String generateRandomSuffix() {
-        return RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        return RandomStringUtils.secure().next(5, "bcdfghjklmnpqrstvwxz0123456789");
     }
 
     /**
