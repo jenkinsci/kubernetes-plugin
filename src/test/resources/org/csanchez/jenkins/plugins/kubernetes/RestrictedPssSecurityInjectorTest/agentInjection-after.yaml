@@ -49,7 +49,7 @@ spec:
     - "cp $(command -v jenkins-agent) /jenkins-agent/jenkins-agent;cp /usr/share/jenkins/agent.jar\
       \ /jenkins-agent/agent.jar;sed -i 's!-jar .*agent.jar!-jar /jenkins-agent\\\
       /agent.jar!' /jenkins-agent/jenkins-agent"
-    image: "jenkins/inbound-agent:3355.v388858a_47b_33-6-jdk21"
+    image: "jenkins/inbound-agent:3352.v17a_fb_4b_2773f-3"
     name: "set-up-jenkins-agent"
     securityContext:
       allowPrivilegeEscalation: false
