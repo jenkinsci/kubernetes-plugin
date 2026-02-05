@@ -184,7 +184,7 @@ public class PodTemplateBuilder {
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
             final String volumeName = (volume instanceof HostPathVolume hp)
-                    ? normalizePath(hp.getHostPath()).replaceFirst("^/", "").replace("/", "-")
+                    ? normalizePath(hp.getHostPath()).replaceFirst("^/", "").replaceAll("[^a-zA-Z0-9-]", "-")
                     : "volume-" + i;
             final String mountPath = normalizePath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
