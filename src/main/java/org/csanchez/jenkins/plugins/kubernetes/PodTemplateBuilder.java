@@ -256,6 +256,9 @@ public class PodTemplateBuilder {
         if (template.getSchedulerName() != null) {
             builder.withSchedulerName(substituteEnv(template.getSchedulerName()));
         }
+        if (template.getPriorityClassName() != null) {
+            builder.withPriorityClassName(substituteEnv(template.getPriorityClassName()));
+        }
 
         List<LocalObjectReference> imagePullSecrets = template.getImagePullSecrets().stream()
                 .map((x) -> x.toLocalObjectReference())
