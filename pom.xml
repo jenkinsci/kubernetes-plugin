@@ -41,8 +41,6 @@
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.host.address />
-    <slaveAgentPort />
     <jenkins.baseline>2.504</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <no-test-jar>false</no-test-jar>
@@ -294,12 +292,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <systemPropertyVariables>
-            <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <hudson.slaves.NodeProvisioner.recurrencePeriod>3000</hudson.slaves.NodeProvisioner.recurrencePeriod>
             <org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>60000</org.jenkinsci.plugins.workflow.support.pickles.ExecutorPickle.timeoutForNodeMillis>
-            <!-- have pods connect to this address for Jenkins -->
-            <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
-            <slaveAgentPort>${slaveAgentPort}</slaveAgentPort>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -308,11 +301,6 @@
         <artifactId>maven-hpi-plugin</artifactId>
         <configuration>
           <systemProperties>
-            <hudson.slaves.NodeProvisioner.initialDelay>0</hudson.slaves.NodeProvisioner.initialDelay>
-            <hudson.slaves.NodeProvisioner.MARGIN>50</hudson.slaves.NodeProvisioner.MARGIN>
-            <hudson.slaves.NodeProvisioner.MARGIN0>0.85</hudson.slaves.NodeProvisioner.MARGIN0>
-            <jenkins.host.address>${jenkins.host.address}</jenkins.host.address>
-            <port>${port}</port>
             <org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>true</org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.verbose>
           </systemProperties>
         </configuration>
@@ -386,6 +374,38 @@
             </executions>
           </plugin>
         </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- kubectl tunnel expose jenkins 8000:8000 8001:8001 -->
+      <id>ktunnel</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <systemPropertyVariables>
+                  <jenkins.host.address>jenkins.default.svc.cluster.local</jenkins.host.address>
+                  <port>8000</port>
+                  <slaveAgentPort>8001</slaveAgentPort>
+                </systemPropertyVariables>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.jenkins-ci.tools</groupId>
+              <artifactId>maven-hpi-plugin</artifactId>
+              <configuration>
+                <defaultPort>8000</defaultPort>
+                <systemProperties>
+                  <jenkins.host.address>jenkins.default.svc.cluster.local</jenkins.host.address>
+                  <jenkins.model.Jenkins.slaveAgentPort>8001</jenkins.model.Jenkins.slaveAgentPort>
+                </systemProperties>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
       </build>
     </profile>
   </profiles>

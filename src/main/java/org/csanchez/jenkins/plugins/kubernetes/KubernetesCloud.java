@@ -1466,7 +1466,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                     && jenkins.clouds.getAll(KubernetesCloud.class).isEmpty()) {
                 KubernetesCloud cloud = new KubernetesCloud("kubernetes");
                 cloud.setJenkinsUrl(
-                        "http://" + hostAddress + ":" + SystemProperties.getInteger("port", 8080) + "/jenkins/");
+                        "http://" + hostAddress + ":" + SystemProperties.getInteger("port", 8000) + "/jenkins/");
                 jenkins.clouds.add(cloud);
             }
         }
