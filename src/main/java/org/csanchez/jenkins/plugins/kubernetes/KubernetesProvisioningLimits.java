@@ -165,6 +165,48 @@ public final class KubernetesProvisioningLimits {
         return podTemplateCounts.getOrDefault(podTemplate, 0);
     }
 
+    /**
+     * Unregister executors using persistent field values (cloudName and templateId).
+     * This method works correctly even after Jenkins restart when transient template references are null.
+     *
+     * @param cloudName the kubernetes cloud name
+     * @param podTemplateId the pod template ID
+     * @param numExecutors the number of executors (pretty much always 1)
+     */
+    public void unregisterByIds(@NonNull String cloudName, @NonNull String podTemplateId, int numExecutors) {
+        if (initInstance()) {
+            synchronized (this) {
+                // Decrement each counter independently if it was registered
+                int currentGlobalCount = getGlobalCount(cloudName);
+                if (currentGlobalCount > 0) {
+                    int newGlobalCount = currentGlobalCount - numExecutors;
+                    if (newGlobalCount < 0) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Global count for " + cloudName
+                                        + " went below zero. There is likely a bug in kubernetes-plugin");
+                    }
+                    cloudCounts.put(cloudName, Math.max(0, newGlobalCount));
+                    LOGGER.log(Level.FINEST, () -> cloudName + " global limit: " + Math.max(0, newGlobalCount));
+                }
+
+                int currentPodTemplateCount = getPodTemplateCount(podTemplateId);
+                if (currentPodTemplateCount > 0) {
+                    int newPodTemplateCount = currentPodTemplateCount - numExecutors;
+                    if (newPodTemplateCount < 0) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Pod template count for " + podTemplateId
+                                        + " went below zero. There is likely a bug in kubernetes-plugin");
+                    }
+                    podTemplateCounts.put(podTemplateId, Math.max(0, newPodTemplateCount));
+                    LOGGER.log(
+                            Level.FINEST, () -> podTemplateId + " template limit: " + Math.max(0, newPodTemplateCount));
+                }
+            }
+        }
+    }
+
     @Extension
     public static class NodeListenerImpl extends NodeListener {
         @Override
@@ -172,10 +214,10 @@ public final class KubernetesProvisioningLimits {
             if (node instanceof KubernetesSlave) {
                 KubernetesProvisioningLimits instance = KubernetesProvisioningLimits.get();
                 KubernetesSlave kubernetesNode = (KubernetesSlave) node;
-                PodTemplate template = kubernetesNode.getTemplateOrNull();
-                if (template != null) {
-                    instance.unregister(kubernetesNode.getKubernetesCloud(), template, node.getNumExecutors());
-                }
+                // Use persistent fields (cloudName, templateId) instead of transient template object
+                // This works correctly even after Jenkins restart when template reference is null
+                instance.unregisterByIds(
+                        kubernetesNode.getCloudName(), kubernetesNode.getTemplateId(), node.getNumExecutors());
             }
         }
     }
