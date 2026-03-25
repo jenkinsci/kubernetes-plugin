@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
