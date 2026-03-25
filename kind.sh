@@ -54,9 +54,7 @@ ktunnel_pid=$!
 mvn \
     -B \
     -ntp \
-    -Djenkins.host.address=jenkins.default \
-    -Dport=8000 \
-    -DslaveAgentPort=8001 \
+    -Pktunnel \
     -Dmaven.test.failure.ignore \
     verify \
     "$@"

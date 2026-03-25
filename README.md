@@ -1015,7 +1015,7 @@ then
 ```bash
 kubectl krew install tunnel # as needed; install Krew first
 kubectl tunnel expose jenkins 8000:8000 8001:8001 &
-mvn test -Djenkins.host.address=jenkins.default.svc.cluster.local -Dport=8000 -DslaveAgentPort=8001 -Dtest=KubernetesPipelineTest#runInPod
+mvn test -Pktunnel -Dtest=KubernetesPipelineTest#runInPod
 ```
 
 Alternately, you can run everything like in CI:
@@ -1028,7 +1028,7 @@ export KIND_PRELOAD=true # optionally
 You can also run interactively after setting up the tunnel:
 
 ```bash
-mvn hpi:run -Djenkins.host.address=jenkins.default -Dport=8000 -Djenkins.model.Jenkins.slaveAgentPort=8001
+mvn hpi:run -Pktunnel
 ```
 
 # Docker image
