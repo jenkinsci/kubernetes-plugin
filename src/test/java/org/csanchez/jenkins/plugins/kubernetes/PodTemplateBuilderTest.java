@@ -866,6 +866,36 @@ public class PodTemplateBuilderTest {
     }
 
     @Test
+    public void yamlOverridePriorityClassName() {
+        PodTemplate parent = new PodTemplate();
+        parent.setYaml("apiVersion: v1\n" + "kind: Pod\n"
+                + "metadata:\n"
+                + "  labels:\n"
+                + "    some-label: some-label-value\n"
+                + "spec:\n"
+                + "  priorityClassName: parent-priority\n");
+
+        PodTemplate child = new PodTemplate();
+        child.setYaml("spec:\n" + "  priorityClassName: child-priority\n");
+        child.setInheritFrom("parent");
+        child.setYamlMergeStrategy(merge());
+        PodTemplate result = combine(parent, child);
+        Pod pod = new PodTemplateBuilder(result, slave).build();
+        assertEquals("child-priority", pod.getSpec().getPriorityClassName());
+    }
+
+    @Test
+    public void topLevelPriorityClassNameIsApplied() {
+        PodTemplate template = new PodTemplate();
+        template.setPriorityClassName("high-priority");
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertEquals("high-priority", pod.getSpec().getPriorityClassName());
+    }
+
+    @Test
     public void yamlOverrideSecurityContext() {
         PodTemplate parent = new PodTemplate();
         parent.setYaml("apiVersion: v1\n" + "kind: Pod\n"

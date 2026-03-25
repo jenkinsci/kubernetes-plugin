@@ -79,6 +79,9 @@ public class PodTemplateStep extends Step implements Serializable {
     private String schedulerName;
 
     @CheckForNull
+    private String priorityClassName;
+
+    @CheckForNull
     private String nodeSelector;
 
     private Node.Mode nodeUsageMode = Node.Mode.EXCLUSIVE;
@@ -311,6 +314,16 @@ public class PodTemplateStep extends Step implements Serializable {
     }
 
     @CheckForNull
+    public String getPriorityClassName() {
+        return priorityClassName;
+    }
+
+    @DataBoundSetter
+    public void setPriorityClassName(@CheckForNull String priorityClassName) {
+        this.priorityClassName = Util.fixEmpty(priorityClassName);
+    }
+
+    @CheckForNull
     public String getNodeSelector() {
         return nodeSelector;
     }
@@ -458,6 +471,7 @@ public class PodTemplateStep extends Step implements Serializable {
             "idleMinutes",
             "activeDeadlineSeconds",
             "serviceAccount",
+            "priorityClassName",
             "nodeSelector",
             "workingDir",
             "workspaceVolume",

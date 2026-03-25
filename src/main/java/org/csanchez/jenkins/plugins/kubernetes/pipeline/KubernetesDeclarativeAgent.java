@@ -63,6 +63,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     private String schedulerName;
 
     @CheckForNull
+    private String priorityClassName;
+
+    @CheckForNull
     private String nodeSelector;
 
     @CheckForNull
@@ -203,6 +206,15 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
     @DataBoundSetter
     public void setSchedulerName(String schedulerName) {
         this.schedulerName = schedulerName;
+    }
+
+    public String getPriorityClassName() {
+        return priorityClassName;
+    }
+
+    @DataBoundSetter
+    public void setPriorityClassName(String priorityClassName) {
+        this.priorityClassName = priorityClassName;
     }
 
     public String getNodeSelector() {
@@ -426,6 +438,9 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (!StringUtils.isEmpty(serviceAccount)) {
             argMap.put("serviceAccount", serviceAccount);
         }
+        if (!StringUtils.isEmpty(priorityClassName)) {
+            argMap.put("priorityClassName", priorityClassName);
+        }
         if (!StringUtils.isEmpty(nodeSelector)) {
             argMap.put("nodeSelector", nodeSelector);
         }
@@ -475,6 +490,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
             "idleMinutes",
             "activeDeadlineSeconds",
             "serviceAccount",
+            "priorityClassName",
             "nodeSelector",
             "workingDir",
             "workspaceVolume",
