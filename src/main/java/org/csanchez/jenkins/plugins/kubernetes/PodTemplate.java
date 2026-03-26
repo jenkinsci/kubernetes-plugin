@@ -940,6 +940,12 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
         if (containers == null) {
             // upgrading from 0.8
             containers = new ArrayList<>();
+        }
+
+        // Migrate deprecated fields from PodTemplate to first container
+        // This handles both legacy configs (plugin v0.8) and modern configs where
+        // deprecated setters were used before containers were added
+        if (containers.isEmpty() && image != null) {
             ContainerTemplate containerTemplate = new ContainerTemplate(KubernetesCloud.JNLP_NAME, this.image);
             containerTemplate.setCommand(command);
             containerTemplate.setArgs(PodTemplateUtils.isNullOrEmpty(args) ? FALLBACK_ARGUMENTS : args);
@@ -956,6 +962,32 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
             containerTemplate.setResourceRequestEphemeralStorage(resourceRequestEphemeralStorage);
             containerTemplate.setWorkingDir(remoteFs);
             containers.add(containerTemplate);
+        } else if (!containers.isEmpty()
+                && (resourceLimitMemory != null
+                        || resourceLimitCpu != null
+                        || resourceRequestMemory != null
+                        || resourceRequestCpu != null)) {
+            // Apply deprecated resource fields to first container if they're set
+            // but container doesn't have them (happens when deprecated setters were used)
+            ContainerTemplate first = containers.get(0);
+            if (resourceLimitMemory != null && first.getResourceLimitMemory() == null) {
+                first.setResourceLimitMemory(resourceLimitMemory);
+            }
+            if (resourceLimitCpu != null && first.getResourceLimitCpu() == null) {
+                first.setResourceLimitCpu(resourceLimitCpu);
+            }
+            if (resourceRequestMemory != null && first.getResourceRequestMemory() == null) {
+                first.setResourceRequestMemory(resourceRequestMemory);
+            }
+            if (resourceRequestCpu != null && first.getResourceRequestCpu() == null) {
+                first.setResourceRequestCpu(resourceRequestCpu);
+            }
+            if (resourceLimitEphemeralStorage != null && first.getResourceLimitEphemeralStorage() == null) {
+                first.setResourceLimitEphemeralStorage(resourceLimitEphemeralStorage);
+            }
+            if (resourceRequestEphemeralStorage != null && first.getResourceRequestEphemeralStorage() == null) {
+                first.setResourceRequestEphemeralStorage(resourceRequestEphemeralStorage);
+            }
         }
 
         if (annotations == null) {
