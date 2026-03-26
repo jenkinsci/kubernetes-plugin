@@ -23,17 +23,23 @@
  */
 package org.csanchez.jenkins.plugins.kubernetes;
 
-import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.fabric8.kubernetes.client.KubernetesClient;
 import java.util.function.Consumer;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
+import org.mockito.MockedConstruction;
 
-public class KubernetesClientProviderTest {
+class KubernetesClientProviderTest {
 
     @Test
-    public void testGetValidity() {
+    void testGetValidity() {
         KubernetesCloud cloud = new KubernetesCloud("foo");
         // changes to these properties should trigger different validity value
         checkValidityChanges(
@@ -60,15 +66,16 @@ public class KubernetesClientProviderTest {
                 c -> c.setDirectConnection(true));
 
         // verify stability
-        assertEquals(KubernetesClientProvider.getValidity(cloud), KubernetesClientProvider.getValidity(cloud));
+        Assertions.assertEquals(
+                KubernetesClientProvider.getValidity(cloud), KubernetesClientProvider.getValidity(cloud));
     }
 
     private void checkValidityChanges(KubernetesCloud cloud, Consumer<KubernetesCloud>... mutations) {
-        checkValidity(cloud, Assert::assertNotEquals, mutations);
+        checkValidity(cloud, Assertions::assertNotEquals, mutations);
     }
 
     private void checkValidityDoesNotChange(KubernetesCloud cloud, Consumer<KubernetesCloud>... mutations) {
-        checkValidity(cloud, Assert::assertEquals, mutations);
+        checkValidity(cloud, Assertions::assertEquals, mutations);
     }
 
     private void checkValidity(
@@ -78,12 +85,12 @@ public class KubernetesClientProviderTest {
         for (Consumer<KubernetesCloud> mut : mutations) {
             mut.accept(cloud);
             int after = KubernetesClientProvider.getValidity(cloud);
-            validityAssertion.doAssert("change #" + count++ + " of " + mutations.length, v, after);
+            validityAssertion.doAssert(v, after, "change #" + count++ + " of " + mutations.length);
             v = after;
         }
     }
 
     interface ValidityAssertion {
-        void doAssert(String message, int before, int after);
+        void doAssert(int before, int after, String message);
     }
 }
