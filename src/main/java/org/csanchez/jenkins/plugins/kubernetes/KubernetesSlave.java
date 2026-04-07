@@ -442,6 +442,24 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 name, getPodRetention(cloud)
             });
         }
+
+        // Close the namespace informer if no other pod managed by this cloud remains.
+        // Without this cleanup, informers for ephemeral namespaces (HNC, etc.) survive
+        // indefinitely after the namespace is deleted, leaking threads and flooding
+        // logs with 403 Forbidden errors.
+        String ns = getNamespace();
+        if (ns != null) {
+            boolean namespaceStillInUse = Jenkins.get().getNodes().stream()
+                    .filter(KubernetesSlave.class::isInstance)
+                    .map(KubernetesSlave.class::cast)
+                    .filter(s -> s != this)
+                    .filter(s -> getCloudName().equals(s.getCloudName()))
+                    .anyMatch(s -> ns.equals(s.getNamespace()));
+            if (!namespaceStillInUse) {
+                cloud.unregisterPodInformer(ns);
+            }
+        }
+
         String msg = String.format("Disconnected computer %s", name);
         LOGGER.log(Level.INFO, msg);
         listener.getLogger().println(msg);
