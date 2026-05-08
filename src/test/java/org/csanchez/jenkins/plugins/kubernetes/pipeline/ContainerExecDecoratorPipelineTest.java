@@ -28,12 +28,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
 
 public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
+
+    @ClassRule
+    public static BuildWatcher buildWatcher = new BuildWatcher();
+
+    {
+        r.timeout = 0;
+    }
 
     @Rule
     public LoggerRule containerExecLogs = new LoggerRule()
@@ -114,6 +123,15 @@ public class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipeli
         r.assertLogContains("from Groovy: $string$with$dollars", b);
         r.assertLogContains("outside container: $string$with$dollars", b);
         r.assertLogContains("inside container: $string$with$dollars", b);
+    }
+
+    @Test
+    public void lotsOfContainerSteps() throws Exception {
+        assertNotNull(createJobThenScheduleRun());
+        r.assertBuildStatusSuccess(r.waitForCompletion(b));
+        /*
+        watch 'jmap -histo:live `jps -lm|fgrep surefirebooter|cut -d" " -f1` | fgrep org.csanchez.jenkins.plugins.kubernetes.pipeline.Container'
+        */
     }
 
     @Test

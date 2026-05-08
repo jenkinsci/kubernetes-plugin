@@ -15,11 +15,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.util.Timer;
 import org.apache.commons.io.output.NullPrintStream;
 
 /**
@@ -29,6 +30,8 @@ import org.apache.commons.io.output.NullPrintStream;
 public class ContainerExecProc extends Proc implements Closeable, Runnable {
 
     private static final Logger LOGGER = Logger.getLogger(ContainerExecProc.class.getName());
+
+    private static final ScheduledExecutorService svc = Executors.newScheduledThreadPool(0);
 
     private final AtomicBoolean alive;
     private final CountDownLatch finished;
@@ -70,7 +73,7 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
         this.alive = alive;
         this.finished = finished;
         this.printStream = printStream == null ? NullPrintStream.NULL_PRINT_STREAM : printStream;
-        Timer.get().schedule(this, 1, TimeUnit.MINUTES);
+        svc.schedule(this, 5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -169,7 +172,7 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
             stdin.write(NEWLINE.getBytes(StandardCharsets.UTF_8));
             stdin.flush();
             LOGGER.fine("sent a newline to keep socket alive");
-            Timer.get().schedule(this, 1, TimeUnit.MINUTES);
+            svc.schedule(this, 5, TimeUnit.SECONDS);
         } catch (IOException x) {
             LOGGER.log(Level.FINE, "socket keepalive failed", x);
         }
