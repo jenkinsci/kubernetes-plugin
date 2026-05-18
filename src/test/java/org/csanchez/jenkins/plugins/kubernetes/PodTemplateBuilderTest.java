@@ -13,6 +13,9 @@ import static org.mockito.Mockito.*;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
+import io.fabric8.kubernetes.api.model.SecretKeySelectorBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSecurityContext;
 import io.fabric8.kubernetes.api.model.Quantity;
@@ -476,7 +479,16 @@ public class PodTemplateBuilderTest {
             } else {
                 envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             }
-            envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
+            envVars.add(new EnvVarBuilder()
+                    .withName("JENKINS_SECRET")
+                    .withValueFrom(new EnvVarSourceBuilder()
+                            .withSecretKeyRef(new SecretKeySelectorBuilder()
+                                    .withName(AGENT_NAME + JNLP_SECRET_NAME_SUFFIX)
+                                    .withKey(JNLP_SECRET_KEY)
+                                    .withOptional(false)
+                                    .build())
+                            .build())
+                    .build());
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));

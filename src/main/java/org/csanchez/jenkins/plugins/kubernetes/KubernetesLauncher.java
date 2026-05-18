@@ -39,7 +39,10 @@ import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.IOException;
@@ -218,8 +221,11 @@ public class KubernetesLauncher extends JNLPLauncher {
             } else {
                 LOGGER.log(INFO, () -> "Pod already exists: " + cloudName + " " + namespace + "/" + podName);
                 listener.getLogger().printf("Pod already exists: %s %s/%s%n", cloudName, namespace, podName);
+                pod = existingPod;
             }
             kubernetesComputer.setLaunching(true);
+
+            createJnlpSecret(client, pod, kubernetesComputer.getJnlpMac());
 
             ObjectMeta podMetadata = pod.getMetadata();
             template.getWorkspaceVolume().createVolume(client, podMetadata);
@@ -331,6 +337,44 @@ public class KubernetesLauncher extends JNLPLauncher {
             LOGGER.log(Level.FINER, "Removing Jenkins node: {0}", node.getNodeName());
             terminateOrLog(node);
             throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * Create a per-agent Kubernetes Secret holding the JNLP HMAC, owned by the Pod so it is
+     * garbage-collected with it. The Secret is referenced by the jnlp container via secretKeyRef,
+     * so the value never appears in the PodSpec.
+     */
+    private static void createJnlpSecret(KubernetesClient client, Pod pod, String jnlpMac) {
+        String namespace = pod.getMetadata().getNamespace();
+        String secretName = pod.getMetadata().getName() + PodTemplateBuilder.JNLP_SECRET_NAME_SUFFIX;
+        Secret secret = new SecretBuilder()
+                .withNewMetadata()
+                .withName(secretName)
+                .withNamespace(namespace)
+                .addToOwnerReferences(new OwnerReferenceBuilder()
+                        .withApiVersion("v1")
+                        .withKind("Pod")
+                        .withName(pod.getMetadata().getName())
+                        .withUid(pod.getMetadata().getUid())
+                        .withController(true)
+                        .withBlockOwnerDeletion(true)
+                        .build())
+                .endMetadata()
+                .withType("Opaque")
+                .addToStringData(PodTemplateBuilder.JNLP_SECRET_KEY, jnlpMac)
+                .build();
+        try {
+            client.secrets().inNamespace(namespace).create(secret);
+            LOGGER.log(FINE, () -> "Created JNLP Secret: " + namespace + "/" + secretName);
+        } catch (KubernetesClientException e) {
+            if (e.getCode() == 409) {
+                // Already exists from a previous launcher attempt; the JNLP mac is deterministic
+                // per agent identity, so the existing value is still valid.
+                LOGGER.log(FINE, () -> "JNLP Secret already exists, reusing: " + namespace + "/" + secretName);
+            } else {
+                throw e;
+            }
         }
     }
 

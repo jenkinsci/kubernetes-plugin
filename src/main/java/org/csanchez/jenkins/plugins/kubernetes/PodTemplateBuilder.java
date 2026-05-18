@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -48,6 +49,7 @@ import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.SecretKeySelectorBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -96,6 +98,10 @@ public class PodTemplateBuilder {
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
+
+    public static final String JNLP_SECRET_NAME_SUFFIX = "-jnlp-secret";
+    public static final String JNLP_SECRET_KEY = "jenkins-secret";
+
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
@@ -467,8 +473,9 @@ public class PodTemplateBuilder {
         if (agent != null) {
             SlaveComputer computer = agent.getComputer();
             if (computer != null) {
-                // Add some default env vars for Jenkins
-                env.put("JENKINS_SECRET", computer.getJnlpMac());
+                // JENKINS_SECRET is injected via a per-agent Kubernetes Secret (see KubernetesLauncher)
+                // so the literal value never appears in the PodSpec, where anyone with
+                // `get pods` could read it.
                 // JENKINS_AGENT_NAME is default in jnlp-slave
                 // JENKINS_NAME only here for backwords compatability
                 env.put("JENKINS_NAME", computer.getName());
@@ -503,7 +510,24 @@ public class PodTemplateBuilder {
         Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         env.entrySet().forEach(item -> envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null)));
+
+        if (agent != null && agent.getComputer() != null) {
+            envVarsMap.put("JENKINS_SECRET", buildJnlpSecretEnvVar(agent.getComputer().getName()));
+        }
         return envVarsMap;
+    }
+
+    private static EnvVar buildJnlpSecretEnvVar(String agentName) {
+        return new EnvVarBuilder()
+                .withName("JENKINS_SECRET")
+                .withValueFrom(new EnvVarSourceBuilder()
+                        .withSecretKeyRef(new SecretKeySelectorBuilder()
+                                .withName(agentName + JNLP_SECRET_NAME_SUFFIX)
+                                .withKey(JNLP_SECRET_KEY)
+                                .withOptional(false)
+                                .build())
+                        .build())
+                .build();
     }
 
     private Container createContainer(
