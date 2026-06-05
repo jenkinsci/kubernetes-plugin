@@ -984,6 +984,42 @@ public class PodTemplateBuilderTest {
         assertThat(pod.getSpec().getNodeSelector(), anEmptyMap());
     }
 
+    @Test
+    public void testNoRetryLabelOnFirstAttempt() throws Exception {
+        when(slave.getRetryAttempt()).thenReturn(0);
+        setupStubs();
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        assertThat(
+                "retry label must be absent on first attempt",
+                pod.getMetadata().getLabels(),
+                not(hasKey(PodTemplateBuilder.LABEL_KUBERNETES_RETRY)));
+        assertThat(
+                "retry annotation must be absent on first attempt",
+                pod.getMetadata().getAnnotations() == null
+                        || !pod.getMetadata().getAnnotations().containsKey(
+                                PodTemplateBuilder.ANNOTATION_KUBERNETES_RETRY_ATTEMPT),
+                is(true));
+    }
+
+    @Test
+    public void testRetryLabelAndAnnotationOnRetryAttempt() throws Exception {
+        when(slave.getRetryAttempt()).thenReturn(1);
+        setupStubs();
+        PodTemplate template = new PodTemplate();
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+        assertThat(
+                "retry label must be present on retry attempt",
+                pod.getMetadata().getLabels(),
+                hasEntry(PodTemplateBuilder.LABEL_KUBERNETES_RETRY, "true"));
+        assertThat(
+                "retry-attempt annotation must equal the attempt number",
+                pod.getMetadata().getAnnotations(),
+                hasEntry(PodTemplateBuilder.ANNOTATION_KUBERNETES_RETRY_ATTEMPT, "1"));
+    }
+
     private Map<String, Container> toContainerMap(Pod pod) {
         return pod.getSpec().getContainers().stream()
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
