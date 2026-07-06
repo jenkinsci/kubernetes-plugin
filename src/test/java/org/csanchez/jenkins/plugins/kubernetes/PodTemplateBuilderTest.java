@@ -998,8 +998,9 @@ public class PodTemplateBuilderTest {
         assertThat(
                 "retry annotation must be absent on first attempt",
                 pod.getMetadata().getAnnotations() == null
-                        || !pod.getMetadata().getAnnotations().containsKey(
-                                PodTemplateBuilder.ANNOTATION_KUBERNETES_RETRY_ATTEMPT),
+                        || !pod.getMetadata()
+                                .getAnnotations()
+                                .containsKey(PodTemplateBuilder.ANNOTATION_KUBERNETES_RETRY_ATTEMPT),
                 is(true));
     }
 

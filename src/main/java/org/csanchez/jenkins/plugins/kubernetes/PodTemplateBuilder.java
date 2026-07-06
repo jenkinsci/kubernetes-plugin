@@ -104,6 +104,7 @@ public class PodTemplateBuilder {
      * Absent on the first provisioning attempt.
      */
     public static final String ANNOTATION_KUBERNETES_RETRY_ATTEMPT = "kubernetes.jenkins.io/retry-attempt";
+
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";

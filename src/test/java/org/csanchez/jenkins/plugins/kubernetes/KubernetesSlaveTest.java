@@ -173,16 +173,22 @@ public class KubernetesSlaveTest {
         podTemplate.setName("retry-test");
         podTemplate.setLabel("retry-test");
 
-        KubernetesSlave first =
-                new KubernetesSlave.Builder().podTemplate(podTemplate).cloud(cloud).build();
+        KubernetesSlave first = new KubernetesSlave.Builder()
+                .podTemplate(podTemplate)
+                .cloud(cloud)
+                .build();
         assertEquals("First provisioning should not be a retry", 0, first.getRetryAttempt());
 
-        KubernetesSlave second =
-                new KubernetesSlave.Builder().podTemplate(podTemplate).cloud(cloud).build();
+        KubernetesSlave second = new KubernetesSlave.Builder()
+                .podTemplate(podTemplate)
+                .cloud(cloud)
+                .build();
         assertEquals("Second provisioning should be retry #1", 1, second.getRetryAttempt());
 
-        KubernetesSlave third =
-                new KubernetesSlave.Builder().podTemplate(podTemplate).cloud(cloud).build();
+        KubernetesSlave third = new KubernetesSlave.Builder()
+                .podTemplate(podTemplate)
+                .cloud(cloud)
+                .build();
         assertEquals("Third provisioning should be retry #2", 2, third.getRetryAttempt());
 
         cloud.addDynamicTemplate(podTemplate);
@@ -191,10 +197,11 @@ public class KubernetesSlaveTest {
                 "Provision count must be cleared after template removal",
                 KubernetesSlave.TEMPLATE_PROVISION_COUNTS.containsKey(podTemplate.getId()));
 
-        KubernetesSlave afterReset =
-                new KubernetesSlave.Builder().podTemplate(podTemplate).cloud(cloud).build();
-        assertEquals(
-                "After counter reset, first provisioning should not be a retry", 0, afterReset.getRetryAttempt());
+        KubernetesSlave afterReset = new KubernetesSlave.Builder()
+                .podTemplate(podTemplate)
+                .cloud(cloud)
+                .build();
+        assertEquals("After counter reset, first provisioning should not be a retry", 0, afterReset.getRetryAttempt());
     }
 
     @Test
