@@ -11,4 +11,3 @@ nb-configuration.xml
 *.bak
 /.vscode/
 **/.DS_Store
-/.codex-m2-repo/
