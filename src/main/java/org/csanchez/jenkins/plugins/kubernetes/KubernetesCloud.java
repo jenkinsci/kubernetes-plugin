@@ -1448,6 +1448,25 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         });
     }
 
+    /**
+     * Close and remove the informer associated with the given namespace.
+     * Should be called when no more pods managed by this cloud exist in the namespace
+     * (typically from {@link KubernetesSlave#_terminate}).
+     *
+     * @param namespace the namespace whose informer should be closed
+     */
+    public void unregisterPodInformer(String namespace) {
+        if (informers == null) {
+            return;
+        }
+        SharedIndexInformer<Pod> informer = informers.remove(namespace);
+        if (informer != null) {
+            informer.close();
+            LOGGER.info(() -> String.format(
+                    "Closed informer for namespace [%s] on cloud [%s]", namespace, name));
+        }
+    }
+
     @Extension
     public static class PodTemplateSourceImpl extends PodTemplateSource {
         @NonNull
