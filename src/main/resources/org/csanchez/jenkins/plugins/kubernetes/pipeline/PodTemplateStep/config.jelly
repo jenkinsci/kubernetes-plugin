@@ -82,6 +82,9 @@
         <f:entry field="serviceAccount" title="${%Service Account}">
           <f:textbox/>
         </f:entry>
+        <f:entry field="priorityClassName" title="${%Priority Class Name}">
+          <f:textbox/>
+        </f:entry>
         <f:entry field="nodeSelector" title="${%Node Selector}">
           <f:textbox/>
         </f:entry>

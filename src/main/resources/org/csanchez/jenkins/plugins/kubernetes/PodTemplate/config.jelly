@@ -114,6 +114,10 @@ THE SOFTWARE.
         <f:textbox/>
   </f:entry>
 
+  <f:entry field="priorityClassName" title="${%Priority Class Name}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="runAsUser" title="${%Run As User ID}">
     <f:textbox/>
   </f:entry>

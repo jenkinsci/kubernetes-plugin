@@ -154,6 +154,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private String schedulerName;
 
+    private String priorityClassName;
+
     private String nodeSelector;
 
     private Node.Mode nodeUsageMode;
@@ -606,6 +608,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setSchedulerName(String schedulerName) {
         this.schedulerName = Util.fixEmpty(schedulerName);
+    }
+
+    public String getPriorityClassName() {
+        return priorityClassName;
+    }
+
+    @DataBoundSetter
+    public void setPriorityClassName(String priorityClassName) {
+        this.priorityClassName = Util.fixEmpty(priorityClassName);
     }
 
     @Deprecated
@@ -1173,6 +1184,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 + (label == null ? "" : ", label='" + label + '\'')
                 + (serviceAccount == null ? "" : ", serviceAccount='" + serviceAccount + '\'')
                 + (schedulerName == null ? "" : ", schedulerName='" + schedulerName + '\'')
+                + (priorityClassName == null ? "" : ", priorityClassName='" + priorityClassName + '\'')
                 + (nodeSelector == null ? "" : ", nodeSelector='" + nodeSelector + '\'')
                 + (nodeUsageMode == null ? "" : ", nodeUsageMode=" + nodeUsageMode)
                 + (resourceRequestCpu == null ? "" : ", resourceRequestCpu='" + resourceRequestCpu + '\'')

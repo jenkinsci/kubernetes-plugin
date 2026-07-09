@@ -332,6 +332,7 @@ public class PodTemplateUtils {
                 .withServiceAccount(h.resolve(PodSpec::getServiceAccount, PodTemplateUtils::isNullOrEmpty)) //
                 .withServiceAccountName(h.resolve(PodSpec::getServiceAccountName, PodTemplateUtils::isNullOrEmpty)) //
                 .withSchedulerName(h.resolve(PodSpec::getSchedulerName, PodTemplateUtils::isNullOrEmpty))
+                .withPriorityClassName(h.resolve(PodSpec::getPriorityClassName, PodTemplateUtils::isNullOrEmpty))
                 .withActiveDeadlineSeconds(h.resolve(PodSpec::getActiveDeadlineSeconds, Objects::isNull)) //
                 .withHostNetwork(h.resolve(PodSpec::getHostNetwork, Objects::isNull)) //
                 .withShareProcessNamespace(h.resolve(PodSpec::getShareProcessNamespace, Objects::isNull)) //
@@ -473,6 +474,7 @@ public class PodTemplateUtils {
         podTemplate.setNodeSelector(h.resolve(PodTemplate::getNodeSelector, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setServiceAccount(h.resolve(PodTemplate::getServiceAccount, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setSchedulerName(h.resolve(PodTemplate::getSchedulerName, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setPriorityClassName(h.resolve(PodTemplate::getPriorityClassName, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setEnvVars(combineEnvVars(parent, template));
         podTemplate.setContainers(new ArrayList<>(combinedContainers.values()));
         podTemplate.setWorkspaceVolume(workspaceVolume);
@@ -496,6 +498,7 @@ public class PodTemplateUtils {
                 h.resolve(PodTemplate::getActiveDeadlineSeconds, i -> Objects.equals(i, 0)));
         podTemplate.setServiceAccount(h.resolve(PodTemplate::getServiceAccount, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setSchedulerName(h.resolve(PodTemplate::getSchedulerName, PodTemplateUtils::isNullOrEmpty));
+        podTemplate.setPriorityClassName(h.resolve(PodTemplate::getPriorityClassName, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setPodRetention(template.getPodRetention());
         podTemplate.setShowRawYaml(h.resolve(PodTemplate::isShowRawYaml, v -> v));
         podTemplate.setRunAsUser(h.resolve(PodTemplate::getRunAsUser, Objects::isNull));

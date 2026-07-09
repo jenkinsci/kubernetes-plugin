@@ -169,6 +169,26 @@ public class PodTemplateUtilsTest {
     }
 
     @Test
+    public void shouldOverridePriorityClassNameIfSpecified() {
+        PodTemplate parent = new PodTemplate();
+        parent.setName("parent");
+        parent.setPriorityClassName("parent-priority");
+
+        PodTemplate template1 = new PodTemplate();
+        template1.setName("template1");
+        template1.setPriorityClassName("child-priority");
+
+        PodTemplate template2 = new PodTemplate();
+        template2.setName("template2");
+
+        PodTemplate result = combine(parent, template1);
+        assertEquals("child-priority", result.getPriorityClassName());
+
+        result = combine(parent, template2);
+        assertEquals("parent-priority", result.getPriorityClassName());
+    }
+
+    @Test
     public void shouldCombineAllImagePullSecrets() {
         PodTemplate parent = new PodTemplate();
         parent.setName("parent");
@@ -252,6 +272,7 @@ public class PodTemplateUtilsTest {
         parent.setName("parent");
         parent.setLabel("parent");
         parent.setServiceAccount("sa");
+        parent.setPriorityClassName("parent-priority");
         parent.setNodeSelector("key:value");
         parent.setImagePullSecrets(asList(SECRET_1));
         parent.setYaml("Yaml");
@@ -263,12 +284,14 @@ public class PodTemplateUtilsTest {
         template1.setName("template1");
         template1.setInheritFrom("parent");
         template1.setServiceAccount("sa1");
+        template1.setPriorityClassName("child-priority");
         template1.setImagePullSecrets(asList(SECRET_2, SECRET_3));
         template1.setYaml("Yaml2");
 
         PodTemplate result = unwrap(template1, asList(parent, template1));
         assertEquals(3, result.getImagePullSecrets().size());
         assertEquals("sa1", result.getServiceAccount());
+        assertEquals("child-priority", result.getPriorityClassName());
         assertEquals("key:value", result.getNodeSelector());
         assertThat(result.getYamls(), hasSize(2));
         assertThat(result.getYamls(), contains("Yaml", "Yaml2"));
@@ -284,6 +307,7 @@ public class PodTemplateUtilsTest {
         podTemplate.setNamespace("NameSpace");
         podTemplate.setLabel("Label");
         podTemplate.setServiceAccount("ServiceAccount");
+        podTemplate.setPriorityClassName("PriorityClassName");
         podTemplate.setNodeSelector("NodeSelector");
         podTemplate.setNodeUsageMode(Node.Mode.EXCLUSIVE);
         podTemplate.setImagePullSecrets(asList(SECRET_1));
@@ -301,6 +325,7 @@ public class PodTemplateUtilsTest {
         assertEquals("NameSpace", selfCombined.getNamespace());
         assertEquals("Label", selfCombined.getLabel());
         assertEquals("ServiceAccount", selfCombined.getServiceAccount());
+        assertEquals("PriorityClassName", selfCombined.getPriorityClassName());
         assertEquals("NodeSelector", selfCombined.getNodeSelector());
         assertEquals(Node.Mode.EXCLUSIVE, selfCombined.getNodeUsageMode());
         assertEquals(asList(SECRET_1), selfCombined.getImagePullSecrets());
