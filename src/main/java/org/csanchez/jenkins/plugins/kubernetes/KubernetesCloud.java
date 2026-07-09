@@ -929,6 +929,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      */
     public void removeDynamicTemplate(PodTemplate t) {
         PodTemplateMap.get().removeTemplate(this, t);
+        KubernetesSlave.TEMPLATE_PROVISION_COUNTS.remove(t.getId());
     }
 
     @Override

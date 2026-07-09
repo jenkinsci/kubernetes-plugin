@@ -96,6 +96,15 @@ public class PodTemplateBuilder {
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
+    /** Label added to retry pods: {@code kubernetes.jenkins.io/retry=true}. */
+    public static final String LABEL_KUBERNETES_RETRY = "kubernetes.jenkins.io/retry";
+    /**
+     * Annotation added to retry pods. The value equals {@link KubernetesSlave#getRetryAttempt()}:
+     * {@code "1"} for the first retry, {@code "2"} for the second retry, etc.
+     * Absent on the first provisioning attempt.
+     */
+    public static final String ANNOTATION_KUBERNETES_RETRY_ATTEMPT = "kubernetes.jenkins.io/retry-attempt";
+
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
@@ -239,6 +248,11 @@ public class PodTemplateBuilder {
         Map<String, String> annotations = getAnnotationsMap(template.getAnnotations());
         if (!annotations.isEmpty()) {
             metadataBuilder.withAnnotations(annotations);
+        }
+        if (agent != null && agent.getRetryAttempt() > 0) {
+            metadataBuilder.addToLabels(LABEL_KUBERNETES_RETRY, "true");
+            metadataBuilder.addToAnnotations(
+                    ANNOTATION_KUBERNETES_RETRY_ATTEMPT, String.valueOf(agent.getRetryAttempt()));
         }
 
         var builder = metadataBuilder.endMetadata().withNewSpec();

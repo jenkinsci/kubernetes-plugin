@@ -37,10 +37,12 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
@@ -73,6 +75,20 @@ public class KubernetesSlave extends AbstractCloudSlave {
      */
     private static final ResourceBundleHolder HOLDER = ResourceBundleHolder.get(Messages.class);
 
+    /**
+     * Tracks the number of times each dynamic pod template (identified by its ID) has been used
+     * to provision a new agent. This allows detection of retry attempts when a pod fails and
+     * Jenkins requests a replacement agent for the same template.
+     *
+     * <p>Dynamic pod template IDs are UUID-based and unique per {@code podTemplate()} step
+     * invocation, so entries from different builds or clouds cannot collide.
+     *
+     * <p>Entries are removed when the corresponding dynamic template is removed from the cloud
+     * (i.e., when the {@code podTemplate} step block exits). See
+     * {@link KubernetesCloud#removeDynamicTemplate(PodTemplate)}.
+     */
+    static final ConcurrentHashMap<String, AtomicInteger> TEMPLATE_PROVISION_COUNTS = new ConcurrentHashMap<>();
+
     private final String cloudName;
     private String namespace;
 
@@ -84,6 +100,14 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     @CheckForNull
     private transient Pod pod;
+
+    /**
+     * Attempt index for this pod, starting at {@code 0} for the very first provisioning.
+     * A value of {@code 1} means one prior attempt failed and this pod is the first retry;
+     * {@code 2} means two prior attempts failed, etc.
+     * This is a transient field set at construction time and never persisted.
+     */
+    private transient int retryAttempt;
 
     @NonNull
     public PodTemplate getTemplate() throws IllegalStateException {
@@ -106,6 +130,17 @@ public class KubernetesSlave extends AbstractCloudSlave {
             template = getKubernetesCloud().getTemplateById(podTemplateId);
         }
         return template;
+    }
+
+    /**
+     * Returns the attempt index for this pod.
+     * {@code 0} means the first provisioning (not a retry); {@code 1} means the first retry
+     * (one prior attempt failed); {@code 2} means the second retry, etc.
+     *
+     * @return the attempt index (0 = first attempt, &gt;0 = retry)
+     */
+    public int getRetryAttempt() {
+        return retryAttempt;
     }
 
     /**
@@ -689,7 +724,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
         public KubernetesSlave build() throws IOException, Descriptor.FormException {
             Validate.notNull(podTemplate);
             Validate.notNull(cloud);
-            return new KubernetesSlave(
+            KubernetesSlave slave = new KubernetesSlave(
                     name == null ? getSlaveName(podTemplate) : name,
                     podTemplate,
                     nodeDescription == null ? podTemplate.getName() : nodeDescription,
@@ -701,6 +736,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
                                     ? new KubernetesLauncher(cloud.getJenkinsTunnel(), null)
                                     : computerLauncher),
                     retentionStrategy == null ? determineRetentionStrategy(cloud, podTemplate) : retentionStrategy);
+            int provisionCount = TEMPLATE_PROVISION_COUNTS
+                    .computeIfAbsent(podTemplate.getId(), k -> new AtomicInteger(0))
+                    .incrementAndGet();
+            slave.retryAttempt = provisionCount - 1;
+            return slave;
         }
 
         private ComputerLauncher decorateLauncher(@NonNull KubernetesCloud cloud, @NonNull ComputerLauncher launcher) {
