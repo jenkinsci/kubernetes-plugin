@@ -257,6 +257,57 @@ class PodTemplateBuilderTest {
     }
 
     @Test
+    public void testAgentInjectionWithCustomImage() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setAgentInjection(true);
+        template.setAgentInjectionImage("jenkins/inbound-agent:alpine-jdk21");
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertNotNull(pod.getSpec().getInitContainers());
+        assertEquals(1, pod.getSpec().getInitContainers().size());
+        Container initContainer = pod.getSpec().getInitContainers().get(0);
+        assertEquals("set-up-jenkins-agent", initContainer.getName());
+        assertEquals("jenkins/inbound-agent:alpine-jdk21", initContainer.getImage());
+    }
+
+    @Test
+    public void testAgentInjectionImageOverridesRegistry() throws Exception {
+        cloud.setJnlpregistry("registry.example.com");
+
+        PodTemplate template = new PodTemplate();
+        template.setAgentInjection(true);
+        template.setAgentInjectionImage("custom-registry.io/my-agent:alpine");
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertNotNull(pod.getSpec().getInitContainers());
+        Container initContainer = pod.getSpec().getInitContainers().get(0);
+        assertEquals("custom-registry.io/my-agent:alpine", initContainer.getImage());
+    }
+
+    @Test
+    public void testAgentInjectionWithoutCustomImageUsesDefault() throws Exception {
+        cloud.setJnlpregistry("registry.example.com");
+
+        PodTemplate template = new PodTemplate();
+        template.setAgentInjection(true);
+        // agentInjectionImage NOT set
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertNotNull(pod.getSpec().getInitContainers());
+        Container initContainer = pod.getSpec().getInitContainers().get(0);
+        assertEquals("registry.example.com/" + DEFAULT_AGENT_IMAGE, initContainer.getImage());
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     void testBuildWithCustomWorkspaceVolume() {
         PodTemplate template = new PodTemplate();

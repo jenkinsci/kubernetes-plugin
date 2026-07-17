@@ -192,6 +192,8 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private boolean agentInjection;
 
+    private String agentInjectionImage;
+
     /**
      * Persisted yaml fragment
      */
@@ -647,6 +649,16 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     @DataBoundSetter
     public void setAgentInjection(boolean agentInjection) {
         this.agentInjection = agentInjection;
+    }
+
+    @CheckForNull
+    public String getAgentInjectionImage() {
+        return agentInjectionImage;
+    }
+
+    @DataBoundSetter
+    public void setAgentInjectionImage(@CheckForNull String agentInjectionImage) {
+        this.agentInjectionImage = Util.fixEmptyAndTrim(agentInjectionImage);
     }
 
     public List<TemplateEnvVar> getEnvVars() {
@@ -1199,6 +1211,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
                 + (!unwrapped ? "" : ", unwrapped=" + unwrapped)
                 + (agentContainer == null ? "" : ", agentContainer='" + agentContainer + '\'')
                 + (!agentInjection ? "" : ", agentInjection=" + agentInjection)
+                + (agentInjectionImage == null ? "" : ", agentInjectionImage='" + agentInjectionImage + '\'')
                 + '}';
     }
 }

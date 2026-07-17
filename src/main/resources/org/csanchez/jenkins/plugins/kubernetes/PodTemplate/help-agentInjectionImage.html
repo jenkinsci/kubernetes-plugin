@@ -1,0 +1,29 @@
+<p>
+Specifies the container image to use for agent injection when <strong>Inject Jenkins agent in agent container</strong> is enabled.
+</p>
+
+<p>
+This is useful when your agent container is based on Alpine Linux (musl libc) and needs an Alpine-compatible agent image.
+</p>
+
+<p>
+If not specified, the plugin uses the default agent image (<code>jenkins/inbound-agent:3355.v388858a_47b_33-3-jdk21</code>)
+with any configured registry prefix.
+</p>
+
+<p><strong>Examples:</strong></p>
+<ul>
+  <li><code>jenkins/inbound-agent:3355.v388858a_47b_33-3-alpine-jdk21</code> - Use the official Alpine variant</li>
+  <li><code>my-registry.com/custom-agent:latest</code> - Use a custom registry and image</li>
+</ul>
+
+<p>
+<strong>Important:</strong> The <code>jenkins-agent</code> script requires <code>bash</code>.
+If your agent container is Alpine-based and doesn't include bash, add it to your container:
+</p>
+<pre>RUN apk add --no-cache bash</pre>
+
+<p>
+<strong>Note:</strong> This setting only applies when agent injection is enabled.
+It does not affect the agent container's base image.
+</p>

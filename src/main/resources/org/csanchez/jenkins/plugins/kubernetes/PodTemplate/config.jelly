@@ -53,6 +53,10 @@ THE SOFTWARE.
     <f:checkbox/>
   </f:entry>
 
+  <f:entry field="agentInjectionImage" title="${%Agent injection image}">
+    <f:textbox/>
+  </f:entry>
+
   <f:entry field="containers" title="${%Containers}" description="${%List of container in the agent pod}">
       <f:repeatableHeteroProperty field="containers" hasHeader="true" addCaption="${%Add Container}"
                                     deleteCaption="${%Delete Container}" />

@@ -324,10 +324,18 @@ public class PodTemplateBuilder {
                 .filter(c -> c.getWorkingDir() == null)
                 .forEach(c -> c.setWorkingDir(workingDir));
         String agentImage = DEFAULT_AGENT_IMAGE;
-        if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
-            agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
-        } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
-            agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
+
+        // Priority 1: Template-level custom image (most specific)
+        if (StringUtils.isNotEmpty(template.getAgentInjectionImage())) {
+            agentImage = template.getAgentInjectionImage();
+        } else {
+            // Priority 2: Cloud-level registry prefix
+            if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
+                agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
+            } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+                // Priority 3: System property prefix
+                agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
+            }
         }
         if (StringUtils.isBlank(agentContainer.getImage())) {
             agentContainer.setImage(agentImage);
