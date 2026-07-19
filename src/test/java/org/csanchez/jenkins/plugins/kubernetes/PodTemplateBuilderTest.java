@@ -451,7 +451,9 @@ class PodTemplateBuilderTest {
     }
 
     private void validateJnlpContainer(Container jnlp, KubernetesSlave slave, boolean directConnection) {
-        assertThat(jnlp.getCommand(), empty());
+        // Container#getCommand defaults to null when built from a ContainerTemplate (via splitCommandLine(null))
+        // but to an empty list when parsed from yaml; both mean "no override" for Kubernetes.
+        assertThat(jnlp.getCommand(), anyOf(nullValue(), empty()));
         List<EnvVar> envVars = new ArrayList<>();
         if (slave != null) {
             assertThat(jnlp.getArgs(), empty());
@@ -536,9 +538,9 @@ class PodTemplateBuilderTest {
     }
 
     /**
-     * This is counter intuitive, the yaml contents are ignored because the parent fields are merged first with the
-     * child ones. Then the fields override what is defined in the yaml, so in effect the parent resource limits and
-     * requests are used.
+     * The child template does not declare its own {@code jnlp} {@link ContainerTemplate}, so the container is
+     * purely inherited from the parent. In that case the child's {@code yaml} is the more specific definition
+     * and must win over the inherited {@link ContainerTemplate} fields (JENKINS-73xxx / issue #2830).
      */
     @ParameterizedTest(name = "directConnection={0}")
     @ValueSource(booleans = {true, false})
@@ -565,16 +567,52 @@ class PodTemplateBuilderTest {
         Map<String, Container> containers = toContainerMap(pod);
         assertEquals(1, containers.size());
         Container jnlp = containers.get("jnlp");
-        PodTemplateUtilsTest.assertQuantity("1", jnlp.getResources().getLimits().get("cpu"));
+        assertEquals("jenkins-jnlp-override", jnlp.getImage());
+        PodTemplateUtilsTest.assertQuantity("2", jnlp.getResources().getLimits().get("cpu"));
         PodTemplateUtilsTest.assertQuantity(
-                "1Gi", jnlp.getResources().getLimits().get("memory"));
+                "2Gi", jnlp.getResources().getLimits().get("memory"));
         PodTemplateUtilsTest.assertQuantity(
-                "100m", jnlp.getResources().getRequests().get("cpu"));
+                "200m", jnlp.getResources().getRequests().get("cpu"));
         PodTemplateUtilsTest.assertQuantity(
-                "156Mi", jnlp.getResources().getRequests().get("memory"));
-        assertEquals(Long.valueOf(1000L), jnlp.getSecurityContext().getRunAsUser());
-        assertEquals(Long.valueOf(2000L), jnlp.getSecurityContext().getRunAsGroup());
+                "256Mi", jnlp.getResources().getRequests().get("memory"));
+        assertEquals(Long.valueOf(3000L), jnlp.getSecurityContext().getRunAsUser());
+        assertEquals(Long.valueOf(4000L), jnlp.getSecurityContext().getRunAsGroup());
         validateContainers(pod, slave, directConnection);
+    }
+
+    /**
+     * Reproduces jenkinsci/kubernetes-plugin#2830: a container inherited from a parent template via
+     * {@code containerTemplate} can be overridden by {@code containerTemplate} on the child, but was silently
+     * ignored when the child used a raw {@code yaml} block instead. Both mechanisms must behave the same way.
+     */
+    @Test
+    void yamlOverridesInheritedContainerTemplate() {
+        PodTemplate parent = new PodTemplate();
+        ContainerTemplate main = new ContainerTemplate("main", "rockylinux:9");
+        parent.setContainers(List.of(main));
+
+        PodTemplate viaContainerTemplate = new PodTemplate();
+        viaContainerTemplate.setContainers(List.of(new ContainerTemplate("main", "ubuntu:24.04")));
+        viaContainerTemplate.setInheritFrom("parent");
+        setupStubs();
+        PodTemplate combinedViaContainerTemplate = combine(parent, viaContainerTemplate);
+        Pod podViaContainerTemplate = new PodTemplateBuilder(combinedViaContainerTemplate, slave).build();
+        assertEquals(
+                "ubuntu:24.04",
+                toContainerMap(podViaContainerTemplate).get("main").getImage());
+
+        PodTemplate viaYaml = new PodTemplate();
+        viaYaml.setYaml(
+                """
+                spec:
+                  containers:
+                  - name: main
+                    image: ubuntu:24.04
+                """);
+        viaYaml.setInheritFrom("parent");
+        PodTemplate combinedViaYaml = combine(parent, viaYaml);
+        Pod podViaYaml = new PodTemplateBuilder(combinedViaYaml, slave).build();
+        assertEquals("ubuntu:24.04", toContainerMap(podViaYaml).get("main").getImage());
     }
 
     @Test

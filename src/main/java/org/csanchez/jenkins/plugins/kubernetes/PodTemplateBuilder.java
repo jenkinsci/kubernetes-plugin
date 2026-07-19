@@ -64,6 +64,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -296,7 +297,23 @@ public class PodTemplateBuilder {
         }
 
         // merge with the yaml fragments
-        Pod pod = combine(template.getYamlsPod(), builder.endSpec().build());
+        Pod yamlPod = template.getYamlsPod();
+        Pod builtPod = builder.endSpec().build();
+        Pod pod = combine(yamlPod, builtPod);
+        Set<String> localContainerNames = template.getLocalContainerNames();
+        if (localContainerNames != null && yamlPod != null) {
+            // template went through an inheritFrom merge: let yaml win over containers that are only present
+            // because they were inherited from a parent template, while containers explicitly declared on this
+            // template keep taking priority over yaml, as before (see PodTemplateUtils#combine(PodTemplate,
+            // PodTemplate)).
+            List<Container> mergedContainers = combineContainersRespectingLocalOverrides(
+                    yamlPod.getSpec().getContainers(), builtPod.getSpec().getContainers(), localContainerNames);
+            pod = new PodBuilder(pod)
+                    .editSpec()
+                    .withContainers(mergedContainers)
+                    .endSpec()
+                    .build();
+        }
 
         // Apply defaults
         if (pod.getMetadata().getNamespace() == null) {
