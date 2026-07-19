@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import jenkins.model.Jenkins;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Always;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Evicted;
@@ -44,6 +45,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Never;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.OnFailure;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
+import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,6 +84,67 @@ class KubernetesSlaveTest {
         assertRegex(
                 KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)),
                 ("jenkins-agent-[0-9a-z]{5}"));
+    }
+
+    @Test
+    void testProvisioningActivityId() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("Cloud");
+        PodTemplate template = new PodTemplate("x");
+        template.setName("Template");
+        KubernetesSlave slave = new KubernetesSlave.Builder()
+                .cloud(cloud)
+                .podTemplate(template)
+                .build();
+
+        ProvisioningActivity.Id id = slave.getId();
+        assertNotNull(id);
+        assertEquals("Cloud", id.getCloudName());
+        assertEquals("Template", id.getTemplateName());
+        assertEquals(slave.getNodeName(), id.getNodeName());
+    }
+
+    @Test
+    void testComputerExposesSlaveId() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("Cloud");
+        PodTemplate template = new PodTemplate("x");
+        template.setName("Template");
+        KubernetesSlave slave = new KubernetesSlave.Builder()
+                .cloud(cloud)
+                .podTemplate(template)
+                .build();
+
+        KubernetesComputer computer = Mockito.spy(new KubernetesComputer(slave));
+        doReturn(slave).when(computer).getNode();
+
+        assertNotNull(computer.getId());
+        assertSame(slave.getId(), computer.getId());
+    }
+
+    @Test
+    void testLegacyDeserializationMintsId() throws Exception {
+        KubernetesCloud cloud = new KubernetesCloud("Cloud");
+        PodTemplate template = new PodTemplate("x");
+        template.setName("Template");
+        KubernetesSlave slave = new KubernetesSlave.Builder()
+                .cloud(cloud)
+                .podTemplate(template)
+                .build();
+
+        // Simulate an agent serialized by a version predating cloud-stats tracking: no <id> element.
+        String xml = Jenkins.XSTREAM2.toXML(slave);
+        String legacyXml = xml.replaceAll("(?s)<id( [^>]*)?>.*?</id>", "");
+        assertFalse(legacyXml.contains("<id>"), "test fixture should have stripped the id element");
+
+        KubernetesSlave restored = (KubernetesSlave) Jenkins.XSTREAM2.fromXML(legacyXml);
+
+        assertNotNull(restored.getId(), "readResolve should mint a fresh id for a legacy agent");
+        assertEquals("Cloud", restored.getId().getCloudName());
+        assertEquals(restored.getNodeName(), restored.getId().getNodeName());
+        // The friendly template name is not persisted and the PodTemplate cannot be resolved safely
+        // during deserialization, so a legacy-minted id deliberately falls back to the persisted
+        // template id for its template-name component. Asserted so this stays intentional rather than
+        // drifting silently from the constructor-minted id.
+        assertEquals(restored.getTemplateId(), restored.getId().getTemplateName());
     }
 
     @Test
