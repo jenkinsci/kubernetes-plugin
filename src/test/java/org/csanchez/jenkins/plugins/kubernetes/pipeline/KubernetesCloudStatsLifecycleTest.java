@@ -77,15 +77,15 @@ class KubernetesCloudStatsLifecycleTest extends AbstractKubernetesPipelineTest {
 
         // The lone activity must be the one minted for this cloud's provisioning attempt, not merely the
         // only one around: planned node, launched agent and activity share the tracking identity.
-        assertEquals(
-                cloud.name, activity.getId().getCloudName(), "the activity should belong to the tracked attempt");
+        assertEquals(cloud.name, activity.getId().getCloudName(), "the activity should belong to the tracked attempt");
 
         // Full ordered traversal with a real timestamp recorded for every phase.
         long previousTimestamp = 0;
         for (Phase phase : List.of(Phase.PROVISIONING, Phase.LAUNCHING, Phase.OPERATING, Phase.COMPLETED)) {
             PhaseExecution execution = activity.getPhaseExecution(phase);
             assertNotNull(execution, "the activity should have traversed the " + phase + " phase");
-            assertThat("the " + phase + " phase should carry a timing", execution.getStartedTimestamp(), greaterThan(0L));
+            assertThat(
+                    "the " + phase + " phase should carry a timing", execution.getStartedTimestamp(), greaterThan(0L));
             assertTrue(
                     execution.getStartedTimestamp() >= previousTimestamp,
                     "phases should be entered in PROVISIONING -> LAUNCHING -> OPERATING -> COMPLETED order");

@@ -91,10 +91,8 @@ class KubernetesSlaveTest {
         KubernetesCloud cloud = new KubernetesCloud("Cloud");
         PodTemplate template = new PodTemplate("x");
         template.setName("Template");
-        KubernetesSlave slave = new KubernetesSlave.Builder()
-                .cloud(cloud)
-                .podTemplate(template)
-                .build();
+        KubernetesSlave slave =
+                new KubernetesSlave.Builder().cloud(cloud).podTemplate(template).build();
 
         ProvisioningActivity.Id id = slave.getId();
         assertNotNull(id);
@@ -108,10 +106,8 @@ class KubernetesSlaveTest {
         KubernetesCloud cloud = new KubernetesCloud("Cloud");
         PodTemplate template = new PodTemplate("x");
         template.setName("Template");
-        KubernetesSlave slave = new KubernetesSlave.Builder()
-                .cloud(cloud)
-                .podTemplate(template)
-                .build();
+        KubernetesSlave slave =
+                new KubernetesSlave.Builder().cloud(cloud).podTemplate(template).build();
 
         KubernetesComputer computer = Mockito.spy(new KubernetesComputer(slave));
         doReturn(slave).when(computer).getNode();
@@ -125,10 +121,8 @@ class KubernetesSlaveTest {
         KubernetesCloud cloud = new KubernetesCloud("Cloud");
         PodTemplate template = new PodTemplate("x");
         template.setName("Template");
-        KubernetesSlave slave = new KubernetesSlave.Builder()
-                .cloud(cloud)
-                .podTemplate(template)
-                .build();
+        KubernetesSlave slave =
+                new KubernetesSlave.Builder().cloud(cloud).podTemplate(template).build();
 
         // Simulate an agent serialized by a version predating cloud-stats tracking: no <id> element.
         String xml = Jenkins.XSTREAM2.toXML(slave);
