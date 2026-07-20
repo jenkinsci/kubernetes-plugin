@@ -602,8 +602,7 @@ class PodTemplateBuilderTest {
                 toContainerMap(podViaContainerTemplate).get("main").getImage());
 
         PodTemplate viaYaml = new PodTemplate();
-        viaYaml.setYaml(
-                """
+        viaYaml.setYaml("""
                 spec:
                   containers:
                   - name: main
