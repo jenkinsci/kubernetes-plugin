@@ -17,7 +17,6 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -399,7 +398,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
             argMap.put("containers", containerTemplates);
         }
 
-        if (!StringUtils.isEmpty(yaml)) {
+        if (yaml != null && !yaml.isEmpty()) {
             argMap.put("yaml", yaml);
         }
         if (showRawYaml != null) {
@@ -414,7 +413,7 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (workspaceVolume != null) {
             argMap.put("workspaceVolume", workspaceVolume);
         }
-        if (!StringUtils.isEmpty(cloud)) {
+        if (cloud != null && !cloud.isEmpty()) {
             argMap.put("cloud", cloud);
         }
         if (idleMinutes != 0) {
@@ -423,16 +422,16 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (inheritFrom != null) {
             argMap.put("inheritFrom", inheritFrom);
         }
-        if (!StringUtils.isEmpty(serviceAccount)) {
+        if (serviceAccount != null && !serviceAccount.isEmpty()) {
             argMap.put("serviceAccount", serviceAccount);
         }
-        if (!StringUtils.isEmpty(nodeSelector)) {
+        if (nodeSelector != null && !nodeSelector.isEmpty()) {
             argMap.put("nodeSelector", nodeSelector);
         }
-        if (!StringUtils.isEmpty(namespace)) {
+        if (namespace != null && !namespace.isEmpty()) {
             argMap.put("namespace", namespace);
         }
-        if (!StringUtils.isEmpty(workingDir)) {
+        if (workingDir != null && !workingDir.isEmpty()) {
             argMap.put("workingDir", workingDir);
         }
         if (activeDeadlineSeconds != 0) {
@@ -447,10 +446,10 @@ public class KubernetesDeclarativeAgent extends RetryableDeclarativeAgent<Kubern
         if (instanceCap > 0 && instanceCap < Integer.MAX_VALUE) {
             argMap.put("instanceCap", instanceCap);
         }
-        if (!StringUtils.isEmpty(supplementalGroups)) {
+        if (supplementalGroups != null && !supplementalGroups.isEmpty()) {
             argMap.put("supplementalGroups", supplementalGroups);
         }
-        if (!StringUtils.isEmpty(agentContainer)) {
+        if (agentContainer != null && !agentContainer.isEmpty()) {
             argMap.put("agentContainer", agentContainer);
         }
         if (agentInjection) {

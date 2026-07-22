@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodAnnotation;
@@ -500,7 +499,8 @@ public class PodTemplateStep extends Step implements Serializable {
             if (cloud instanceof KubernetesCloud) {
                 List<PodTemplate> templates = ((KubernetesCloud) cloud).getTemplates();
                 result.addAll(templates.stream()
-                        .filter(template -> StringUtils.isNotEmpty(template.getName()))
+                        .filter(template -> template.getName() != null
+                                && !template.getName().isEmpty())
                         .map(PodTemplate::getName)
                         .map(ListBoxModel.Option::new)
                         .collect(Collectors.toList()));

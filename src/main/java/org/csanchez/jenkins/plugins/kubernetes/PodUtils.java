@@ -26,6 +26,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodStatus;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -38,14 +39,15 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 
 public final class PodUtils {
     private PodUtils() {}
 
     private static final Logger LOGGER = Logger.getLogger(PodUtils.class.getName());
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String RANDOM_CHARS = "bcdfghjklmnpqrstvwxz0123456789";
 
     private static final Pattern NAME_PATTERN =
             Pattern.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*");
@@ -142,7 +144,7 @@ public final class PodUtils {
                             LOGGER.log(
                                     Level.FINE,
                                     () -> "Cancelling queue item: \"" + item.task.getDisplayName() + "\"\n"
-                                            + (!StringUtils.isBlank(reason) ? "due to " + reason : ""));
+                                            + (reason != null && !reason.isBlank() ? "due to " + reason : ""));
                             queue.cancel(item);
                         },
                         () -> {
@@ -208,7 +210,11 @@ public final class PodUtils {
      */
     @NonNull
     public static String generateRandomSuffix() {
-        return RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        StringBuilder sb = new StringBuilder(5);
+        for (int i = 0; i < 5; i++) {
+            sb.append(RANDOM_CHARS.charAt(RANDOM.nextInt(RANDOM_CHARS.length())));
+        }
+        return sb.toString();
     }
 
     /**

@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
@@ -307,7 +306,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
 
         argMap.put("name", name);
 
-        if (!StringUtils.isEmpty(shell)) {
+        if (shell != null && !shell.isEmpty()) {
             argMap.put("shell", shell);
         }
 
@@ -342,7 +341,7 @@ public class ContainerTemplate extends AbstractDescribableImpl<ContainerTemplate
         }
 
         public FormValidation doCheckImage(@QueryParameter String value) {
-            if (StringUtils.isEmpty(value)) {
+            if (value == null || value.isEmpty()) {
                 return FormValidation.ok("Image is mandatory");
             } else if (PodTemplateUtils.validateImage(value)) {
                 return FormValidation.ok();

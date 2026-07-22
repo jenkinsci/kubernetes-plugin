@@ -46,8 +46,6 @@ import java.util.logging.Logger;
 import jenkins.metrics.api.Metrics;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -243,8 +241,10 @@ public class KubernetesSlave extends AbstractCloudSlave {
                         .filter(c -> JNLP_NAME.equals(c.getName()))
                         .findFirst();
                 if (optionalJnlp.isPresent()) {
-                    remoteFS = StringUtils.defaultIfBlank(
-                            optionalJnlp.get().getWorkingDir(), ContainerTemplate.DEFAULT_WORKING_DIR);
+                    String jnlpWorkingDir = optionalJnlp.get().getWorkingDir();
+                    remoteFS = (jnlpWorkingDir != null && !jnlpWorkingDir.isBlank())
+                            ? jnlpWorkingDir
+                            : ContainerTemplate.DEFAULT_WORKING_DIR;
                 }
             }
         }
@@ -260,7 +260,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
             // if computer is null then channel is null and thus we were going to return null anyway
             return null;
         } else {
-            return createPath(StringUtils.defaultString(computer.getAbsoluteRemoteFs(), getRemoteFS()));
+            return createPath(Objects.toString(computer.getAbsoluteRemoteFs(), getRemoteFS()));
         }
     }
 
@@ -330,7 +330,7 @@ public class KubernetesSlave extends AbstractCloudSlave {
 
     static String getSlaveName(PodTemplate template) {
         String name = template.getName();
-        if (StringUtils.isEmpty(name)) {
+        if (name == null || name.isEmpty()) {
             name = DEFAULT_AGENT_PREFIX;
         }
 
@@ -687,8 +687,8 @@ public class KubernetesSlave extends AbstractCloudSlave {
                 value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
                 justification = "False positive. https://github.com/spotbugs/spotbugs/issues/567")
         public KubernetesSlave build() throws IOException, Descriptor.FormException {
-            Validate.notNull(podTemplate);
-            Validate.notNull(cloud);
+            Objects.requireNonNull(podTemplate);
+            Objects.requireNonNull(cloud);
             return new KubernetesSlave(
                     name == null ? getSlaveName(podTemplate) : name,
                     podTemplate,

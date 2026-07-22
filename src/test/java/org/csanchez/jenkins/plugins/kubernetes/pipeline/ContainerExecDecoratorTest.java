@@ -28,6 +28,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeK
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import static org.csanchez.jenkins.plugins.kubernetes.PodUtils.createNameWithRandomSuffix;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -63,8 +64,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang.RandomStringUtils;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -122,7 +121,7 @@ class ContainerExecDecoratorTest {
         deletePods(client, getLabels(this, name), false);
 
         String image = "busybox";
-        String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        String podName = createNameWithRandomSuffix("test-command-execution");
         pod = client.pods()
                 .create(new PodBuilder()
                         .withNewMetadata()
@@ -299,13 +298,15 @@ class ContainerExecDecoratorTest {
         // Check output with quiet=false
         ProcReturn r = execCommand(false, false, "sh", "-c", "echo " + testString);
         assertEquals(0, r.exitCode);
-        String output = StringUtils.substringAfter(r.output, "exit");
+        int exitIdx = r.output.indexOf("exit");
+        String output = exitIdx >= 0 ? r.output.substring(exitIdx + "exit".length()) : "";
         assertEquals(testString, output.trim());
 
         // Check output with quiet=false and outputForCaller same as launcher output
         r = execCommand(false, true, "sh", "-c", "echo " + testString);
         assertEquals(0, r.exitCode);
-        output = StringUtils.substringAfter(r.output, "exit");
+        exitIdx = r.output.indexOf("exit");
+        output = exitIdx >= 0 ? r.output.substring(exitIdx + "exit".length()) : "";
         assertEquals(testString, output.trim());
 
         // Check output with quiet=true

@@ -56,7 +56,6 @@ import java.util.stream.IntStream;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -88,7 +87,7 @@ public class KubernetesTestUtil {
 
         // if there is a namespace specific for this branch (ie. kubernetes-plugin-test-master), use it
         String branch = System.getenv("BRANCH_NAME");
-        if (StringUtils.isNotBlank(branch)) {
+        if (branch != null && !branch.isBlank()) {
             String namespaceWithBranch = String.format("%s-%s", DEFAULT_TESTING_NAMESPACE, branch);
             LOGGER.log(FINE, "Trying to use namespace: {0}", testingNamespace);
             try {
@@ -122,7 +121,7 @@ public class KubernetesTestUtil {
         // Agents running in Kubernetes (minikube) need to connect to this server, so localhost does not work
         URL url = new URL(JenkinsLocationConfiguration.get().getUrl());
         String hostAddress = System.getProperty("jenkins.host.address");
-        if (org.apache.commons.lang3.StringUtils.isBlank(hostAddress)) {
+        if (hostAddress == null || hostAddress.isBlank()) {
             hostAddress = InetAddress.getLocalHost().getHostAddress();
         }
         System.err.println("Calling home to address: " + hostAddress);

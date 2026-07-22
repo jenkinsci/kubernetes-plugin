@@ -1,7 +1,6 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.commons.lang.StringUtils.isEmpty;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.sanitizeLabel;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -76,7 +75,6 @@ import jenkins.security.FIPS140;
 import jenkins.util.SystemProperties;
 import jenkins.websocket.WebSockets;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateMap;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Default;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
@@ -755,7 +753,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
      * @param url Kubernetes server URL
      */
     private static void ensureKubernetesUrlInFipsMode(String url) {
-        if (!FIPS140.useCompliantAlgorithms() || StringUtils.isBlank(url)) {
+        if (!FIPS140.useCompliantAlgorithms() || url == null || url.isBlank()) {
             return;
         }
         if (!url.startsWith("https:")) {
@@ -790,7 +788,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (!FIPS140.useCompliantAlgorithms()) {
             return;
         }
-        if (StringUtils.isBlank(serverCertificate)) {
+        if (serverCertificate == null || serverCertificate.isBlank()) {
             return; // JENKINS-73789, no certificate is accepted
         }
         try {
@@ -1057,7 +1055,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
             checkPermission(_context);
 
-            if (StringUtils.isBlank(name)) return FormValidation.error("name is required");
+            if (name == null || name.isBlank()) return FormValidation.error("name is required");
 
             try (KubernetesClient client = new KubernetesFactoryAdapter(
                             serverUrl,
@@ -1202,21 +1200,24 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 }
             }
 
+            boolean isJenkinsUrlConfigured = jenkinsUrl != null && !jenkinsUrl.isEmpty();
             if (value) {
                 if (webSocket) {
                     return FormValidation.error("Direct connection and WebSocket mode are mutually exclusive");
                 }
-                if (!isEmpty(jenkinsUrl))
+                if (isJenkinsUrlConfigured)
                     return FormValidation.warning("No need to configure Jenkins URL when direct connection is enabled");
 
                 if (Jenkins.get().getSlaveAgentPort() == 0)
                     return FormValidation.warning(
                             "A random 'TCP port for inbound agents' is configured in Global Security settings. In 'direct connection' mode agents will not be able to reconnect to a restarted controller with random port!");
             } else {
-                if (isEmpty(jenkinsUrl)) {
-                    String url = StringUtils.defaultIfBlank(
-                            System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL")),
-                            JenkinsLocationConfiguration.get().getUrl());
+                if (!isJenkinsUrlConfigured) {
+                    String rawUrl =
+                            System.getProperty("KUBERNETES_JENKINS_URL", System.getenv("KUBERNETES_JENKINS_URL"));
+                    String url = (rawUrl != null && !rawUrl.isBlank())
+                            ? rawUrl
+                            : JenkinsLocationConfiguration.get().getUrl();
                     if (url != null) {
                         return FormValidation.ok("Will connect using " + url);
                     } else {
@@ -1263,7 +1264,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         public FormValidation doCheckJenkinsUrl(@QueryParameter String value, @QueryParameter boolean directConnection)
                 throws IOException, ServletException {
             try {
-                if (!isEmpty(value)) new URL(value);
+                if (value != null && !value.isEmpty()) new URL(value);
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, "Invalid Jenkins URL");
             }

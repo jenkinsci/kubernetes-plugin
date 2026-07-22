@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
-import org.apache.commons.lang.StringUtils;
 import org.junit.jupiter.api.Test;
 
 class PodUtilsTest {
@@ -38,9 +37,9 @@ class PodUtilsTest {
         assertTrue(name.startsWith("foo-bar-cat-"));
 
         // very long names
-        name = PodUtils.createNameWithRandomSuffix(StringUtils.repeat("a", 70));
+        name = PodUtils.createNameWithRandomSuffix("a".repeat(70));
         assertEquals(63, name.length());
-        assertTrue(name.startsWith(StringUtils.repeat("a", 57) + "-"));
+        assertTrue(name.startsWith("a".repeat(57) + "-"));
     }
 
     @Test

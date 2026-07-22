@@ -30,7 +30,6 @@ import hudson.model.Descriptor;
 import io.fabric8.kubernetes.api.model.SecretVolumeSource;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -61,7 +60,7 @@ public class SecretVolume extends PodVolume {
         secretVolumeSource.setSecretName(getSecretName());
         secretVolumeSource.setOptional(getOptional());
 
-        if (StringUtils.isNotBlank(defaultMode)) {
+        if (defaultMode != null && !defaultMode.isBlank()) {
             secretVolumeSource.setDefaultMode(Integer.parseInt(getDefaultMode()));
         }
 

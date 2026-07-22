@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 import jenkins.authentication.tokens.api.AuthenticationTokens;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuth;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthConfig;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
@@ -171,7 +170,7 @@ public class KubernetesFactoryAdapter {
 
         ConfigBuilder builder;
 
-        if (StringUtils.isBlank(serviceAddress)) {
+        if (serviceAddress == null || serviceAddress.isBlank()) {
             LOGGER.log(FINE, "Autoconfiguring Kubernetes client");
             builder = new ConfigBuilder(Config.autoConfigure(null));
         } else {
@@ -200,9 +199,10 @@ public class KubernetesFactoryAdapter {
         builder.withMaxConcurrentRequestsPerHost(maxRequestsPerHost);
         builder.withMaxConcurrentRequests(maxRequestsPerHost);
 
-        if (!StringUtils.isBlank(namespace)) {
+        String builderNamespace = builder.getNamespace();
+        if (namespace != null && !namespace.isBlank()) {
             builder.withNamespace(namespace);
-        } else if (StringUtils.isBlank(builder.getNamespace())) {
+        } else if (builderNamespace == null || builderNamespace.isBlank()) {
             builder.withNamespace("default");
         }
 

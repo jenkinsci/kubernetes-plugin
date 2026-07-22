@@ -30,6 +30,7 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assumeW
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.deletePods;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.getLabels;
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.setupCloud;
+import static org.csanchez.jenkins.plugins.kubernetes.PodUtils.createNameWithRandomSuffix;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.doReturn;
@@ -56,7 +57,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.lang.RandomStringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesClientProvider;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
@@ -108,7 +108,7 @@ class ContainerExecDecoratorWindowsTest {
 
         String image = "mcr.microsoft.com/powershell:preview-windowsservercore-ltsc2022";
         String containerName = "container";
-        String podName = "test-command-execution-" + RandomStringUtils.random(5, "bcdfghjklmnpqrstvwxz0123456789");
+        String podName = createNameWithRandomSuffix("test-command-execution");
         pod = client.pods()
                 .create(new PodBuilder()
                         .withNewMetadata()

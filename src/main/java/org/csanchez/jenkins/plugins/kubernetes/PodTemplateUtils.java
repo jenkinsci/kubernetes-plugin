@@ -53,7 +53,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.Commandline;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
@@ -712,7 +711,7 @@ public class PodTemplateUtils {
     public static Pod parseFromYaml(String yaml) {
         String s = yaml;
         // JENKINS-57116
-        if (StringUtils.isBlank(s)) {
+        if (s == null || s.isBlank()) {
             LOGGER.log(Level.WARNING, "[JENKINS-57116] Trying to parse invalid yaml: \"{0}\"", yaml);
             s = "{}";
         }
@@ -743,7 +742,7 @@ public class PodTemplateUtils {
     }
 
     public static Collection<String> validateYamlContainerNames(String yaml) {
-        if (StringUtils.isBlank(yaml)) {
+        if (yaml == null || yaml.isBlank()) {
             return Collections.emptyList();
         }
         Collection<String> errors = new ArrayList<>();
@@ -772,7 +771,7 @@ public class PodTemplateUtils {
      * Pulled from https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
      */
     public static boolean validateLabel(String label) {
-        return StringUtils.isBlank(label)
+        return (label == null || label.isBlank())
                 ? true
                 : label.length() <= 63 && LABEL_VALIDATION.matcher(label).matches();
     }

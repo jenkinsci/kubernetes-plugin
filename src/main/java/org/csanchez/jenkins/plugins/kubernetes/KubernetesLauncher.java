@@ -58,7 +58,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.metrics.api.Metrics;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecoratorException;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -152,7 +151,7 @@ public class KubernetesLauncher extends JNLPLauncher {
             String namespace = Arrays.asList( //
                             pod.getMetadata().getNamespace(), template.getNamespace(), client.getNamespace()) //
                     .stream()
-                    .filter(s -> StringUtils.isNotBlank(s))
+                    .filter(s -> s != null && !s.isBlank())
                     .findFirst()
                     .orElse(null);
             node.setNamespace(namespace);
@@ -411,7 +410,7 @@ public class KubernetesLauncher extends JNLPLauncher {
                         .inContainer(containerStatus.getName())
                         .tailingLines(30)
                         .getLog();
-                if (!StringUtils.isBlank(log)) {
+                if (log != null && !log.isBlank()) {
                     String msg =
                             errors != null ? String.format(" exited with error %s", errors.get(containerName)) : "";
                     LOGGER.log(

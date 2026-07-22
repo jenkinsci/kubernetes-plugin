@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -72,7 +73,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution;
 import org.csanchez.jenkins.plugins.kubernetes.pod.decorator.PodDecorator;
@@ -325,7 +325,7 @@ public class PodTemplateBuilder {
         }
 
         // default agent container
-        String agentContainerName = StringUtils.defaultString(template.getAgentContainer(), JNLP_NAME);
+        String agentContainerName = Objects.toString(template.getAgentContainer(), JNLP_NAME);
         Optional<Container> agentOpt = pod.getSpec().getContainers().stream()
                 .filter(c -> agentContainerName.equals(c.getName()))
                 .findFirst();
@@ -341,12 +341,14 @@ public class PodTemplateBuilder {
                 .filter(c -> c.getWorkingDir() == null)
                 .forEach(c -> c.setWorkingDir(workingDir));
         String agentImage = DEFAULT_AGENT_IMAGE;
-        if (cloud != null && StringUtils.isNotEmpty(cloud.getJnlpregistry())) {
-            agentImage = Util.ensureEndsWith(cloud.getJnlpregistry(), "/") + agentImage;
-        } else if (StringUtils.isNotEmpty(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX)) {
+        String jnlpRegistry = cloud != null ? cloud.getJnlpregistry() : null;
+        if (jnlpRegistry != null && !jnlpRegistry.isEmpty()) {
+            agentImage = Util.ensureEndsWith(jnlpRegistry, "/") + agentImage;
+        } else if (DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX != null && !DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX.isEmpty()) {
             agentImage = Util.ensureEndsWith(DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX, "/") + agentImage;
         }
-        if (StringUtils.isBlank(agentContainer.getImage())) {
+        String existingImage = agentContainer.getImage();
+        if (existingImage == null || existingImage.isBlank()) {
             agentContainer.setImage(agentImage);
         }
         Map<String, EnvVar> envVars = new HashMap<>();
@@ -455,11 +457,11 @@ public class PodTemplateBuilder {
                 // the processing of globalEnvVars below will override;
                 // see org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver
                 String noProxy = System.getenv("no_proxy");
-                if (!StringUtils.isBlank(noProxy)) {
+                if (noProxy != null && !noProxy.isBlank()) {
                     env.put("no_proxy", noProxy);
                 }
                 String httpProxy = System.getenv("http_proxy");
-                if (!StringUtils.isBlank(httpProxy)) {
+                if (httpProxy != null && !httpProxy.isBlank()) {
                     env.put("http_proxy", httpProxy);
                 }
             }
@@ -498,7 +500,8 @@ public class PodTemplateBuilder {
 
             KubernetesCloud cloud = agent.getKubernetesCloud();
 
-            if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
+            String jenkinsTunnel = cloud.getJenkinsTunnel();
+            if (jenkinsTunnel != null && !jenkinsTunnel.isBlank()) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
             }
 
@@ -632,15 +635,15 @@ public class PodTemplateBuilder {
         String actualMemory = substituteEnv(memory);
         String actualCpu = substituteEnv(cpu);
         String actualEphemeralStorage = substituteEnv(ephemeralStorage);
-        if (StringUtils.isNotBlank(actualMemory)) {
+        if (actualMemory != null && !actualMemory.isBlank()) {
             Quantity memoryQuantity = new Quantity(actualMemory);
             builder.put("memory", memoryQuantity);
         }
-        if (StringUtils.isNotBlank(actualCpu)) {
+        if (actualCpu != null && !actualCpu.isBlank()) {
             Quantity cpuQuantity = new Quantity(actualCpu);
             builder.put("cpu", cpuQuantity);
         }
-        if (StringUtils.isNotBlank(actualEphemeralStorage)) {
+        if (actualEphemeralStorage != null && !actualEphemeralStorage.isBlank()) {
             Quantity ephemeralStorageQuantity = new Quantity(actualEphemeralStorage);
             builder.put("ephemeral-storage", ephemeralStorageQuantity);
         }

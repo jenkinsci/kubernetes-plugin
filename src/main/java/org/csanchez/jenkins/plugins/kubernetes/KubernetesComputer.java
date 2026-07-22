@@ -29,7 +29,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -89,7 +88,8 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         KubernetesCloud cloud = slave.getKubernetesCloud();
         KubernetesClient client = cloud.connect();
 
-        String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+        String slaveNs = slave.getNamespace();
+        String namespace = (slaveNs != null && !slaveNs.isBlank()) ? slaveNs : client.getNamespace();
         Pod pod = client.pods().inNamespace(namespace).withName(getName()).get();
 
         if (pod == null) {
@@ -111,7 +111,8 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
             KubernetesCloud cloud = slave.getKubernetesCloud();
             KubernetesClient client = cloud.connect();
 
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), client.getNamespace());
+            String slaveNs = slave.getNamespace();
+            String namespace = (slaveNs != null && !slaveNs.isBlank()) ? slaveNs : client.getNamespace();
 
             Pod pod = client.pods().inNamespace(namespace).withName(getName()).get();
             if (pod != null) {
@@ -146,7 +147,8 @@ public class KubernetesComputer extends AbstractCloudComputer<KubernetesSlave> {
         KubernetesSlave slave = getNode();
         if (slave != null) {
             KubernetesCloud cloud = slave.getKubernetesCloud();
-            String namespace = StringUtils.defaultIfBlank(slave.getNamespace(), cloud.getNamespace());
+            String slaveNs = slave.getNamespace();
+            String namespace = (slaveNs != null && !slaveNs.isBlank()) ? slaveNs : cloud.getNamespace();
             PodResource resource = cloud.getPodResource(namespace, containerId);
 
             // check if pod exists

@@ -39,7 +39,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
 import org.csanchez.jenkins.plugins.kubernetes.pod.yaml.YamlMergeStrategy;
@@ -403,7 +402,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setInstanceCapStr(String instanceCapStr) {
-        if (StringUtils.isBlank(instanceCapStr)) {
+        if (instanceCapStr == null || instanceCapStr.isBlank()) {
             setInstanceCap(Integer.MAX_VALUE);
         } else {
             setInstanceCap(Integer.parseInt(instanceCapStr));
@@ -420,7 +419,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setSlaveConnectTimeoutStr(String slaveConnectTimeoutStr) {
-        if (StringUtils.isBlank(slaveConnectTimeoutStr)) {
+        if (slaveConnectTimeoutStr == null || slaveConnectTimeoutStr.isBlank()) {
             setSlaveConnectTimeout(DEFAULT_SLAVE_JENKINS_CONNECTION_TIMEOUT);
         } else {
             setSlaveConnectTimeout(Integer.parseInt(slaveConnectTimeoutStr));
@@ -451,7 +450,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setIdleMinutesStr(String idleMinutes) {
-        if (StringUtils.isBlank(idleMinutes)) {
+        if (idleMinutes == null || idleMinutes.isBlank()) {
             setIdleMinutes(0);
         } else {
             setIdleMinutes(Integer.parseInt(idleMinutes));
@@ -468,7 +467,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     @DataBoundSetter
     public void setActiveDeadlineSecondsStr(String activeDeadlineSeconds) {
-        if (StringUtils.isBlank(activeDeadlineSeconds)) {
+        if (activeDeadlineSeconds == null || activeDeadlineSeconds.isBlank()) {
             setActiveDeadlineSeconds(0);
         } else {
             setActiveDeadlineSeconds(Integer.parseInt(activeDeadlineSeconds));
@@ -1086,7 +1085,7 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
     }
 
     private void optionalField(StringBuilder builder, String label, String value) {
-        if (StringUtils.isNotBlank(value)) {
+        if (value != null && !value.isBlank()) {
             if (builder.length() > 0) {
                 builder.append(", ");
             }

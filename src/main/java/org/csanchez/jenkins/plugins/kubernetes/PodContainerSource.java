@@ -12,7 +12,6 @@ import io.fabric8.kubernetes.api.model.PodStatus;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * Pod container sources are responsible to locating details about Pod containers.
@@ -98,7 +97,7 @@ public abstract class PodContainerSource implements ExtensionPoint {
             }
 
             return podStatus.getContainerStatuses().stream()
-                    .filter(cs -> StringUtils.equals(cs.getName(), containerName))
+                    .filter(cs -> Objects.equals(cs.getName(), containerName))
                     .findFirst();
         }
     }
