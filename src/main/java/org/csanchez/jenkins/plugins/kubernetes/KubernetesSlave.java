@@ -49,8 +49,6 @@ import jenkins.security.MasterToSlaveCallable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.PodRetention;
-import org.jenkinsci.plugins.cloudstats.ProvisioningActivity;
-import org.jenkinsci.plugins.cloudstats.TrackedItem;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
@@ -60,7 +58,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * @author Carlos Sanchez carlos@apache.org
  */
-public class KubernetesSlave extends AbstractCloudSlave implements TrackedItem {
+public class KubernetesSlave extends AbstractCloudSlave {
 
     private static final Logger LOGGER = Logger.getLogger(KubernetesSlave.class.getName());
 
@@ -86,13 +84,6 @@ public class KubernetesSlave extends AbstractCloudSlave implements TrackedItem {
 
     @CheckForNull
     private transient Pod pod;
-
-    /**
-     * Stable cloud-stats tracking identity for this agent's provisioning attempt (JENKINS-67256).
-     * Persisted (non-transient) so it survives restarts, and non-final so a legacy agent serialized
-     * before this field existed can have a fresh id minted in {@link #readResolve()} instead of failing.
-     */
-    private ProvisioningActivity.Id id;
 
     @NonNull
     public PodTemplate getTemplate() throws IllegalStateException {
@@ -219,13 +210,6 @@ public class KubernetesSlave extends AbstractCloudSlave implements TrackedItem {
         this.cloudName = cloudName;
         this.template = template;
         this.podTemplateId = template.getId();
-        this.id = new ProvisioningActivity.Id(cloudName, template.getName(), name);
-    }
-
-    @CheckForNull
-    @Override
-    public ProvisioningActivity.Id getId() {
-        return id;
     }
 
     public String getCloudName() {
@@ -568,16 +552,6 @@ public class KubernetesSlave extends AbstractCloudSlave implements TrackedItem {
     protected Object readResolve() {
         KubernetesSlave ks = (KubernetesSlave) super.readResolve();
         ks.executables = new HashSet<>();
-        if (ks.id == null) {
-            // Agents serialized before cloud-stats tracking was added (JENKINS-67256) have no id;
-            // mint a fresh one so legacy agents keep working after upgrade. Only the persisted fields
-            // are available here: the PodTemplate is transient and resolving it (getTemplateOrNull)
-            // would reach into the cloud config, which is not safely loaded this early in
-            // deserialization. So the persisted template id stands in for the template name. A legacy
-            // agent has no prior cloud-stats activity to correlate with, so this affects only how it
-            // is labelled from now on, never correlation.
-            ks.id = new ProvisioningActivity.Id(ks.cloudName, ks.podTemplateId, ks.name);
-        }
         return ks;
     }
 
