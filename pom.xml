@@ -69,6 +69,12 @@
         <!-- transitive dep of io.fabric8:kubernetes-server-mock, needs alignment with okhttp-api -->
         <version>5.3.2</version>
       </dependency>
+      <!-- Remove when on bom -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>kubernetes-client-api</artifactId>
+        <version>7.8.0-277.v175a_8efdc049</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -111,7 +117,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>kubernetes-client-api</artifactId>
-      <version>7.8.0-277.v175a_8efdc049</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
