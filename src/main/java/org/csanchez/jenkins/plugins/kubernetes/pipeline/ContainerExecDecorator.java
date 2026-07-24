@@ -933,6 +933,7 @@ public class ContainerExecDecorator extends LauncherDecorator implements Seriali
                     && !oldRemoteDir.equals(containerWorkingDirStr)
                     && fixedCommand.contains(oldRemoteDir)) {
                 // Container has a custom workingDir, update the dir in commands
+                // TODO probably .replace was meant rather than .replaceAll?
                 fixedCommand = fixedCommand.replaceAll(oldRemoteDir, containerWorkingDirStr);
             }
             allCommands.add(fixedCommand);

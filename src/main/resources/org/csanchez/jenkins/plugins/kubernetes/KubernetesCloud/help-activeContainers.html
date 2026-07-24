@@ -1,0 +1,15 @@
+<p>
+    Switch <code>container</code> steps to use an active listener.
+    By default, this step runs the equivalent of <code>kubectl exec</code>
+    to run nested <code>sh</code> steps inside the designated container.
+    While that works, it is inefficient as it forces the Kubernetes API server
+    to handle traffic for each such step.
+    When active container mode is enabled,
+    any non-agent container whose command is <code>sleep</code> (or <code>cat</code>)
+    is made to instead run a listening script which awaits requests by the agent container.
+    This is more efficient and scalable.
+</p>
+<p>
+    <strong>Note:</strong> this mode is currently supported only on Linux.
+    Windows containers will use the original implementation.
+</p>

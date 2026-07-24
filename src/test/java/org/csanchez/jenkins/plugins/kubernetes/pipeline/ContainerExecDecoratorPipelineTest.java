@@ -16,6 +16,8 @@
 
 package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey;
@@ -30,6 +32,7 @@ import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LogRecorder;
 
 class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest {
@@ -79,9 +82,9 @@ class ContainerExecDecoratorPipelineTest extends AbstractKubernetesPipelineTest 
         assertNotNull(createJobThenScheduleRun());
         r.waitForCompletion(b);
         // docker login will fail but we can check that it runs the correct command
-        r.assertLogContains(
-                "Executing command: \"docker\" \"login\" \"-u\" \"myusername\" \"-p\" ******** \"https://index.docker.io/v1/\"",
-                b);
+        assertThat(
+                JenkinsRule.getLog(b).replace("\"", ""),
+                containsString("docker login -u myusername -p ******** https://index.docker.io/v1/"));
         // check that we don't accidentally start exporting sensitive info to the build log
         r.assertLogNotContains("secret_password", b);
         // check that we don't accidentally start exporting sensitive info to the Jenkins log

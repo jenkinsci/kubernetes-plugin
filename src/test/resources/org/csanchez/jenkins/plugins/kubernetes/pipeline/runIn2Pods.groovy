@@ -6,13 +6,12 @@ podTemplate(label: '$NAME-1', containers: [
         semaphore 'pod1'
         stage('Run') {
             container('busybox') {
-              sh """
-            ## durable-task plugin generates a script.sh file.
-            ##
-            echo "script file: \$(find ../../.. -iname script.sh))"
-            echo "script file contents: \$(find ../../.. -iname script.sh -exec cat {} \\;)"
-            test -n "\$(cat \"\$(find ../../.. -iname script.sh)\")"
-              """
+                // see runInPod.groovy
+                sh '''
+                    echo "script file: $(find ../../.. -path '*@tmp/durable-*/script.sh'))"
+                    echo "script file contents: $(find ../../.. -path '*@tmp/durable-*/script.sh' -exec cat {} ';')"
+                    test -n "$(cat "$(find ../../.. -path '*@tmp/durable-*/script.sh')")"
+                '''
             }
         }
     }
@@ -26,14 +25,11 @@ podTemplate(label: '$NAME-2', containers: [
         semaphore 'pod2'
         stage('Run') {
             container('busybox2') {
-
-                sh """
-            ## durable-task plugin generates a script.sh file.
-            ##
-            echo "script file: \$(find ../../.. -iname script.sh))"
-            echo "script file contents: \$(find ../../.. -iname script.sh -exec cat {} \\;)"
-            test -n "\$(cat \"\$(find ../../.. -iname script.sh)\")"
-          """
+                sh '''
+                    echo "script file: $(find ../../.. -path '*@tmp/durable-*/script.sh'))"
+                    echo "script file contents: $(find ../../.. -path '*@tmp/durable-*/script.sh' -exec cat {} ';')"
+                    test -n "$(cat "$(find ../../.. -path '*@tmp/durable-*/script.sh')")"
+                '''
             }
         }
     }

@@ -7,13 +7,12 @@ podTemplate(label: '$NAME', containers: [
       stage('Run') {
         container('busybox') {
           echo "container=$POD_CONTAINER"
-          sh """
-            ## durable-task plugin generates a script.sh file.
-            ##
-            echo "script file: \$(find ../../.. -iname script.sh))"
-            echo "script file contents: \$(find ../../.. -iname script.sh -exec cat {} \\;)"
-            test -n "\$(cat \"\$(find ../../.. -iname script.sh)\")"
-          """
+          // durable-task plugin generates a script.sh file
+          sh '''
+            echo "script file: $(find ../../.. -path '*@tmp/durable-*/script.sh'))"
+            echo "script file contents: $(find ../../.. -path '*@tmp/durable-*/script.sh' -exec cat {} ';')"
+            test -n "$(cat "$(find ../../.. -path '*@tmp/durable-*/script.sh')")"
+          '''
         }
       }
     }

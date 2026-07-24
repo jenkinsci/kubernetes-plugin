@@ -15,23 +15,24 @@ import java.util.List;
 import java.util.function.Predicate;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
+import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
 
 /**
  * Sets a workspace volume mounted in all containers.
  */
-@Extension
+@Extension(ordinal = 100) // before ContainerListenerDecorator
 public class DefaultWorkspaceVolume implements PodDecorator {
-    private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
-    public static final Predicate<Volume> WORKSPACE_VOLUME_PREDICATE = v -> WORKSPACE_VOLUME_NAME.equals(v.getName());
+    public static final Predicate<Volume> WORKSPACE_VOLUME_PREDICATE =
+            v -> PodTemplateBuilder.WORKSPACE_VOLUME_NAME.equals(v.getName());
 
     private static final Volume DEFAULT_WORKSPACE_VOLUME = new VolumeBuilder()
-            .withName(WORKSPACE_VOLUME_NAME)
+            .withName(PodTemplateBuilder.WORKSPACE_VOLUME_NAME)
             .withNewEmptyDir()
             .endEmptyDir()
             .build();
 
     private static final VolumeMount DEFAULT_WORKSPACE_VOLUME_MOUNT = new VolumeMountBuilder()
-            .withName(WORKSPACE_VOLUME_NAME)
+            .withName(PodTemplateBuilder.WORKSPACE_VOLUME_NAME)
             .withReadOnly(false)
             .build();
 

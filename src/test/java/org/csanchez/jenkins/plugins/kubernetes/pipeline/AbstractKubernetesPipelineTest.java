@@ -57,6 +57,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LogRecorder;
 import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
@@ -68,7 +69,7 @@ public abstract class AbstractKubernetesPipelineTest {
     protected static final String POD_ENV_VAR_VALUE = "pod-env-var-value";
     protected static final String GLOBAL = "GLOBAL";
 
-    @SuppressWarnings("unused")
+    @RegisterExtension
     protected static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
     protected KubernetesCloud cloud;

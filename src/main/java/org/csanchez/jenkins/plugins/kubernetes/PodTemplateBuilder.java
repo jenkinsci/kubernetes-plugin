@@ -93,7 +93,7 @@ public class PodTemplateBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(PodTemplateBuilder.class.getName());
 
-    private static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
+    public static final String WORKSPACE_VOLUME_NAME = "workspace-volume";
     public static final Pattern FROM_DIRECTIVE = Pattern.compile("^FROM (.*)$");
 
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";

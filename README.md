@@ -198,11 +198,13 @@ The container specified by `agentContainer` will be the one where shell steps (o
 
 To execute commands in another container part of the pod (different from the one running the Jenkins agent), you can use the `container` step.
 
-**Note**
----
-Due to implementation constraints, there can be issues when executing commands in different containers if they run using different uids.
-It is recommended to use the same uid across the different containers part of the same pod to avoid any issue.
----
+> [!NOTE]
+> Due to implementation constraints, there can be issues when executing commands in different containers if they run using different uids.
+> It is recommended to use the same uid across the different containers part of the same pod to avoid any issue.
+
+> [!NOTE]
+> The default implementation of the `container` step does not scale well.
+> Consider selecting the **Use active containers** option in cloud configuration for a more efficient mode.
 
 ```groovy
 podTemplate(
@@ -939,6 +941,8 @@ spec:
     - cat
     tty: true
 ```
+
+(Do not leave this system property on in a production controller, as it is untested and may have harmful effects.)
 
 ## Using WebSockets with a Jenkins controller with self-signed HTTPS certificate
 

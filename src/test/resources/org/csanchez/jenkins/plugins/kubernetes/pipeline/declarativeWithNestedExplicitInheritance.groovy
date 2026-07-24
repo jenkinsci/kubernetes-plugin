@@ -38,7 +38,9 @@ spec:
               sh "go version"
               error("Should not inherit")
             } catch (e) {
-              // ignored
+              def sw = new StringWriter()
+              e.printStackTrace(new PrintWriter(sw))
+              echo "ignoring: $sw"
             }
           }
         }
