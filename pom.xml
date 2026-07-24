@@ -51,7 +51,6 @@
     <spotless.check.skip>false</spotless.check.skip>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <banObsoleteDependencyOverrides.skip>false</banObsoleteDependencyOverrides.skip>
-    <jenkins-test-harness.version>2573.vd91b_8a_43e019</jenkins-test-harness.version>
     <ban-commons-lang-2.skip>false</ban-commons-lang-2.skip>
   </properties>
 

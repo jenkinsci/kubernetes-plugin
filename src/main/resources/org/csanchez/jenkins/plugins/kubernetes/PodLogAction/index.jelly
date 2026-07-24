@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <l:layout title="${it.displayName} log" permission="${app.MANAGE}">
-    <st:include page="sidepanel.jelly" />
+  <l:layout title="${it.owner.displayName} log" permission="${app.MANAGE}">
+    <st:include page="sidepanel.jelly" it="${it.owner}"/>
     <l:main-panel>
       <table class="sortable jenkins-table">
         <thead>
@@ -35,9 +35,9 @@ THE SOFTWARE.
         </thead>
 
         <tbody>
-          <j:forEach var="v" items="${it.containers}">
+          <j:forEach var="v" items="${it.owner.containers}">
             <tr>
-              <td><f:link href="container?name=${v.name}">${v.name}</f:link></td>
+              <td><f:link href="../container?name=${v.name}">${v.name}</f:link></td>
               <td>${v.image}</td>
               <td>${v.imagePullPolicy}</td>
               <td>${v.workingDir}</td>

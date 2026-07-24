@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <l:layout title="${it.displayName} log" permission="${app.MANAGE}">
-    <st:include page="sidepanel.jelly" />
+  <l:layout title="${it.owner.displayName} log" permission="${app.MANAGE}">
+    <st:include page="sidepanel.jelly" it="${it.owner}"/>
     <l:main-panel>
       <table class="sortable jenkins-table">
         <thead>
@@ -36,7 +36,7 @@ THE SOFTWARE.
         </thead>
 
         <tbody>
-          <j:forEach var="v" items="${it.podEvents}">
+          <j:forEach var="v" items="${it.owner.podEvents}">
             <tr>
               <td>${v.type}</td>
               <td>${v.reason}</td>
