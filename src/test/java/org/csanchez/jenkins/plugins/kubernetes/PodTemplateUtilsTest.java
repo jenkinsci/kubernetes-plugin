@@ -462,6 +462,67 @@ class PodTemplateUtilsTest {
     }
 
     @Test
+    void shouldCombinePodSupplementalGroupsFromTemplate() {
+        // Mirrors PodTemplateBuilder.combine(yamlPod, builderPod): builder fields (template)
+        // must keep supplementalGroups when raw YAML (parent) uses the Override strategy.
+        Pod parentPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withContainers(new ContainerBuilder().withName("jnlp").build())
+                .endSpec()
+                .build();
+        Pod childPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withNewSecurityContext()
+                .withRunAsUser(1000L)
+                .withRunAsGroup(1000L)
+                .withSupplementalGroups(5001L, 5002L)
+                .endSecurityContext()
+                .endSpec()
+                .build();
+
+        Pod combinedPod = combine(parentPod, childPod);
+        assertEquals(
+                asList(5001L, 5002L), combinedPod.getSpec().getSecurityContext().getSupplementalGroups());
+        assertEquals(
+                Long.valueOf(1000L), combinedPod.getSpec().getSecurityContext().getRunAsUser());
+        assertEquals(
+                Long.valueOf(1000L), combinedPod.getSpec().getSecurityContext().getRunAsGroup());
+    }
+
+    @Test
+    void shouldPreservePodSupplementalGroupsFromParentWhenTemplateOmitsThem() {
+        Pod parentPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withNewSecurityContext()
+                .withSupplementalGroups(5001L, 5002L)
+                .endSecurityContext()
+                .withContainers(new ContainerBuilder().withName("jnlp").build())
+                .endSpec()
+                .build();
+        Pod childPod = new PodBuilder()
+                .withNewMetadata()
+                .endMetadata()
+                .withNewSpec()
+                .withNewSecurityContext()
+                .withRunAsUser(1000L)
+                .endSecurityContext()
+                .endSpec()
+                .build();
+
+        Pod combinedPod = combine(parentPod, childPod);
+        assertEquals(
+                asList(5001L, 5002L), combinedPod.getSpec().getSecurityContext().getSupplementalGroups());
+        assertEquals(
+                Long.valueOf(1000L), combinedPod.getSpec().getSecurityContext().getRunAsUser());
+    }
+
+    @Test
     void shouldFilterOutNullOrEmptyPodKeyValueEnvVars() {
         PodTemplate template1 = new PodTemplate();
         KeyValueEnvVar podEnvVar1 = new KeyValueEnvVar("", "value-1");
