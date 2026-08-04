@@ -125,7 +125,7 @@ public class PodTemplateBuilder {
      * permission cannot be granted.
      */
     @Restricted(NoExternalUse.class)
-    public static boolean SECRET_VIA_SECRET_KEY_REF =
+    static boolean SECRET_VIA_SECRET_KEY_REF =
             SystemProperties.getBoolean(PodTemplateBuilder.class.getName() + ".secretViaSecretKeyRef", true);
 
     @Restricted(NoExternalUse.class)
@@ -498,7 +498,7 @@ public class PodTemplateBuilder {
             SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 // Add some default env vars for Jenkins
-                envVarsMap.put(JENKINS_SECRET_ENVVAR, agentSecretEnvVar(computer));
+                envVarsMap.put(JENKINS_SECRET_ENVVAR, agentSecretEnvVar(computer, agent.getPodName()));
                 // JENKINS_AGENT_NAME is default in jnlp-slave
                 // JENKINS_NAME only here for backwords compatability
                 env.put("JENKINS_NAME", computer.getName());
@@ -546,13 +546,13 @@ public class PodTemplateBuilder {
      * @see #agentSecretName(String)
      */
     @NonNull
-    private EnvVar agentSecretEnvVar(@NonNull SlaveComputer computer) {
-        if (SECRET_VIA_SECRET_KEY_REF && agent != null) {
+    private static EnvVar agentSecretEnvVar(@NonNull SlaveComputer computer, @NonNull String podName) {
+        if (SECRET_VIA_SECRET_KEY_REF) {
             return new EnvVarBuilder()
                     .withName(JENKINS_SECRET_ENVVAR)
                     .withValueFrom(new EnvVarSourceBuilder()
                             .withSecretKeyRef(new SecretKeySelectorBuilder()
-                                    .withName(agentSecretName(agent.getPodName()))
+                                    .withName(agentSecretName(podName))
                                     .withKey(JENKINS_SECRET_KEY)
                                     .withOptional(false)
                                     .build())
