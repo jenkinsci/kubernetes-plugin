@@ -41,7 +41,7 @@ spec:
     - "cp $(command -v jenkins-agent) /jenkins-agent/jenkins-agent;cp /usr/share/jenkins/agent.jar\
       \ /jenkins-agent/agent.jar;sed -i 's!-jar .*agent.jar!-jar /jenkins-agent\\\
       /agent.jar!' /jenkins-agent/jenkins-agent"
-    image: "jenkins/inbound-agent:3384.v60d89463d9e0-2"
+    image: "jenkins/inbound-agent:3385.vf1123fb_515da_-1-jdk25"
     name: "set-up-jenkins-agent"
     volumeMounts:
     - mountPath: "/jenkins-agent"
