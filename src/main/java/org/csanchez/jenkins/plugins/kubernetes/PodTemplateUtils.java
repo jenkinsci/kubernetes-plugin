@@ -502,6 +502,7 @@ public class PodTemplateUtils {
         podTemplate.setSupplementalGroups(h.resolve(PodTemplate::getSupplementalGroups, Objects::isNull));
         podTemplate.setAgentContainer(h.resolve(PodTemplate::getAgentContainer, PodTemplateUtils::isNullOrEmpty));
         podTemplate.setAgentInjection(h.resolve(PodTemplate::isAgentInjection, v -> !v));
+        podTemplate.setAgentJdkInjection(h.resolve(PodTemplate::isAgentJdkInjection, v -> !v));
         if (template.isHostNetworkSet()) {
             podTemplate.setHostNetwork(template.isHostNetwork());
         } else if (parent.isHostNetworkSet()) {
