@@ -85,6 +85,14 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>bouncycastle-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>cloud-stats</artifactId>
+      <version>423.v63f017a_f582c</version>
+      <!-- Optional: the cloud-stats integration lives behind @OptionalExtension (JENKINS-67256), so
+           the Kubernetes plugin loads and provisions unchanged when cloud-stats is not installed. -->
+      <optional>true</optional>
+    </dependency>
 
     <dependency>
       <!-- Requires Permission -->
