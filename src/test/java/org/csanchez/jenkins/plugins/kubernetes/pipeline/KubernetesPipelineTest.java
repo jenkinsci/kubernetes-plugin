@@ -89,6 +89,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.durable_task.DurableTaskStep;
+import org.jenkinsci.plugins.workflow.support.steps.ExecutorStepExecution;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,7 +108,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public static final String POD_DEADLINE_EXCEEDED_MESSAGE =
             "Pod just failed. Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline.";
 
-    private final LogRecorder warnings = new LogRecorder().quiet();
+    private final LogRecorder logging = new LogRecorder();
 
     private boolean substituteEnv;
 
@@ -152,7 +153,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57993")
     @Test
     void runInPod() throws Exception {
-        warnings.record("", Level.WARNING).capture(1000);
+        logging.record("", Level.WARNING).capture(1000);
         SemaphoreStep.waitForStart("podTemplate/1", b);
         List<PodTemplate> templates = podTemplatesWithLabel(name, cloud.getAllTemplates());
         assertThat(templates, hasSize(1));
@@ -230,7 +231,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
                 "There are pods leftover after test execution, see previous logs");
         assertThat(
                 "routine build should not issue warnings",
-                warnings.getRecords().stream()
+                logging.getRecords().stream()
                         .filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue())
                         . // TODO .record(…, WARNING) does not accomplish this
                         map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage())
@@ -926,6 +927,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     void handleEviction() throws Exception {
+        logging.record(ExecutorStepExecution.class, Level.FINE); // for CancelledItemListener
         SemaphoreStep.waitForStart("pod/1", b);
         var client = cloud.connect();
         var pod = client.pods()
