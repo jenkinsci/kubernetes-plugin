@@ -12,6 +12,7 @@ import io.fabric8.kubernetes.api.model.PodStatus;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Pod container sources are responsible to locating details about Pod containers.
@@ -73,17 +74,36 @@ public abstract class PodContainerSource implements ExtensionPoint {
     }
 
     /**
-     * Default implementation of {@link PodContainerSource} that only searches the primary
-     * pod containers. Ephemeral or init containers are not included container lookups in
-     * this implementation.
+     * A container with {@code restartPolicy: Always} in {@code initContainers} is a
+     * <a href="https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/">native
+     * sidecar</a> (Kubernetes 1.29+): it keeps running for the lifetime of the pod, just like a
+     * regular container, so it is a valid target for the {@code container()} step. A plain
+     * (run-to-completion) init container is not, since it will already have terminated by the
+     * time any pipeline step runs.
+     */
+    private static final String NATIVE_SIDECAR_RESTART_POLICY = "Always";
+
+    /**
+     * Default implementation of {@link PodContainerSource} that searches the primary pod
+     * containers, plus any {@code initContainers} entry declared as a native sidecar
+     * ({@code restartPolicy: Always}). Plain (run-to-completion) init containers and ephemeral
+     * containers are not included in container lookups in this implementation.
      * @see PodSpec#getContainers()
+     * @see PodSpec#getInitContainers()
      */
     @Extension
     public static final class DefaultPodContainerSource extends PodContainerSource {
 
         @Override
         public Optional<String> getContainerWorkingDir(@NonNull Pod pod, @NonNull String containerName) {
-            return pod.getSpec().getContainers().stream()
+            Optional<String> workingDir = pod.getSpec().getContainers().stream()
+                    .filter(c -> Objects.equals(c.getName(), containerName))
+                    .findAny()
+                    .map(Container::getWorkingDir);
+            if (workingDir.isPresent()) {
+                return workingDir;
+            }
+            return nativeSidecars(pod)
                     .filter(c -> Objects.equals(c.getName(), containerName))
                     .findAny()
                     .map(Container::getWorkingDir);
@@ -96,9 +116,28 @@ public abstract class PodContainerSource implements ExtensionPoint {
                 return Optional.empty();
             }
 
-            return podStatus.getContainerStatuses().stream()
+            Optional<ContainerStatus> status = podStatus.getContainerStatuses().stream()
                     .filter(cs -> Objects.equals(cs.getName(), containerName))
                     .findFirst();
+            if (status.isPresent()) {
+                return status;
+            }
+            List<ContainerStatus> initContainerStatuses = podStatus.getInitContainerStatuses();
+            if (initContainerStatuses == null) {
+                return Optional.empty();
+            }
+            return initContainerStatuses.stream()
+                    .filter(cs -> Objects.equals(cs.getName(), containerName))
+                    .filter(cs -> nativeSidecars(pod).anyMatch(c -> Objects.equals(c.getName(), cs.getName())))
+                    .findFirst();
+        }
+
+        private static Stream<Container> nativeSidecars(@NonNull Pod pod) {
+            List<Container> initContainers = pod.getSpec().getInitContainers();
+            if (initContainers == null) {
+                return Stream.empty();
+            }
+            return initContainers.stream().filter(c -> NATIVE_SIDECAR_RESTART_POLICY.equals(c.getRestartPolicy()));
         }
     }
 }
