@@ -29,9 +29,16 @@ import static org.csanchez.jenkins.plugins.kubernetes.KubernetesTestUtil.assertR
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.BuildListener;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.dsl.PodResource;
 import java.io.IOException;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +55,8 @@ import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MemoryAssert;
+import org.jvnet.hudson.test.TestBuilder;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.Mockito;
@@ -82,6 +91,52 @@ class KubernetesSlaveTest {
         assertRegex(
                 KubernetesSlave.getSlaveName(new PodTemplate("whatever...", volumes, containers)),
                 ("jenkins-agent-[0-9a-z]{5}"));
+    }
+
+    @Test
+    void completedExecutablesCanBeGarbageCollected() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setName("memory-test");
+        KubernetesSlave slave = KubernetesSlave.builder()
+                .podTemplate(template)
+                .cloud(new KubernetesCloud("kube"))
+                .build();
+        FreeStyleProject project = r.createFreeStyleProject();
+        project.getBuildersList().add(new TestBuilder() {
+            @Override
+            public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) {
+                // Exercise the banner path on a real executor without provisioning a Kubernetes pod.
+                slave.createLauncher(listener);
+                System.gc();
+                slave.createLauncher(listener);
+                return true;
+            }
+        });
+
+        try {
+            // Reusing the agent must still print the banner once for each new build.
+            MemoryAssert.assertGC(runBuildAndRelease(project), true);
+            MemoryAssert.assertGC(runBuildAndRelease(project), true);
+        } finally {
+            // The test must not pass merely because the agent itself was collected.
+            Reference.reachabilityFence(slave);
+        }
+    }
+
+    private WeakReference<FreeStyleBuild> runBuildAndRelease(FreeStyleProject project) throws Exception {
+        FreeStyleBuild build = r.buildAndAssertSuccess(project);
+        r.waitUntilNoActivity();
+        assertEquals(
+                1,
+                JenkinsRule.getLog(build)
+                        .lines()
+                        .filter(line -> line.contains("is provisioned from template memory-test"))
+                        .count());
+        WeakReference<FreeStyleBuild> reference = new WeakReference<>(build);
+        // Remove build history and queue-cache references so only unintended retention prevents collection.
+        build.delete();
+        r.jenkins.getQueue().clearLeftItems();
+        return reference;
     }
 
     @Test

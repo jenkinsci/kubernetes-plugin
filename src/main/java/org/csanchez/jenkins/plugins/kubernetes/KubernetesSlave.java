@@ -33,10 +33,11 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +79,11 @@ public class KubernetesSlave extends AbstractCloudSlave {
     private String podTemplateId;
 
     private transient PodTemplate template;
-    private transient Set<Queue.Executable> executables = new HashSet<>();
+    // Weakly-referenced dedup set: it only needs to answer "was the provisioning banner already
+    // printed for this executable" while the build is running (during which the executable is
+    // strongly reachable elsewhere). Strong references here would retain every build that ever
+    // ran on this agent, including its whole pipeline execution and log buffers (memory leak).
+    private transient Set<Queue.Executable> executables = newWeakExecutableSet();
 
     @CheckForNull
     private transient Pod pod;
@@ -551,8 +556,12 @@ public class KubernetesSlave extends AbstractCloudSlave {
     @Override
     protected Object readResolve() {
         KubernetesSlave ks = (KubernetesSlave) super.readResolve();
-        ks.executables = new HashSet<>();
+        ks.executables = newWeakExecutableSet();
         return ks;
+    }
+
+    private static Set<Queue.Executable> newWeakExecutableSet() {
+        return Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
     }
 
     /**
