@@ -108,8 +108,6 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     public static final String POD_DEADLINE_EXCEEDED_MESSAGE =
             "Pod just failed. Reason: DeadlineExceeded, Message: Pod was active on the node longer than the specified deadline.";
 
-    private final LogRecorder logging = new LogRecorder();
-
     private boolean substituteEnv;
 
     @BeforeEach
@@ -153,92 +151,96 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
     @Issue("JENKINS-57993")
     @Test
     void runInPod() throws Exception {
-        logging.record("", Level.WARNING).capture(1000);
-        SemaphoreStep.waitForStart("podTemplate/1", b);
-        List<PodTemplate> templates = podTemplatesWithLabel(name, cloud.getAllTemplates());
-        assertThat(templates, hasSize(1));
-        SemaphoreStep.success("podTemplate/1", null);
+        try (var warnings = new LogRecorder().quiet().record("", Level.WARNING).capture(1000)) {
+            SemaphoreStep.waitForStart("podTemplate/1", b);
+            List<PodTemplate> templates = podTemplatesWithLabel(name, cloud.getAllTemplates());
+            assertThat(templates, hasSize(1));
+            SemaphoreStep.success("podTemplate/1", null);
 
-        // check if build failed
-        assertTrue(b.isBuilding() || Result.SUCCESS.equals(b.getResult()), "Build has failed early: " + b.getResult());
+            // check if build failed
+            assertTrue(
+                    b.isBuilding() || Result.SUCCESS.equals(b.getResult()), "Build has failed early: " + b.getResult());
 
-        LOGGER.log(Level.INFO, "Found templates with label runInPod: {0}", templates);
-        for (PodTemplate template : cloud.getAllTemplates()) {
-            LOGGER.log(Level.INFO, "Cloud template \"{0}\" labels: {1}", new Object[] {
-                template.getName(), template.getLabelSet()
-            });
-        }
-
-        Map<String, String> labels = getLabels(cloud, this, name);
-        SemaphoreStep.waitForStart("pod/1", b);
-        for (Computer c : getKubernetesComputers()) { // TODO perhaps this should be built into JenkinsRule via
-            // ComputerListener.preLaunch?
-            new Thread(
-                            () -> {
-                                long pos = 0;
-                                try {
-                                    while (Jenkins.getInstanceOrNull()
-                                            != null) { // otherwise get NPE from Computer.getLogDir
-                                        if (c.getLogFile().isFile()) { // TODO should LargeText.FileSession handle this?
-                                            pos = c.getLogText().writeLogTo(pos, System.out);
-                                        }
-                                        Thread.sleep(100);
-                                    }
-                                } catch (Exception x) {
-                                    x.printStackTrace();
-                                }
-                            },
-                            "watching logs for " + c.getDisplayName())
-                    .start();
-            System.out.println(c.getLog());
-        }
-        PodList pods = cloud.connect().pods().withLabels(labels).list();
-        assertThat(
-                "Expected one pod with labels " + labels + " but got: "
-                        + pods.getItems().stream().map(Pod::getMetadata).toList(),
-                pods.getItems(),
-                hasSize(1));
-        SemaphoreStep.success("pod/1", null);
-
-        PodTemplate template = templates.get(0);
-        List<PodAnnotation> annotations = template.getAnnotations();
-        assertNotNull(annotations);
-        boolean foundBuildUrl = false;
-        for (PodAnnotation pd : annotations) {
-            if (pd.getKey().equals("buildUrl")) {
-                assertTrue(pd.getValue().contains(p.getUrl()));
-                foundBuildUrl = true;
+            LOGGER.log(Level.INFO, "Found templates with label runInPod: {0}", templates);
+            for (PodTemplate template : cloud.getAllTemplates()) {
+                LOGGER.log(Level.INFO, "Cloud template \"{0}\" labels: {1}", new Object[] {
+                    template.getName(), template.getLabelSet()
+                });
             }
+
+            Map<String, String> labels = getLabels(cloud, this, name);
+            SemaphoreStep.waitForStart("pod/1", b);
+            for (Computer c : getKubernetesComputers()) { // TODO perhaps this should be built into JenkinsRule via
+                // ComputerListener.preLaunch?
+                new Thread(
+                                () -> {
+                                    long pos = 0;
+                                    try {
+                                        while (Jenkins.getInstanceOrNull()
+                                                != null) { // otherwise get NPE from Computer.getLogDir
+                                            if (c.getLogFile()
+                                                    .isFile()) { // TODO should LargeText.FileSession handle this?
+                                                pos = c.getLogText().writeLogTo(pos, System.out);
+                                            }
+                                            Thread.sleep(100);
+                                        }
+                                    } catch (Exception x) {
+                                        x.printStackTrace();
+                                    }
+                                },
+                                "watching logs for " + c.getDisplayName())
+                        .start();
+                System.out.println(c.getLog());
+            }
+            PodList pods = cloud.connect().pods().withLabels(labels).list();
+            assertThat(
+                    "Expected one pod with labels " + labels + " but got: "
+                            + pods.getItems().stream().map(Pod::getMetadata).toList(),
+                    pods.getItems(),
+                    hasSize(1));
+            SemaphoreStep.success("pod/1", null);
+
+            PodTemplate template = templates.get(0);
+            List<PodAnnotation> annotations = template.getAnnotations();
+            assertNotNull(annotations);
+            boolean foundBuildUrl = false;
+            for (PodAnnotation pd : annotations) {
+                if (pd.getKey().equals("buildUrl")) {
+                    assertTrue(pd.getValue().contains(p.getUrl()));
+                    foundBuildUrl = true;
+                }
+            }
+            assertTrue(foundBuildUrl);
+            assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
+            assertThat(template.getLabelsMap(), hasEntry("jenkins/label", name));
+
+            Pod pod = pods.getItems().get(0);
+            LOGGER.log(Level.INFO, "One pod found: {0}", pod);
+            assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
+            assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/label", name));
+
+            SemaphoreStep.waitForStart("after-podtemplate/1", b);
+            assertThat(podTemplatesWithLabel(name, cloud.getAllTemplates()), hasSize(0));
+            SemaphoreStep.success("after-podtemplate/1", null);
+
+            r.assertBuildStatusSuccess(r.waitForCompletion(b));
+            r.assertLogContains("container=busybox", b);
+            r.assertLogContains("script file contents: ", b);
+            assertFalse(
+                    deletePods(cloud.connect(), getLabels(cloud, this, name), true),
+                    "There are pods leftover after test execution, see previous logs");
+            assertThat(
+                    "routine build should not issue warnings",
+                    warnings.getRecords().stream()
+                            .filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue())
+                            . // TODO .record(…, WARNING) does not accomplish this
+                            map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage())
+                            .collect(Collectors.toList()), // LogRecord does not override toString
+                    emptyIterable());
+
+            assertTrue(
+                    Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).getCount() > 0);
         }
-        assertTrue(foundBuildUrl);
-        assertEquals(Integer.MAX_VALUE, template.getInstanceCap());
-        assertThat(template.getLabelsMap(), hasEntry("jenkins/label", name));
-
-        Pod pod = pods.getItems().get(0);
-        LOGGER.log(Level.INFO, "One pod found: {0}", pod);
-        assertThat(pod.getMetadata().getLabels(), hasEntry("jenkins", "slave"));
-        assertThat("Pod labels are wrong: " + pod, pod.getMetadata().getLabels(), hasEntry("jenkins/label", name));
-
-        SemaphoreStep.waitForStart("after-podtemplate/1", b);
-        assertThat(podTemplatesWithLabel(name, cloud.getAllTemplates()), hasSize(0));
-        SemaphoreStep.success("after-podtemplate/1", null);
-
-        r.assertBuildStatusSuccess(r.waitForCompletion(b));
-        r.assertLogContains("container=busybox", b);
-        r.assertLogContains("script file contents: ", b);
-        assertFalse(
-                deletePods(cloud.connect(), getLabels(cloud, this, name), true),
-                "There are pods leftover after test execution, see previous logs");
-        assertThat(
-                "routine build should not issue warnings",
-                logging.getRecords().stream()
-                        .filter(lr -> lr.getLevel().intValue() >= Level.WARNING.intValue())
-                        . // TODO .record(…, WARNING) does not accomplish this
-                        map(lr -> lr.getSourceClassName() + "." + lr.getSourceMethodName() + ": " + lr.getMessage())
-                        .collect(Collectors.toList()), // LogRecord does not override toString
-                emptyIterable());
-
-        assertTrue(Metrics.metricRegistry().counter(MetricNames.PODS_LAUNCHED).getCount() > 0);
     }
 
     @Test
@@ -927,7 +929,7 @@ class KubernetesPipelineTest extends AbstractKubernetesPipelineTest {
 
     @Test
     void handleEviction() throws Exception {
-        logging.record(ExecutorStepExecution.class, Level.FINE); // for CancelledItemListener
+        logs.record(ExecutorStepExecution.class, Level.FINE); // for CancelledItemListener
         SemaphoreStep.waitForStart("pod/1", b);
         var client = cloud.connect();
         var pod = client.pods()

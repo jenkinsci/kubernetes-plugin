@@ -54,6 +54,7 @@ import org.csanchez.jenkins.plugins.kubernetes.model.SecretEnvVar;
 import org.csanchez.jenkins.plugins.kubernetes.model.TemplateEnvVar;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.junit.jupiter.api.AutoClose;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
@@ -76,6 +77,7 @@ public abstract class AbstractKubernetesPipelineTest {
 
     protected JenkinsRule r;
 
+    @AutoClose
     protected final LogRecorder logs = new LogRecorder()
             .recordPackage(KubernetesCloud.class, Level.FINE)
             .recordPackage(NoDelayProvisionerStrategy.class, Level.FINE)
