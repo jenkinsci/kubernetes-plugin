@@ -183,7 +183,9 @@ public class PodTemplateBuilder {
         String podName = agent.getPodName();
         int i = 0;
         for (final PodVolume volume : template.getVolumes()) {
-            final String volumeName = "volume-" + i;
+            final String volumeName = (volume instanceof HostPathVolume hp)
+                    ? normalizePath(hp.getHostPath()).replaceFirst("^/", "").replaceAll("[^a-zA-Z0-9-]", "-")
+                    : "volume-" + i;
             final String mountPath = normalizePath(volume.getMountPath());
             if (!volumeMounts.containsKey(mountPath)) {
                 VolumeMountBuilder volumeMountBuilder = new VolumeMountBuilder() //
