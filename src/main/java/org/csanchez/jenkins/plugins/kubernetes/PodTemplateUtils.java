@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
+import io.fabric8.kubernetes.api.model.PodSecurityContext;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -208,6 +209,28 @@ public class PodTemplateUtils {
                         );
     }
 
+    private static Long resolvePodSecurityContextLong(
+            PodSecurityContext parent, PodSecurityContext template, Function<PodSecurityContext, Long> getter) {
+        Long templateValue = template != null ? getter.apply(template) : null;
+        if (templateValue != null) {
+            return templateValue;
+        }
+        return parent != null ? getter.apply(parent) : null;
+    }
+
+    private static List<Long> resolvePodSecurityContextSupplementalGroups(
+            PodSecurityContext parent, PodSecurityContext template) {
+        List<Long> templateValue = template != null ? template.getSupplementalGroups() : null;
+        if (templateValue != null && !templateValue.isEmpty()) {
+            return templateValue;
+        }
+        List<Long> parentValue = parent != null ? parent.getSupplementalGroups() : null;
+        if (parentValue != null && !parentValue.isEmpty()) {
+            return parentValue;
+        }
+        return null;
+    }
+
     private static Capabilities combineCapabilities(Container parent, Container template) {
         Capabilities parentCapabilities = parent.getSecurityContext() != null
                 ? parent.getSecurityContext().getCapabilities()
@@ -342,40 +365,19 @@ public class PodTemplateUtils {
 
         // Security context
         if (template.getSpec().getSecurityContext() != null || parent.getSpec().getSecurityContext() != null) {
+            PodSecurityContext parentSecurityContext = parent.getSpec().getSecurityContext();
+            PodSecurityContext templateSecurityContext = template.getSpec().getSecurityContext();
+            Long runAsUser = resolvePodSecurityContextLong(
+                    parentSecurityContext, templateSecurityContext, PodSecurityContext::getRunAsUser);
+            Long runAsGroup = resolvePodSecurityContextLong(
+                    parentSecurityContext, templateSecurityContext, PodSecurityContext::getRunAsGroup);
+            List<Long> supplementalGroups =
+                    resolvePodSecurityContextSupplementalGroups(parentSecurityContext, templateSecurityContext);
             specBuilder
                     .editOrNewSecurityContext()
-                    .withRunAsUser(
-                            template.getSpec().getSecurityContext() != null
-                                            && template.getSpec()
-                                                            .getSecurityContext()
-                                                            .getRunAsUser()
-                                                    != null
-                                    ? template.getSpec().getSecurityContext().getRunAsUser()
-                                    : (parent.getSpec().getSecurityContext() != null
-                                                    && parent.getSpec()
-                                                                    .getSecurityContext()
-                                                                    .getRunAsUser()
-                                                            != null
-                                            ? parent.getSpec()
-                                                    .getSecurityContext()
-                                                    .getRunAsUser()
-                                            : null))
-                    .withRunAsGroup(
-                            template.getSpec().getSecurityContext() != null
-                                            && template.getSpec()
-                                                            .getSecurityContext()
-                                                            .getRunAsGroup()
-                                                    != null
-                                    ? template.getSpec().getSecurityContext().getRunAsGroup()
-                                    : (parent.getSpec().getSecurityContext() != null
-                                                    && parent.getSpec()
-                                                                    .getSecurityContext()
-                                                                    .getRunAsGroup()
-                                                            != null
-                                            ? parent.getSpec()
-                                                    .getSecurityContext()
-                                                    .getRunAsGroup()
-                                            : null))
+                    .withRunAsUser(runAsUser)
+                    .withRunAsGroup(runAsGroup)
+                    .withSupplementalGroups(supplementalGroups)
                     .endSecurityContext();
         }
 
