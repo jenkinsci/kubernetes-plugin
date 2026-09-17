@@ -1021,6 +1021,80 @@ class PodTemplateBuilderTest {
         assertThat(pod.getSpec().getNodeSelector(), anEmptyMap());
     }
 
+    @Issue("2809")
+    @Test
+    void multiContainerPodGetsDefaultActiveDeadlineSeconds() {
+        PodTemplate template = new PodTemplate();
+        ContainerTemplate sidecar = new ContainerTemplate("busybox", "busybox");
+        sidecar.setCommand("sleep");
+        sidecar.setArgs("infinity");
+        template.getContainers().add(sidecar);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertEquals(
+                Long.valueOf(MULTI_CONTAINER_ACTIVE_DEADLINE_SECONDS),
+                pod.getSpec().getActiveDeadlineSeconds());
+    }
+
+    @Issue("2809")
+    @Test
+    void singleContainerPodDoesNotGetDefaultActiveDeadlineSeconds() {
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(new PodTemplate(), slave).build();
+
+        assertNull(pod.getSpec().getActiveDeadlineSeconds());
+    }
+
+    @Issue("2809")
+    @Test
+    void explicitTemplateActiveDeadlineSecondsIsNotOverridden() {
+        PodTemplate template = new PodTemplate();
+        template.setActiveDeadlineSeconds(120);
+        ContainerTemplate sidecar = new ContainerTemplate("busybox", "busybox");
+        sidecar.setCommand("sleep");
+        sidecar.setArgs("infinity");
+        template.getContainers().add(sidecar);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertEquals(Long.valueOf(120), pod.getSpec().getActiveDeadlineSeconds());
+    }
+
+    @Issue("2809")
+    @Test
+    void yamlActiveDeadlineSecondsIsNotOverridden() {
+        PodTemplate template = new PodTemplate();
+        template.setYaml("spec:\n  activeDeadlineSeconds: 300");
+        ContainerTemplate sidecar = new ContainerTemplate("busybox", "busybox");
+        sidecar.setCommand("sleep");
+        sidecar.setArgs("infinity");
+        template.getContainers().add(sidecar);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertEquals(Long.valueOf(300), pod.getSpec().getActiveDeadlineSeconds());
+    }
+
+    @Issue("2809")
+    @Test
+    void customAgentContainerStillGetsDefaultActiveDeadlineSeconds() {
+        PodTemplate template = new PodTemplate();
+        template.setAgentContainer("maven");
+        template.setAgentInjection(true);
+        template.getContainers().add(new ContainerTemplate("maven", "maven:3-eclipse-temurin-17"));
+        ContainerTemplate golang = new ContainerTemplate("golang", "golang:1.23");
+        golang.setCommand("sleep");
+        golang.setArgs("99d");
+        template.getContainers().add(golang);
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        assertEquals(
+                Long.valueOf(MULTI_CONTAINER_ACTIVE_DEADLINE_SECONDS),
+                pod.getSpec().getActiveDeadlineSeconds());
+    }
+
     private Map<String, Container> toContainerMap(Pod pod) {
         return pod.getSpec().getContainers().stream()
                 .collect(Collectors.toMap(Container::getName, Function.identity()));
