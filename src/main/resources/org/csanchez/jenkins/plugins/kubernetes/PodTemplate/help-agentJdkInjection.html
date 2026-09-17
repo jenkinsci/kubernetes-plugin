@@ -1,0 +1,29 @@
+<p>
+Injects the JDK from the agent injection image into the agent container when <strong>Inject Jenkins agent in agent container</strong> is enabled.
+</p>
+
+<p>
+This is useful when your agent container is a minimal toolchain image (python, node, golang) that doesn't include Java,
+but the Jenkins agent needs Java to run.
+</p>
+
+<p>
+When enabled, the init container copies the JDK from <code>/opt/java/openjdk</code> to <code>/jenkins-agent/jdk</code>
+and sets <code>JENKINS_JAVA_BIN=/jenkins-agent/jdk/bin/java</code>.
+</p>
+
+<p><strong>Example use case:</strong></p>
+<pre>Agent container: python:3.11-slim (no Java)
+Agent injection image: jenkins/inbound-agent:alpine-jdk21 (has Java)
+Result: Agent runs with injected JDK</pre>
+
+<p><strong>Trade-offs:</strong></p>
+<ul>
+  <li>Adds 10-20 seconds to pod startup (copying ~100-200MB JDK)</li>
+  <li>Requires additional volume space (~200MB per pod)</li>
+</ul>
+
+<p>
+<strong>Note:</strong> Only applies when agent injection is enabled.
+If your agent container already has Java installed, leave this disabled.
+</p>
