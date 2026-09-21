@@ -257,6 +257,58 @@ class PodTemplateBuilderTest {
     }
 
     @Test
+    public void testAgentJdkInjection() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setAgentInjection(true);
+        template.setAgentJdkInjection(true);
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        // Verify init container command includes JDK copy
+        Container initContainer = pod.getSpec().getInitContainers().get(0);
+        String command = String.join(" ", initContainer.getCommand());
+        assertThat(command, containsString("cp -R /opt/java/openjdk /jenkins-agent/jdk"));
+
+        // Verify JENKINS_JAVA_BIN environment variable is set
+        Container jnlpContainer = pod.getSpec().getContainers().stream()
+                .filter(c -> "jnlp".equals(c.getName()))
+                .findFirst()
+                .orElseThrow();
+        EnvVar javaBindEnvVar = jnlpContainer.getEnv().stream()
+                .filter(env -> "JENKINS_JAVA_BIN".equals(env.getName()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("/jenkins-agent/jdk/bin/java", javaBindEnvVar.getValue());
+    }
+
+    @Test
+    public void testAgentJdkInjectionDisabled() throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setAgentInjection(true);
+        template.setAgentJdkInjection(false);
+        template.setYaml(loadYamlFile("pod-busybox.yaml"));
+        setupStubs();
+
+        Pod pod = new PodTemplateBuilder(template, slave).build();
+
+        // Verify init container command does NOT include JDK copy
+        Container initContainer = pod.getSpec().getInitContainers().get(0);
+        String command = String.join(" ", initContainer.getCommand());
+        assertThat(command, not(containsString("cp -R /opt/java/openjdk")));
+
+        // Verify JENKINS_JAVA_BIN is NOT set
+        Container jnlpContainer = pod.getSpec().getContainers().stream()
+                .filter(c -> "jnlp".equals(c.getName()))
+                .findFirst()
+                .orElseThrow();
+        boolean hasJavaBinEnv =
+                jnlpContainer.getEnv().stream().anyMatch(env -> "JENKINS_JAVA_BIN".equals(env.getName()));
+        assertFalse(hasJavaBinEnv);
+    }
+
+    @Test
     @Issue("JENKINS-50525")
     void testBuildWithCustomWorkspaceVolume() {
         PodTemplate template = new PodTemplate();
