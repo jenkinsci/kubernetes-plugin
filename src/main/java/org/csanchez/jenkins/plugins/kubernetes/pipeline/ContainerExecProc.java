@@ -89,7 +89,15 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
         } catch (IOException e) {
             LOGGER.log(Level.FINE, "Proc kill failed, ignoring", e);
         } finally {
-            close();
+            try {
+                close();
+            } finally {
+                // Force finished latch count down to ensure join unblocks.
+                // In the wild it has been observed that sometimes the countdown
+                // latch is not triggered resulting in joinWithTimeout never
+                // completing even after the timeout interruption has been triggered.
+                finished.countDown();
+            }
         }
     }
 
