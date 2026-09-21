@@ -106,6 +106,14 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     private transient boolean unwrapped;
 
+    /**
+     * Names of the {@link ContainerTemplate}s declared directly on this template, i.e. not inherited from a
+     * parent via {@link #inheritFrom}. Populated by {@link PodTemplateUtils#combine(PodTemplate, PodTemplate)}
+     * so that {@link PodTemplateBuilder} can tell purely-inherited containers apart from containers this
+     * template overrides itself, which affects how {@code yaml} is merged against them.
+     */
+    private transient Set<String> localContainerNames;
+
     private String inheritFrom;
 
     private String name;
@@ -1040,6 +1048,15 @@ public class PodTemplate extends AbstractDescribableImpl<PodTemplate> implements
 
     boolean isUnwrapped() {
         return unwrapped;
+    }
+
+    void setLocalContainerNames(Set<String> localContainerNames) {
+        this.localContainerNames = localContainerNames;
+    }
+
+    @CheckForNull
+    Set<String> getLocalContainerNames() {
+        return localContainerNames;
     }
 
     private String getContainersDescriptionForLogging() {
