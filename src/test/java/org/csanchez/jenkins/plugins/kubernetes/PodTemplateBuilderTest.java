@@ -391,7 +391,7 @@ class PodTemplateBuilderTest {
             assertNotNull(volumes.get("empty-volume"));
             assertNotNull(volumes.get("host-volume"));
         } else {
-            assertNotNull(volumes.get("volume-0"));
+            assertNotNull(volumes.get("host-data"));
             assertNotNull(volumes.get("volume-1"));
         }
 
@@ -420,7 +420,7 @@ class PodTemplateBuilderTest {
                     equalTo(
                             new VolumeMountBuilder() //
                                     .withMountPath("/container/data")
-                                    .withName("volume-0")
+                                    .withName("host-data")
                                     .withReadOnly(false)
                                     .build()),
                     equalTo(
