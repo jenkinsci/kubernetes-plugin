@@ -82,6 +82,10 @@ THE SOFTWARE.
       <f:number min="${descriptor.defaultReadTimeout}" default="${descriptor.defaultReadTimeout}" checkMethod="post"/>
     </f:entry>
 
+    <f:entry title="${%Minimum Watch Retry Interval (seconds)}" field="minWatchRetryIntervalSeconds">
+      <f:number min="0" default="${descriptor.defaultMinWatchRetryInterval}" checkMethod="post"/>
+    </f:entry>
+
     <f:entry title="${%Concurrency Limit}" field="containerCapStr">
       <f:number default="10"/>
     </f:entry>

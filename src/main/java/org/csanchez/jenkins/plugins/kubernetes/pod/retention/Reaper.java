@@ -35,6 +35,8 @@ import hudson.model.listeners.SaveableListener;
 import hudson.slaves.ComputerListener;
 import hudson.slaves.EphemeralNode;
 import hudson.slaves.OfflineCause;
+import hudson.util.DaemonThreadFactory;
+import hudson.util.NamingThreadFactory;
 import io.fabric8.kubernetes.api.model.ContainerStateTerminated;
 import io.fabric8.kubernetes.api.model.ContainerStateWaiting;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
@@ -55,8 +57,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -69,6 +79,8 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesComputer;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.PodUtils;
 import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Checks for deleted pods corresponding to {@link KubernetesSlave} and ensures the node is removed from Jenkins too.
@@ -82,6 +94,126 @@ import org.jenkinsci.plugins.kubernetes.auth.KubernetesAuthException;
 public class Reaper extends ComputerListener {
 
     private static final Logger LOGGER = Logger.getLogger(Reaper.class.getName());
+
+    /**
+     * Per-attempt watch-setup timeout, covering BOTH {@link KubernetesCloud#connect()} (client
+     * construction/handshake, which can itself block against a slow-but-reachable cloud) and the actual
+     * {@code .watch()} call, before treating the attempt as a failure. fabric8's {@code BaseOperation#watch}
+     * internally calls {@code Utils.waitUntilReadyOrFail(startedFuture, -1, TimeUnit.SECONDS)} - an
+     * INTENTIONAL, hardcoded indefinite wait with no way for a caller to override it. Against a cloud that
+     * accepts a connection but never completes the watch handshake (a "hanging" endpoint, or one merely slow
+     * under heavy concurrent load), that indefinite wait blocks the calling thread forever inside
+     * {@code ForkJoinPool.commonPool()}'s managed-blocking/compensation machinery. Since that pool is
+     * JVM-wide and shared by every unrelated async operation (not just other clouds' watches), enough
+     * concurrent stuck attempts against ONE bad cloud can exhaust its bounded compensation-thread budget and
+     * collaterally starve watch setup for every OTHER, perfectly healthy cloud too. Running the watch-ready
+     * wait on {@link #WATCH_SETUP_EXECUTOR} instead confines this risk to a small, dedicated, bounded pool
+     * so a hanging cloud can no longer poison JVM-wide shared infrastructure. See JENKINS-76095 for details.
+     *
+     * <p>By default (when this system property is unset or {@code <= 0}), the bound used is derived
+     * per-cloud from settings the operator has ALREADY configured for exactly this purpose - {@link
+     * KubernetesCloud#getConnectTimeout()} {@code +} {@link KubernetesCloud#getReadTimeout()} - rather than
+     * one hardcoded JVM-wide constant. connect-then-watch is a strictly sequential operation (the watch
+     * cannot begin until the connection completes), so the worst-case total wait is the SUM of both
+     * timeouts, not their max. This means a cloud already configured as "known to be slower" (higher
+     * connect/read timeouts) automatically gets a proportionally more patient watch-setup bound too, with no
+     * separate setting for an operator to remember to keep in sync. See {@link #watchSetupTimeoutSeconds}.
+     *
+     * <p>This system property remains available as an explicit, fixed override for environments that want a
+     * single hardcoded bound regardless of any individual cloud's configured connect/read timeouts.
+     *
+     * <p><b>Note:</b> like all {@code static final} fields on this class read via {@link SystemProperties},
+     * this value is resolved exactly once, when the {@code Reaper} class is first loaded (effectively at
+     * Jenkins startup). Setting this system property at runtime (e.g. via the Script Console's
+     * {@code System.setProperty(...)}) has no effect on an already-running instance - it must be set as a
+     * JVM startup argument (e.g. {@code -Dorg.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper.watchSetupTimeoutSecondsOverride=30})
+     * before Jenkins starts, and Jenkins must be (re)started for a change to take effect.
+     */
+    private static final int WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE =
+            SystemProperties.getInteger(Reaper.class.getName() + ".watchSetupTimeoutSecondsOverride", 0);
+
+    /**
+     * Returns the watch-setup timeout (seconds) to use for a single attempt against the given cloud - the
+     * fixed {@link #WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE} if explicitly set to a positive value, otherwise
+     * derived per-cloud as {@code connectTimeout + readTimeout}. See {@link #WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE}
+     * for the full rationale.
+     */
+    private static int watchSetupTimeoutSecondsFor(@NonNull KubernetesCloud kc) {
+        if (WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE > 0) {
+            return WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE;
+        }
+        return kc.getConnectTimeout() + kc.getReadTimeout();
+    }
+
+    /**
+     * Upper bound on concurrently in-flight watch-setup attempts across all clouds. Deliberately bounded
+     * (not a cached/unbounded pool) - if this cap is reached, further attempts are rejected immediately
+     * (surfacing as a {@link RejectedExecutionException}, handled identically to any other watch-setup
+     * failure by {@link #watchCloud} and folded into the existing failure-streak/throttle mechanism) rather
+     * than piling up additional threads. A stuck attempt that timed out here is abandoned (best-effort
+     * {@link Future#cancel}, which - like the underlying fabric8/OkHttp call - cannot forcibly interrupt a
+     * blocked read) but is now permanently confined to this small dedicated pool instead of the shared
+     * {@code ForkJoinPool.commonPool()}.
+     *
+     * <p>Rather than a single hardcoded constant (which would either be wastefully large for a small
+     * Jenkins instance or too small for one with many configured {@link KubernetesCloud}s - there is no
+     * one-size-fits-all number), the cap is derived from the actual number of currently configured clouds,
+     * multiplied by {@link #WATCH_SETUP_THREADS_PER_CLOUD} headroom so a burst where every cloud needs
+     * re-arming at once (e.g. right after a Jenkins restart, or many concurrent client-cache evictions) is
+     * never artificially bottlenecked by this pool itself, with a small floor for the common case of very
+     * few clouds. Recomputed via {@link #resizeWatchSetupExecutor} every time {@link #watchClouds()} runs
+     * (i.e. whenever the set of configured clouds is (re-)enumerated), so it grows/shrinks automatically as
+     * clouds are added or removed at runtime - operators never need to hand-tune this for their
+     * environment's scale, and no restart is needed for the pool itself to track a changed cloud count.
+     * An explicit override remains available via the {@code watchSetupMaxThreads} system property for
+     * environments that want a fixed cap regardless of cloud count.
+     *
+     * <p><b>Note:</b> {@link #WATCH_SETUP_MIN_THREADS}, {@link #WATCH_SETUP_THREADS_PER_CLOUD}, and
+     * {@link #WATCH_SETUP_MAX_THREADS_OVERRIDE} are themselves {@code static final} and, like
+     * {@link #WATCH_SETUP_TIMEOUT_SECONDS_OVERRIDE} above, are resolved once at class-load time - changing their
+     * underlying system properties requires a JVM startup argument and a Jenkins (re)start to take effect.
+     * Only the *pool size itself* (derived from these settings plus the live cloud count) updates
+     * dynamically without a restart, not the settings that control how it's derived.
+     */
+    private static final int WATCH_SETUP_MIN_THREADS =
+            SystemProperties.getInteger(Reaper.class.getName() + ".watchSetupMinThreads", 20);
+
+    /** Headroom multiplier applied per configured cloud when auto-sizing {@link #WATCH_SETUP_EXECUTOR}. */
+    private static final int WATCH_SETUP_THREADS_PER_CLOUD =
+            SystemProperties.getInteger(Reaper.class.getName() + ".watchSetupThreadsPerCloud", 4);
+
+    /**
+     * Explicit fixed override for the pool's max size, bypassing auto-sizing entirely when set to a
+     * positive value. Unset (0, the default) means "auto-size based on configured cloud count".
+     */
+    private static final int WATCH_SETUP_MAX_THREADS_OVERRIDE =
+            SystemProperties.getInteger(Reaper.class.getName() + ".watchSetupMaxThreads", 0);
+
+    private static final ExecutorService WATCH_SETUP_EXECUTOR = new ThreadPoolExecutor(
+            0,
+            WATCH_SETUP_MIN_THREADS,
+            60L,
+            TimeUnit.SECONDS,
+            new SynchronousQueue<>(),
+            new NamingThreadFactory(new DaemonThreadFactory(), Reaper.class.getName() + ".watchSetup"));
+
+    /**
+     * Grows (or shrinks) {@link #WATCH_SETUP_EXECUTOR}'s max pool size to track the current number of
+     * configured {@link KubernetesCloud}s, so the pool never becomes an artificial bottleneck as an
+     * installation's cloud count grows, and never stays needlessly oversized after clouds are removed. See
+     * the {@link #WATCH_SETUP_MIN_THREADS} javadoc for the rationale.
+     */
+    private static void resizeWatchSetupExecutor(int currentCloudCount) {
+        int desired = WATCH_SETUP_MAX_THREADS_OVERRIDE > 0
+                ? WATCH_SETUP_MAX_THREADS_OVERRIDE
+                : Math.max(WATCH_SETUP_MIN_THREADS, currentCloudCount * WATCH_SETUP_THREADS_PER_CLOUD);
+        ThreadPoolExecutor tpe = (ThreadPoolExecutor) WATCH_SETUP_EXECUTOR;
+        if (tpe.getMaximumPoolSize() != desired) {
+            tpe.setMaximumPoolSize(desired);
+            LOGGER.fine(() -> "resized watch-setup executor max pool size to " + desired + " for " + currentCloudCount
+                    + " configured cloud(s)");
+        }
+    }
 
     /**
      * Only useful for tests which shutdown Jenkins without terminating the JVM.
@@ -106,6 +238,42 @@ public class Reaper extends ComputerListener {
     private final AtomicBoolean activated = new AtomicBoolean();
 
     private final Map<String, CloudPodWatcher> watchers = new ConcurrentHashMap<>();
+
+    /**
+     * Throttles how often {@link #watchCloud} will retry establishing the pod-event watch for a given cloud
+     * <em>after {@link #MIN_CONSECUTIVE_FAILURES_BEFORE_THROTTLE} or more consecutive connect/watch attempts
+     * for that exact cloud configuration have failed</em>. Without this, rapid repeated cache
+     * eviction/invalidation of a persistently unreachable cloud's {@link KubernetesClient} (e.g. many
+     * concurrent job/pod launches all hitting a broken cloud) can drive {@link #watchCloud} to attempt a
+     * fresh connect-and-watch on every single eviction. Each such attempt spins up its own fabric8
+     * {@code AbstractWatchManager} reconnect-retry thread(s) against the dead endpoint, and under high
+     * eviction rates these accumulate faster than they can be drained/closed, leading to unbounded thread
+     * growth and eventual JVM crash - even though JENKINS-76095's proactive re-arm is otherwise working
+     * exactly as intended.
+     * <p>Keyed by {@code cloudName + ":" + clientValidity} (not just cloud name), so this deliberately does
+     * NOT throttle legitimate immediate reconnects: a cloud config change (different {@code clientValidity}),
+     * a watch closed via {@code HTTP_GONE}, or a new computer launching on an otherwise-healthy cloud all
+     * proceed immediately since no failure streak is recorded for that exact key.
+     * <p>Requiring a short streak of consecutive failures (rather than throttling on the very first failure)
+     * intentionally tolerates real-world transient/intermittent connectivity blips (a single dropped
+     * connection, brief DNS hiccup, API server restart, etc.) without delaying recovery - only a
+     * <em>sustained</em> run of failures against the same config is treated as "this cloud is genuinely
+     * down right now" and gets backed off. Once throttling engages, the floor between retries is
+     * configurable per-cloud via {@link KubernetesCloud#getMinWatchRetryIntervalSeconds()} (UI field
+     * "Minimum Watch Retry Interval"), defaulting to
+     * {@link KubernetesCloud#DEFAULT_MIN_WATCH_RETRY_INTERVAL_SECONDS} (10s) if unset/unconfigured. Any
+     * success resets the streak immediately, so throttling never outlives an actual recovery.
+     */
+    private static final int MIN_CONSECUTIVE_FAILURES_BEFORE_THROTTLE =
+            SystemProperties.getInteger(Reaper.class.getName() + ".minConsecutiveFailuresBeforeThrottle", 3);
+
+    /** Per-{@code cloudName:clientValidity} consecutive-failure streak state. */
+    private static final class FailureStreak {
+        private final AtomicInteger count = new AtomicInteger();
+        private volatile long lastFailureMs;
+    }
+
+    private final Map<String, FailureStreak> watchFailureStreaks = new ConcurrentHashMap<>();
 
     private final LoadingCache<String, Set<String>> terminationReasons =
             Caffeine.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build(k -> new ConcurrentSkipListSet<>());
@@ -192,8 +360,9 @@ public class Reaper extends ComputerListener {
     private void watchClouds() {
         Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins != null) {
+            List<KubernetesCloud> clouds = jenkins.clouds.getAll(KubernetesCloud.class);
             Set<String> cloudNames = new HashSet<>(this.watchers.keySet());
-            for (KubernetesCloud kc : jenkins.clouds.getAll(KubernetesCloud.class)) {
+            for (KubernetesCloud kc : clouds) {
                 watchCloud(kc);
                 cloudNames.remove(kc.name);
             }
@@ -209,26 +378,113 @@ public class Reaper extends ComputerListener {
     /**
      * Register {@link CloudPodWatcher} for the given cloud if one does not exist or if the existing watcher
      * is no longer valid.
+     *
+     * <p>Package-visibility is widened (was {@code private}) so that {@link KubernetesClientProvider} can
+     * proactively re-establish this cloud's watch on a fresh client immediately when its cached client is
+     * being retired, instead of relying solely on the next Jenkins config-save/agent-connect event to notice
+     * a dropped watch. See JENKINS-76095.
      * @param kc kubernetes cloud to watch
      */
-    private void watchCloud(@NonNull KubernetesCloud kc) {
+    @Restricted(NoExternalUse.class)
+    public void watchCloud(@NonNull KubernetesCloud kc) {
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins != null) {
+            resizeWatchSetupExecutor(
+                    jenkins.clouds.getAll(KubernetesCloud.class).size());
+        }
         // can't use ConcurrentHashMap#computeIfAbsent because CloudPodWatcher will remove itself from the watchers
         // map on close. If an error occurs when creating the watch it would create a deadlock situation.
         CloudPodWatcher watcher = new CloudPodWatcher(kc);
         if (!isCloudPodWatcherActive(watcher)) {
+            String failureKey = kc.name + ":" + watcher.clientValidity;
+            long minRetryIntervalMs = kc.getMinWatchRetryIntervalSeconds() * 1000L;
+            if (minRetryIntervalMs > 0 && !retryAllowed(failureKey, minRetryIntervalMs)) {
+                return;
+            }
             try {
-                KubernetesClient client = kc.connect();
-                watcher.watch = client.pods().inNamespace(client.getNamespace()).watch(watcher);
+                // Both kc.connect() (which may itself perform a blocking handshake/version-check against
+                // the cloud's API server - e.g. building a fresh client after cache eviction) AND the
+                // actual .watch() call are submitted together as a SINGLE task bounded by
+                // WATCH_SETUP_EXECUTOR, bounded by watchSetupTimeoutSecondsFor(kc). A cloud that is genuinely reachable
+                // but merely slow to respond (heavy load) can block INSIDE connect() just as easily as
+                // inside watch() - if only the watch() call were bounded, a slow-but-alive cloud could
+                // still tie up whichever thread called watchCloud() (e.g. a ForkJoinPool.commonPool()
+                // worker via KubernetesClientProvider's Caffeine eviction listener) for as long as
+                // connect() takes, silently reopening the JENKINS-76095 starvation risk through a
+                // different, unbounded code path. See JENKINS-76095.
+                int timeoutSeconds = watchSetupTimeoutSecondsFor(kc);
+                KubernetesClient[] connectedClient = new KubernetesClient[1];
+                Future<Watch> watchFuture = WATCH_SETUP_EXECUTOR.submit(() -> {
+                    KubernetesClient client = kc.connect();
+                    connectedClient[0] = client;
+                    return client.pods().inNamespace(client.getNamespace()).watch(watcher);
+                });
+                Watch established;
+                try {
+                    established = watchFuture.get(timeoutSeconds, TimeUnit.SECONDS);
+                } catch (TimeoutException te) {
+                    watchFuture.cancel(true);
+                    throw new IOException(
+                            "timed out after "
+                                    + timeoutSeconds
+                                    + "s waiting to connect and set up watcher on "
+                                    + kc.getDisplayName(),
+                            te);
+                } catch (ExecutionException ee) {
+                    Throwable cause = ee.getCause() != null ? ee.getCause() : ee;
+                    if (cause instanceof KubernetesAuthException) {
+                        throw (KubernetesAuthException) cause;
+                    }
+                    if (cause instanceof RuntimeException) {
+                        throw (RuntimeException) cause;
+                    }
+                    if (cause instanceof IOException) {
+                        throw (IOException) cause;
+                    }
+                    throw new IOException(cause);
+                } catch (InterruptedException ie) {
+                    watchFuture.cancel(true);
+                    Thread.currentThread().interrupt();
+                    throw new IOException(
+                            "interrupted while waiting to connect and set up watcher on " + kc.getDisplayName(), ie);
+                }
+                watcher.watch = established;
+                watcher.boundClient = connectedClient[0];
                 CloudPodWatcher old = watchers.put(kc.name, watcher);
                 // if another watch slipped in then make sure it stopped
                 if (old != null) {
                     old.stop();
                 }
+                // success: clear any failure streak so a later, unrelated future failure isn't throttled
+                // based on stale history
+                watchFailureStreaks.remove(failureKey);
                 LOGGER.info(() -> "set up watcher on " + kc.getDisplayName());
             } catch (KubernetesAuthException | IOException | RuntimeException x) {
+                FailureStreak streak = watchFailureStreaks.computeIfAbsent(failureKey, k -> new FailureStreak());
+                streak.count.incrementAndGet();
+                streak.lastFailureMs = System.currentTimeMillis();
                 LOGGER.log(Level.WARNING, x, () -> "failed to set up watcher on " + kc.getDisplayName());
             }
         }
+    }
+
+    /**
+     * Best-effort throttle: for a given {@code cloudName:clientValidity} key, returns false only once at
+     * least {@link #MIN_CONSECUTIVE_FAILURES_BEFORE_THROTTLE} consecutive failures have been recorded AND
+     * the most recent one happened within {@code minIntervalMs}. A short streak of failures (below the
+     * threshold) is always allowed to retry immediately, tolerating transient/intermittent connectivity
+     * issues without delay - only a sustained failure run backs off. Returns true (allowing the attempt) if
+     * there's no failure streak recorded for this key at all - i.e. this is either the first attempt, or the
+     * previous attempt for this exact config succeeded (see the {@code watchFailureStreaks.remove} call in
+     * {@link #watchCloud}) - so legitimate immediate reconnects (config change, watch closed via
+     * {@code HTTP_GONE}, new computer launch on a healthy cloud) are never throttled.
+     */
+    private boolean retryAllowed(@NonNull String failureKey, long minIntervalMs) {
+        FailureStreak streak = watchFailureStreaks.get(failureKey);
+        if (streak == null || streak.count.get() < MIN_CONSECUTIVE_FAILURES_BEFORE_THROTTLE) {
+            return true;
+        }
+        return System.currentTimeMillis() - streak.lastFailureMs >= minIntervalMs;
     }
 
     /**
@@ -252,7 +508,19 @@ public class Reaper extends ComputerListener {
      */
     private boolean isCloudPodWatcherActive(@NonNull CloudPodWatcher watcher) {
         CloudPodWatcher existing = watchers.get(watcher.cloudName);
-        return existing != null && existing.clientValidity == watcher.clientValidity;
+        if (existing == null || existing.clientValidity != watcher.clientValidity) {
+            return false;
+        }
+        // Config unchanged, but the existing watch may still be bound to a KubernetesClient instance that
+        // KubernetesClientProvider has since evicted/replaced (cache expiry, explicit invalidate(), etc.)
+        // without the watch itself having failed/closed yet - e.g. it's sitting on the deferred
+        // grace-period-close timer. Comparing only the config-derived clientValidity can't detect this, so a
+        // watch bound to a retired client instance would be wrongly reported as still active, silently
+        // defeating JENKINS-76095's proactive re-arm (which relies on this method reporting false so a fresh
+        // watch gets established on the live client). Confirm the watch is actually still riding the client
+        // instance presently held in KubernetesClientProvider's cache before calling it active.
+        KubernetesClient currentClient = KubernetesClientProvider.currentCachedClient(watcher.cloudName);
+        return existing.boundClient != null && existing.boundClient == currentClient;
     }
 
     private static Optional<KubernetesSlave> resolveNode(@NonNull Jenkins jenkins, String namespace, String name) {
@@ -286,6 +554,16 @@ public class Reaper extends ComputerListener {
 
         @CheckForNull
         private Watch watch;
+
+        /**
+         * The {@link KubernetesClient} instance this watch is actually registered against, captured once the
+         * watch is successfully established. Used (instead of relying on {@link #clientValidity} alone) to
+         * detect that the underlying client has since been evicted/replaced by {@link KubernetesClientProvider}
+         * even though the cloud's configuration - and therefore {@link #clientValidity} - is unchanged. See
+         * JENKINS-76095.
+         */
+        @CheckForNull
+        private volatile KubernetesClient boundClient;
 
         CloudPodWatcher(@NonNull KubernetesCloud cloud) {
             this.cloudName = cloud.name;
