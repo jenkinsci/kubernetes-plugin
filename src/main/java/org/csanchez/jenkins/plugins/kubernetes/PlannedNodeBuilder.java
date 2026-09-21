@@ -1,7 +1,9 @@
 package org.csanchez.jenkins.plugins.kubernetes;
 
+import hudson.model.Descriptor;
 import hudson.model.Label;
 import hudson.slaves.NodeProvisioner;
+import java.io.IOException;
 
 /**
  * A builder of {@link hudson.slaves.NodeProvisioner.PlannedNode} implementations for Kubernetes.
@@ -71,6 +73,21 @@ public abstract class PlannedNodeBuilder {
     public PlannedNodeBuilder numExecutors(int numExecutors) {
         this.numExecutors = numExecutors;
         return this;
+    }
+
+    /**
+     * Builds the {@link KubernetesSlave} for the planned node, unwrapping the template against the cloud
+     * as needed. Kept on the base class so builder subclasses share one cloud-stats-free construction
+     * path rather than duplicating it.
+     * @return a new {@link KubernetesSlave} for the configured cloud and template.
+     */
+    protected KubernetesSlave buildAgent() throws IOException, Descriptor.FormException {
+        KubernetesCloud cloud = getCloud();
+        PodTemplate t = getTemplate();
+        return KubernetesSlave.builder()
+                .podTemplate(t.isUnwrapped() ? t : cloud.getUnwrappedTemplate(t))
+                .cloud(cloud)
+                .build();
     }
 
     /**
