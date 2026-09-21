@@ -9,13 +9,17 @@ import static org.mockito.Mockito.*;
 
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodSecurityContext;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.SecretKeySelectorBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
+import io.fabric8.kubernetes.client.utils.Serialization;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,6 +67,7 @@ class PodTemplateBuilderTest {
 
     private static final String AGENT_NAME = "jenkins-agent";
     private static final String AGENT_SECRET = "xxx";
+    private static final String POD_NAME = "jenkins-agent-pod";
     private static final String JENKINS_URL = "http://jenkins.example.com";
     private static final String JENKINS_PROTOCOLS = "JNLP4-connect";
 
@@ -365,6 +370,7 @@ class PodTemplateBuilderTest {
         when(computer.getJnlpMac()).thenReturn(AGENT_SECRET);
         when(slave.getComputer()).thenReturn(computer);
         when(slave.getKubernetesCloud()).thenReturn(cloud);
+        when(slave.getPodName()).thenReturn(POD_NAME);
     }
 
     private void validatePod(Pod pod, boolean directConnection) {
@@ -469,7 +475,7 @@ class PodTemplateBuilderTest {
             } else {
                 envVars.add(new EnvVar("JENKINS_URL", JENKINS_URL, null));
             }
-            envVars.add(new EnvVar("JENKINS_SECRET", AGENT_SECRET, null));
+            envVars.add(expectedJenkinsSecretEnvVar());
             envVars.add(new EnvVar("JENKINS_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_NAME", AGENT_NAME, null));
             envVars.add(new EnvVar("JENKINS_AGENT_WORKDIR", ContainerTemplate.DEFAULT_WORKING_DIR, null));
@@ -478,6 +484,65 @@ class PodTemplateBuilderTest {
             assertThat(jnlp.getArgs(), empty());
         }
         assertThat(jnlp.getEnv(), containsInAnyOrder(envVars.toArray(new EnvVar[0])));
+    }
+
+    /**
+     * The agent connection secret must never be inlined in the pod spec: it is read from the per-agent secret created
+     * by {@link KubernetesLauncher}.
+     */
+    private static EnvVar expectedJenkinsSecretEnvVar() {
+        if (!PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF) {
+            return new EnvVar("JENKINS_SECRET", AGENT_SECRET, null);
+        }
+        return new EnvVarBuilder()
+                .withName("JENKINS_SECRET")
+                .withValueFrom(new EnvVarSourceBuilder()
+                        .withSecretKeyRef(new SecretKeySelectorBuilder()
+                                .withName(PodTemplateBuilder.agentSecretName(POD_NAME))
+                                .withKey(PodTemplateBuilder.JENKINS_SECRET_KEY)
+                                .withOptional(false)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    @Test
+    void agentSecretIsNotInlinedInPodSpec() {
+        setupStubs();
+        Pod pod = new PodTemplateBuilder(new PodTemplate(), slave).build();
+        EnvVar secretEnvVar = pod.getSpec().getContainers().stream()
+                .filter(c -> KubernetesCloud.JNLP_NAME.equals(c.getName()))
+                .flatMap(c -> c.getEnv().stream())
+                .filter(e -> "JENKINS_SECRET".equals(e.getName()))
+                .findFirst()
+                .orElseThrow();
+        assertNull(secretEnvVar.getValue(), "the connection secret must not appear in clear text in the pod spec");
+        var secretKeyRef = secretEnvVar.getValueFrom().getSecretKeyRef();
+        assertEquals(PodTemplateBuilder.agentSecretName(POD_NAME), secretKeyRef.getName());
+        assertEquals(PodTemplateBuilder.JENKINS_SECRET_KEY, secretKeyRef.getKey());
+        assertFalse(secretKeyRef.getOptional());
+        // and nothing else in the whole pod spec leaks it either
+        assertThat(Serialization.asYaml(pod), not(containsString(AGENT_SECRET)));
+    }
+
+    @Test
+    void agentSecretCanStillBeInlinedForBackwardsCompatibility() {
+        boolean orig = PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF;
+        PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF = false;
+        try {
+            setupStubs();
+            Pod pod = new PodTemplateBuilder(new PodTemplate(), slave).build();
+            EnvVar secretEnvVar = pod.getSpec().getContainers().stream()
+                    .filter(c -> KubernetesCloud.JNLP_NAME.equals(c.getName()))
+                    .flatMap(c -> c.getEnv().stream())
+                    .filter(e -> "JENKINS_SECRET".equals(e.getName()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(AGENT_SECRET, secretEnvVar.getValue());
+            assertNull(secretEnvVar.getValueFrom());
+        } finally {
+            PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF = orig;
+        }
     }
 
     @Test

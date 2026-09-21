@@ -39,6 +39,7 @@ import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPort;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.EnvVarBuilder;
+import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.ExecAction;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -48,6 +49,7 @@ import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.SecretKeySelectorBuilder;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -100,6 +102,31 @@ public class PodTemplateBuilder {
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
     private static final String JENKINS_AGENT = "/jenkins-agent";
+
+    static final String JENKINS_SECRET_ENVVAR = "JENKINS_SECRET";
+
+    /**
+     * Key under which the agent connection secret is stored in the per-agent {@link io.fabric8.kubernetes.api.model.Secret}.
+     */
+    @Restricted(NoExternalUse.class)
+    public static final String JENKINS_SECRET_KEY = "jenkins-secret";
+
+    /**
+     * Whether the agent connection secret is passed to the agent container through a {@code secretKeyRef} pointing at a
+     * per-agent {@link io.fabric8.kubernetes.api.model.Secret} (the default) rather than being inlined in clear text in
+     * the pod spec.
+     *
+     * <p>Inlining the secret makes it readable by anyone able to {@code get}/{@code list} pods in the agent namespace,
+     * and leaks it into anything that records pod specs (audit logs, admission webhooks, GitOps diffs, {@code kubectl
+     * describe} output). Referencing a Secret instead keeps the value out of the pod spec.
+     *
+     * <p>This requires the controller's service account to be allowed to {@code create} (and {@code delete}) secrets in
+     * the agent namespace. Set this system property to {@code false} to restore the previous behaviour if that
+     * permission cannot be granted.
+     */
+    @Restricted(NoExternalUse.class)
+    static boolean SECRET_VIA_SECRET_KEY_REF =
+            SystemProperties.getBoolean(PodTemplateBuilder.class.getName() + ".secretViaSecretKeyRef", true);
 
     @Restricted(NoExternalUse.class)
     static String DEFAULT_JNLP_DOCKER_REGISTRY_PREFIX =
@@ -465,12 +492,13 @@ public class PodTemplateBuilder {
         }
         // Last-write wins map of environment variable names to values
         HashMap<String, String> env = new HashMap<>();
+        Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         if (agent != null) {
             SlaveComputer computer = agent.getComputer();
             if (computer != null) {
                 // Add some default env vars for Jenkins
-                env.put("JENKINS_SECRET", computer.getJnlpMac());
+                envVarsMap.put(JENKINS_SECRET_ENVVAR, agentSecretEnvVar(computer, agent.getPodName()));
                 // JENKINS_AGENT_NAME is default in jnlp-slave
                 // JENKINS_NAME only here for backwords compatability
                 env.put("JENKINS_NAME", computer.getName());
@@ -503,10 +531,45 @@ public class PodTemplateBuilder {
             }
             env.put("REMOTING_OPTS", "-noReconnectAfter " + NO_RECONNECT_AFTER_TIMEOUT);
         }
-        Map<String, EnvVar> envVarsMap = new HashMap<>();
 
         env.entrySet().forEach(item -> envVarsMap.put(item.getKey(), new EnvVar(item.getKey(), item.getValue(), null)));
         return envVarsMap;
+    }
+
+    /**
+     * Builds the {@code JENKINS_SECRET} environment variable for the agent container.
+     *
+     * <p>Unless {@link #SECRET_VIA_SECRET_KEY_REF} has been disabled, this is a {@code secretKeyRef} pointing at the
+     * per-agent secret created by {@code KubernetesLauncher}, so that the agent connection secret never appears in
+     * clear text in the pod spec.
+     *
+     * @see #agentSecretName(String)
+     */
+    @NonNull
+    private static EnvVar agentSecretEnvVar(@NonNull SlaveComputer computer, @NonNull String podName) {
+        if (SECRET_VIA_SECRET_KEY_REF) {
+            return new EnvVarBuilder()
+                    .withName(JENKINS_SECRET_ENVVAR)
+                    .withValueFrom(new EnvVarSourceBuilder()
+                            .withSecretKeyRef(new SecretKeySelectorBuilder()
+                                    .withName(agentSecretName(podName))
+                                    .withKey(JENKINS_SECRET_KEY)
+                                    .withOptional(false)
+                                    .build())
+                            .build())
+                    .build();
+        }
+        return new EnvVar(JENKINS_SECRET_ENVVAR, computer.getJnlpMac(), null);
+    }
+
+    /**
+     * Name of the {@link io.fabric8.kubernetes.api.model.Secret} holding the connection secret of the agent running in
+     * the given pod. Pod names are already unique and are valid secret names, so they are reused as is.
+     */
+    @NonNull
+    @Restricted(NoExternalUse.class)
+    public static String agentSecretName(@NonNull String podName) {
+        return podName;
     }
 
     private Container createContainer(
