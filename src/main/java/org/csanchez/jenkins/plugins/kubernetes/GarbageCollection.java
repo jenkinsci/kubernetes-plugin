@@ -192,7 +192,10 @@ public class GarbageCollection extends AbstractDescribableImpl<GarbageCollection
                                         }
                                     })
                                     .forEach(pod -> {
-                                        LOGGER.log(Level.INFO, () -> "Deleting orphan pod " + getQualifiedName(pod));
+                                        LOGGER.log(
+                                                Level.INFO,
+                                                () -> "Deleting orphan pod " + getQualifiedName(pod) + " in cloud "
+                                                        + cloud.getDisplayName());
                                         client.resource(pod).delete();
                                     });
                         }
