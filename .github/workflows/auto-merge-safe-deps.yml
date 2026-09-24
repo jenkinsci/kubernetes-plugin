@@ -6,4 +6,4 @@ permissions:
   pull-requests: write
 jobs:
   auto-merge-safe-deps:
-    uses: jenkins-infra/github-reusable-workflows/.github/workflows/auto-merge-safe-deps.yml@v1
+    uses: jenkins-infra/github-reusable-workflows/.github/workflows/auto-merge-safe-deps.yml@c2470861b1ad94810dc0d207b011e0b57bb91bbb # v1
