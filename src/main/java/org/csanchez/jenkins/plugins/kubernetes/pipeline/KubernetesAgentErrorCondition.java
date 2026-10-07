@@ -19,7 +19,6 @@ package org.csanchez.jenkins.plugins.kubernetes.pipeline;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Node;
 import hudson.model.TaskListener;
@@ -32,6 +31,7 @@ import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesSlave;
 import org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.variant.OptionalExtension;
 import org.jenkinsci.plugins.workflow.actions.ErrorAction;
 import org.jenkinsci.plugins.workflow.actions.WorkspaceAction;
 import org.jenkinsci.plugins.workflow.flow.ErrorCondition;
@@ -158,7 +158,7 @@ public class KubernetesAgentErrorCondition extends ErrorCondition {
     }
 
     @Symbol("kubernetesAgent")
-    @Extension
+    @OptionalExtension(requirePlugins = "workflow-durable-task-step")
     public static final class DescriptorImpl extends ErrorConditionDescriptor {
 
         @Override
