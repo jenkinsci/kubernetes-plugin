@@ -1,0 +1,12 @@
+<div>
+    Minimum time, in seconds, that must elapse before the plugin will attempt to (re-)establish the
+    pod-event watch for this cloud again, once a watch is not currently active (e.g. the cloud is
+    unreachable, or its cached client was just evicted/invalidated). Left blank/default is 10 seconds.
+    <p>
+    This does not delay or affect an already-healthy watch in any way - it only throttles how often a
+    <em>failing or absent</em> watch may be retried. It exists to bound the number of concurrent
+    connection/reconnect attempts (and their underlying threads) against a persistently unreachable
+    Kubernetes API server when the cloud's client is being invalidated/evicted frequently (e.g. many
+    concurrent pod launches on a broken cloud). Set to 0 to disable throttling entirely (not recommended
+    for clouds that may become unreachable).
+</div>

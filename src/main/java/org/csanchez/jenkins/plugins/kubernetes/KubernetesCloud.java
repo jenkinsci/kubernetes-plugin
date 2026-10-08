@@ -120,6 +120,12 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     public static final int DEFAULT_CONNECT_TIMEOUT_SECONDS = 5;
 
+    /**
+     * Default minimum interval, in seconds, between watch (re-)establishment attempts for this cloud.
+     * See {@link #getMinWatchRetryIntervalSeconds()}.
+     */
+    public static final int DEFAULT_MIN_WATCH_RETRY_INTERVAL_SECONDS = 10;
+
     private String defaultsProviderTemplate;
 
     @NonNull
@@ -153,6 +159,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
     private int retentionTimeout = DEFAULT_RETENTION_TIMEOUT_MINUTES;
     private int connectTimeout = DEFAULT_CONNECT_TIMEOUT_SECONDS;
     private int readTimeout = DEFAULT_READ_TIMEOUT_SECONDS;
+    private int minWatchRetryIntervalSeconds = DEFAULT_MIN_WATCH_RETRY_INTERVAL_SECONDS;
     /** @deprecated Stored as a list of PodLabels */
     @Deprecated
     private transient Map<String, String> labels;
@@ -528,6 +535,23 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
 
     public int getConnectTimeout() {
         return connectTimeout;
+    }
+
+    /**
+     * Minimum interval, in seconds, between {@link org.csanchez.jenkins.plugins.kubernetes.pod.retention.Reaper}
+     * attempts to (re-)establish the pod-event watch for this cloud. Guards against unbounded thread growth
+     * when the watch keeps failing to establish (e.g. an unreachable API server) and the cloud's cached
+     * {@link io.fabric8.kubernetes.client.KubernetesClient} is being evicted/invalidated in rapid succession -
+     * each retry attempt spins up its own fabric8 reconnect thread(s), and without a floor on retry frequency
+     * those can accumulate faster than they drain. Does not affect an already-healthy watch.
+     */
+    public int getMinWatchRetryIntervalSeconds() {
+        return minWatchRetryIntervalSeconds;
+    }
+
+    @DataBoundSetter
+    public void setMinWatchRetryIntervalSeconds(int minWatchRetryIntervalSeconds) {
+        this.minWatchRetryIntervalSeconds = Math.max(0, minWatchRetryIntervalSeconds);
     }
 
     /**
@@ -953,6 +977,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 && retentionTimeout == that.retentionTimeout
                 && connectTimeout == that.connectTimeout
                 && readTimeout == that.readTimeout
+                && minWatchRetryIntervalSeconds == that.minWatchRetryIntervalSeconds
                 && usageRestricted == that.usageRestricted
                 && maxRequestsPerHost == that.maxRequestsPerHost
                 && Objects.equals(defaultsProviderTemplate, that.defaultsProviderTemplate)
@@ -991,6 +1016,7 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 retentionTimeout,
                 connectTimeout,
                 readTimeout,
+                minWatchRetryIntervalSeconds,
                 podLabels,
                 usageRestricted,
                 maxRequestsPerHost,
@@ -1333,6 +1359,11 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         }
 
         @SuppressWarnings("unused") // used by jelly
+        public int getDefaultMinWatchRetryInterval() {
+            return DEFAULT_MIN_WATCH_RETRY_INTERVAL_SECONDS;
+        }
+
+        @SuppressWarnings("unused") // used by jelly
         public int getDefaultRetentionTimeout() {
             return DEFAULT_RETENTION_TIMEOUT_MINUTES;
         }
@@ -1370,7 +1401,8 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
                 + containerCap + ", retentionTimeout="
                 + retentionTimeout + ", connectTimeout="
                 + connectTimeout + ", readTimeout="
-                + readTimeout + ", labels="
+                + readTimeout + ", minWatchRetryIntervalSeconds="
+                + minWatchRetryIntervalSeconds + ", labels="
                 + labels + ", podLabels="
                 + podLabels + ", usageRestricted="
                 + usageRestricted + ", maxRequestsPerHost="
@@ -1397,11 +1429,18 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
         if (maxRequestsPerHost == 0) {
             maxRequestsPerHost = DEFAULT_MAX_REQUESTS_PER_HOST;
         }
+        if (minWatchRetryIntervalSeconds == 0) {
+            // field didn't exist prior to JENKINS-76095 follow-up fix; XStream leaves un-declared int fields at
+            // the Java default of 0 when deserializing older configs, so treat that as "not yet configured"
+            // rather than an explicit opt-out of throttling.
+            minWatchRetryIntervalSeconds = DEFAULT_MIN_WATCH_RETRY_INTERVAL_SECONDS;
+        }
         if (podRetention == null) {
             podRetention = PodRetention.getKubernetesCloudDefault();
         }
         setConnectTimeout(connectTimeout);
         setReadTimeout(readTimeout);
+        setMinWatchRetryIntervalSeconds(minWatchRetryIntervalSeconds);
         setRetentionTimeout(retentionTimeout);
         if (waitForPodSec == null) {
             waitForPodSec = DEFAULT_WAIT_FOR_POD_SEC;
