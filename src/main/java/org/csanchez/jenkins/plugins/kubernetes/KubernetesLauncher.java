@@ -40,14 +40,20 @@ import hudson.slaves.JNLPLauncher;
 import hudson.slaves.SlaveComputer;
 import io.fabric8.kubernetes.api.model.ContainerStatus;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
+import io.fabric8.kubernetes.api.model.OwnerReference;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -166,10 +172,14 @@ public class KubernetesLauncher extends JNLPLauncher {
             Pod existingPod =
                     client.pods().inNamespace(namespace).withName(podName).get();
             if (existingPod == null) {
+                // The agent connection secret is passed to the agent container through a secretKeyRef, so the secret
+                // holding it must exist before the pod is created, otherwise the kubelet fails to start the container.
+                createAgentSecret(client, namespace, podName, computer.getJnlpMac());
                 LOGGER.log(FINE, () -> "Creating Pod: " + cloudName + " " + namespace + "/" + podName);
                 try {
                     pod = client.pods().inNamespace(namespace).create(pod);
                 } catch (KubernetesClientException e) {
+                    deleteAgentSecret(client, namespace, podName);
                     Metrics.metricRegistry()
                             .counter(MetricNames.CREATION_FAILED)
                             .inc();
@@ -217,6 +227,9 @@ public class KubernetesLauncher extends JNLPLauncher {
                     }
                     throw e;
                 }
+                // Now that the pod exists, make it own the secret so that the secret is garbage collected along with
+                // it.
+                adoptAgentSecret(client, namespace, pod);
                 LOGGER.log(INFO, () -> "Created Pod: " + cloudName + " " + namespace + "/" + podName);
                 listener.getLogger().printf("Created Pod: %s %s/%s%n", cloudName, namespace, podName);
                 Metrics.metricRegistry().counter(MetricNames.PODS_CREATED).inc();
@@ -363,6 +376,99 @@ public class KubernetesLauncher extends JNLPLauncher {
             }
         }
         return node.getTemplate();
+    }
+
+    /**
+     * Creates the {@link Secret} holding the agent connection secret referenced by the {@code JENKINS_SECRET}
+     * environment variable of the agent container, so that the secret is not inlined in clear text in the pod spec.
+     *
+     * <p>The secret has to exist before the pod is created, otherwise the kubelet refuses to start the agent container.
+     * It is adopted by the pod right after the pod is created (see {@link #adoptAgentSecret}) so that it is garbage
+     * collected along with it.
+     *
+     * <p>Does nothing if {@link PodTemplateBuilder#SECRET_VIA_SECRET_KEY_REF} has been disabled, in which case the
+     * value is inlined in the pod spec as before.
+     */
+    static void createAgentSecret(KubernetesClient client, String namespace, String podName, String jnlpMac) {
+        if (!PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF) {
+            return;
+        }
+        String secretName = PodTemplateBuilder.agentSecretName(podName);
+        Secret secret = new SecretBuilder()
+                .withNewMetadata()
+                .withName(secretName)
+                .withNamespace(namespace)
+                .endMetadata()
+                .withType("Opaque")
+                .withData(Map.of(
+                        PodTemplateBuilder.JENKINS_SECRET_KEY,
+                        Base64.getEncoder().encodeToString(jnlpMac.getBytes(StandardCharsets.UTF_8))))
+                .build();
+        LOGGER.log(FINE, () -> "Creating Secret: " + namespace + "/" + secretName);
+        try {
+            client.secrets().inNamespace(namespace).resource(secret).create();
+        } catch (KubernetesClientException e) {
+            if (e.getCode() == 409) {
+                // Left over from a previous launch attempt of the same agent; the connection secret of a given
+                // computer is stable, but replace it anyway so that a stale value cannot linger.
+                LOGGER.log(FINE, () -> "Secret already exists, replacing: " + namespace + "/" + secretName);
+                client.secrets().inNamespace(namespace).resource(secret).update();
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Adds an owner reference from the agent secret to the agent pod, so that deleting the pod also deletes the secret.
+     * Best effort: a leftover secret is reaped by {@link Reaper} along with the pod, so failing here must not fail the
+     * launch.
+     */
+    static void adoptAgentSecret(KubernetesClient client, String namespace, Pod pod) {
+        if (!PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF) {
+            return;
+        }
+        String secretName = PodTemplateBuilder.agentSecretName(pod.getMetadata().getName());
+        OwnerReference ownerReference = new OwnerReferenceBuilder()
+                .withApiVersion("v1")
+                .withKind("Pod")
+                .withName(pod.getMetadata().getName())
+                .withUid(pod.getMetadata().getUid())
+                .withController(true)
+                .withBlockOwnerDeletion(false)
+                .build();
+        try {
+            client.secrets()
+                    .inNamespace(namespace)
+                    .withName(secretName)
+                    .edit(s -> new SecretBuilder(s)
+                            .editMetadata()
+                            .addToOwnerReferences(ownerReference)
+                            .endMetadata()
+                            .build());
+        } catch (KubernetesClientException e) {
+            LOGGER.log(
+                    WARNING,
+                    e,
+                    () -> "Failed to set owner reference on secret " + namespace + "/" + secretName
+                            + "; it will have to be deleted along with the pod");
+        }
+    }
+
+    /**
+     * Deletes the agent secret created by {@link #createAgentSecret}. Only needed when the pod could not be created,
+     * since otherwise the secret is garbage collected through its owner reference. Best effort.
+     */
+    static void deleteAgentSecret(KubernetesClient client, String namespace, String podName) {
+        if (!PodTemplateBuilder.SECRET_VIA_SECRET_KEY_REF) {
+            return;
+        }
+        String secretName = PodTemplateBuilder.agentSecretName(podName);
+        try {
+            client.secrets().inNamespace(namespace).withName(secretName).delete();
+        } catch (KubernetesClientException e) {
+            LOGGER.log(WARNING, e, () -> "Failed to delete secret " + namespace + "/" + secretName);
+        }
     }
 
     private static void terminateOrLog(KubernetesSlave node) {
