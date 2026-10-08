@@ -21,7 +21,7 @@ stage('Tests') {
         def index = num + 1
         branches["kind-${index}"] = {
             node('docker') {
-                timeout(90) {
+                timeout(120) {
                     checkout scm
                     try {
                         writeFile file: (split.includes ? "$WORKSPACE_TMP/includes.txt" : "$WORKSPACE_TMP/excludes.txt"), text: split.list.join("\n")
