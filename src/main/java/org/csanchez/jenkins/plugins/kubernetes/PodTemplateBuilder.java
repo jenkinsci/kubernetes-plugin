@@ -98,6 +98,16 @@ public class PodTemplateBuilder {
     public static final String LABEL_KUBERNETES_CONTROLLER = "kubernetes.jenkins.io/controller";
     static final String NO_RECONNECT_AFTER_TIMEOUT =
             SystemProperties.getString(PodTemplateBuilder.class.getName() + ".noReconnectAfter", "1d");
+
+    /**
+     * Default {@code activeDeadlineSeconds} for multi-container agent pods when the template does not set one.
+     * Caps zombie pods when the agent exits after {@code -noReconnectAfter} but sidecars keep the pod alive
+     * (jenkinsci/kubernetes-plugin#2809). Defaults to one day, aligned with {@link #NO_RECONNECT_AFTER_TIMEOUT}.
+     * Set to {@code 0} to disable.
+     */
+    static final int MULTI_CONTAINER_ACTIVE_DEADLINE_SECONDS = SystemProperties.getInteger(
+            PodTemplateBuilder.class.getName() + ".multiContainerActiveDeadlineSeconds", 86_400);
+
     private static final String JENKINS_AGENT_FILE_ENVVAR = "JENKINS_AGENT_FILE";
     private static final String JENKINS_AGENT = "/jenkins-agent";
 
@@ -416,12 +426,31 @@ public class PodTemplateBuilder {
 
             agentContainer.setResources(reqs);
         }
+        applyMultiContainerActiveDeadline(pod);
         if (cloud != null) {
             pod = PodDecorator.decorateAll(cloud, pod);
         }
         Pod finalPod = pod;
         LOGGER.finest(() -> "Pod built: " + Serialization.asYaml(finalPod));
         return pod;
+    }
+
+    /**
+     * Multi-container pods without an explicit deadline get a default {@code activeDeadlineSeconds} so Kubernetes
+     * eventually terminates zombie pods when the agent exits after {@code -noReconnectAfter} (#2809).
+     */
+    private void applyMultiContainerActiveDeadline(@NonNull Pod pod) {
+        if (MULTI_CONTAINER_ACTIVE_DEADLINE_SECONDS <= 0) {
+            return;
+        }
+        List<Container> containers = pod.getSpec().getContainers();
+        if (containers == null || containers.size() <= 1) {
+            return;
+        }
+        if (template.getActiveDeadlineSeconds() > 0 || pod.getSpec().getActiveDeadlineSeconds() != null) {
+            return;
+        }
+        pod.getSpec().setActiveDeadlineSeconds((long) MULTI_CONTAINER_ACTIVE_DEADLINE_SECONDS);
     }
 
     private String normalizePath(String np) {
