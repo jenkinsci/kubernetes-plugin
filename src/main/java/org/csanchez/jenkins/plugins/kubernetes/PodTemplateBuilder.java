@@ -344,14 +344,15 @@ public class PodTemplateBuilder {
             var agentVolumeMountBuilder =
                     new VolumeMountBuilder().withName("jenkins-agent").withMountPath("/jenkins-agent");
             var oldInitContainers = pod.getSpec().getInitContainers();
+            String initCommand = "cp $(command -v jenkins-agent) " + JENKINS_AGENT + "/jenkins-agent" + ";"
+                    + "cp -R /usr/share/jenkins/. " + JENKINS_AGENT;
+            if (template.isAgentJdkInjection()) {
+                initCommand += ";" + "cp -R /opt/java/openjdk " + JENKINS_AGENT + "/jdk";
+            }
             var jenkinsAgentInitContainer = new ContainerBuilder()
                     .withName("set-up-jenkins-agent")
                     .withImage(agentImage)
-                    .withCommand(
-                            "/bin/sh",
-                            "-c",
-                            "cp $(command -v jenkins-agent) " + JENKINS_AGENT + "/jenkins-agent" + ";"
-                                    + "cp -R /usr/share/jenkins/. " + JENKINS_AGENT)
+                    .withCommand("/bin/sh", "-c", initCommand)
                     .withVolumeMounts(agentVolumeMountBuilder.build())
                     .build();
             if (oldInitContainers != null) {
@@ -392,6 +393,14 @@ public class PodTemplateBuilder {
                             .withName(JENKINS_AGENT_FILE_ENVVAR)
                             .withValue(JENKINS_AGENT + "/agent.jar")
                             .build());
+            if (template.isAgentJdkInjection()) {
+                envVars.put(
+                        "JENKINS_JAVA_BIN",
+                        new EnvVarBuilder()
+                                .withName("JENKINS_JAVA_BIN")
+                                .withValue(JENKINS_AGENT + "/jdk/bin/java")
+                                .build());
+            }
         }
         agentContainer.setEnv(new ArrayList<>(envVars.values()));
         if (agentContainer.getResources() == null) {
