@@ -213,7 +213,7 @@ final class ContainerListenDecorator extends LauncherDecorator implements Serial
                     }
                     var k = env.substring(0, i);
                     if (!BASH_COMPLIANT_ENV_VAR.matcher(k).matches()) {
-                        listener.getLogger().println("Ignoring unsupported env var " + k);
+                        LOGGER.fine(() -> "Ignoring unsupported env var " + k + " in " + ks.getPodName());
                         continue;
                     }
                     sb.append("export ");
