@@ -13,6 +13,7 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate;
 import org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud;
 import org.csanchez.jenkins.plugins.kubernetes.PodTemplateBuilder;
@@ -52,7 +53,7 @@ public class DefaultWorkspaceVolume implements PodDecorator {
             // @formatter:on
         }
         // default workspace volume mount. If something is already mounted in the same path ignore it
-        pod.getSpec().getContainers().stream()
+        Stream.concat(pod.getSpec().getContainers().stream(), nativeSidecars(pod))
                 .filter(c -> c.getVolumeMounts().stream()
                         .noneMatch(vm -> vm.getMountPath().equals(getWorkingDir(c))))
                 .forEach(c -> {
@@ -68,5 +69,19 @@ public class DefaultWorkspaceVolume implements PodDecorator {
 
     private String getWorkingDir(Container c) {
         return c.getWorkingDir() != null ? c.getWorkingDir() : ContainerTemplate.DEFAULT_WORKING_DIR;
+    }
+
+    /**
+     * {@code initContainers} entries declared as native sidecars ({@code restartPolicy: Always},
+     * Kubernetes 1.29+) keep running for the lifetime of the pod, just like a regular container,
+     * so they need the shared workspace volume too. Plain (run-to-completion) init containers do
+     * not, since they have already terminated by the time any pipeline step runs.
+     */
+    private static Stream<Container> nativeSidecars(Pod pod) {
+        List<Container> initContainers = pod.getSpec().getInitContainers();
+        if (initContainers == null) {
+            return Stream.empty();
+        }
+        return initContainers.stream().filter(c -> "Always".equals(c.getRestartPolicy()));
     }
 }

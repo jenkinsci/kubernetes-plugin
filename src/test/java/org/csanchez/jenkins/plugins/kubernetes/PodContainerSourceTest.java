@@ -161,6 +161,82 @@ class PodContainerSourceTest {
         assertFalse(status.isPresent());
     }
 
+    @WithoutJenkins
+    @Test
+    void defaultPodContainerSourceGetContainerWorkingDirNativeSidecar() {
+        Pod pod = new PodBuilder()
+                .withNewSpec()
+                .addNewContainer()
+                .withName("jnlp")
+                .withWorkingDir("/home/jenkins/agent")
+                .endContainer()
+                .addNewInitContainer()
+                .withName("sidecar")
+                .withRestartPolicy("Always")
+                .withWorkingDir("/app/sidecar")
+                .endInitContainer()
+                .addNewInitContainer()
+                .withName("setup")
+                .withWorkingDir("/app/setup")
+                .endInitContainer()
+                .endSpec()
+                .build();
+
+        PodContainerSource.DefaultPodContainerSource source = new PodContainerSource.DefaultPodContainerSource();
+
+        // native sidecar (restartPolicy: Always) is a valid step-exec target
+        Optional<String> wd = source.getContainerWorkingDir(pod, "sidecar");
+        assertTrue(wd.isPresent());
+        assertEquals("/app/sidecar", wd.get());
+
+        // plain (run-to-completion) init container is not
+        wd = source.getContainerWorkingDir(pod, "setup");
+        assertFalse(wd.isPresent());
+    }
+
+    @WithoutJenkins
+    @Test
+    void defaultPodContainerSourceGetContainerStatusNativeSidecar() {
+        Pod pod = new PodBuilder()
+                .withNewSpec()
+                .addNewInitContainer()
+                .withName("sidecar")
+                .withRestartPolicy("Always")
+                .endInitContainer()
+                .addNewInitContainer()
+                .withName("setup")
+                .endInitContainer()
+                .endSpec()
+                .withNewStatus()
+                .addNewInitContainerStatus()
+                .withName("sidecar")
+                .withNewState()
+                .withNewRunning()
+                .endRunning()
+                .endState()
+                .endInitContainerStatus()
+                .addNewInitContainerStatus()
+                .withName("setup")
+                .withNewState()
+                .withNewTerminated()
+                .endTerminated()
+                .endState()
+                .endInitContainerStatus()
+                .endStatus()
+                .build();
+
+        PodContainerSource.DefaultPodContainerSource source = new PodContainerSource.DefaultPodContainerSource();
+
+        // native sidecar (restartPolicy: Always) is a valid step-exec target
+        Optional<ContainerStatus> status = source.getContainerStatus(pod, "sidecar");
+        assertTrue(status.isPresent());
+        assertEquals("sidecar", status.get().getName());
+
+        // plain (run-to-completion) init container is not, even though it has a status
+        status = source.getContainerStatus(pod, "setup");
+        assertFalse(status.isPresent());
+    }
+
     @TestExtension
     public static class TestPodContainerSource extends PodContainerSource {
 
