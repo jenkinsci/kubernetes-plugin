@@ -407,6 +407,42 @@ public class PodTemplateUtils {
         return new ArrayList<>(combinedContainers.values());
     }
 
+    /**
+     * Re-reconciles the containers of an already yaml/{@link ContainerTemplate}-combined pod, giving the yaml
+     * definition priority over a same-named container that was not declared as a {@link ContainerTemplate}
+     * directly on the leaf template (i.e. it was only present because it was inherited from a parent template
+     * via {@code inheritFrom}). Containers explicitly declared as a {@link ContainerTemplate} on the leaf
+     * template keep taking priority over yaml, as before.
+     *
+     * <p>This only touches container names present on both sides; containers unique to either side are passed
+     * through unchanged.
+     *
+     * @param yamlContainers  containers parsed from the (already merged) {@code yaml} fragments
+     * @param builtContainers containers built from the (already inheritFrom-merged) {@link ContainerTemplate}s
+     * @param localContainerNames names of the {@link ContainerTemplate}s declared directly on the leaf template
+     */
+    @NonNull
+    static List<Container> combineContainersRespectingLocalOverrides(
+            @NonNull List<Container> yamlContainers,
+            @NonNull List<Container> builtContainers,
+            @NonNull Set<String> localContainerNames) {
+        Map<String, Container> yamlByName = yamlContainers.stream()
+                .collect(toMap(Container::getName, c -> c, throwingMerger(), LinkedHashMap::new));
+        LinkedHashMap<String, Container> combined = new LinkedHashMap<>();
+        for (Container built : builtContainers) {
+            Container yamlContainer = yamlByName.remove(built.getName());
+            if (yamlContainer == null) {
+                combined.put(built.getName(), built);
+            } else if (localContainerNames.contains(built.getName())) {
+                combined.put(built.getName(), combine(yamlContainer, built));
+            } else {
+                combined.put(built.getName(), combine(built, yamlContainer));
+            }
+        }
+        yamlByName.values().forEach(c -> combined.put(c.getName(), c));
+        return new ArrayList<>(combined.values());
+    }
+
     private static List<Volume> combineVolumes(@NonNull List<Volume> volumes1, @NonNull List<Volume> volumes2) {
         Map<String, Volume> volumesByName =
                 volumes1.stream().collect(Collectors.toMap(Volume::getName, Function.identity()));
@@ -512,6 +548,9 @@ public class PodTemplateUtils {
         yamls.addAll(template.getYamls());
         podTemplate.setYamls(yamls);
         podTemplate.setListener(template.getListener());
+        podTemplate.setLocalContainerNames(template.getContainers().stream()
+                .map(ContainerTemplate::getName)
+                .collect(Collectors.toSet()));
 
         LOGGER.log(Level.FINEST, "Pod templates combined: {0}", podTemplate);
         return podTemplate;
