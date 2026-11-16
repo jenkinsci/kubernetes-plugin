@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,8 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
     private final OutputStream stdin;
 
     private final PrintStream printStream;
+
+    private ScheduledFuture<?> keepAliveTask;
 
     @Deprecated
     public ContainerExecProc(
@@ -70,7 +73,7 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
         this.alive = alive;
         this.finished = finished;
         this.printStream = printStream == null ? NullPrintStream.NULL_PRINT_STREAM : printStream;
-        Timer.get().schedule(this, 1, TimeUnit.MINUTES);
+        keepAliveTask = Timer.get().schedule(this, 1, TimeUnit.MINUTES);
     }
 
     @Override
@@ -151,6 +154,10 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
 
     @Override
     public void close() throws IOException {
+        if (keepAliveTask != null) {
+            keepAliveTask.cancel(false);
+            keepAliveTask = null;
+        }
         try {
             // We are calling explicitly close, in order to cleanup websockets and threads (are not closed implicitly).
             watch.close();
@@ -163,13 +170,17 @@ public class ContainerExecProc extends Proc implements Closeable, Runnable {
     public void run() {
         if (!isAlive()) {
             LOGGER.fine("process is no longer alive");
+            if (keepAliveTask != null) {
+                keepAliveTask.cancel(false);
+                keepAliveTask = null;
+            }
             return;
         }
         try {
             stdin.write(NEWLINE.getBytes(StandardCharsets.UTF_8));
             stdin.flush();
             LOGGER.fine("sent a newline to keep socket alive");
-            Timer.get().schedule(this, 1, TimeUnit.MINUTES);
+            keepAliveTask = Timer.get().schedule(this, 1, TimeUnit.MINUTES);
         } catch (IOException x) {
             LOGGER.log(Level.FINE, "socket keepalive failed", x);
         }
