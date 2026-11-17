@@ -1449,15 +1449,53 @@ public class KubernetesCloud extends Cloud implements PodTemplateGroup {
             if (jenkinsUrlLabel != null) {
                 labelsFilter.put(PodTemplateBuilder.LABEL_KUBERNETES_CONTROLLER, jenkinsUrlLabel);
             }
-            SharedIndexInformer<Pod> inform = client.pods()
-                    .inNamespace(node.getNamespace())
+            SharedIndexInformer<Pod> informer = client.pods()
+                    .inNamespace(n)
                     .withLabels(labelsFilter)
-                    .inform(new PodStatusEventHandler(), TimeUnit.SECONDS.toMillis(30));
+                    .runnableInformer(TimeUnit.SECONDS.toMillis(30));
+            informer.addEventHandler(new PodStatusEventHandler());
+            if (!runInformer(informer, n)) {
+                node.getRunListener()
+                        .getLogger()
+                        .printf("Cannot watch pods in namespace %s, pod events will not be shown%n", n);
+                return null;
+            }
             LOGGER.info(String.format(
                     "Registered informer to watch pod events on namespace [%s], with labels [%s] on cloud [%s]",
-                    namespace, labelsFilter, name));
-            return inform;
+                    n, labelsFilter, name));
+            return informer;
         });
+    }
+
+    Map<String, SharedIndexInformer<Pod>> getInformers() {
+        return informers;
+    }
+
+    /**
+     * Starts the informer, stopping it if startup fails (e.g. no permission to list pods). Without the stop, the
+     * informer's resync task stays scheduled and leaks the informer and its client.
+     */
+    static boolean runInformer(SharedIndexInformer<Pod> informer, String namespace) {
+        boolean started = false;
+        try {
+            informer.run();
+            started = true;
+        } catch (KubernetesClientException e) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw e;
+            }
+            LOGGER.log(Level.WARNING, "Cannot watch pods in namespace [" + namespace + "]: " + e);
+            LOGGER.log(Level.FINE, "Informer startup failure", e);
+        } finally {
+            if (!started) {
+                try {
+                    informer.stop();
+                } catch (RuntimeException e) {
+                    LOGGER.log(Level.FINE, "Cannot stop informer for namespace [" + namespace + "]", e);
+                }
+            }
+        }
+        return started;
     }
 
     @Extension
