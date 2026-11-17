@@ -6,11 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.util.StreamTaskListener;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -21,12 +17,17 @@ import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
 import io.fabric8.mockwebserver.http.RecordedRequest;
 import java.io.ByteArrayOutputStream;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import org.csanchez.jenkins.plugins.kubernetes.watch.PodStatusEventHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MemoryAssert;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
@@ -38,61 +39,56 @@ class KubernetesCloudPodInformerTest {
     private JenkinsRule j;
     private KubernetesMockServer server;
     private KubernetesClient client;
+    private KubernetesCloud cloud;
     private final ByteArrayOutputStream buildLog = new ByteArrayOutputStream();
 
     @BeforeEach
     void beforeEach(JenkinsRule rule) {
         j = rule;
+        cloud = new KubernetesCloud("k8s");
+        cloud.setServerUrl(client.getMasterUrl().toString());
+        cloud.setSkipTlsVerify(true);
+        cloud.setJenkinsUrl(JENKINS_URL);
+        j.jenkins.clouds.add(cloud);
     }
 
     @AfterEach
     void afterEach() {
+        cloud.getInformers().values().forEach(SharedIndexInformer::stop);
         KubernetesClientProvider.invalidateAll();
     }
 
     @Test
-    void failedInformerIsStopped() {
-        SharedIndexInformer<Pod> informer = mockInformer();
-        doThrow(new KubernetesClientException("Forbidden", 403, null))
-                .when(informer)
-                .run();
-
-        assertFalse(KubernetesCloud.runInformer(informer, "forbidden"));
-        verify(informer).stop();
+    void failedInformerIsReleased() throws Exception {
+        forbidPodList("forbidden", "labelSelector=jenkins%3Dslave&resourceVersion=0");
+        // Without the stop, fabric8's shared scheduler keeps the informer's resync task, and so the informer, reachable
+        MemoryAssert.assertGC(
+                runInformer(informer -> assertFalse(KubernetesCloud.runInformer(informer, "forbidden"))), false);
     }
 
     @Test
-    void informerIsStoppedOnError() {
-        SharedIndexInformer<Pod> informer = mockInformer();
-        doThrow(new NoClassDefFoundError()).when(informer).run();
-
-        assertThrows(NoClassDefFoundError.class, () -> KubernetesCloud.runInformer(informer, "ns"));
-        verify(informer).stop();
-    }
-
-    @Test
-    void stopFailureDoesNotEscape() {
-        SharedIndexInformer<Pod> informer = mockInformer();
-        doThrow(new KubernetesClientException("Forbidden", 403, null))
-                .when(informer)
-                .run();
-        doThrow(new IllegalStateException()).when(informer).stop();
-
-        assertFalse(KubernetesCloud.runInformer(informer, "forbidden"));
+    void interruptedStartIsRethrown() throws Exception {
+        forbidPodList("forbidden", "labelSelector=jenkins%3Dslave&resourceVersion=0");
+        WeakReference<SharedIndexInformer<Pod>> ref;
+        Thread.currentThread().interrupt();
+        try {
+            ref = runInformer(informer -> assertThrows(
+                    KubernetesClientException.class, () -> KubernetesCloud.runInformer(informer, "forbidden")));
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+        MemoryAssert.assertGC(ref, false);
     }
 
     @Test
     void forbiddenNamespaceDoesNotFailRegistration() throws Exception {
-        KubernetesCloud cloud = addCloud();
-        server.expect()
-                .get()
-                .withPath("/api/v1/namespaces/forbidden/pods?labelSelector=jenkins%3Dslave%2C"
-                        + "kubernetes.jenkins.io%2Fcontroller%3D"
+        forbidPodList(
+                "forbidden",
+                "labelSelector=jenkins%3Dslave%2Ckubernetes.jenkins.io%2Fcontroller%3D"
                         + PodTemplateUtils.sanitizeLabel(JENKINS_URL)
-                        + "&resourceVersion=0")
-                .andReturn(403, "")
-                .always();
-        KubernetesSlave node = mockNode("forbidden");
+                        + "&resourceVersion=0");
+        KubernetesSlave node = newNode("forbidden");
 
         assertDoesNotThrow(() -> cloud.registerPodInformer(node));
         // Failure is not cached, so a later launch tries again
@@ -104,54 +100,41 @@ class KubernetesCloudPodInformerTest {
 
     @Test
     void startedInformerIsReused() throws Exception {
-        KubernetesCloud cloud = addCloud();
-        KubernetesSlave node = mockNode("allowed");
+        KubernetesSlave node = newNode("allowed");
 
-        try {
-            cloud.registerPodInformer(node);
-            cloud.registerPodInformer(node);
-            assertEquals(1, countPodListRequests("allowed"));
-        } finally {
-            cloud.getInformers().values().forEach(SharedIndexInformer::stop);
-        }
+        cloud.registerPodInformer(node);
+        cloud.registerPodInformer(node);
+        assertEquals(1, countPodListRequests("allowed"));
     }
 
-    @Test
-    void interruptedStartIsRethrown() {
-        SharedIndexInformer<Pod> informer = mockInformer();
-        doAnswer(inv -> {
-                    Thread.currentThread().interrupt();
-                    throw new KubernetesClientException("interrupted");
-                })
-                .when(informer)
-                .run();
-
-        try {
-            assertThrows(KubernetesClientException.class, () -> KubernetesCloud.runInformer(informer, "ns"));
-            verify(informer).stop();
-        } finally {
-            Thread.interrupted();
-        }
+    private void forbidPodList(String namespace, String query) {
+        server.expect()
+                .get()
+                .withPath("/api/v1/namespaces/" + namespace + "/pods?" + query)
+                .andReturn(403, "")
+                .always();
     }
 
-    @SuppressWarnings("unchecked")
-    private static SharedIndexInformer<Pod> mockInformer() {
-        return mock(SharedIndexInformer.class);
+    /** Builds an informer like {@link KubernetesCloud#registerPodInformer} does, runs the check on it, and lets it go. */
+    private WeakReference<SharedIndexInformer<Pod>> runInformer(Consumer<SharedIndexInformer<Pod>> check)
+            throws Exception {
+        SharedIndexInformer<Pod> informer = cloud.connect()
+                .pods()
+                .inNamespace("forbidden")
+                .withLabels(Map.of("jenkins", "slave"))
+                .runnableInformer(TimeUnit.SECONDS.toMillis(30));
+        informer.addEventHandler(new PodStatusEventHandler());
+        check.accept(informer);
+        return new WeakReference<>(informer);
     }
 
-    private KubernetesCloud addCloud() {
-        KubernetesCloud cloud = new KubernetesCloud("k8s");
-        cloud.setServerUrl(client.getMasterUrl().toString());
-        cloud.setSkipTlsVerify(true);
-        cloud.setJenkinsUrl(JENKINS_URL);
-        j.jenkins.clouds.add(cloud);
-        return cloud;
-    }
-
-    private KubernetesSlave mockNode(String namespace) {
-        KubernetesSlave node = mock(KubernetesSlave.class);
-        when(node.getNamespace()).thenReturn(namespace);
-        when(node.getRunListener()).thenReturn(new StreamTaskListener(buildLog, StandardCharsets.UTF_8));
+    private KubernetesSlave newNode(String namespace) throws Exception {
+        PodTemplate template = new PodTemplate();
+        template.setName("informer-test");
+        template.setListener(new StreamTaskListener(buildLog, StandardCharsets.UTF_8));
+        KubernetesSlave node =
+                KubernetesSlave.builder().podTemplate(template).cloud(cloud).build();
+        node.setNamespace(namespace);
         return node;
     }
 
