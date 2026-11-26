@@ -342,7 +342,8 @@ Either way it provides access to the following fields:
 * **serviceAccount** The service account of the pod.
 * **nodeSelector** The node selector of the pod.
 * **nodeUsageMode** Either `NORMAL` or `EXCLUSIVE`, this controls whether Jenkins only schedules jobs with label expressions matching or use the node as much as possible.
-* **volumes** Volumes that are defined for the pod and are mounted by **ALL** containers.
+* **volumes** Volumes that are defined for the pod and are mounted by containers defined with container templates and by the agent container the plugin creates.
+  Containers defined only in YAML are not affected; declare both the volume and its `volumeMounts` in the YAML.
   * `configMapVolume` : a read only volume that is mounted from a ConfigMap.
   * `dynamicPVC()` : a persistent volume claim managed dynamically. It is deleted at the same time as the pod.
   * `emptyDirVolume` (default): an empty dir allocated on the host machine
