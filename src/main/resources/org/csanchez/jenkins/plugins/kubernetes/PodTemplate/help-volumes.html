@@ -1,4 +1,4 @@
 <p>
-    Volumes get mounted in all containers with the specified mount path.<br/>
-    If you want more fine-grained control, use the <b>raw YAML</b> field.
+    Volumes get mounted in containers defined by container templates and in the agent container the plugin creates.<br/>
+    Containers defined only in <b>raw YAML</b> are not affected; declare both the volume and its <code>volumeMounts</code> there.
 </p>
